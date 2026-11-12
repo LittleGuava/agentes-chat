@@ -55,7 +55,7 @@ import {
   writeAgySettings,
 } from "./agy-home";
 import { COPILOT_LOOK_ARGS, copilotLook } from "./copilot-acp";
-import { prepareCopilotHome } from "./copilot-home";
+import { COPILOT_NO_GH, prepareCopilotHome } from "./copilot-home";
 import { errnoCode, RunnerError } from "./errors";
 import { killTree } from "./exec";
 import {
@@ -315,6 +315,8 @@ export function accountEnv(kind: AccountKind, dir: string, base: NodeJS.ProcessE
   }
   if (kind === "copilot") {
     for (const k of Object.keys(env)) if (GITHUB_TOKEN_ENV.test(k)) delete env[k];
+    // Nor `gh`'s own sign-in, which the CLI takes when its folder holds none: a turn and a look answer the same.
+    env.GH_CONFIG_DIR = path.join(dir, COPILOT_NO_GH);
     Object.assign(env, COPILOT_QUIET_ENV);
   }
   return env;
@@ -2312,13 +2314,16 @@ export class AccountManager {
     if (kind === "copilot") {
       const seen = await this.serial(
         id,
-        () =>
-          copilotLook({
+        () => {
+          // What a turn left in the folder never loads in a look.
+          prepareCopilotHome(dir);
+          return copilotLook({
             command: this.command(kind),
             env: this.env(kind, dir),
             home: dir,
             timeoutMs: this.opts.statusTimeoutMs ?? STATUS_TIMEOUT_MS,
-          }),
+          });
+        },
         this.cliOps,
       ).catch(() => null);
       if (out && seen?.said) out.said = saidIn(withoutTokens(seen.said));

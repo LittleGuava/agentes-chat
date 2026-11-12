@@ -5,7 +5,7 @@ import path from "node:path";
 import { createInterface } from "node:readline";
 import type { CommandProfile } from "@agenteschat/adapters/command-policy";
 import type { AgentScope, BrainEffort } from "@agenteschat/adapters/machine-protocol";
-import { isAccountId } from "@agenteschat/adapters/machine-protocol";
+import { isAccountId, isBrainEffort } from "@agenteschat/adapters/machine-protocol";
 import { ACCOUNT_MISSING_MESSAGE, accountEnv } from "./accounts";
 import { LIMIT_TEXT } from "./brain";
 import {
@@ -134,6 +134,7 @@ const COPILOT_LIMIT =
 export const COPILOT_AUTH =
   /no authentication information found|authentication required|could not be validated|bad credentials|not (?:authenticated|logged in|signed in)|copilot login|unauthori[sz]ed|\b401\b|token (?:has )?expired/i;
 const SESSION_GONE = /no session, task, or name matched/i;
+const CHAT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 /** cmd.exe when the CLI isn't on the PATH (Windows runs it through cmd.exe). */
 const NOT_ON_PATH = /is not recognized as an internal or external command/i;
 
@@ -176,6 +177,10 @@ export class CopilotEventMapper {
   failed = "";
   worked = false;
   bridgeDown = "";
+  /** The CLI opened or resumed its session: from here on a run of it may have had effects. */
+  started = false;
+  /** The assistant said or called something: the session holds this turn. */
+  acted = false;
   private streamed = "";
   private answer = "";
   private readonly live = new Set<string>();
@@ -199,7 +204,12 @@ export class CopilotEventMapper {
     const data = isRecord(ev.data) ? ev.data : {};
     switch (ev.type) {
       case "session.start": {
+        this.started = true;
         this.session = str(data.sessionId) || this.session;
+        return [];
+      }
+      case "session.resume": {
+        this.started = true;
         return [];
       }
       case "session.model_change": {
@@ -209,11 +219,13 @@ export class CopilotEventMapper {
       case "assistant.message_delta": {
         const id = str(data.messageId);
         this.live.add(id);
+        this.acted = true;
         return this.say(id, str(data.deltaContent));
       }
       case "assistant.message": {
         const id = str(data.messageId);
         const out = this.live.has(id) ? [] : this.say(id, str(data.content));
+        this.acted = true;
         if (Array.isArray(data.toolRequests) && data.toolRequests.length > 0) this.answer = "";
         return out;
       }
@@ -222,6 +234,7 @@ export class CopilotEventMapper {
         if (!id) return [];
         const ours = str(data.mcpServerName) === CODEX_MCP_SERVER;
         this.calls.set(id, { name: str(data.toolName) || "tool", input: data.arguments ?? {}, ours });
+        this.acted = true;
         this.answer = "";
         return [];
       }
@@ -258,18 +271,21 @@ export class CopilotEventMapper {
         const snapshot = isRecord(data.accountingSnapshot) ? data.accountingSnapshot : {};
         const metrics = isRecord(snapshot.modelMetrics) ? snapshot.modelMetrics : {};
         const totals: CopilotTotals = { ...NO_TOTALS };
-        let most = 0;
+        let most = -1;
+        let best = "";
         for (const [model, m] of Object.entries(metrics)) {
           const usage = isRecord(m) && isRecord(m.usage) ? m.usage : {};
           totals.input += num(usage.inputTokens);
           totals.output += num(usage.outputTokens);
           totals.cacheRead += num(usage.cacheReadTokens);
           totals.cacheWrite += num(usage.cacheWriteTokens);
-          if (num(usage.inputTokens) >= most) {
+          if (num(usage.inputTokens) > most) {
             most = num(usage.inputTokens);
-            this.model = this.model || model;
+            best = model;
           }
         }
+        // One usage per turn: it goes to the model that read most.
+        this.model = best || this.model;
         this.totals = totals;
         return [];
       }
@@ -319,7 +335,9 @@ export class CopilotEventMapper {
       this.failed ||
       (input.exitCode === 0
         ? this.sawResult
-          ? ""
+          ? this.acted
+            ? ""
+            : "Copilot CLI ended without an answer"
           : "Copilot CLI ended without finishing the turn"
         : `Copilot CLI exited with code ${input.exitCode ?? "?"}${said ? `: ${said}` : ""}`);
     if (problem) return [...usage, ...copilotProblem(problem, this.worked)];
@@ -386,7 +404,9 @@ export async function runCopilotTurn(input: CopilotTurnInput, opts: CopilotTurnO
 
   try {
     for (let attempt = 0; ; attempt++) {
-      const chat = opts.chats.get(chatKey);
+      // An argument of the command line: only an id the CLI itself gave.
+      const kept = opts.chats.get(chatKey);
+      const chat = kept && CHAT_ID.test(kept) ? kept : undefined;
       const before = chat ? totalsOf(opts.chats.get(usageKey(chatKey))) : NO_TOTALS;
       const args = copilotTurnArgs({
         mcpConfig: mcpFile,
@@ -453,7 +473,6 @@ export async function runCopilotTurn(input: CopilotTurnInput, opts: CopilotTurnO
               : event,
           );
         }
-        if (mapper.session) opts.chats.set(chatKey, mapper.session);
       });
       let killTimer: ReturnType<typeof setTimeout> | undefined;
       const abort = () => {
@@ -488,7 +507,7 @@ export async function runCopilotTurn(input: CopilotTurnInput, opts: CopilotTurnO
       if (opts.signal.aborted) return fail("canceled", "The turn was canceled.");
       const missing =
         (exit.error as NodeJS.ErrnoException | undefined)?.code === "ENOENT" ||
-        (!mapper.session && (exit.code === 127 || exit.code === 9009 || NOT_ON_PATH.test(stderr)));
+        (!mapper.started && (exit.code === 127 || exit.code === 9009 || NOT_ON_PATH.test(stderr)));
       if (missing)
         return fail("copilot_missing", "The Copilot CLI, GitHub's, is not installed on this computer.", true);
       if (exit.error) return fail("copilot_failed", exit.error.message, true);
@@ -499,13 +518,18 @@ export async function runCopilotTurn(input: CopilotTurnInput, opts: CopilotTurnO
           true,
         );
       }
-      if (chat && !mapper.session && attempt === 0 && SESSION_GONE.test(stderr)) {
+      if (chat && !mapper.started && attempt === 0 && SESSION_GONE.test(stderr)) {
         opts.chats.delete(chatKey);
         opts.chats.delete(usageKey(chatKey));
         continue;
       }
       flush("", true);
-      if (mapper.used && opts.chats.get(chatKey)) opts.chats.set(usageKey(chatKey), totalsText(mapper.used));
+      // Kept only now: a turn that was canceled, lost its bridge or never spoke left no chat to resume, so the next
+      // one starts it again with the context.
+      if (mapper.session && mapper.acted) {
+        opts.chats.set(chatKey, mapper.session);
+        if (mapper.used) opts.chats.set(usageKey(chatKey), totalsText(mapper.used));
+      }
       for (const event of mapper.finish({
         exitCode: exit.code,
         stderr: clean(stderr),
@@ -606,7 +630,7 @@ export async function handleCopilotBrainTurn(
       sessionId: req.session.id,
       cwd,
       ...(typeof req.model === "string" && req.model ? { model: req.model } : {}),
-      ...(req.effort ? { effort: req.effort } : {}),
+      ...(isBrainEffort(req.effort) ? { effort: req.effort } : {}),
       system: typeof req.system === "string" ? req.system : "",
       prompt: typeof req.prompt === "string" ? req.prompt : "",
       mcp: { token: req.mcp.token, ...(typeof req.mcp.url === "string" && req.mcp.url ? { url: req.mcp.url } : {}) },

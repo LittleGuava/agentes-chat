@@ -9,7 +9,8 @@
 // session) or `session.resume` (`--resume=<id>`), text deltas, a shell call of its own (none with "BRIDGE_ONLY"), a
 // call to our bridge, a last message that comes whole, the session's usage so far and the result. Not signed in: its
 // words on stderr, exit 1. "LIMIT": a rate-limit `session.error`. "NO_BRIDGE": our MCP server fails to start, and it
-// answers all the same. A `--resume` of a session it never made: "No
+// answers all the same. "SAY_SECRET": it says $FAKE_SECRET in two deltas first. "SLOW": it stops for a minute after its
+// first words. A `--resume` of a session it never made: "No
 // session, task, or name matched" on stderr, exit 1.
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -44,6 +45,7 @@ const log = (extra = {}) => {
       allowAll: env.COPILOT_ALLOW_ALL ?? null,
       autoUpdate: env.COPILOT_AUTO_UPDATE ?? null,
       ghConfig: env.GH_CONFIG_DIR ?? null,
+      pid: process.pid,
       settings: read(path.join(home, "settings.json")),
       mcp: mcpFile ? read(mcpFile) : null,
       ...extra,
@@ -137,7 +139,13 @@ if (args.includes("--output-format")) {
     out({ type: "result", sessionId: session, exitCode: 1, usage: { premiumRequests: 0 } });
     process.exit(1);
   }
+  if (prompt.includes("SAY_SECRET") && env.FAKE_SECRET) {
+    const half = Math.floor(env.FAKE_SECRET.length / 2);
+    ev("assistant.message_delta", { messageId: "m1", deltaContent: `key ${env.FAKE_SECRET.slice(0, half)}` });
+    ev("assistant.message_delta", { messageId: "m1", deltaContent: `${env.FAKE_SECRET.slice(half)}. ` });
+  }
   ev("assistant.message_delta", { messageId: "m1", deltaContent: "Let me " });
+  if (prompt.includes("SLOW")) await new Promise((resolve) => setTimeout(resolve, 60_000));
   ev("assistant.message_delta", { messageId: "m1", deltaContent: "check." });
   const requests = [];
   if (!prompt.includes("BRIDGE_ONLY")) {
