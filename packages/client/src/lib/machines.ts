@@ -93,7 +93,7 @@ export const allowsInApp = (os: string | null | undefined) => os === "darwin" ||
  */
 export function toolOffReason(
   m: Pick<Machine, "os" | "mode"> | null | undefined,
-  kind: "claude_code" | "codex" | "cursor" | "opencode" | "grok" | "antigravity",
+  kind: "claude_code" | "codex" | "cursor" | "opencode" | "grok" | "antigravity" | "copilot",
 ) {
   if (!m || allowsInApp(m.os)) return { key: "brain.reasons.tool_off" as const, command: "" };
   return {
@@ -115,6 +115,7 @@ export const MACHINE_TOOLS: MachineToolName[] = [
   "opencode",
   "grok",
   "antigravity",
+  "copilot",
   "commands",
 ];
 

@@ -256,7 +256,7 @@ const AgentProposal = z
         ai: z.discriminatedUnion("kind", [
           z.object({
             kind: z.literal("account"),
-            brain: z.enum(["claude_code", "codex", "cursor", "opencode", "grok", "antigravity"]),
+            brain: z.enum(["claude_code", "codex", "cursor", "opencode", "grok", "antigravity", "copilot"]),
             machineId: z.uuid(),
             accountId: z.uuid(),
             label: z.string(),
@@ -696,7 +696,9 @@ export function agentRoutes(deps: AppDeps) {
                     "plan_tools",
                   ])
                   .optional(),
-                own: z.enum(["claude_code", "codex", "cursor", "opencode", "grok", "antigravity"]).optional(),
+                own: z
+                  .enum(["claude_code", "codex", "cursor", "opencode", "grok", "antigravity", "copilot"])
+                  .optional(),
                 provider: z.string().optional().openapi({
                   description: "Ready on an API key with Automático: the maker of the key it thinks with.",
                 }),

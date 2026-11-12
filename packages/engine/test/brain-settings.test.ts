@@ -118,6 +118,7 @@ describe("brain settings", () => {
       ["opencode", false, "no_computer"],
       ["grok", false, "no_computer"],
       ["antigravity", false, "no_computer"],
+      ["copilot", false, "no_computer"],
     ]);
     expect(reasons(mac())).toEqual([
       ["model", true, null],
@@ -131,6 +132,8 @@ describe("brain settings", () => {
       ["grok", false, "runner_old"],
       // The Antigravity CLI needs runner protocol 44 (`ANTIGRAVITY_PROTOCOL`).
       ["antigravity", false, "runner_old"],
+      // The Copilot CLI needs runner protocol 59 (`COPILOT_PROTOCOL`).
+      ["copilot", false, "runner_old"],
     ]);
     expect(reasons(mac({ execAllowed: false }))[1]).toEqual(["claude_code", false, "exec_off"]);
     expect(reasons(mac({ protocol: MISSION_PROTOCOL - 1 }))[1]).toEqual(["claude_code", false, "runner_old"]);
@@ -153,7 +156,9 @@ describe("brain settings", () => {
     ]);
     const both = mac({ executors: { claude: { version: "2" }, codex: { version: "0.170.0" }, detectedAt: "x" } });
     expect(
-      brainOptions(both).every((o) => o.available || ["cursor", "opencode", "grok", "antigravity"].includes(o.kind)),
+      brainOptions(both).every(
+        (o) => o.available || ["cursor", "opencode", "grok", "antigravity", "copilot"].includes(o.kind),
+      ),
     ).toBe(true);
     // Installed but turned off in the app's Tools: says so (not "not installed"); turned on, available.
     const off = mac({ ...both, access: { tools: { claude: false, codex: true } } });

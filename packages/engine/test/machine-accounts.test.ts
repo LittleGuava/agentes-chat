@@ -617,6 +617,7 @@ test("a coding plan's key: no sign-in page but the plan's key page, the key seal
         opencode: false,
         grok: false,
         antigravity: false,
+        copilot: false,
         key: false,
       },
       off: expect.any(Object),
@@ -627,6 +628,7 @@ test("a coding plan's key: no sign-in page but the plan's key page, the key seal
         opencode: expect.any(Boolean),
         grok: expect.any(Boolean),
         antigravity: expect.any(Boolean),
+        copilot: expect.any(Boolean),
       },
       // Its Claude Code is signed in on its own, with no plan or usage known yet.
       own: { claude_code: {} },
@@ -1578,6 +1580,7 @@ test("one sign-in for all agents (protocol 29): asked for, it thinks for two age
     opencode: true,
     grok: true,
     antigravity: true,
+    copilot: true,
     key: true,
   });
 
@@ -1713,6 +1716,7 @@ test("where each agent is its own OS user, the switch decides: Claude's, ChatGPT
     opencode: false,
     grok: false,
     antigravity: true,
+    copilot: false,
     key: true,
   });
   // A runner before protocol 58 shares Gemini's with no one.
@@ -1727,6 +1731,7 @@ test("where each agent is its own OS user, the switch decides: Claude's, ChatGPT
     opencode: false,
     grok: false,
     antigravity: false,
+    copilot: false,
     key: true,
   });
   // A runner before protocol 38 shares Claude's and keys only, and an older one nothing.
@@ -1741,6 +1746,7 @@ test("where each agent is its own OS user, the switch decides: Claude's, ChatGPT
     opencode: false,
     grok: false,
     antigravity: false,
+    copilot: false,
     key: true,
   });
   await f.db
@@ -1754,6 +1760,7 @@ test("where each agent is its own OS user, the switch decides: Claude's, ChatGPT
     opencode: false,
     grok: false,
     antigravity: false,
+    copilot: false,
     key: false,
   });
 });
