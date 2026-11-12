@@ -284,6 +284,12 @@ export async function rightHandAway(
   return isRightHand(agent) && !(await rightHandReader(ctx));
 }
 
+/**
+ * Brains it can't think with (ADR 0174): the Copilot CLI has no way to lock its tools to ours, so the runner refuses
+ * its `chat` turns (`tools_not_locked`). They aren't offered to it, and a save that names one is refused.
+ */
+export const RIGHT_HAND_NO_BRAINS: ReadonlySet<string> = new Set(["copilot"]);
+
 /** Its computer turns' permission profile: the runner's locked-down `chat` (`LOCKED_BRAIN_PROTOCOL`). */
 export const RIGHT_HAND_TURN = { mode: "chat" } as const;
 

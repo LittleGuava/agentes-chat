@@ -53,6 +53,8 @@ export interface MachineExecutors {
   grok?: { version: string; models?: { id: string; label?: string }[] };
   /** Google's Antigravity CLI (protocol 44, ADR 0143), and the models it lists. */
   antigravity?: { version: string; models?: { id: string; label?: string }[] };
+  /** GitHub's Copilot CLI (protocol 59, ADR 0174). */
+  copilot?: { version: string; models?: { id: string; label?: string }[] };
   /** `hello.browser` (ADR 0040): whether the agent browser can run there; absent = not reported. */
   browser?: {
     available: boolean;
@@ -87,6 +89,7 @@ export interface MachineExecutors {
     opencode?: MachinePlanUsage;
     grok?: MachinePlanUsage;
     antigravity?: MachinePlanUsage;
+    copilot?: MachinePlanUsage;
   };
   detectedAt?: string;
 }
@@ -139,6 +142,7 @@ export interface MachineAccess {
     opencode?: boolean;
     grok?: boolean;
     antigravity?: boolean;
+    copilot?: boolean;
     commands: boolean;
     browser?: boolean;
     desktop?: boolean;

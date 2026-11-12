@@ -1109,13 +1109,15 @@ export async function buildRunContext(
           a
             ? [
                 { text: machineAccessText(a) },
-                // Cursor's, Grok's and Antigravity's sandboxes (ADR 0114, 0142, 0143) and OpenCode's permissions (ADR
-                // 0132) keep its shell out of a folder outside the turn's workspace, so it couldn't use it.
+                // Cursor's, Grok's and Antigravity's sandboxes (ADR 0114, 0142, 0143), OpenCode's permissions (ADR
+                // 0132) and the Copilot CLI's path rules (ADR 0174) keep its shell out of a folder outside the turn's
+                // workspace, so it couldn't use it.
                 ...(a.shared &&
                 agent.brain !== "cursor" &&
                 agent.brain !== "opencode" &&
                 agent.brain !== "grok" &&
-                agent.brain !== "antigravity"
+                agent.brain !== "antigravity" &&
+                agent.brain !== "copilot"
                   ? [{ text: sharedFolderText(a.name, a.shared) }]
                   : []),
                 ...(a.shares && a.tools.commands ? [{ text: sharingText(a.name, a.size) }] : []),

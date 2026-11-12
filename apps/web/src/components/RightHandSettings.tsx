@@ -104,7 +104,7 @@ function PlanLine({ kind, label, owner }: { kind: PlanKind; label?: string; owne
   );
 }
 
-type PlanKind = "claude_code" | "codex" | "cursor" | "opencode" | "grok" | "antigravity";
+type PlanKind = "claude_code" | "codex" | "cursor" | "opencode" | "grok" | "antigravity" | "copilot";
 const planKind = (kind: string | undefined): PlanKind | null => (kind && kind !== "model" ? (kind as PlanKind) : null);
 
 /**
