@@ -219,14 +219,15 @@ export class CopilotEventMapper {
       case "assistant.message_delta": {
         const id = str(data.messageId);
         this.live.add(id);
-        this.acted = true;
+        if (str(data.deltaContent)) this.acted = true;
         return this.say(id, str(data.deltaContent));
       }
       case "assistant.message": {
         const id = str(data.messageId);
         const out = this.live.has(id) ? [] : this.say(id, str(data.content));
-        this.acted = true;
-        if (Array.isArray(data.toolRequests) && data.toolRequests.length > 0) this.answer = "";
+        const calls = Array.isArray(data.toolRequests) && data.toolRequests.length > 0;
+        if (calls || str(data.content)) this.acted = true;
+        if (calls) this.answer = "";
         return out;
       }
       case "tool.execution_start": {
@@ -284,8 +285,8 @@ export class CopilotEventMapper {
             best = model;
           }
         }
-        // One usage per turn: it goes to the model that read most.
-        this.model = best || this.model;
+        // One usage per turn: the turn's own model's, else (a resume says none) the one that read most.
+        this.model = this.model || best;
         this.totals = totals;
         return [];
       }
@@ -526,10 +527,9 @@ export async function runCopilotTurn(input: CopilotTurnInput, opts: CopilotTurnO
       flush("", true);
       // Kept only now: a turn that was canceled, lost its bridge or never spoke left no chat to resume, so the next
       // one starts it again with the context.
-      if (mapper.session && mapper.acted) {
-        opts.chats.set(chatKey, mapper.session);
-        if (mapper.used) opts.chats.set(usageKey(chatKey), totalsText(mapper.used));
-      }
+      if (mapper.session && mapper.acted) opts.chats.set(chatKey, mapper.session);
+      // What a kept chat has used moves on with every usage told, a failed turn's too, or the next would tell it again.
+      if (mapper.used && opts.chats.get(chatKey)) opts.chats.set(usageKey(chatKey), totalsText(mapper.used));
       for (const event of mapper.finish({
         exitCode: exit.code,
         stderr: clean(stderr),

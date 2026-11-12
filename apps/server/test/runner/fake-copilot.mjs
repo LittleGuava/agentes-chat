@@ -10,7 +10,8 @@
 // call to our bridge, a last message that comes whole, the session's usage so far and the result. Not signed in: its
 // words on stderr, exit 1. "LIMIT": a rate-limit `session.error`. "NO_BRIDGE": our MCP server fails to start, and it
 // answers all the same. "SAY_SECRET": it says $FAKE_SECRET in two deltas first. "SLOW": it stops for a minute after its
-// first words. A `--resume` of a session it never made: "No
+// first words. "CRASH": it spends, then dies with no result. With "SAY_SECRET" the secret is also in its command and
+// in its answer. A `--resume` of a session it never made: "No
 // session, task, or name matched" on stderr, exit 1.
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -134,6 +135,14 @@ if (args.includes("--output-format")) {
       error: "MCP server process exited before completing the MCP initialize handshake (exit code 1)",
     });
   }
+  if (prompt.includes("CRASH")) {
+    const was = sessions[session] ?? { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 };
+    const spent = { ...was, inputTokens: was.inputTokens + 1000, outputTokens: was.outputTokens + 40 };
+    writeFileSync(known, JSON.stringify({ ...sessions, [session]: spent }));
+    ev("session.usage_checkpoint", { accountingSnapshot: { modelMetrics: { [model]: { usage: spent } } } });
+    process.stderr.write("Error: the connection was lost\n");
+    process.exit(1);
+  }
   if (prompt.includes("LIMIT")) {
     ev("session.error", { errorType: "query", message: "Execution failed: You've hit your rate limit." });
     out({ type: "result", sessionId: session, exitCode: 1, usage: { premiumRequests: 0 } });
@@ -147,9 +156,10 @@ if (args.includes("--output-format")) {
   ev("assistant.message_delta", { messageId: "m1", deltaContent: "Let me " });
   if (prompt.includes("SLOW")) await new Promise((resolve) => setTimeout(resolve, 60_000));
   ev("assistant.message_delta", { messageId: "m1", deltaContent: "check." });
+  const said = prompt.includes("SAY_SECRET") && env.FAKE_SECRET ? ` ${env.FAKE_SECRET}` : "";
   const requests = [];
   if (!prompt.includes("BRIDGE_ONLY")) {
-    requests.push({ toolCallId: "call_1", name: "bash", arguments: { command: "bun test" } });
+    requests.push({ toolCallId: "call_1", name: "bash", arguments: { command: `bun test${said}` } });
   }
   requests.push({
     toolCallId: "call_2",
@@ -173,7 +183,7 @@ if (args.includes("--output-format")) {
     });
   }
   // The answer comes whole, with no deltas before it.
-  ev("assistant.message", { messageId: "m2", content: "All good.", toolRequests: [] });
+  ev("assistant.message", { messageId: "m2", content: `All good.${said}`, toolRequests: [] });
   const before = sessions[session] ?? { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 };
   const usage = {
     inputTokens: before.inputTokens + 1000,

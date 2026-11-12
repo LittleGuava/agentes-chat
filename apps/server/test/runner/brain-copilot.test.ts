@@ -506,6 +506,9 @@ test("an account's turn: none or gone refused, signed out is not_logged_in, a li
   });
   // The turn's own file went with it.
   expect(existsSync(path.join(accountDir, `agentes-mcp-${run7}.json`))).toBe(false);
+  // The turn at its limit never spoke, so it left no chat: this one began it, with the context.
+  expect(seen?.args.some((a) => a.startsWith("--resume"))).toBe(false);
+  expect(seen?.stdin).toStartWith("You are Dev, the team's developer.");
 }, 30_000);
 
 test("our bridge failing to start stops the turn: an agent never answers without its tools", async () => {
@@ -587,6 +590,67 @@ test("the mapper: usage goes to the model that used most, a resumed session has 
   ]);
 });
 
+test("usage is told once: a resumed turn that spent and then died moves on what the next turn starts from", async () => {
+  const root = tempDir("brain-copilot-");
+  dirs.push(root);
+  const { ctx, accountDir } = turnContext(root);
+  writeFileSync(path.join(accountDir, "fake-auth.json"), "{}");
+  const usageOf = async (n: string, prompt: string) => {
+    const { events, final } = await runTurn(ctx, turn({ runId: RUN.replace(/1$/, n), prompt }));
+    return { final, input: (events.find((e) => e.type === "usage") as { input?: number } | undefined)?.input };
+  };
+  expect(await usageOf("a", "first")).toMatchObject({ final: { type: "done" }, input: 1000 });
+  expect(await usageOf("b", "CRASH")).toMatchObject({ final: { type: "error", code: "copilot_failed" }, input: 1000 });
+  // The session has used 3000 by now; this turn's part is its own 1000, not the dead turn's again.
+  expect(await usageOf("c", "third")).toMatchObject({ final: { type: "done" }, input: 1000 });
+}, 30_000);
+
+test("the mapper: this turn's model takes its usage, and a message with no words and no call isn't an answer", () => {
+  const m = new CopilotEventMapper();
+  m.push({ type: "session.resume", data: {} });
+  m.push({ type: "session.model_change", data: { newModel: "gpt-small" } });
+  m.push({ type: "assistant.message", data: { messageId: "a", content: "ok", toolRequests: [] } });
+  m.push({
+    type: "session.usage_checkpoint",
+    data: {
+      accountingSnapshot: {
+        modelMetrics: {
+          "claude-big": { usage: { inputTokens: 9000, outputTokens: 1 } },
+          "gpt-small": { usage: { inputTokens: 300, outputTokens: 1 } },
+        },
+      },
+    },
+  });
+  m.push({ type: "result", sessionId: FIRST, exitCode: 0 });
+  const before = { input: 9000, output: 1, cacheRead: 0, cacheWrite: 0 };
+  expect(m.finish({ exitCode: 0, stderr: "", sessionId: SESSION, before })[0]).toMatchObject({
+    type: "usage",
+    input: 300,
+    model: "gpt-small",
+  });
+  const empty = new CopilotEventMapper();
+  empty.push({ type: "session.start", data: { sessionId: FIRST } });
+  empty.push({ type: "assistant.message_delta", data: { messageId: "a", deltaContent: "" } });
+  empty.push({ type: "assistant.message", data: { messageId: "a", content: "", toolRequests: [] } });
+  empty.push({ type: "result", sessionId: FIRST, exitCode: 0 });
+  expect(empty.acted).toBe(false);
+  expect(empty.finish({ exitCode: 0, stderr: "", sessionId: SESSION, before: null })[0]).toMatchObject({
+    type: "error",
+    code: "copilot_failed",
+  });
+  // A turn that only called our bridge did act: its answer may be empty.
+  const called = new CopilotEventMapper();
+  called.push({ type: "session.start", data: { sessionId: FIRST } });
+  called.push({
+    type: "tool.execution_start",
+    data: { toolCallId: "c", toolName: "x", mcpServerName: CODEX_MCP_SERVER },
+  });
+  called.push({ type: "result", sessionId: FIRST, exitCode: 0 });
+  expect(called.finish({ exitCode: 0, stderr: "", sessionId: SESSION, before: null })).toEqual([
+    { type: "done", text: "", session: { id: SESSION } },
+  ]);
+});
+
 test("the agent's secrets never leave: not in a tool's output, not in words split across two deltas, not in the answer", async () => {
   const root = tempDir("brain-copilot-");
   dirs.push(root);
@@ -617,7 +681,11 @@ test("the agent's secrets never leave: not in a tool's output, not in words spli
   expect(events.at(-1)).toMatchObject({ type: "done" });
   expect(JSON.stringify(events)).not.toContain(secret);
   expect(textOf(events)).toStartWith("key [redacted]. Let me check.");
-  expect(events.find((e) => e.type === "tool_call")).toMatchObject({ executed: { content: "ok [redacted]" } });
+  expect(events.find((e) => e.type === "tool_call")).toMatchObject({
+    input: { command: "bun test [redacted]" },
+    executed: { content: "ok [redacted]" },
+  });
+  expect(events.at(-1)).toMatchObject({ text: "All good. [redacted]" });
 }, 30_000);
 
 test("a canceled turn ends as canceled, its process is gone, and the chat it never finished isn't kept", async () => {
@@ -641,6 +709,7 @@ test("a canceled turn ends as canceled, its process is gone, and the chat it nev
   expect(events.at(-1)).toEqual({ type: "error", code: "canceled", message: "The turn was canceled." });
   expect(Date.now() - started).toBeLessThan(20_000);
   const pid = logOf(log).at(-1)?.pid ?? 0;
+  expect(pid).toBeGreaterThan(0);
   const alive = () => {
     try {
       process.kill(pid, 0);
@@ -697,7 +766,7 @@ test("a look at an account's sign-in: models when signed in, a sign-in asked for
     "--no-custom-instructions",
   ]);
   // An account's look never reads the GitHub CLI's own sign-in file.
-  expect(asked.ghConfig).not.toBeNull();
+  expect(asked.ghConfig).toBe(path.join(home, "no-gh"));
 }, 30_000);
 
 test("sign-in on the computer: GitHub's device page and code, then signed in, with the sign-in kept in the folder", async () => {
