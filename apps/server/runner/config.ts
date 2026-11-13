@@ -265,7 +265,7 @@ export function pairedConfig(stored: StoredConfig, file = "config.json"): Runner
 
 /**
  * The coding CLIs that follow Codex's switch until they have one of their own (Cursor's, protocol 36; OpenCode's, 39;
- * Grok's, 43; the Antigravity CLI's, 44; the Copilot CLI's, 59).
+ * Grok's, 43; the Antigravity CLI's, 44; the Copilot CLI's, 65).
  */
 const FOLLOW_CODEX = ["cursor", "opencode", "grok", "antigravity", "copilot"] as const;
 

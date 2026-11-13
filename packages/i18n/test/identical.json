@@ -1,6 +1,7 @@
 {
   "app": {
     "pt-BR": [
+      "usageViews.logins",
       "chat.wait.said",
       "access.area.skills",
       "agent.builtinName",
@@ -207,6 +208,7 @@
       "wiki.form.tags",
       "wiki.import.stat.links",
       "wiki.legend.obsidian",
+      "wiki.import.source.obsidian",
       "wiki.markdown",
       "wiki.props.addTag",
       "wiki.tags",
@@ -286,7 +288,8 @@
       "install.page.beta",
       "install.scene.finder",
       "install.scene.downloads",
-      "devices.armBuild"
+      "devices.armBuild",
+      "devices.iphone.xcodeFix.ok"
     ],
     "es": [
       "devices.iphone.path.general",
@@ -474,6 +477,7 @@
       "usageViews.tokens",
       "wiki.audienceRoles",
       "wiki.legend.obsidian",
+      "wiki.import.source.obsidian",
       "wiki.markdown",
       "work.duration.hours",
       "work.duration.hoursMinutes",
@@ -528,7 +532,15 @@
       "install.page.beta",
       "install.scene.finder",
       "install.scene.general",
-      "devices.armBuild"
+      "devices.armBuild",
+      "machines.oneClick.tools.claude",
+      "machines.oneClick.tools.codex",
+      "machines.oneClick.tools.cursor",
+      "machines.oneClick.tools.opencode",
+      "machines.oneClick.tools.grok",
+      "machines.oneClick.tools.antigravity",
+
+      "machines.oneClick.tools.copilot"
     ],
     "fr": [
       "channel.tooLong.fileName",
@@ -654,6 +666,7 @@
       "format.inMinutes",
       "home.ask.agent",
       "issues.agentRole",
+      "issues.now.agents",
       "issues.conversation.button",
       "issues.conversation.messages",
       "issues.conversation.toggle",
@@ -844,6 +857,7 @@
       "wiki.import.stat.notes",
       "wiki.legend.agents",
       "wiki.legend.obsidian",
+      "wiki.import.source.obsidian",
       "wiki.markdown",
       "wiki.pageCount",
       "wiki.props.addTag",
@@ -935,7 +949,17 @@
       "install.scene.applications",
       "install.page.version",
       "install.page.versionSize",
-      "devices.armBuild"
+      "devices.armBuild",
+      "routines.horizon.agentRoutines",
+      "devices.iphone.xcodeFix.ok",
+      "machines.oneClick.tools.claude",
+      "machines.oneClick.tools.codex",
+      "machines.oneClick.tools.cursor",
+      "machines.oneClick.tools.opencode",
+      "machines.oneClick.tools.grok",
+      "machines.oneClick.tools.antigravity",
+
+      "machines.oneClick.tools.copilot"
     ],
     "de": [
       "devices.iphone.steps.account",
@@ -1283,6 +1307,7 @@
       "wiki.form.tags",
       "wiki.graph",
       "wiki.legend.obsidian",
+      "wiki.import.source.obsidian",
       "wiki.markdown",
       "wiki.props.addTag",
       "wiki.rich.blocks.code",
@@ -1367,9 +1392,19 @@
       "install.scene.account",
       "install.scene.appLabel",
       "install.scene.downloads",
-      "devices.armBuild"
+      "devices.armBuild",
+      "devices.iphone.xcodeFix.ok",
+      "machines.oneClick.tools.claude",
+      "machines.oneClick.tools.codex",
+      "machines.oneClick.tools.cursor",
+      "machines.oneClick.tools.opencode",
+      "machines.oneClick.tools.grok",
+      "machines.oneClick.tools.antigravity",
+
+      "machines.oneClick.tools.copilot"
     ],
     "it": [
+      "shell.email.label",
       "calendar.moreRuns",
       "devices.iphone.steps.account",
       "devices.cpus",
@@ -1651,6 +1686,7 @@
       "wiki.home",
       "wiki.import.stat.links",
       "wiki.legend.obsidian",
+      "wiki.import.source.obsidian",
       "wiki.markdown",
       "wiki.props.addTag",
       "work.duration.hours",
@@ -1716,7 +1752,17 @@
       "install.page.beta",
       "install.scene.finder",
       "install.scene.password",
-      "devices.armBuild"
+      "devices.armBuild",
+      "routines.horizon.agentRoutines",
+      "devices.iphone.xcodeFix.ok",
+      "machines.oneClick.tools.claude",
+      "machines.oneClick.tools.codex",
+      "machines.oneClick.tools.cursor",
+      "machines.oneClick.tools.opencode",
+      "machines.oneClick.tools.grok",
+      "machines.oneClick.tools.antigravity",
+
+      "machines.oneClick.tools.copilot"
     ],
     "nl": [
       "calendar.moreRuns",
@@ -1764,7 +1810,6 @@
       "agentComputer.button",
       "agentComputer.phone.trackpad",
       "agentComputer.state.offline",
-      "agentPage.access.allConnectors",
       "agentPage.access.filter",
       "agentPage.activity.filters.routines",
       "agentPage.activity.inMonth",
@@ -1926,6 +1971,7 @@
       "format.usd",
       "home.ask.agent",
       "issues.agentRole",
+      "issues.now.agents",
       "issues.columns.createdDetail",
       "issues.display.field.label",
       "issues.display.field.pullRequest",
@@ -2176,6 +2222,7 @@
       "wiki.import.stat.links",
       "wiki.legend.agents",
       "wiki.legend.obsidian",
+      "wiki.import.source.obsidian",
       "wiki.markdown",
       "wiki.props.addTag",
       "wiki.rich.blocks.code",
@@ -2291,7 +2338,17 @@
       "install.scene.downloads",
       "devices.armBuild",
       "issues.projects.label",
-      "issues.display.field.project"
+      "issues.display.field.project",
+      "routines.horizon.agentRoutines",
+      "devices.iphone.xcodeFix.ok",
+      "machines.oneClick.tools.claude",
+      "machines.oneClick.tools.codex",
+      "machines.oneClick.tools.cursor",
+      "machines.oneClick.tools.opencode",
+      "machines.oneClick.tools.grok",
+      "machines.oneClick.tools.antigravity",
+
+      "machines.oneClick.tools.copilot"
     ],
     "ja": [
       "channel.tooLong.fileName",
@@ -2428,6 +2485,7 @@
       "vault.field.keyNamePlaceholder",
       "vault.field.websitePlaceholder",
       "wiki.legend.obsidian",
+      "wiki.import.source.obsidian",
       "wiki.markdown",
       "endpoint.styles.openai",
       "endpoint.styles.anthropic",
@@ -2452,7 +2510,16 @@
       "devices.android.drivers.samsung",
       "install.page.beta",
       "install.scene.finder",
-      "devices.armBuild"
+      "devices.armBuild",
+      "devices.iphone.xcodeFix.ok",
+      "machines.oneClick.tools.claude",
+      "machines.oneClick.tools.codex",
+      "machines.oneClick.tools.cursor",
+      "machines.oneClick.tools.opencode",
+      "machines.oneClick.tools.grok",
+      "machines.oneClick.tools.antigravity",
+
+      "machines.oneClick.tools.copilot"
     ],
     "ko": [
       "channel.tooLong.fileName",
@@ -2586,6 +2653,7 @@
       "vault.field.keyNamePlaceholder",
       "vault.field.websitePlaceholder",
       "wiki.legend.obsidian",
+      "wiki.import.source.obsidian",
       "wiki.markdown",
       "endpoint.styles.openai",
       "endpoint.styles.anthropic",
@@ -2608,7 +2676,15 @@
       "feedback.mark",
       "install.page.beta",
       "install.scene.finder",
-      "devices.armBuild"
+      "devices.armBuild",
+      "machines.oneClick.tools.claude",
+      "machines.oneClick.tools.codex",
+      "machines.oneClick.tools.cursor",
+      "machines.oneClick.tools.opencode",
+      "machines.oneClick.tools.grok",
+      "machines.oneClick.tools.antigravity",
+
+      "machines.oneClick.tools.copilot"
     ],
     "zh-Hans": [
       "channel.tooLong.fileName",
@@ -2734,6 +2810,7 @@
       "vault.field.keyNamePlaceholder",
       "vault.field.websitePlaceholder",
       "wiki.legend.obsidian",
+      "wiki.import.source.obsidian",
       "wiki.markdown",
       "endpoint.styles.openai",
       "endpoint.styles.anthropic",
@@ -2755,9 +2832,18 @@
       "arrival.beta.word",
       "feedback.mark",
       "install.page.beta",
-      "devices.armBuild"
+      "devices.armBuild",
+      "machines.oneClick.tools.claude",
+      "machines.oneClick.tools.codex",
+      "machines.oneClick.tools.cursor",
+      "machines.oneClick.tools.opencode",
+      "machines.oneClick.tools.grok",
+      "machines.oneClick.tools.antigravity",
+
+      "machines.oneClick.tools.copilot"
     ],
     "id": [
+      "shell.email.label",
       "devices.cpus",
       "devices.memory",
       "devices.system.android",
@@ -2978,6 +3064,7 @@
       "toolNames.verb.transfer",
       "toolReview.ok",
       "wiki.legend.obsidian",
+      "wiki.import.source.obsidian",
       "wiki.markdown",
       "wiki.props.addTag",
       "rightHand.field.archive",
@@ -3045,7 +3132,18 @@
       "install.scene.finder",
       "install.scene.edit",
       "install.scene.desktopDock",
-      "devices.armBuild"
+      "devices.armBuild",
+      "devices.iphone.xcodeFix.ok",
+      "machines.oneClick.tools.claude",
+      "machines.oneClick.tools.codex",
+      "machines.oneClick.tools.cursor",
+      "machines.oneClick.tools.opencode",
+      "machines.oneClick.tools.grok",
+      "machines.oneClick.tools.antigravity",
+
+      "machines.oneClick.tools.copilot",
+      "machines.oneClick.tools.browser",
+      "machines.oneClick.tools.terminal"
     ],
     "tr": [
       "devices.cpus",
@@ -3184,6 +3282,7 @@
       "taskManager.program.terminal",
       "toolNames.order",
       "wiki.legend.obsidian",
+      "wiki.import.source.obsidian",
       "wiki.markdown",
       "rightHand.field.model",
       "rightHand.profile.model",
@@ -3226,7 +3325,15 @@
       "devices.android.drivers.samsung",
       "install.page.beta",
       "install.scene.finder",
-      "devices.armBuild"
+      "devices.armBuild",
+      "machines.oneClick.tools.claude",
+      "machines.oneClick.tools.codex",
+      "machines.oneClick.tools.cursor",
+      "machines.oneClick.tools.opencode",
+      "machines.oneClick.tools.grok",
+      "machines.oneClick.tools.antigravity",
+
+      "machines.oneClick.tools.copilot"
     ],
     "pl": [
       "devices.cpus",
@@ -3330,6 +3437,7 @@
       "format.inMinutes",
       "home.ask.agent",
       "issues.agentRole",
+      "issues.now.agents",
       "issues.display.field.pullRequest",
       "issues.pr",
       "issues.statusLabel",
@@ -3446,6 +3554,7 @@
       "wiki.import.stat.folders",
       "wiki.import.stat.links",
       "wiki.legend.obsidian",
+      "wiki.import.source.obsidian",
       "wiki.markdown",
       "wiki.props.addTag",
       "work.duration.minutes",
@@ -3506,7 +3615,16 @@
       "install.page.beta",
       "install.page.system",
       "install.scene.finder",
-      "devices.armBuild"
+      "devices.armBuild",
+      "devices.iphone.xcodeFix.ok",
+      "machines.oneClick.tools.claude",
+      "machines.oneClick.tools.codex",
+      "machines.oneClick.tools.cursor",
+      "machines.oneClick.tools.opencode",
+      "machines.oneClick.tools.grok",
+      "machines.oneClick.tools.antigravity",
+
+      "machines.oneClick.tools.copilot"
     ],
     "ru": [
       "channel.tooLong.fileName",
@@ -3620,6 +3738,7 @@
       "onboarding.team.placeholder",
       "taskManager.program.agentes",
       "wiki.legend.obsidian",
+      "wiki.import.source.obsidian",
       "wiki.markdown",
       "widgets.sizes.l",
       "widgets.sizes.m",
@@ -3653,7 +3772,15 @@
       "devices.android.drivers.samsung",
       "install.page.beta",
       "install.scene.finder",
-      "devices.armBuild"
+      "devices.armBuild",
+      "machines.oneClick.tools.claude",
+      "machines.oneClick.tools.codex",
+      "machines.oneClick.tools.cursor",
+      "machines.oneClick.tools.opencode",
+      "machines.oneClick.tools.grok",
+      "machines.oneClick.tools.antigravity",
+
+      "machines.oneClick.tools.copilot"
     ]
   },
   "mobile-base": {

@@ -152,6 +152,8 @@ export interface AuthConfig {
   supportEmail?: string | null;
   /** The server takes feedback (`POST /api/app/feedback`): the apps show the form; absent: a server too old to. */
   feedback?: boolean;
+  /** It goes to the agentes.chat team, not to whoever runs this server: the form says so and takes pictures only. */
+  feedbackRelay?: boolean;
   /** Every workspace gets a computer of its own (the Cloud); absent: a server too old to say. */
   workspaceComputer?: boolean;
   /** The billing service (ADR 0079): owners and admins open a workspace's plan there; null or absent: no billing. */
@@ -1396,6 +1398,11 @@ export interface AiStatus {
   apiKey?: boolean;
   /** Memory reflects on finished conversations: there is a summary model it can call (absent from an older server). */
   reflection?: boolean;
+  /**
+   * The right hand's widgets waiting for an AI, or stopped for the lack of one, whose build has one now, among those
+   * the viewer sees (`widgetAiReady`). Absent from an older server.
+   */
+  widgetsReady?: string[];
   agents: {
     agentId: string;
     /** `waiting`: its computer is away for now (not "no AI"). */
@@ -1415,10 +1422,14 @@ export interface AiStatus {
       | "plan_inactive"
       | "commands_off"
       | "plan_not_shared"
+      | "plans_not_yours"
       | "runner_outdated"
       | "plan_tools";
     /** Ready on an API key with Automático: the maker of the key it thinks with (`autoMakerOf`). */
     provider?: string;
+    /** With `plans_not_yours`: whose the workspace's plans are (each serves only who connected it), and what ("Claude"). */
+    owner?: string;
+    plan?: string;
     /**
      * Its state for background work (a routine, a widget's build) where that differs from `state`: background work
      * never falls back on the model brain, and the right hand's thinks with the workspace's own AI, nobody's.
@@ -1930,6 +1941,8 @@ export interface Approval {
   /** Decided by someone covering this person (ADR 0139): "Aprovado por Bruno, cobrindo Ana". */
   decidedForUserId?: string | null;
   decidedAt: string | null;
+  /** Canceled because the agent asked for the same action again in a later turn: that newer request. */
+  supersededById?: string | null;
   reason: string | null;
   /** You are the agent's owner or an admin, and it is pending. */
   canDecide: boolean;
@@ -3334,6 +3347,9 @@ export interface ArtifactFileContent {
   size: number;
   sha256: string;
   text?: string;
+  /** A picture's own size (pixels), when the server read it: its box has its proportions before it loads. */
+  width?: number;
+  height?: number;
 }
 
 export interface ArtifactAuthor {
@@ -3499,6 +3515,9 @@ export interface ArtifactRef {
   /** The file was deleted: the card shows "Arquivo removido". */
   deleted?: boolean;
   title?: string;
+  /** A picture's size (pixels), when the server knew it: its card has its box before the file's details load. */
+  width?: number;
+  height?: number;
 }
 
 export interface ArtifactFilters {
@@ -4467,6 +4486,8 @@ export interface Machine {
   paused?: MachinePause | null;
   /** Its app takes a pause from the apps (`POST …/pause`); `false` or absent: update the app on it. */
   remotePause?: boolean;
+  /** Who paired it turns its tools on from the apps (`POST …/access/allow`); `false` or absent: its app is too old. */
+  accessAllow?: boolean;
   /** ADR 0036 §8 (protocol 10): what the machine allows, as last reported. Absent until the machine reports it. */
   access?: MachineAccess | null;
   /** ADR 0040 (protocol 12): whether the agent browser can run there; null or absent when its runner doesn't say. */
@@ -4582,7 +4603,7 @@ export interface MachineAccess {
     grok?: boolean;
     /** Protocol 44 (ADR 0143): the Antigravity CLI; absent on older runners, where it follows Codex's. */
     antigravity?: boolean;
-    /** Protocol 59 (ADR 0174): the Copilot CLI; absent on older runners, where it follows Codex's. */
+    /** Protocol 65 (ADR 0174): the Copilot CLI; absent on older runners, where it follows Codex's. */
     copilot?: boolean;
     browser?: boolean;
     desktop?: boolean;
@@ -4596,6 +4617,15 @@ export interface MachineAccessReduce {
   removeFolder?: { path: string; agentId?: string };
   disableTool?: MachineToolName | "browser" | "desktop" | "terminal";
 }
+
+/** "Pedir a um admin" (`POST …/admin-asks`): what the asker can't do here themselves. */
+export type AdminAsk =
+  | { what: "channel_agent"; channelId: string; agentId: string }
+  | { what: "create_agents" }
+  | { what: "webhook"; provider: "github" | "sentry" };
+
+/** A switch on a computer (`RunnerTools`' keys): `POST …/access/allow` turns one on, `…/access/reduce` off. */
+export type MachineTool = MachineToolName | "browser" | "desktop" | "terminal";
 
 /** Approximate location of the computer that asked for a code (best effort, from its IP). */
 export type DeviceLocation = string | { city?: string | null; region?: string | null; country?: string | null };
@@ -4747,6 +4777,8 @@ export interface UsageQueue {
   reason: "plan" | "budget" | null;
   plan: string | null;
   resetsAt: string | null;
+  /** A plan's line: when its plan was last read or asked about (absent: an older server). */
+  checkedAt?: string | null;
   /** Other agents in the same plan's line. */
   sharedWith: string[];
   rows: UsageQueueRow[];
@@ -4885,9 +4917,9 @@ export interface WikiPageSummary {
   audienceFolder?: string | null;
   /** The start of the text, plain, for cards. */
   excerpt?: string;
-  /** `obsidian` for an imported page. */
+  /** An imported page: `obsidian`, `github` or `files` (`WikiImportSource`). */
   sourceType?: string | null;
-  /** An imported page: the vault's name. */
+  /** An imported page: the name of what was imported (the vault, the repository, the folder). */
   sourceName?: string | null;
   /** The import that brought it (null for pages imported before imports had ids). */
   importId?: string | null;
@@ -4920,8 +4952,11 @@ export interface WikiImportNote {
   attachments?: Record<string, string>;
 }
 
+/** Where an import's notes came from: an Obsidian vault, a GitHub link, or Markdown files. */
+export type WikiImportSource = "obsidian" | "github" | "files";
+
 export interface WikiImportInput {
-  source: { type: "obsidian"; name: string };
+  source: { type: WikiImportSource; name: string };
   notes: WikiImportNote[];
   folder?: string;
   onConflict: "keep_both" | "skip";
@@ -5560,7 +5595,9 @@ export type BrainUnavailable =
   | "not_installed"
   | "outdated"
   /** Its runner hasn't said which CLIs it has yet. */
-  | "not_reported";
+  | "not_reported"
+  /** Its runner doesn't run this CLI on the computer's system (Cursor on Windows, for one). */
+  | "system";
 
 export interface BrainModelOption {
   /** What is stored (`opus`, `sonnet`, `haiku`, a Codex model). */
@@ -5643,8 +5680,8 @@ export interface AgentBrain {
   /** The viewer owns the agent: only they connect its plan and turn its paid extra usage on or off. */
   canUsePlans: boolean;
   /**
-   * The viewer may use other people's plans (`use_others_plans`, ADR 0059 §3): `accounts` has every plan on its
-   * computer, and they may give it any of them. Absent on older servers.
+   * True since plans serve the whole workspace (ADR 0059 §3): `accounts` has every plan on its computer that serves
+   * everyone, and the viewer may give it any of them. Absent on older servers.
    */
   canUseOthersPlans?: boolean;
   /** "Conta deste computador" can think for it: whoever connected the computer owns the agent. */
@@ -5653,6 +5690,8 @@ export interface AgentBrain {
   ownUsage: Partial<Record<MachineAccountKind, PlanUsage>>;
   /** Its Autonomia (its new missions' autonomy), copied with its setup (ADR 0094); absent on older servers. */
   autonomy?: CommandApproval;
+  /** The workspace's live API keys, id and provider only: what its owner may move it onto (absent: an older server). */
+  keys?: { id: string; provider: string }[];
 }
 
 /** The team's right hand's AIs: the viewer's own, or the workspace's (admins). */
@@ -5698,7 +5737,12 @@ export interface MachineAccount {
   shared?: boolean;
   /** Claude's organization it is signed in to (opaque), its owner's eyes only; null or absent: not known. */
   providerOrgId?: string | null;
+  /** Who it thinks for (ADR 0059 §3): everyone in the workspace, or only its owner (absent: an older server). */
+  serves?: PlanServes;
 }
+
+/** Who a plan thinks for (ADR 0059 §3): everyone in the workspace, or only the person who connected it. */
+export type PlanServes = "everyone" | "owner";
 
 /** `GET …/ai-accounts`: the viewer's AI accounts on the organization's computers, and where they can add one. */
 export interface AiAccounts {
@@ -5724,7 +5768,7 @@ export interface AiComputer {
     opencode?: boolean;
     grok?: boolean;
     antigravity?: boolean;
-    /** Protocol 59 (ADR 0174): the Copilot CLI; absent on older runners, where it follows Codex's. */
+    /** Protocol 65 (ADR 0174): the Copilot CLI; absent on older runners, where it follows Codex's. */
     copilot?: boolean;
     key: boolean;
   };
@@ -5738,7 +5782,7 @@ export interface AiComputer {
     opencode?: boolean;
     grok?: boolean;
     antigravity?: boolean;
-    /** Protocol 59 (ADR 0174): the Copilot CLI; absent on older runners, where it follows Codex's. */
+    /** Protocol 65 (ADR 0174): the Copilot CLI; absent on older runners, where it follows Codex's. */
     copilot?: boolean;
   };
   /**
@@ -5769,6 +5813,10 @@ export interface PlanUsage {
    * the plan refused it for the key.
    */
   models?: Record<string, { at: string; until?: string; region?: true; off?: true; inactive?: true }>;
+  /** On a plan whose models have their own limits: the model that last answered with this key. */
+  answered?: string;
+  /** Stuck at its limit: when the server last asked its computer to read it again. */
+  checkedAt?: string;
 }
 
 export interface AgentBrainInput {
@@ -6256,6 +6304,16 @@ export type NotificationKind =
   | "device.in_use"
   /** An agent asks to use this person's device. `source.requestId`; Allow once, Always, No. */
   | "device.access_request"
+  /**
+   * Someone asks this person to turn a tool on on their computer (`POST …/access/ask`): `source.machineId`, its name in
+   * `source.label`, the tool in `latest.reason`, the asker as actor; the row turns it on in one click.
+   */
+  | "device.tool_request"
+  /**
+   * "Pedir a um admin" (`POST …/admin-asks`): the asker as actor, what in `latest.reason` (`channel_agent` with
+   * `source.channelId` and `agentId`, waiting until added; `create_agents`; `webhook` with the service in `latest.title`).
+   */
+  | "admin_ask"
   /** Someone's agent waits for this person's device to come back. `source.phoneId` or `machineId`. */
   | "device.waiting"
   /** ADR 0040 §6: an agent needs a person in its browser (sign in, a code). `source.handoffId`. */
@@ -6300,6 +6358,11 @@ export type NotificationKind =
    * `source.agentId`, `source.accountId`, `latest.plan`. "Tirar de volta" (`takeBackPlan`) makes it done.
    */
   | "plan_lent"
+  /**
+   * ADR 0059 §3: the person's plan serves everyone in the workspace now. `source.accountId`, its name in `latest.plan`;
+   * "Mudar para Só eu" (`setAccountServes`) makes it done.
+   */
+  | "plan_serves"
   /**
    * A model an agent thinks with left its plan's live list, so its turns run another (the agent's owner, once per agent
    * and model). `source.agentId`, the model in `latest.title`, the plan in `latest.plan`, what runs now in
@@ -7274,6 +7337,30 @@ export interface DesktopStatus {
   browserOnDesktop?: boolean;
 }
 
+/**
+ * What an agent keeps running on its computer (`keep_running`, ADR 0176): one of its programs (it ends with it), its
+ * browser, or a time alone.
+ */
+export interface Hold {
+  id: string;
+  agentId: string;
+  machineId: string;
+  /** In the agent's words, for people. */
+  what: string;
+  why: string;
+  kind: "program" | "browser" | "time";
+  since: string;
+  /** When it ends at the latest; null: when its program stops (or its browser closes). */
+  until: string | null;
+}
+
+/** `GET …/agents/{id}/holds`: for whoever may watch the agent's computer. */
+export interface AgentHolds {
+  holds: Hold[];
+  /** This person may stop them: who may use the agent's computer, and the admins of computers. */
+  canStop: boolean;
+}
+
 /** `GET …/desktop/picture`: a recent picture of the agent's screen, or why there is none. */
 export interface DesktopPictureView {
   picture: {
@@ -7316,6 +7403,12 @@ export interface PlanAccountInfo {
   /** Only for its owner. */
   email: string | null;
   signedOut: boolean;
+  /** Who it thinks for; null for the computer's own sign-in (absent: an older server). */
+  serves?: PlanServes | null;
+  /** The same seat whoever connected it (opaque): rows with one `seat` are one account. Null: not known. */
+  seat?: string | null;
+  /** How many logins this row stands for, once grouped (`groupUsageAccounts`); absent: one. */
+  logins?: number;
 }
 
 export interface PlanAccountUsage extends PlanAccountInfo {
@@ -7667,6 +7760,8 @@ export interface ComputerDevice {
   memoryGb: number | null;
   ownerUserId: string | null;
   belongsToWorkspace: boolean;
+  /** While an agent's own computer is full, replies people wait on may think here: to its owner, to anyone else. */
+  spill: { own: boolean; others: boolean };
   systemMode: boolean;
   audience: DeviceAudience;
   status: DeviceStatus;
@@ -7729,6 +7824,25 @@ export interface WifiIphones {
   update?: true;
 }
 
+/**
+ * A Mac fixing its own Xcode for an iPhone (`select`: Xcode in use, its license, first launch, behind macOS's password
+ * window on that Mac; `update`: support files for a newer iOS). `step`: how many of `select`'s 3 commands are done.
+ */
+export interface XcodeFix {
+  kind: "select" | "update";
+  state: "asking" | "running" | "done" | "canceled" | "no_answer" | "failed" | "unsupported";
+  step: number;
+  message?: string;
+  /** `failed` after every command ran: Xcode is still blocked on the Mac, and why. */
+  still?: "command_line_tools" | "license";
+}
+
+/** `fix: null`: none ran; `update`: the Mac's agentes.chat is too old to fix it (the Terminal way instead). */
+export interface XcodeFixView {
+  fix: XcodeFix | null;
+  update?: true;
+}
+
 /** Pairing an Android phone over Wi-Fi with a computer: where it stands. */
 export interface WifiPairing {
   id: string;
@@ -7759,6 +7873,7 @@ export interface ComputerDeviceInput {
   audience?: DeviceAudience;
   belongsToWorkspace?: boolean;
   maxTasks?: number;
+  spill?: { own?: boolean; others?: boolean };
 }
 
 export interface PhoneDeviceInput {
