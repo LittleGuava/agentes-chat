@@ -190,11 +190,6 @@ export interface ComposerProps {
   channels?: ComposerMentions;
   /** Context pills on a line above the text (the target agent, the active skill, a select of who answers). */
   pills?: ReactNode;
-  /**
-   * The pills open the text's own row instead, before attach, a hairline after them (a DM with an agent: its chip
-   * is context, not a second line).
-   */
-  inlinePills?: boolean;
   /** The send button's tooltip, with the key hint ("Enviar ↵"). */
   sendText?: string;
   /** Formatting (bold, italic, lists…) in a bar that floats over selected text, and its ⌘/Ctrl shortcuts, writing Markdown. */
@@ -217,6 +212,11 @@ export interface ComposerProps {
   canSendEmpty?: boolean;
   /** Not yet (e.g. uploads still running): Enter and the send button wait. */
   sendBlocked?: boolean;
+  /**
+   * Inside the card, above the text's row: why this text can't go and the way out (a draft past the length limit,
+   * with "Enviar como arquivo"). Given together with `sendBlocked`.
+   */
+  notice?: ReactNode;
   /** An agent is working in this conversation (send ↔ stop). */
   working?: ComposerWorking | null;
   /**
@@ -490,7 +490,6 @@ export function Composer({
   links,
   channels,
   pills,
-  inlinePills,
   sendText,
   format,
   emoji,
@@ -499,6 +498,7 @@ export function Composer({
   onFiles,
   header,
   attachments,
+  notice,
   canSendEmpty,
   sendBlocked,
   working,
@@ -899,7 +899,7 @@ export function Composer({
           {/* biome-ignore lint/a11y/noStaticElementInteractions: files dropped anywhere on the card (the attach button is the accessible way), and its empty room is part of the text box, as a mouse sees it */}
           <div
             ref={box}
-            className={cx("ac-composer", inlinePills && "ac-composer--lead", className)}
+            className={cx("ac-composer", className)}
             data-disabled={disabled || undefined}
             data-dragging={dragging || undefined}
             data-voice={recording ? rec.phase : undefined}
@@ -941,10 +941,14 @@ export function Composer({
             }
           >
             {header && <div className="ac-composer__header">{header}</div>}
-            {pills && !inlinePills && <div className="ac-composer__pills">{pills}</div>}
+            {pills && <div className="ac-composer__pills">{pills}</div>}
             {attachments && <div className="ac-composer__attachments">{attachments}</div>}
+            {notice && (
+              <div className="ac-composer__notice" role="alert">
+                {notice}
+              </div>
+            )}
             <div className="ac-composer__row">
-              {pills && inlinePills && <div className="ac-composer__pills">{pills}</div>}
               <div className="ac-composer__tools">
                 {voice && recording && (
                   <Button

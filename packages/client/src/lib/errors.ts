@@ -76,6 +76,7 @@ const KNOWN = {
   "device.link_not_found": "errors.machine.pairingInvalid",
   "device.not_link_maker": "errors.device.notLinkMaker",
   "device.widen_forbidden": "errors.device.widenForbidden",
+  "device.spill_owner_only": "errors.device.spillOwnerOnly",
   "device.not_home": "errors.device.notHome",
   "machine.not_found": "errors.machine.notFound",
   "machine.name_required": "errors.machine.nameRequired",
@@ -87,6 +88,9 @@ const KNOWN = {
   "machine.target_same": "errors.machine.targetSame",
   "machine.target_paused": "errors.machine.targetPaused",
   "machine.pause_past": "errors.machine.pausePast",
+  "machine.not_owner": "errors.machine.notOwner",
+  "machine.ask_self": "errors.machine.askSelf",
+  "admin_ask.self": "errors.machine.adminAskSelf",
   // A computer that can't take the request now (`MachineOfflineError`, `MachinePausedError`: `name`), or its own
   // refusal (`MachineRequestError`, as `machine.<code>`).
   "machine.offline": "errors.machine.offline",
@@ -117,6 +121,7 @@ const KNOWN = {
   "mission.computer_offline": "errors.mission.computerOffline",
   "mission.exec_disabled": "errors.mission.execDisabled",
   "mission.runner_outdated": "errors.mission.runnerOutdated",
+  "mission.codex_windows": "errors.mission.codexWindows",
   "mission.exists": "errors.mission.exists",
   "mission.closed": "errors.mission.closed",
   "mission.wrong_status": "errors.mission.wrongStatus",
@@ -258,6 +263,8 @@ const KNOWN = {
   // `count`: minutes until GitHub stops limiting the server.
   "github.limited": "errors.github.limited",
   "github.unreachable": "errors.github.unreachable",
+  "wiki.github_no_notes": "errors.wiki.githubNoNotes",
+  "wiki.github_too_large": "errors.wiki.githubTooLarge",
   "skill.no_skill_md": "errors.skill.noSkillMd",
   "skill.too_many_skills": "errors.skill.tooManySkills",
   "skill.invalid_name": "errors.skill.invalidName",
@@ -281,6 +288,8 @@ const KNOWN = {
   slug_taken: "errors.wiki.titleTaken",
   "wiki.title_characters": "errors.wiki.titleCharacters",
   "wiki.title_empty_slug": "errors.wiki.titleNoLetters",
+  // With its sizes, `limitRefusalText` says it first: this line is for a refusal that names none.
+  "message.too_long": "channel.tooLong.fix",
   // GIFs and stickers (ADR 0091): off in the workspace (or no GIF search on this server), a GIF gone, or the GIF
   // search not answering.
   "message.reply_not_found": "errors.replyGone",
@@ -501,6 +510,8 @@ const KNOWN = {
   "browser.not_in_control": "errors.said.takeControl",
   "browser_profile.busy": "errors.said.profileBusy",
   "browser_profile.name_taken": "errors.said.nameTaken",
+  "browser_profile.tool_off": "browser.profiles.toolOff",
+  "browser_profile.unavailable": "browser.profiles.notOpened",
   "channel.delete_name": "errors.said.deleteName",
   "channel.general": "errors.said.generalKept",
   "channel.general_stays": "errors.said.generalStays",
@@ -534,6 +545,8 @@ const KNOWN = {
   "github_app.not_visible": "githubApp.notVisible",
   "github_app.other_workspace": "githubApp.otherWorkspace",
   "github_app.installed_outside": "githubApp.installedOutside",
+  "github_app.owner_required": "githubApp.requested",
+  "github_app.owner_unknown": "githubApp.ownerUnknown",
   "github_app.misconfigured": "githubApp.misconfigured",
   github_app_env: "githubApp.server.line.env",
 } as const;
@@ -676,6 +689,36 @@ const UNREACHABLE = new Set([502, 503, 504, 520, 521, 522, 523, 524, 525, 526, 5
 export const serverUnreachable = (error: unknown) =>
   error instanceof ApiError && UNREACHABLE.has(error.status) && error.code === `http_${error.status}`;
 
+/** Why the server refused a message of mine, kept on its failed row (`Message.sendFailure`). */
+export interface SendFailure {
+  status: number;
+  code: string;
+  message: string;
+  params?: Record<string, unknown>;
+}
+
+/** What to keep of a failed send, to say why on its row later: the server's refusal, or nothing for any other failure. */
+export const sendFailureOf = (error: unknown): SendFailure | undefined =>
+  error instanceof ApiError
+    ? {
+        status: error.status,
+        code: error.code,
+        message: error.message,
+        ...(error.params ? { params: error.params } : {}),
+      }
+    : undefined;
+
+/** A failed message's line: "Não enviada." and the refusal kept on it in the person's words, else that something went wrong. */
+export const sendFailureText = (t: TFunction, failure: SendFailure | undefined, locale?: string): string =>
+  t("channel.notSentWhy", {
+    why: failure
+      ? errorText(t, new ApiError(failure.status, failure.code, failure.message, failure.params), locale)
+      : t("channel.notSentUnknown"),
+  });
+
+/** Sending the same text again can't work: it has to change first. */
+export const sendNeedsEdit = (failure: SendFailure | undefined) => failure?.code === "message.too_long";
+
 /**
  * A message that failed to go out with no answer at all (`fetch` throws a `TypeError`: no network), or only the
  * proxy's while the server restarts: it waits for the connection instead of failing. The server refusing it, or a
@@ -725,6 +768,8 @@ export function knownErrorText(t: TFunction, error: unknown, locale = "en"): str
   // The person who connected the mailbox is gone or unnamed: no blank name in the sentence.
   if (error.code === "mail.owner_only" && !error.params?.ownerName)
     return t("errors.mail.ownerOnlyUnknown", error.params);
+  if (error.code === "browser_profile.unavailable")
+    return t("browser.profiles.notOpened", { machine: error.params?.machineName ?? "" });
   // `provider`: the provider whose key is missing, when the server could name it.
   if (error.code === "missing_credential" && typeof error.params?.provider === "string")
     return t("agentPage.activity.errors.missing_credential", error.params);
@@ -826,6 +871,20 @@ export function authErrorText(
   return knownErrorText(t, error) ?? (noAnswer(error) ? noAnswerText(t) : untranslatedText(t, error));
 }
 
+/**
+ * Why a new address for the signed-in account was refused (Better Auth's `change-email`), web and phone: the same
+ * address, a server that sends no e-mail to confirm it with (who runs it can turn e-mail on), else as any sign-in.
+ */
+export function emailChangeErrorText(
+  t: TFunction,
+  refusal: { status: number; code?: string; message: string } & RestrictionFacts,
+): string {
+  if (/email is the same/i.test(refusal.message)) return t("shell.email.same");
+  if (/verification email isn't enabled|change email is disabled/i.test(refusal.message))
+    return t("shell.email.noMail");
+  return authErrorText(t, refusal);
+}
+
 type ProviderRefusal = "cancelled" | "linked" | "noEmail" | "expired" | "server" | "other";
 
 /** Better Auth's codes for a provider sign-in that didn't finish (`/login?error=`), by what the person can do. */
@@ -891,6 +950,10 @@ const OAUTH_RETURNS = {
   "github_app.other_workspace": "githubApp.otherWorkspace",
   installed_outside: "githubApp.installedOutside",
   "github_app.installed_outside": "githubApp.installedOutside",
+  owner_required: "githubApp.requested",
+  "github_app.owner_required": "githubApp.requested",
+  owner_unknown: "githubApp.ownerUnknown",
+  "github_app.owner_unknown": "githubApp.ownerUnknown",
   "github_app.misconfigured": "githubApp.misconfigured",
   requested: "githubApp.requested",
 } as const;
@@ -958,17 +1021,31 @@ const KEY_FAILURES = new Set([
 ]);
 
 /**
- * The one thing to do about a failed run, by its code, for someone who can: another key (`keys`: who manages them), or
- * another model (the agent's owner or who manages agents). Null when nothing fixes it or it's someone else's to do.
+ * A reply whose agent opened a picture or PDF its AI reads as text only through its connection (`meta.filesTextOnly`):
+ * its fix is another AI, like a failed run's.
+ */
+export const FILES_TEXT_ONLY = "run.files_text_only";
+
+export const filesTextOnlyOf = (meta: Record<string, unknown> | null | undefined) =>
+  meta?.filesTextOnly === true ? FILES_TEXT_ONLY : null;
+
+/**
+ * The one thing to do about a failed run, by its code, for someone who can: another key (`keys`: who manages them),
+ * another model or another account (the agent's owner or who manages agents). Null when nothing fixes it or it's
+ * someone else's to do.
  */
 export function failedRunFix(
   code: string | null | undefined,
   who: { keys: boolean; admin: boolean; owner: boolean },
-): "useKey" | "changeModel" | null {
-  if (code === "run.model_unlisted" || code === "run.provider_model_unavailable")
+): "useKey" | "changeModel" | "changeAccount" | null {
+  if (code === "run.model_unlisted" || code === "run.provider_model_unavailable" || code === FILES_TEXT_ONLY)
     return who.admin || who.owner ? "changeModel" : null;
+  if (code === "run.account_missing") return who.admin || who.owner ? "changeAccount" : null;
   return code && KEY_FAILURES.has(code) && who.keys ? "useKey" : null;
 }
+
+/** The screen of "Quem pensa" a model or account fix opens on. */
+export const FIX_BRAIN_SCREEN = { changeModel: "model", changeAccount: "switch" } as const;
 
 /**
  * A failed run's reason in the reader's words, from the server's code (`run.stuck`, `run.computer_failed`): null for
@@ -980,6 +1057,13 @@ export function runErrorText(t: TFunction, code: string | null | undefined, para
   const say = t as unknown as (key: string, options: Record<string, unknown>) => string;
   return say(`agentPage.activity.errors.${key}`, { ...params, defaultValue: "" }) || null;
 }
+
+/**
+ * A failed run's stored text when it can stand as its reason: never a bare code (`unsupported`, `not_allowed`), which
+ * says nothing to a person; null then, and the line says only that it couldn't answer.
+ */
+export const runErrorWords = (error: string | null | undefined): string | null =>
+  error && !/^[a-z][a-z0-9]*(?:[_.][a-z0-9]+)*$/.test(error.trim()) ? error : null;
 
 /**
  * A failed run as one line for the conversation: a restriction in its words, a computer that stayed busy, else

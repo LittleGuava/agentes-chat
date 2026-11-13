@@ -133,7 +133,7 @@ test("access stored before Cursor's switch: Cursor follows Codex's, and once sto
   expect(
     effectiveAccess(access({ claude: true, codex: true, antigravity: false, commands: true })).tools.antigravity,
   ).toBe(false);
-  // The Copilot CLI's (protocol 59) too.
+  // The Copilot CLI's (protocol 65) too.
   expect(effectiveAccess(access({ claude: true, codex: true, commands: true })).tools.copilot).toBe(true);
   expect(effectiveAccess(access({ claude: true, codex: false, commands: true })).tools.copilot).toBe(false);
   expect(effectiveAccess(access({ claude: true, codex: true, copilot: false, commands: true })).tools.copilot).toBe(
