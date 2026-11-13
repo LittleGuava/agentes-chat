@@ -1477,6 +1477,22 @@
     "moveDown": "Nach unten",
     "restoreOrder": "Standardreihenfolge wiederherstellen"
   },
+  "appIcon": {
+    "title": "App-Symbol",
+    "hintWeb": "Das Symbol in den Tabs dieses Browsers.",
+    "hintMac": "Das Dock-Symbol, solange die App geöffnet ist. Finder und Launchpad behalten das Standardsymbol.",
+    "hintDesktop": "Das Taskleisten-Symbol, solange die App geöffnet ist.",
+    "hintAndroid": "Manche Startbildschirme brauchen ein paar Sekunden, bis das neue Symbol erscheint.",
+    "failed": "Das Symbol konnte nicht geändert werden. Versuch es noch einmal.",
+    "agentsOf": "Agenten in {{org}}",
+    "names": {
+      "night": "Nacht",
+      "moon": "Mond",
+      "sky": "Himmel",
+      "peekNight": "Neugierig bei Nacht",
+      "peekSky": "Neugierig am Himmel"
+    }
+  },
   "install": {
     "frames": "So installierst du es auf {{system}}",
     "step": "Schritt {{n}}",
@@ -2501,6 +2517,11 @@
       "groupWorkspace": "Für den ganzen Workspace",
       "groupAdmins": "nur Admins"
     },
+    "computerYours": "Dein eigener Platz auf dem Computer des Workspace. Nur du kannst zusehen oder steuern.",
+    "sharedName": "{{name}} (geteilt)",
+    "sharedPlace": "Wird in Kanälen und bei Arbeit genutzt, die von selbst läuft. Der ganze Workspace teilt sich diesen Platz. Bewahre hier nichts Privates auf.",
+    "computerNoHome": "Noch kein Computer. Es gibt einen, sobald dieser Workspace einen eigenen Computer hat, hinzugefügt unter Einstellungen, Computer.",
+    "computerOneUser": "Hier kein Computer. Der Computer des Workspace führt alle Agenten als einen einzigen Benutzer aus und kann den Platz jeder Person nicht getrennt halten. Ein Linux-Server, der mit der Option --system des Installers eingerichtet wurde, kann das.",
     "powers": {
       "title": "Workspace-Befugnisse",
       "help": "Das kann nur deine rechte Hand.",

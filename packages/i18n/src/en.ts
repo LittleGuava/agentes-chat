@@ -1708,6 +1708,28 @@ export const en = {
       settingUp: "Setting up agentes-chat ({{version}}) ...",
     },
   },
+  /** The icon a person picks for the app on this device (ADR 0179): Settings › Account › This device, and the phone's You. */
+  appIcon: {
+    title: "App icon",
+    /** In a browser: the pick changes this browser's tab icon. */
+    hintWeb: "The icon on this browser's tabs.",
+    /** In the desktop app on a Mac: macOS shows the bundle's own icon wherever the app isn't running. */
+    hintMac: "The Dock's icon while the app is open. Finder and Launchpad keep the default one.",
+    /** In the desktop app on Windows and Linux. */
+    hintDesktop: "The taskbar's icon while the app is open.",
+    /** On Android, under the list: launchers redraw the home screen in their own time. */
+    hintAndroid: "Some home screens take a few seconds to show the new icon.",
+    failed: "Couldn't change the icon. Try again.",
+    /** Over the open workspace's agents in the picker (web and desktop only). */
+    agentsOf: "Agents in {{org}}",
+    names: {
+      night: "Night",
+      moon: "Moon",
+      sky: "Sky",
+      peekNight: "Peeking at night",
+      peekSky: "Peeking in the sky",
+    },
+  },
   legal: {
     updated: "Last updated {{date}}",
     contents: "On this page",
@@ -2665,6 +2687,17 @@ export const en = {
       groupWorkspace: "For the whole workspace",
       groupAdmins: "admins only",
     },
+    /** Its "Computador" row: the computer is the viewer's own seat (ADR 0175). */
+    computerYours: "Your own place on the workspace's computer. Only you can watch or control it.",
+    sharedName: "{{name}} (shared)",
+    sharedPlace:
+      "Used in channels and in work that runs on its own. The whole workspace shares this place. Keep nothing private here.",
+    /** The row where it has none for anyone: the workspace has no computer of its own. */
+    computerNoHome:
+      "No computer yet. It gets one when this workspace has a computer of its own, added in Settings, Computers.",
+    /** The row where the workspace's computer runs every agent as one OS user. */
+    computerOneUser:
+      "No computer here. The workspace's computer runs every agent as one user, so it can't keep each person's place apart. A Linux server set up with the installer's --system option can.",
     /** "Workspace powers" on its page: what only the right hand does, one line each (`RIGHT_HAND_POWERS`). */
     powers: {
       title: "Workspace powers",

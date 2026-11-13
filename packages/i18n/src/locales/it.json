@@ -1520,6 +1520,22 @@
     "moveDown": "Sposta giù",
     "restoreOrder": "Ripristina ordine predefinito"
   },
+  "appIcon": {
+    "title": "Icona dell'app",
+    "hintWeb": "L'icona nelle schede di questo browser.",
+    "hintMac": "L'icona nel Dock mentre l'app è aperta. Finder e Launchpad mantengono quella predefinita.",
+    "hintDesktop": "L'icona nella barra delle applicazioni mentre l'app è aperta.",
+    "hintAndroid": "Alcune schermate Home impiegano qualche secondo a mostrare la nuova icona.",
+    "failed": "Impossibile cambiare l'icona. Riprova.",
+    "agentsOf": "Agenti di {{org}}",
+    "names": {
+      "night": "Notte",
+      "moon": "Luna",
+      "sky": "Cielo",
+      "peekNight": "Sbirciando di notte",
+      "peekSky": "Sbirciando nel cielo"
+    }
+  },
   "install": {
     "frames": "Come installare su {{system}}",
     "step": "Passo {{n}}",
@@ -2585,6 +2601,11 @@
       "groupWorkspace": "Per tutto il workspace",
       "groupAdmins": "solo admin"
     },
+    "computerYours": "Il tuo spazio sul computer del workspace. Solo tu puoi guardarlo o controllarlo.",
+    "sharedName": "{{name}} (condiviso)",
+    "sharedPlace": "Si usa nei canali e nei lavori che girano da soli. Tutto il workspace condivide questo spazio. Non tenere qui nulla di privato.",
+    "computerNoHome": "Ancora nessun computer. Ne avrà uno quando questo workspace avrà un computer proprio, aggiunto in Impostazioni, Computer.",
+    "computerOneUser": "Qui nessun computer. Il computer del workspace esegue tutti gli agenti come un solo utente, quindi non può tenere separato lo spazio di ogni persona. Un server Linux installato con l'opzione --system dell'installer può farlo.",
     "powers": {
       "title": "Poteri nel workspace",
       "help": "Solo il tuo braccio destro fa queste cose.",

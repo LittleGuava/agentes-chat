@@ -1519,6 +1519,22 @@
     "moveDown": "Bajar",
     "restoreOrder": "Restaurar el orden predeterminado"
   },
+  "appIcon": {
+    "title": "Icono de la app",
+    "hintWeb": "El icono en las pestañas de este navegador.",
+    "hintMac": "El icono del Dock mientras la app está abierta. Finder y Launchpad mantienen el predeterminado.",
+    "hintDesktop": "El icono de la barra de tareas mientras la app está abierta.",
+    "hintAndroid": "Algunas pantallas de inicio tardan unos segundos en mostrar el icono nuevo.",
+    "failed": "No se pudo cambiar el icono. Inténtalo de nuevo.",
+    "agentsOf": "Agentes de {{org}}",
+    "names": {
+      "night": "Noche",
+      "moon": "Luna",
+      "sky": "Cielo",
+      "peekNight": "Asomándose de noche",
+      "peekSky": "Asomándose en el cielo"
+    }
+  },
   "install": {
     "frames": "Cómo instalar en {{system}}",
     "step": "Paso {{n}}",
@@ -2585,6 +2601,11 @@
       "groupWorkspace": "Para todo el workspace",
       "groupAdmins": "solo admins"
     },
+    "computerYours": "Tu propio espacio en la computadora del workspace. Solo tú puedes verlo o controlarlo.",
+    "sharedName": "{{name}} (compartido)",
+    "sharedPlace": "Se usa en canales y en trabajos que se ejecutan solos. Todo el workspace comparte este espacio. No guardes nada privado aquí.",
+    "computerNoHome": "Aún sin computadora. Tendrá una cuando este workspace tenga una computadora propia, agregada en Configuración, Computadoras.",
+    "computerOneUser": "Aquí no hay computadora. La computadora del workspace ejecuta todos los agentes como un solo usuario, así que no puede separar el espacio de cada persona. Un servidor Linux instalado con la opción --system del instalador sí puede.",
     "powers": {
       "title": "Poderes del workspace",
       "help": "Solo tu mano derecha hace esto.",
