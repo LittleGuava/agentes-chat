@@ -3301,12 +3301,24 @@ export const en = {
       off: "Agents answer only when mentioned.",
       noSmall: "{{provider}} has no small model for this. Agents answer mentions, replies and follow-ups.",
     },
-    /** The workspace's own small model for routing (`settings.routerModel`, ADR 0074 §2): offered while Jev doesn't pick. */
+    /**
+     * The workspace's own small model for routing and the judge (`settings.routerModel`, ADR 0074 §2 and §7). Shown
+     * while no Jev picks, or under Jev or with the router off to undo one saved before.
+     */
     model: {
       title: "Model that decides",
-      hint: "Picks who answers a message without a mention. It needs a key of its provider. On Automatic, it's the small model of one of the workspace's keys.",
+      hint: "Picks who answers messages without a mention and judges the agents' requests, on Automatic with the small model of one of the workspace's keys.",
+      /** The router is off: the model only judges. */
+      hintJudge: "Judges the agents' requests, on Automatic with the small model of one of the workspace's keys.",
       auto: "Automatic",
       autoWith: "Automatic · {{model}}",
+      /** The heading over each provider's routing pick: fast, with the least thinking. */
+      picks: "Made for deciding",
+      /** The model saved has no key, isn't listed any more, or its endpoint is gone. */
+      standIn: "This model isn't available now: {{model}} decides instead.",
+      unused: "This model isn't available now, and no model is deciding.",
+      underJev: "Jev decides first. This model only steps in when Jev fails.",
+      underOff: "Agents answer only when mentioned. This model still judges their requests.",
       saved: "Model saved.",
     },
   },

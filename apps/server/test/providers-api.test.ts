@@ -275,3 +275,18 @@ test("the same key saved again comes back as the saved one; copies made before l
   expect((await removed.json()) as object).toEqual({ removed: 1 });
   expect((await list()).map((k) => k.id)).toEqual([kept?.id ?? ""]);
 });
+
+test("the pickers' list says which models route well and which can't route at all", async () => {
+  t = await createTestServer();
+  const owner = browser(t);
+  await signUp(owner, "owner@example.com");
+  const { models } = (await (await owner("/api/app/models")).json()) as {
+    models: { id: string; router?: boolean; structuredOutput?: boolean }[];
+  };
+  const of = (id: string) => models.find((m) => m.id === id);
+  expect(of("claude-haiku-5-5")).toMatchObject({ router: true });
+  expect(of("claude-sonnet-5-5")).not.toHaveProperty("router");
+  expect(of("claude-sonnet-5-5")).not.toHaveProperty("structuredOutput");
+  // It can't answer through a JSON schema, so the server refuses it as the router's model.
+  expect(of("commandcode:z-ai/glm-5.3-flashx")).toMatchObject({ structuredOutput: false });
+});

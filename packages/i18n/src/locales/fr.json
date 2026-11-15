@@ -3181,9 +3181,15 @@
     },
     "model": {
       "title": "Modèle qui décide",
-      "hint": "Choisit qui répond à un message sans mention. Il lui faut une clé de son fournisseur. En Automatique, c'est le petit modèle de l'une des clés du workspace.",
+      "hint": "Choisit qui répond aux messages sans mention et juge les demandes des agents, en Automatique avec le petit modèle de l'une des clés du workspace.",
+      "hintJudge": "Juge les demandes des agents, en Automatique avec le petit modèle de l'une des clés du workspace.",
       "auto": "Automatique",
       "autoWith": "Automatique · {{model}}",
+      "picks": "Faits pour décider",
+      "standIn": "Ce modèle n'est pas disponible pour l'instant : c'est {{model}} qui décide.",
+      "unused": "Ce modèle n'est pas disponible pour l'instant, et aucun modèle ne décide.",
+      "underJev": "Jev décide en premier. Ce modèle n'intervient que si Jev échoue.",
+      "underOff": "Les agents ne répondent que lorsqu'on les mentionne. Ce modèle juge encore leurs demandes.",
       "saved": "Modèle enregistré."
     }
   },

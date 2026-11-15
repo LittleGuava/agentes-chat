@@ -429,6 +429,8 @@ export function agentRoutes(deps: AppDeps) {
             outputUsdPerMTok: pricesAt(m).output / 1000,
             ...(m.pick !== undefined ? { pick: m.pick } : {}),
             ...(m.tier ? { tier: m.tier } : {}),
+            ...(m.router ? { router: true as const } : {}),
+            ...(m.structuredOutput === false ? { structuredOutput: false as const } : {}),
             ...pickerEndpoint(id, m),
           })),
         },

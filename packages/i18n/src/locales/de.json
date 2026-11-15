@@ -3061,9 +3061,15 @@
     },
     "model": {
       "title": "Modell, das entscheidet",
-      "hint": "Wählt aus, wer auf eine Nachricht ohne Erwähnung antwortet. Es braucht einen Schlüssel seines Anbieters. Bei Automatisch ist es das kleine Modell eines der Schlüssel des Workspace.",
+      "hint": "Wählt aus, wer auf Nachrichten ohne Erwähnung antwortet, und beurteilt die Anfragen der Agenten, bei Automatisch mit dem kleinen Modell eines der Schlüssel des Workspace.",
+      "hintJudge": "Beurteilt die Anfragen der Agenten, bei Automatisch mit dem kleinen Modell eines der Schlüssel des Workspace.",
       "auto": "Automatisch",
       "autoWith": "Automatisch · {{model}}",
+      "picks": "Zum Entscheiden gemacht",
+      "standIn": "Dieses Modell ist gerade nicht verfügbar: Stattdessen entscheidet {{model}}.",
+      "unused": "Dieses Modell ist gerade nicht verfügbar, und kein Modell entscheidet.",
+      "underJev": "Jev entscheidet zuerst. Dieses Modell springt nur ein, wenn Jev ausfällt.",
+      "underOff": "Agenten antworten nur, wenn sie erwähnt werden. Dieses Modell beurteilt weiterhin ihre Anfragen.",
       "saved": "Modell gespeichert."
     }
   },
@@ -3087,8 +3093,8 @@
       "cursor": "Cursor ist auf diesem Computer nicht angemeldet. Verbinde ein Cursor-Konto auf der Seite von {{name}}.",
       "cursor_female": "Cursor ist auf diesem Computer nicht angemeldet. Verbinde ein Cursor-Konto auf der Seite von {{name}}.",
       "grok": "Grok ist auf diesem Computer nicht angemeldet. Verbinde ein Grok-Konto auf der Seite von {{name}}.",
-      "copilot": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "grok_female": "Grok ist auf diesem Computer nicht angemeldet. Verbinde ein Grok-Konto auf der Seite von {{name}}.",
+      "copilot": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "copilot_female": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "antigravity": "Gemini ist auf diesem Computer nicht angemeldet. Verbinde ein Gemini-Konto auf der Seite von {{name}}.",
       "antigravity_female": "Gemini ist auf diesem Computer nicht angemeldet. Verbinde ein Gemini-Konto auf der Seite von {{name}}.",

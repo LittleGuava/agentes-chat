@@ -2688,7 +2688,7 @@ export function useUpdateSettings(orgId: string) {
       void qc.invalidateQueries({ queryKey: keys.agents(orgId) });
       // A new GIF rating (or GIFs back on) changes what every search finds (ADR 0091).
       void qc.invalidateQueries({ queryKey: keys.gifs(orgId) });
-      // The router's own model changes who picks the agents (ADR 0074 §2).
+      // The router's own model changes who `ai-status` says picks the agents.
       void qc.invalidateQueries({ queryKey: keys.aiStatus(orgId) });
       void qc.invalidateQueries({
         predicate: (q) => q.queryKey[0] === "org" && q.queryKey[1] === orgId && q.queryKey[4] === "detail",

@@ -213,7 +213,7 @@ export function WhoPicksSection() {
       />
       {line && <p className="who-line">{t(line.key, line.params)}</p>}
       {line && status.data?.reflection === false && <p className="who-line">{t("routing.reflectionOff")}</p>}
-      {line && status.data?.routing && <RouterModelRow routing={status.data.routing} />}
+      {line && status.data?.routing && can(org, "configure") && <RouterModelRow routing={status.data.routing} />}
       {jev.data && <JevCard routing={status.data?.routing?.by} />}
     </Card>
   );

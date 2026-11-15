@@ -3297,9 +3297,15 @@
     },
     "model": {
       "title": "Model, który decyduje",
-      "hint": "Wybiera, kto odpowie na wiadomość bez wzmianki. Potrzebuje klucza swojego dostawcy. W trybie Automatycznie to mały model jednego z kluczy workspace'u.",
+      "hint": "Wybiera, kto odpowie na wiadomości bez wzmianki, i ocenia prośby agentów, w trybie Automatycznie małym modelem jednego z kluczy workspace'u.",
+      "hintJudge": "Ocenia prośby agentów, w trybie Automatycznie małym modelem jednego z kluczy workspace'u.",
       "auto": "Automatycznie",
       "autoWith": "Automatycznie · {{model}}",
+      "picks": "Stworzone do decydowania",
+      "standIn": "Ten model jest teraz niedostępny: zamiast niego decyduje {{model}}.",
+      "unused": "Ten model jest teraz niedostępny i żaden model nie decyduje.",
+      "underJev": "Najpierw decyduje Jev. Ten model wkracza tylko, gdy Jev zawiedzie.",
+      "underOff": "Agenci odpowiadają tylko, gdy ktoś ich wspomni. Ten model nadal ocenia ich prośby.",
       "saved": "Model zapisany."
     }
   },

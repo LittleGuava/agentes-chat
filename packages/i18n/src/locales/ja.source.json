@@ -7596,13 +7596,31 @@
     "value": "Model that decides"
   },
   "routing.model.hint": {
-    "value": "Picks who answers a message without a mention. It needs a key of its provider. On Automatic, it's the small model of one of the workspace's keys."
+    "value": "Picks who answers messages without a mention and judges the agents' requests, on Automatic with the small model of one of the workspace's keys."
+  },
+  "routing.model.hintJudge": {
+    "value": "Judges the agents' requests, on Automatic with the small model of one of the workspace's keys."
   },
   "routing.model.auto": {
     "value": "Automatic"
   },
   "routing.model.autoWith": {
     "value": "Automatic · {{model}}"
+  },
+  "routing.model.picks": {
+    "value": "Made for deciding"
+  },
+  "routing.model.standIn": {
+    "value": "This model isn't available now: {{model}} decides instead."
+  },
+  "routing.model.unused": {
+    "value": "This model isn't available now, and no model is deciding."
+  },
+  "routing.model.underJev": {
+    "value": "Jev decides first. This model only steps in when Jev fails."
+  },
+  "routing.model.underOff": {
+    "value": "Agents answer only when mentioned. This model still judges their requests."
   },
   "routing.model.saved": {
     "value": "Model saved."
@@ -8047,11 +8065,11 @@
   "connectAi.plan.grok.title": {
     "value": "Your Grok plan"
   },
-  "connectAi.plan.copilot.title": {
-    "value": "Your GitHub Copilot plan"
-  },
   "connectAi.plan.grok.tiers": {
     "value": "SuperGrok, SuperGrok Heavy or X Premium+"
+  },
+  "connectAi.plan.copilot.title": {
+    "value": "Your GitHub Copilot plan"
   },
   "connectAi.plan.copilot.tiers": {
     "value": "Copilot Pro, Pro+, Business or Enterprise"

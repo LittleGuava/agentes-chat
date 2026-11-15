@@ -3176,9 +3176,15 @@
     },
     "model": {
       "title": "Modelo que decide",
-      "hint": "Elige quién responde un mensaje sin mención. Necesita una clave de su proveedor. En Automático, es el modelo pequeño de una de las claves del workspace.",
+      "hint": "Elige quién responde los mensajes sin mención y juzga las solicitudes de los agentes, en Automático con el modelo pequeño de una de las claves del workspace.",
+      "hintJudge": "Juzga las solicitudes de los agentes, en Automático con el modelo pequeño de una de las claves del workspace.",
       "auto": "Automático",
       "autoWith": "Automático · {{model}}",
+      "picks": "Hechos para decidir",
+      "standIn": "Este modelo no está disponible ahora: decide {{model}}.",
+      "unused": "Este modelo no está disponible ahora, y ningún modelo está decidiendo.",
+      "underJev": "Jev decide primero. Este modelo solo entra cuando Jev falla.",
+      "underOff": "Los agentes solo responden cuando se les menciona. Este modelo aún juzga sus solicitudes.",
       "saved": "Modelo guardado."
     }
   },

@@ -3176,9 +3176,15 @@
     },
     "model": {
       "title": "Modello che decide",
-      "hint": "Sceglie chi risponde a un messaggio senza menzione. Serve una chiave del suo fornitore. In Automatico, è il modello piccolo di una delle chiavi del workspace.",
+      "hint": "Sceglie chi risponde ai messaggi senza menzione e valuta le richieste degli agenti, in Automatico con il modello piccolo di una delle chiavi del workspace.",
+      "hintJudge": "Valuta le richieste degli agenti, in Automatico con il modello piccolo di una delle chiavi del workspace.",
       "auto": "Automatico",
       "autoWith": "Automatico · {{model}}",
+      "picks": "Fatti per decidere",
+      "standIn": "Questo modello non è disponibile ora: decide {{model}}.",
+      "unused": "Questo modello non è disponibile ora, e nessun modello sta decidendo.",
+      "underJev": "Jev decide per primo. Questo modello entra solo quando Jev non riesce.",
+      "underOff": "Gli agenti rispondono solo quando vengono menzionati. Questo modello valuta ancora le loro richieste.",
       "saved": "Modello salvato."
     }
   },
@@ -3202,8 +3208,8 @@
       "cursor": "Cursor non ha effettuato l'accesso su questo computer. Collega un account Cursor nella pagina di {{name}}.",
       "cursor_female": "Cursor non ha effettuato l'accesso su questo computer. Collega un account Cursor nella pagina di {{name}}.",
       "grok": "Grok non ha effettuato l'accesso su questo computer. Collega un account Grok nella pagina di {{name}}.",
-      "copilot": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "grok_female": "Grok non ha effettuato l'accesso su questo computer. Collega un account Grok nella pagina di {{name}}.",
+      "copilot": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "copilot_female": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "antigravity": "Gemini non ha effettuato l'accesso su questo computer. Collega un account Gemini nella pagina di {{name}}.",
       "antigravity_female": "Gemini non ha effettuato l'accesso su questo computer. Collega un account Gemini nella pagina di {{name}}.",

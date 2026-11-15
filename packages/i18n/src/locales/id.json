@@ -2945,9 +2945,15 @@
     },
     "model": {
       "title": "Model yang memutuskan",
-      "hint": "Memilih siapa yang menjawab pesan tanpa sebutan. Perlu kunci dari penyedianya. Pada Otomatis, ini model kecil dari salah satu kunci workspace.",
+      "hint": "Memilih siapa yang menjawab pesan tanpa sebutan dan menilai permintaan agen, pada Otomatis dengan model kecil dari salah satu kunci workspace.",
+      "hintJudge": "Menilai permintaan agen, pada Otomatis dengan model kecil dari salah satu kunci workspace.",
       "auto": "Otomatis",
       "autoWith": "Otomatis · {{model}}",
+      "picks": "Dibuat untuk memutuskan",
+      "standIn": "Model ini sedang tidak tersedia: {{model}} yang memutuskan.",
+      "unused": "Model ini sedang tidak tersedia, dan tidak ada model yang memutuskan.",
+      "underJev": "Jev memutuskan lebih dulu. Model ini hanya dipakai saat Jev gagal.",
+      "underOff": "Agen hanya menjawab saat disebut. Model ini tetap menilai permintaan mereka.",
       "saved": "Model disimpan."
     }
   },
@@ -2971,8 +2977,8 @@
       "cursor": "Cursor belum masuk di komputer ini. Hubungkan akun Cursor di halaman {{name}}.",
       "cursor_female": "Cursor belum masuk di komputer ini. Hubungkan akun Cursor di halaman {{name}}.",
       "grok": "Grok belum masuk di komputer ini. Hubungkan akun Grok di halaman {{name}}.",
-      "copilot": "Copilot belum masuk di komputer ini. Hubungkan akun Copilot di halaman {{name}}.",
       "grok_female": "Grok belum masuk di komputer ini. Hubungkan akun Grok di halaman {{name}}.",
+      "copilot": "Copilot belum masuk di komputer ini. Hubungkan akun Copilot di halaman {{name}}.",
       "copilot_female": "Copilot belum masuk di komputer ini. Hubungkan akun Copilot di halaman {{name}}.",
       "antigravity": "Gemini belum masuk di komputer ini. Hubungkan akun Gemini di halaman {{name}}.",
       "antigravity_female": "Gemini belum masuk di komputer ini. Hubungkan akun Gemini di halaman {{name}}.",

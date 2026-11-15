@@ -70,16 +70,17 @@ export const usd = (_t: TFunction, locale: string, n: number) =>
 export const modelOptions = (t: TFunction, locale: string, choices: [string, ModelChoice[]][]) =>
   apiPickOptions(t, locale, choices).map(pickSelectOption);
 
+/** Automático's mark in a model select: a bulb where a maker's logo goes. */
+export const AutoMark = () => (
+  <span className="newag__ib">
+    <Icon name="bulb" size={16} />
+  </span>
+);
+
 /** A "Quem pensa" option as a select's, its maker's mark before it (Automático's bulb). */
 export const pickSelectOption = (o: BrainPickOption): SelectOption & BrainPickOption => ({
   ...o,
-  leading: o.mark ? (
-    <ProviderLogo id={o.mark} size="sm" />
-  ) : (
-    <span className="newag__ib">
-      <Icon name="bulb" size={16} />
-    </span>
-  ),
+  leading: o.mark ? <ProviderLogo id={o.mark} size="sm" /> : <AutoMark />,
 });
 
 /**

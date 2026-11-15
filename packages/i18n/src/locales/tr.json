@@ -3057,9 +3057,15 @@
     },
     "model": {
       "title": "Karar veren model",
-      "hint": "Bahsetme olmayan bir mesajı kimin yanıtlayacağını seçer. Sağlayıcısının bir anahtarı gerekir. Otomatik'te, çalışma alanının anahtarlarından birinin küçük modelidir.",
+      "hint": "Bahsetme olmayan mesajları kimin yanıtlayacağını seçer ve ajanların isteklerini değerlendirir, Otomatik'te çalışma alanının anahtarlarından birinin küçük modeliyle.",
+      "hintJudge": "Ajanların isteklerini değerlendirir, Otomatik'te çalışma alanının anahtarlarından birinin küçük modeliyle.",
       "auto": "Otomatik",
       "autoWith": "Otomatik · {{model}}",
+      "picks": "Karar vermek için",
+      "standIn": "Bu model şu anda kullanılamıyor: onun yerine {{model}} karar veriyor.",
+      "unused": "Bu model şu anda kullanılamıyor ve karar veren bir model yok.",
+      "underJev": "Önce Jev karar verir. Bu model yalnızca Jev başarısız olduğunda devreye girer.",
+      "underOff": "Ajanlar yalnızca bahsedildiklerinde yanıt verir. Bu model isteklerini değerlendirmeye devam eder.",
       "saved": "Model kaydedildi."
     }
   },

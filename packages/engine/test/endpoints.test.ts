@@ -17,9 +17,11 @@ import {
   modelInfoFor,
   pickerModels,
   rotateCredential,
+  smallModelFor,
   updateAgent,
   updateEndpointModels,
 } from "../src";
+import { clearCaches } from "../src/cache";
 import { addMember, type Fixture, setup } from "./fixtures";
 
 let f: Fixture;
@@ -295,6 +297,27 @@ describe("calls", () => {
     await expect(
       updateAgent(f.db, f.owner.id, f.org.id, f.agent.id, { model, credentialId: f.credential.id }),
     ).rejects.toThrow("its own endpoint");
+  });
+
+  test("an endpoint model a workspace routes with counts in a fresh process, before anything listed its models", async () => {
+    f = await setup();
+    const cred = await addEndpoint(f);
+    // A fresh process: the same endpoint as a row nothing in this process has read yet.
+    const [row] = await f.db
+      .select()
+      .from(schema.providerCredentials)
+      .where(eq(schema.providerCredentials.id, cred.id));
+    const id = crypto.randomUUID();
+    await f.db
+      .insert(schema.providerCredentials)
+      .values({ ...(row as typeof schema.providerCredentials.$inferInsert), id });
+    clearCaches();
+    const model = customModelId(id, "llama-4");
+    await f.db
+      .insert(schema.organizationSettings)
+      .values({ orgId: f.org.id, routerModel: model })
+      .onConflictDoUpdate({ target: schema.organizationSettings.orgId, set: { routerModel: model } });
+    expect(await smallModelFor(f, f.org.id)).toBe(model);
   });
 });
 

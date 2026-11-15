@@ -371,6 +371,8 @@ export interface FakeState {
   aiStatus?: AiStatus;
   /** The workspace's own router model (`settings.routerModel`); unset = the server's. */
   routerModel?: string | null;
+  /** What `orgs.updateSettings` throws (a refused save). */
+  settingsError?: ApiError;
   /** Make `chat.answerNow` fail with this error (`ai.still_missing`…). */
   answerNowError?: ApiError;
   /** What `chat.answerNow` says answers the message (default none). */
@@ -540,6 +542,34 @@ export function meAsAdmin(state: FakeState) {
   const me = state.members.find((m) => m.userId === state.me?.user.id);
   if (me) me.roleIds = [ADMIN_ROLE_ID];
 }
+
+/** The models `agents.models` lists: a few of the catalog's, then the test's own. */
+const modelsOf = (state: FakeState): Model[] => [
+  {
+    id: "claude-sonnet-5-5",
+    label: "Claude Sonnet 5.5",
+    provider: "anthropic",
+    inputUsdPerMTok: 2,
+    outputUsdPerMTok: 10,
+  },
+  {
+    id: "claude-opus-5-5",
+    label: "Claude Opus 5.5",
+    provider: "anthropic",
+    inputUsdPerMTok: 4,
+    outputUsdPerMTok: 20,
+  },
+  {
+    id: "claude-haiku-5-5",
+    label: "Claude Haiku 5.5",
+    provider: "anthropic",
+    inputUsdPerMTok: 0.1,
+    outputUsdPerMTok: 0.5,
+    router: true,
+  },
+  { id: "gpt-5", label: "GPT-5", provider: "openai", inputUsdPerMTok: 1.25, outputUsdPerMTok: 10 },
+  ...(state.extraModels ?? []),
+];
 
 /** Me as a member whose one role, "Criadores", holds `permissions` past what `everyone` gives ("Criar agentes"…). */
 export function meWithRole(state: FakeState, permissions: string[]) {
@@ -1984,6 +2014,13 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
       }),
       updateSettings: async (orgId, input) => {
         log("orgs.updateSettings", orgId, input);
+        if (state.settingsError) throw state.settingsError;
+        // As the server: the router's model must be known and answer through a JSON schema.
+        if (input.routerModel) {
+          const model = modelsOf(state).find((m) => m.id === input.routerModel);
+          if (!model || model.structuredOutput === false)
+            throw new ApiError(400, "validation", `${input.routerModel} can't route`);
+        }
         // A switch of mode (ADR 0159), with the name it may bring: `me` says them at once, as the server's.
         const { mode, name } = input;
         if (mode !== undefined && state.me) {
@@ -2608,31 +2645,7 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
       models: async () => ({
         ...(state.planModels ? { planModels: state.planModels } : {}),
         defaultModel: "claude-sonnet-5-5",
-        models: [
-          {
-            id: "claude-sonnet-5-5",
-            label: "Claude Sonnet 5.5",
-            provider: "anthropic",
-            inputUsdPerMTok: 2,
-            outputUsdPerMTok: 10,
-          },
-          {
-            id: "claude-opus-5-5",
-            label: "Claude Opus 5.5",
-            provider: "anthropic",
-            inputUsdPerMTok: 4,
-            outputUsdPerMTok: 20,
-          },
-          {
-            id: "claude-haiku-5-5",
-            label: "Claude Haiku 5.5",
-            provider: "anthropic",
-            inputUsdPerMTok: 0.1,
-            outputUsdPerMTok: 0.5,
-          },
-          { id: "gpt-5", label: "GPT-5", provider: "openai", inputUsdPerMTok: 1.25, outputUsdPerMTok: 10 },
-          ...(state.extraModels ?? []),
-        ],
+        models: modelsOf(state),
       }),
       credentials: async () => [...state.credentials],
       addCredential: async (orgId, input) => {
@@ -2711,13 +2724,19 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         return { check: "ok" as const };
       },
       platformKeyAvailable: async () => state.platformKey,
-      aiStatus: async () =>
-        structuredClone(
+      aiStatus: async () => {
+        const status: AiStatus = structuredClone(
           state.aiStatus ?? {
             any: true,
             agents: state.agents.map((a) => ({ agentId: a.id, state: "ready" as const })),
           },
-        ),
+        );
+        // As the server's `smallModelFor`: the workspace's own model decides while one of its keys reaches it.
+        const own = modelsOf(state).find((m) => m.id === state.routerModel);
+        const reached = own && state.credentials.some((c) => c.provider === own.provider && !c.revokedAt);
+        if (status.routing?.by === "model" && reached) status.routing.model = own.id;
+        return status;
+      },
       statuses: async () =>
         structuredClone(
           state.agentStatuses ??

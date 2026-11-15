@@ -911,6 +911,12 @@ export const Model = z
       .boolean()
       .optional()
       .openapi({ description: "No prices known: its calls cost 0, so a budget can't count money for it." }),
+    router: z.literal(true).optional().openapi({
+      description: "Its provider's pick for routing and the judge (ADR 0074 §2): fast, with the least thinking.",
+    }),
+    structuredOutput: z.literal(false).optional().openapi({
+      description: "It can't answer through a JSON schema: never the router's, the judge's or summaries' model.",
+    }),
   })
   .openapi("Model");
 

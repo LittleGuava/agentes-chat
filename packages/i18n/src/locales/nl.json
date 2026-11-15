@@ -3060,9 +3060,15 @@
     },
     "model": {
       "title": "Model dat beslist",
-      "hint": "Kiest wie een bericht zonder vermelding beantwoordt. Het heeft een sleutel van zijn aanbieder nodig. Op Automatisch is het het kleine model van een van de sleutels van de workspace.",
+      "hint": "Kiest wie berichten zonder vermelding beantwoordt en beoordeelt de verzoeken van de agents, op Automatisch met het kleine model van een van de sleutels van de workspace.",
+      "hintJudge": "Beoordeelt de verzoeken van de agents, op Automatisch met het kleine model van een van de sleutels van de workspace.",
       "auto": "Automatisch",
       "autoWith": "Automatisch · {{model}}",
+      "picks": "Gemaakt om te beslissen",
+      "standIn": "Dit model is nu niet beschikbaar: {{model}} beslist in plaats daarvan.",
+      "unused": "Dit model is nu niet beschikbaar, en geen enkel model beslist.",
+      "underJev": "Jev beslist eerst. Dit model springt alleen in als Jev faalt.",
+      "underOff": "Agents antwoorden alleen als ze vermeld worden. Dit model beoordeelt hun verzoeken nog steeds.",
       "saved": "Model opgeslagen."
     }
   },
@@ -3086,8 +3092,8 @@
       "cursor": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "cursor_female": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "grok": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
-      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "grok_female": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
+      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "copilot_female": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "antigravity": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",
       "antigravity_female": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",
