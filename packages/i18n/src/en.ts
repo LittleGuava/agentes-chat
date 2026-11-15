@@ -3301,6 +3301,14 @@ export const en = {
       off: "Agents answer only when mentioned.",
       noSmall: "{{provider}} has no small model for this. Agents answer mentions, replies and follow-ups.",
     },
+    /** The workspace's own small model for routing (`settings.routerModel`, ADR 0074 §2): offered while Jev doesn't pick. */
+    model: {
+      title: "Model that decides",
+      hint: "Picks who answers a message without a mention. It needs a key of its provider. On Automatic, it's the small model of one of the workspace's keys.",
+      auto: "Automatic",
+      autoWith: "Automatic · {{model}}",
+      saved: "Model saved.",
+    },
   },
   noAi: {
     banner: {

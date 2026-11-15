@@ -3178,6 +3178,13 @@
       "rules": "Les agents répondent aux mentions, aux réponses et aux suites de conversation.",
       "off": "Les agents ne répondent que lorsqu'ils sont mentionnés.",
       "noSmall": "{{provider}} n'a pas de petit modèle pour cela. Les agents répondent aux mentions, aux réponses et aux suites de conversation."
+    },
+    "model": {
+      "title": "Modèle qui décide",
+      "hint": "Choisit qui répond à un message sans mention. Il lui faut une clé de son fournisseur. En Automatique, c'est le petit modèle de l'une des clés du workspace.",
+      "auto": "Automatique",
+      "autoWith": "Automatique · {{model}}",
+      "saved": "Modèle enregistré."
     }
   },
   "noAi": {

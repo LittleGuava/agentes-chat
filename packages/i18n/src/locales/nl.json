@@ -3057,6 +3057,13 @@
       "rules": "Agents beantwoorden vermeldingen, antwoorden en vervolgvragen.",
       "off": "Agents antwoorden alleen als ze worden genoemd.",
       "noSmall": "{{provider}} heeft hiervoor geen klein model. Agents beantwoorden vermeldingen, antwoorden en vervolgvragen."
+    },
+    "model": {
+      "title": "Model dat beslist",
+      "hint": "Kiest wie een bericht zonder vermelding beantwoordt. Het heeft een sleutel van zijn aanbieder nodig. Op Automatisch is het het kleine model van een van de sleutels van de workspace.",
+      "auto": "Automatisch",
+      "autoWith": "Automatisch · {{model}}",
+      "saved": "Model opgeslagen."
     }
   },
   "noAi": {

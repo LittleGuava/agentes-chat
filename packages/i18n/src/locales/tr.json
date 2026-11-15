@@ -3054,6 +3054,13 @@
       "rules": "Ajanlar bahsetmelere, yanıtlara ve devam mesajlarına yanıt verir.",
       "off": "Ajanlar yalnızca kendilerinden bahsedildiğinde yanıt verir.",
       "noSmall": "{{provider}} bunun için küçük bir model sunmuyor. Ajanlar bahsetmelere, yanıtlara ve devam mesajlarına yanıt verir."
+    },
+    "model": {
+      "title": "Karar veren model",
+      "hint": "Bahsetme olmayan bir mesajı kimin yanıtlayacağını seçer. Sağlayıcısının bir anahtarı gerekir. Otomatik'te, çalışma alanının anahtarlarından birinin küçük modelidir.",
+      "auto": "Otomatik",
+      "autoWith": "Otomatik · {{model}}",
+      "saved": "Model kaydedildi."
     }
   },
   "noAi": {

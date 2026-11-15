@@ -7592,6 +7592,21 @@
   "routing.by.noSmall": {
     "value": "{{provider}} has no small model for this. Agents answer mentions, replies and follow-ups."
   },
+  "routing.model.title": {
+    "value": "Model that decides"
+  },
+  "routing.model.hint": {
+    "value": "Picks who answers a message without a mention. It needs a key of its provider. On Automatic, it's the small model of one of the workspace's keys."
+  },
+  "routing.model.auto": {
+    "value": "Automatic"
+  },
+  "routing.model.autoWith": {
+    "value": "Automatic · {{model}}"
+  },
+  "routing.model.saved": {
+    "value": "Model saved."
+  },
   "noAi.banner.org": {
     "value": "Your agents don't have an AI yet."
   },

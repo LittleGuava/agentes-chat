@@ -2942,6 +2942,13 @@
       "rules": "Agen menjawab sebutan, balasan, dan tindak lanjut.",
       "off": "Agen hanya menjawab saat disebut.",
       "noSmall": "{{provider}} tidak punya model kecil untuk ini. Agen menjawab sebutan, balasan, dan tindak lanjut."
+    },
+    "model": {
+      "title": "Model yang memutuskan",
+      "hint": "Memilih siapa yang menjawab pesan tanpa sebutan. Perlu kunci dari penyedianya. Pada Otomatis, ini model kecil dari salah satu kunci workspace.",
+      "auto": "Otomatis",
+      "autoWith": "Otomatis · {{model}}",
+      "saved": "Model disimpan."
     }
   },
   "noAi": {
