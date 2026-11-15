@@ -44,6 +44,7 @@ import {
   enableOperatorEvents,
   enqueue,
   executeToolForRun,
+  forgetPlanLimit,
   getMessage,
   grantScopes,
   insertMessage,
@@ -257,6 +258,30 @@ test("availability: no computer, offline, old runner, not logged in, Codex missi
       statusOf("m2", { protocol: CODEX_WINDOWS_PROTOCOL - 1, executors: { codex: { version: "0.170.0" } } }),
     ),
   ).toBeNull();
+});
+
+test("Claude's plan with one model's week full: an agent on another model still thinks, one on that model waits", () => {
+  const resets = new Date(Date.now() + 8 * 3600_000).toISOString();
+  const usage = {
+    windows: [
+      { kind: "other" as const, label: "Fable", usedPercent: 100, resetsAt: resets },
+      { kind: "seven_day" as const, usedPercent: 76, resetsAt: resets },
+    ],
+    source: "probe" as const,
+    at: new Date().toISOString(),
+  };
+  const check = (model: string) =>
+    computerBrainUnavailable("claude_code", "m-fable", statusOf("m-fable"), Date.now(), undefined, true, usage, model);
+  expect(check("haiku")).toBeNull();
+  expect(check("fable")).toMatchObject({ code: "plan_limit", resetsAt: resets });
+  notePlanLimit("m-cache", "claude_code", resets, Date.now(), undefined, "fable");
+  const cached = (model: string) =>
+    computerBrainUnavailable("claude_code", "m-cache", statusOf("m-cache"), Date.now(), undefined, true, null, model);
+  expect(cached("haiku")).toBeNull();
+  expect(cached("fable")?.code).toBe("plan_limit");
+  expect(cached("auto")?.code).toBe("plan_limit");
+  forgetPlanLimit("m-cache", "claude_code");
+  expect(cached("fable")).toBeNull();
 });
 
 test("a computer brain's model: the mission's, else the agent's only for the same brain, else the brain's default", () => {

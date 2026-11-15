@@ -88,16 +88,41 @@ export function planWindows<W extends PlanMeterWindow>(usage: { windows: readonl
     .sort((a, b) => b.used - a.used || KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind));
 }
 
+/** Claude's model families, as its plan names a model's own window ("Fable") and as a model id or alias says them. */
+const CLAUDE_FAMILIES = ["fable", "opus", "sonnet", "haiku"] as const;
+
+/** The family a model id or alias is ("claude-haiku-5-5", "haiku" → "haiku"); null: none known ("auto", none). */
+export function modelFamily(model: string | null | undefined): string | null {
+  const m = model?.toLowerCase() ?? "";
+  return CLAUDE_FAMILIES.find((f) => m.split(/[^a-z]+/).includes(f)) ?? null;
+}
+
+/**
+ * The model family a window limits alone (Opus's and Sonnet's weeks, and a model's own window that Claude's usage
+ * lists by the model's name, "Fable"); null: the account's, which limits every model.
+ */
+export function windowModel(w: Pick<PlanMeterWindow, "kind" | "label">): string | null {
+  if (w.kind === "seven_day_opus") return "opus";
+  if (w.kind === "seven_day_sonnet") return "sonnet";
+  const label = w.kind === "other" ? (w.label?.trim().toLowerCase() ?? "") : "";
+  return CLAUDE_FAMILIES.find((f) => f === label) ?? null;
+}
+
 /**
  * Where the plan stands: at its limit (a window is full, or it refused a
  * request and no full window has reset since), almost (`PLAN_ALMOST`), or fine.
  * `until`: when every full window has reset; `used`: the tightest window's.
+ * `model`: the plan as a turn on that model sees it, without the windows of the plan's other models; none (or one
+ * whose family isn't known) sees every window.
  */
 export function planState(
   usage: PlanMeterUsage,
   now = Date.now(),
+  model?: string | null,
 ): { state: PlanState; until: string | null; used: number } {
-  const rows = planWindows(usage, now);
+  const family = modelFamily(model);
+  const counts = (w: PlanMeterWindow) => family === null || [null, family].includes(windowModel(w));
+  const rows = planWindows({ windows: usage.windows.filter(counts) }, now);
   const full = rows.filter((w) => w.used >= 100);
   const refused = usage.limited === true && !usage.windows.some((w) => w.usedPercent >= 100);
   const used = rows[0]?.used ?? 0;
