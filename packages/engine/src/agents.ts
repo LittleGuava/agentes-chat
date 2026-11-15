@@ -13,7 +13,7 @@ import {
   schema,
   sql,
 } from "@agenteschat/db";
-import { AUTO_MODEL, customModelId, isAutoModel, MODEL_CATALOG, parseCustomModel } from "@agenteschat/providers";
+import { AUTO_MODEL, endpointModelId, isAutoModel, MODEL_CATALOG, parseCustomModel } from "@agenteschat/providers";
 import { isIdHandle } from "@agenteschat/ui/names";
 import type { AgentAppearance } from "./appearance";
 import { dropAgentRules } from "./approval-rules";
@@ -38,7 +38,7 @@ import {
   grantScopes,
   PERSONAL_AGENT_SCOPES,
 } from "./tools/scopes";
-import { resyncBudgetCounter } from "./usage";
+import { orgDefaultAgentBudget, resyncBudgetCounter } from "./usage";
 import { resumeBudgetWaits } from "./usage-pause";
 import { isPersonalWorkspace } from "./workspace-mode";
 
@@ -105,9 +105,9 @@ async function endpointModel<T extends Partial<AgentInput>>(db: Database, orgId:
   if (!isAutoModel(input.model) || !input.credentialId) return input;
   const credential = await usableCredentialRow(db, orgId, input.credentialId);
   if (credential?.provider !== "custom") return input;
-  const model = credential.options?.endpoint?.models[0];
+  const model = endpointModelId(credential.id, credential.options?.endpoint?.models ?? []);
   if (!model) throw new ValidationError("An endpoint needs at least one model");
-  return { ...input, model: customModelId(credential.id, model.id) };
+  return { ...input, model };
 }
 
 /** An agent's fields as the API takes them: its handle, model, key (of the model's provider), budget and owner. */
@@ -242,6 +242,15 @@ export async function createAgent(
   // How much it asks (ADR 0173) is for who edits any agent, at its creation too.
   if (input.approvalsLevel !== undefined && !can(membership, "manage_agents")) {
     throw new ForbiddenError("Only who manages agents can set how much an agent asks");
+  }
+  // What one agent may spend beyond the workspace's default is for who edits any agent: a member's new agent takes
+  // at most the default.
+  if (
+    input.monthlyBudgetNanoUsd != null &&
+    !can(membership, "manage_agents") &&
+    input.monthlyBudgetNanoUsd > (await orgDefaultAgentBudget(db, orgId))
+  ) {
+    throw new ForbiddenError("Only an admin can give an agent more than the workspace's default budget");
   }
   const values = await endpointModel(db, orgId, {
     ...fields,

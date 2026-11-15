@@ -102,7 +102,7 @@ import {
 import { planLentGroup, planModelDroppedGroup } from "./notification-producers";
 import { resolveNotifications } from "./notifications";
 import { can, getMembership, requirePermission } from "./organizations";
-import { isRightHand, personalBrain, RIGHT_HAND_NO_BRAINS } from "./right-hand";
+import { isRightHand, personalBrain, personalModel, RIGHT_HAND_NO_BRAINS } from "./right-hand";
 import { orgModelProvider } from "./router";
 import { readRefusal } from "./standing";
 import { wakeAgentUsageWaits } from "./usage-pause";
@@ -210,7 +210,7 @@ export const antigravityModels = (listed: readonly { id: string; label?: string 
     return { value: m.id, label: m.label || m.id, ...(catalogModelOf(base) ? { modelId: base } : {}) };
   });
 
-/** The Copilot CLI's models (ADR 0174): what it listed on the agent's computer, else `COPILOT_CLI_MODELS`. */
+/** The Copilot CLI's models (ADR 0186): what it listed on the agent's computer, else `COPILOT_CLI_MODELS`. */
 export const copilotModels = (listed: readonly { id: string; label?: string }[] = []): BrainModelOption[] =>
   (listed.length ? listed : COPILOT_CLI_MODELS).map((m) => ({
     value: m.id,
@@ -218,12 +218,17 @@ export const copilotModels = (listed: readonly { id: string; label?: string }[] 
     ...(catalogModelOf(m.id) ? { modelId: m.id } : {}),
   }));
 
-/** Claude Code's aliases (`--model opus|sonnet|haiku`), mapped to today's ids in the catalog. */
-export const CLAUDE_CODE_MODELS: readonly BrainModelOption[] = [
-  { value: "opus", label: "Opus", modelId: "claude-opus-5-5" },
-  { value: "sonnet", label: "Sonnet", modelId: "claude-sonnet-5-5", recommended: true },
-  { value: "haiku", label: "Haiku", modelId: "claude-haiku-5-5" },
-];
+/**
+ * Claude Code's aliases (`--model opus|sonnet|haiku`), mapped to today's ids in the catalog. Each is named by its
+ * catalog row without the maker ("Opus 5.5"), so moving an alias to a new id renames it with no copy change.
+ */
+export const CLAUDE_CODE_MODELS: readonly BrainModelOption[] = (
+  [
+    { value: "opus", modelId: "claude-opus-5-5" },
+    { value: "sonnet", modelId: "claude-sonnet-5-5", recommended: true },
+    { value: "haiku", modelId: "claude-haiku-5-5" },
+  ] as const
+).map((o) => ({ ...o, label: MODEL_CATALOG[o.modelId]?.label.replace(/^Claude /, "") ?? o.value }));
 
 /** Codex's models: the OpenAI rows of the catalog (any other name is accepted as typed). */
 export const codexModels = (): BrainModelOption[] =>
@@ -324,6 +329,8 @@ export type BrainUnavailable =
   | "outdated"
   /** Its runner hasn't said which CLIs it has yet (`detectedAt`): nobody knows whether this one is there. */
   | "not_reported"
+  /** It is there and can't start (`executors.broken`, with its own error): not missing, so installing it won't help. */
+  | "cant_start"
   /** Its runner doesn't run this CLI on the computer's system (`brainRunsOn`): Cursor on Windows, for one. */
   | "system";
 
@@ -354,9 +361,15 @@ type MachineLike = Parameters<typeof machineExecutors>[0] & {
   } | null;
 } & Parameters<typeof machineOnline>[0];
 
-/** A CLI the computer doesn't list: gone only once its runner has looked (the same check the turns make). */
-const missingCli = (machine: MachineLike): BrainUnavailable =>
-  machine.executors?.detectedAt ? "not_installed" : "not_reported";
+/**
+ * A CLI the computer doesn't list: gone only once its runner has looked (the same check the turns make), and there but
+ * unable to start where the runner says so.
+ */
+const missingCli = (
+  machine: MachineLike,
+  cli: keyof NonNullable<schema.MachineExecutors["broken"]>,
+): BrainUnavailable =>
+  machine.executors?.broken?.[cli] ? "cant_start" : machine.executors?.detectedAt ? "not_installed" : "not_reported";
 
 /**
  * What the agent's computer can think with; the model brain always. A
@@ -378,7 +391,7 @@ export function brainOptions(machine: MachineLike | null): BrainOption[] {
       reason = "runner_old";
     else if (machine.access?.tools && machine.access.tools[executor] !== true) reason = "tool_off";
     else if (!found?.available.includes(executor))
-      reason = executor === "codex" && found?.codexTooOld ? "outdated" : missingCli(machine);
+      reason = executor === "codex" && found?.codexTooOld ? "outdated" : missingCli(machine, executor);
     return {
       kind,
       available: !reason,
@@ -427,7 +440,7 @@ function cliOption(
     reason = "runner_old";
   else if (!brainRunsOn(kind, machine.os)) reason = "system";
   else if (tools && (tools[kind] ?? tools.codex) !== true) reason = "tool_off";
-  else if (!machine.executors?.[kind]) reason = missingCli(machine);
+  else if (!machine.executors?.[kind]) reason = missingCli(machine, kind);
   return {
     kind,
     available: !reason,
@@ -547,7 +560,7 @@ async function brainAccounts(
   userId: string,
   orgId: string,
   agent: Pick<Agent, "ownerUserId" | "brainAccountId" | "builtin">,
-  machine: Pick<MachineRow, "id" | "protocol" | "pairedByUserId"> | null,
+  machine: Pick<MachineRow, "id" | "protocol" | "pairedByUserId" | "kind"> | null,
 ): Promise<BrainAccounts> {
   if (!machine) return NO_ACCOUNTS;
   const supported = machine.protocol >= ACCOUNTS_PROTOCOL;
@@ -608,7 +621,7 @@ async function settingsAgent(db: Database, agent: Agent, userId: string, account
       and(
         eq(schema.machines.orgId, agent.orgId),
         isNull(schema.machines.deletedAt),
-        sql`(${schema.machines.kind} = 'managed' or ${schema.machines.pairedByUserId} = ${userId})`,
+        sql`(${schema.machines.kind} in ('managed', 'host') or ${schema.machines.pairedByUserId} = ${userId})`,
       ),
     )
     .orderBy(sql`${schema.machines.kind} = 'managed' desc`, schema.machines.createdAt)
@@ -629,7 +642,11 @@ async function candidateMachines(
     .from(schema.machines)
     .where(and(eq(schema.machines.orgId, orgId), isNull(schema.machines.deletedAt)));
   return rows
-    .filter((m) => (admin || m.pairedByUserId === userId || m.id === current) && (mayBeHome(m) || m.id === current))
+    .filter(
+      (m) =>
+        (admin || m.kind !== "connected" || m.pairedByUserId === userId || m.id === current) &&
+        (mayBeHome(m) || m.id === current),
+    )
     .map((m) => ({ machineId: m.id, name: m.name, online: machineOnline(m), options: brainOptions(m) }));
 }
 
@@ -700,7 +717,7 @@ async function personalAgent(db: Database, agent: Agent, userId: string, account
   const mine: Agent = {
     ...agent,
     brain: own?.brain ?? "model",
-    brainModel: own?.brainModel ?? null,
+    brainModel: own ? personalModel(own, agent) : null,
     brainEffort: own?.brainEffort ?? null,
     brainAccountId: own?.brainAccountId ?? null,
     brainAccountLentBy: own?.brainAccountLentBy ?? null,
@@ -962,16 +979,16 @@ export async function getAgentBrain(
 }
 
 /**
- * `GET …/brain-machines`: what a new agent could think with ("Criar agente"), before it exists: every computer of
- * the workspace (only admins create agents) with what each offers. The choice is saved on the agent once created.
+ * `GET …/brain-machines`: what a new agent could think with ("Criar agente"), before it exists: the computers its
+ * creator may give it, with what each offers. The choice is saved on the agent once created.
  */
 export async function newAgentBrainMachines(
   deps: BrainDeps,
   userId: string,
   orgId: string,
 ): Promise<BrainMachineOptions[]> {
-  await requirePermission(deps.db, userId, orgId, "create_agents");
-  return candidateMachines(deps.db, userId, orgId, true, null);
+  const membership = await requirePermission(deps.db, userId, orgId, "create_agents");
+  return candidateMachines(deps.db, userId, orgId, can(membership, "manage_agents"), null);
 }
 
 export interface AgentBrainInput {
@@ -1021,7 +1038,7 @@ function nextAudience(agent: Agent, ontoPlan: boolean, onlyOwner: boolean | unde
   if (onlyOwner) return narrow(base);
   if (answersOthers(base, agent.ownerUserId)) return base;
   // Its "who can talk" list decides who comes back: it stays while the agent is its owner's only. One a person
-  // restricted ("Só algumas pessoas ou papéis", even with nobody picked yet) stays restricted: never everyone.
+  // restricted ("Só algumas pessoas ou cargos", even with nobody picked yet) stays restricted: never everyone.
   const kept = agent.audienceUserIds.length > 0 || agent.audienceRoleIds.length > 0 || agent.audienceMode === "people";
   return kept ? { mode: "people", userIds: agent.audienceUserIds, roleIds: agent.audienceRoleIds } : EVERYONE;
 }
@@ -1748,7 +1765,7 @@ export async function setMissionBrain(
 
 /**
  * What thinks for an agent, for wherever the agent is shown (DM header,
- * profile, cards): the brain, its model's label ("Sonnet"; null for the
+ * profile, cards): the brain, its model's label ("Sonnet 5.5"; null for the
  * model brain, which shows the agent's model) and the computer's name, only
  * for those who may see it (admins and the agent's owner, like Quem pensa).
  * On a plan, the account it thinks with and that plan's limits, for everyone
@@ -1771,7 +1788,7 @@ export interface AgentBrainSummary {
 }
 
 /**
- * The label of a computer brain's model ("opus" → "Opus", "GLM-5.3" on a plan; a typed Codex model as is): what it
+ * The label of a computer brain's model ("opus" → "Opus 5.5", "GLM-5.3" on a plan; a typed Codex model as is): what it
  * runs, so a plan's model kept while Claude thinks reads as Sonnet.
  */
 export function brainModelLabel(

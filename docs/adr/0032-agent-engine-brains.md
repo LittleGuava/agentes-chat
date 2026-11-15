@@ -213,7 +213,7 @@ Calm waits stopped the noise, but not the volume. In the same workspace, runs be
 
 *Amended 2026-11-04:* xAI's Grok Build joins the computer brains (`BrainKind` `grok`, ADR 0142), through the same `brain.turn` as Codex, Cursor and OpenCode, from runner protocol 43. Its turns always run with an account of the agent's owner (never the computer's own sign-in), one `grok -p` each, read with Claude Code's stream parser.
 
-*Amended 2026-11-12:* GitHub's Copilot CLI joins the computer brains (`BrainKind` `copilot`, ADR 0174), through the same `brain.turn` as Codex, Cursor, OpenCode and Grok, from runner protocol 65. Its turns always run with an account of the agent's owner (never the computer's own sign-in), one `copilot --output-format json` each with the message on standard input, read by a mapper of its own.
+*Amended 2026-11-12:* GitHub's Copilot CLI joins the computer brains (`BrainKind` `copilot`, ADR 0186), through the same `brain.turn` as Codex, Cursor, OpenCode and Grok, from runner protocol 67. Its turns always run with an account of the agent's owner (never the computer's own sign-in), one `copilot --output-format json` each with the message on standard input, read by a mapper of its own.
 
 ## Addendum (2026-11-05): honest estimates, and the right hand skips the line
 

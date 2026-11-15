@@ -612,7 +612,7 @@ export const ANTIGRAVITY_MODELS: readonly { id: string; label: string }[] = [
 ];
 
 /**
- * The Copilot CLI's models (ADR 0174): the runner reports none yet (the CLI has no `models` command), so these are
+ * The Copilot CLI's models (ADR 0186): the runner reports none yet (the CLI has no `models` command), so these are
  * what "Quem pensa" offers; any other id is taken as typed, and with none chosen the CLI's own default runs. Copilot's
  * own `auto` is left out: it is the engine's word for no model chosen.
  * ponytail: hand-copied list (some of what Copilot CLI 1.0.109 offered a GitHub Copilot plan, 2026-11-12); a

@@ -436,7 +436,7 @@ export class CodexBrain implements Brain {
       mcp: { ...mcp, tools: toolNames.join(" ") },
       ...(agent ? { agent } : {}),
       ...accountFields(status.protocol, turn),
-      ...contextFields(status.protocol, turn),
+      ...contextFields(status.protocol, turn, this.kind),
       ...speedFields(status.protocol, turn),
       ...(permissions ? { permissions } : {}),
       ...(this.deps.keepAlive === false ? { keepAlive: false } : {}),
@@ -552,8 +552,8 @@ export class AntigravityBrain extends CodexBrain {
 }
 
 /**
- * The Copilot brain (ADR 0174): GitHub's Copilot CLI on the agent's computer with a person's GitHub Copilot plan,
- * through the same `brain.turn` as Codex (`kind: "copilot"`, runner protocol 59, `brain-copilot.ts` there). A person's
+ * The Copilot brain (ADR 0186): GitHub's Copilot CLI on the agent's computer with a person's GitHub Copilot plan,
+ * through the same `brain.turn` as Codex (`kind: "copilot"`, runner protocol 67, `brain-copilot.ts` there). A person's
  * messages wait for the turn's end: the runner answers `brain.steer` with `unsupported`.
  */
 export class CopilotBrain extends CodexBrain {
