@@ -16024,6 +16024,7 @@
         "opencode": "OpenCode",
         "grok": "Grok Build",
         "antigravity": "Antigravity CLI",
+        "copilot": "Copilot CLI",
         "commands": "polecenia",
         "browser": "przeglądarkę",
         "desktop": "ekran",

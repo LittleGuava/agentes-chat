@@ -14470,6 +14470,7 @@
         "opencode": "OpenCode",
         "grok": "Grok Build",
         "antigravity": "Antigravity CLI",
+        "copilot": "Copilot CLI",
         "commands": "명령",
         "browser": "브라우저",
         "desktop": "화면",

@@ -14950,6 +14950,7 @@
         "opencode": "OpenCode",
         "grok": "Grok Build",
         "antigravity": "Antigravity CLI",
+        "copilot": "Copilot CLI",
         "commands": "komutları",
         "browser": "tarayıcıyı",
         "desktop": "ekranı",

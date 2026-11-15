@@ -36875,6 +36875,9 @@
   "machines.oneClick.tools.antigravity": {
     "value": "Antigravity CLI"
   },
+  "machines.oneClick.tools.copilot": {
+    "value": "Copilot CLI"
+  },
   "machines.oneClick.tools.commands": {
     "value": "commands"
   },
