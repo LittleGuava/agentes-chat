@@ -73,7 +73,7 @@ export const isComputerBrain = (v: unknown): v is ComputerBrainKind =>
 
 /**
  * Brains whose shell runs in a sandbox of the CLI's own (ADR 0053 §3, 0114, 0142, 0143), the limit of what their turns
- * do. Claude Code's own sandbox is never switched on here, OpenCode has none, and the Copilot CLI's is off (ADR 0174).
+ * do. Claude Code's own sandbox is never switched on here, OpenCode has none, and the Copilot CLI's is off (ADR 0186).
  */
 export const isSandboxedBrain = (v: unknown) => v === "codex" || v === "cursor" || v === "grok" || v === "antigravity";
 
@@ -217,9 +217,10 @@ export type BrainEvent =
       model?: string;
       cacheRead?: number;
       cacheWrite?: number;
-      /** Claude Code: the API calls the turn made, and the most uncached input one of them read. */
+      /** Computer brains: the API calls the turn made, and the most uncached input and whole input one of them read. */
       calls?: number;
       maxUncached?: number;
+      maxContext?: number;
     }
   | { type: "limit"; resetsAt?: string }
   | { type: "done"; text: string; session?: { id: string }; timings?: BrainTurnTimings }
