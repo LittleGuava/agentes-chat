@@ -3294,6 +3294,13 @@
       "rules": "Agenci odpowiadają na wzmianki, odpowiedzi i kontynuacje.",
       "off": "Agenci odpowiadają tylko na wzmianki.",
       "noSmall": "{{provider}} nie ma do tego małego modelu. Agenci odpowiadają na wzmianki, odpowiedzi i kontynuacje."
+    },
+    "model": {
+      "title": "Model, który decyduje",
+      "hint": "Wybiera, kto odpowie na wiadomość bez wzmianki. Potrzebuje klucza swojego dostawcy. W trybie Automatycznie to mały model jednego z kluczy workspace'u.",
+      "auto": "Automatycznie",
+      "autoWith": "Automatycznie · {{model}}",
+      "saved": "Model zapisany."
     }
   },
   "noAi": {

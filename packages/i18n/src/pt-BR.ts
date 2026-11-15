@@ -3193,6 +3193,13 @@ export const ptBR = {
       noSmall:
         "{{provider}} não tem um modelo pequeno para isso. Os agentes respondem a menções, respostas e continuações.",
     },
+    model: {
+      title: "Modelo que decide",
+      hint: "Escolhe quem responde a uma mensagem sem menção. Precisa de uma chave do provedor dele. No Automático, é o modelo pequeno de uma das chaves do workspace.",
+      auto: "Automático",
+      autoWith: "Automático · {{model}}",
+      saved: "Modelo salvo.",
+    },
   },
   /** No AI connected (ADR 0061): the banner, the agent's card, its chip and the receipt under a message. */
   noAi: {

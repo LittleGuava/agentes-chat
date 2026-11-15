@@ -3173,6 +3173,13 @@
       "rules": "Gli agenti rispondono a menzioni, risposte e seguiti.",
       "off": "Gli agenti rispondono solo quando vengono menzionati.",
       "noSmall": "{{provider}} non ha un modello piccolo per questo. Gli agenti rispondono a menzioni, risposte e seguiti."
+    },
+    "model": {
+      "title": "Modello che decide",
+      "hint": "Sceglie chi risponde a un messaggio senza menzione. Serve una chiave del suo fornitore. In Automatico, è il modello piccolo di una delle chiavi del workspace.",
+      "auto": "Automatico",
+      "autoWith": "Automatico · {{model}}",
+      "saved": "Modello salvato."
     }
   },
   "noAi": {

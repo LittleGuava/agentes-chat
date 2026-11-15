@@ -3058,6 +3058,13 @@
       "rules": "Agenten antworten auf Erwähnungen, Antworten und Nachfragen.",
       "off": "Agenten antworten nur, wenn sie erwähnt werden.",
       "noSmall": "{{provider}} hat dafür kein kleines Modell. Agenten antworten auf Erwähnungen, Antworten und Nachfragen."
+    },
+    "model": {
+      "title": "Modell, das entscheidet",
+      "hint": "Wählt aus, wer auf eine Nachricht ohne Erwähnung antwortet. Es braucht einen Schlüssel seines Anbieters. Bei Automatisch ist es das kleine Modell eines der Schlüssel des Workspace.",
+      "auto": "Automatisch",
+      "autoWith": "Automatisch · {{model}}",
+      "saved": "Modell gespeichert."
     }
   },
   "noAi": {

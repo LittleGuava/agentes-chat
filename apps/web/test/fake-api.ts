@@ -369,6 +369,8 @@ export interface FakeState {
   limits?: WorkspaceLimits;
   /** `agents.aiStatus`; unset = every agent ready. */
   aiStatus?: AiStatus;
+  /** The workspace's own router model (`settings.routerModel`); unset = the server's. */
+  routerModel?: string | null;
   /** Make `chat.answerNow` fail with this error (`ai.still_missing`…). */
   answerNowError?: ApiError;
   /** What `chat.answerNow` says answers the message (default none). */
@@ -1968,7 +1970,7 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         name: state.me?.organizations.find((o) => o.id === orgId)?.name ?? "Acme",
         context: state.context ?? "",
         defaultCredentialId: state.defaultCredentialId ?? null,
-        routerModel: null,
+        routerModel: state.routerModel ?? null,
         summaryModel: null,
         timezone: "America/Sao_Paulo",
         actionCheck: state.actionCheck ?? true,
@@ -1995,6 +1997,7 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         if (input.defaultCredentialId !== undefined) state.defaultCredentialId = input.defaultCredentialId;
         if (input.defaultAgentBudgetUsd !== undefined) state.defaultAgentBudgetUsd = input.defaultAgentBudgetUsd;
         if (input.actionCheck !== undefined) state.actionCheck = input.actionCheck;
+        if (input.routerModel !== undefined) state.routerModel = input.routerModel;
         if (input.teamWatch !== undefined || input.welcomePeople !== undefined)
           state.lodiSwitches = {
             ...state.lodiSwitches,
@@ -2021,7 +2024,7 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
           name: input.name ?? "Acme",
           context: state.context ?? "",
           defaultCredentialId: state.defaultCredentialId ?? null,
-          routerModel: null,
+          routerModel: state.routerModel ?? null,
           summaryModel: null,
           timezone: input.timezone ?? "America/Sao_Paulo",
           actionCheck: state.actionCheck ?? true,
