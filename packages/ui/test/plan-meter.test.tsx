@@ -361,3 +361,27 @@ test("at the limit, the owner's other free accounts of the same kind and maker, 
   const all = account("all", { usedBy: ["Infra"], usage: usage(1), shared: true });
   expect(limitOffers([...accounts, all], "claude_code", "now", NOW)[0]?.account.id).toBe("all");
 });
+
+test("a model's own window at its limit holds only that model: another model of the plan still has room", () => {
+  const fable: PlanMeterUsage = {
+    windows: [
+      { kind: "other", label: "Fable", usedPercent: 100, resetsAt: at(8 * HOUR) },
+      { kind: "seven_day", usedPercent: 76, resetsAt: at(8 * HOUR) },
+    ],
+    at: at(0),
+  };
+  expect(planState(fable, NOW, "haiku")).toEqual({ state: "ok", until: null, used: 76 });
+  expect(planState(fable, NOW, "claude-haiku-5-5").state).toBe("ok");
+  expect(planState(fable, NOW, "fable")).toEqual({ state: "limited", until: at(8 * HOUR), used: 100 });
+  expect(planState(fable, NOW, "claude-fable-5-1").state).toBe("limited");
+  const opus: PlanMeterUsage = {
+    windows: [{ kind: "seven_day_opus", usedPercent: 100, resetsAt: at(HOUR) }],
+    at: at(0),
+  };
+  expect(planState(opus, NOW, "sonnet").state).toBe("ok");
+  expect(planState(opus, NOW, "opus").state).toBe("limited");
+  const week: PlanMeterUsage = { windows: [{ kind: "seven_day", usedPercent: 100, resetsAt: at(HOUR) }], at: at(0) };
+  expect(planState(week, NOW, "haiku").state).toBe("limited");
+  expect(planState(fable, NOW).state).toBe("limited");
+  expect(planState(fable, NOW, "auto").state).toBe("limited");
+});
