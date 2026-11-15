@@ -93,7 +93,13 @@ const windowKey = (w: Pick<PlanWindow, "kind" | "label">) => `${w.kind}:${w.labe
  * `get_usage` has no limits to read (Claude Code 2.1.312 to 2.1.316, read
  * 2026-10-31).
  */
-export function withRateLimit(prev: PlanUsage | undefined, info: unknown, now = Date.now()): PlanUsage | null {
+export function withRateLimit(
+  prev: PlanUsage | undefined,
+  info: unknown,
+  now = Date.now(),
+  /** The turn's model: a refusal keeps it (`limitedModel`). */
+  model?: string,
+): PlanUsage | null {
   if (!isObj(info)) return null;
   const limited = info.status === "rejected";
   const read = new Map<string, PlanWindow>();
@@ -113,7 +119,7 @@ export function withRateLimit(prev: PlanUsage | undefined, info: unknown, now = 
   windows.push(...read.values());
   return {
     windows: windows.slice(-PLAN_USAGE_LIMITS.windows),
-    ...(limited ? { limited: true } : {}),
+    ...(limited ? { limited: true, ...(model ? { limitedModel: model } : {}) } : {}),
     source: "turn",
     at: iso(now),
   };

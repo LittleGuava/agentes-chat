@@ -399,6 +399,10 @@ export const PlanUsage = z
   .object({
     windows: z.array(PlanWindow),
     limited: z.boolean().optional().openapi({ description: "The plan refused a request for its limit." }),
+    limitedModel: z
+      .string()
+      .optional()
+      .openapi({ description: "The model of the request it refused, when known: that model's family alone is held." }),
     source: z.enum(["turn", "probe"]),
     at: z.string().openapi({ description: "When the computer learned it." }),
     models: z

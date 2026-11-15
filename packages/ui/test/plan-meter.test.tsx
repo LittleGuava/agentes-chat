@@ -17,6 +17,7 @@ import {
   planState,
   planWindows,
 } from "../src";
+import { planBinding, windowModel } from "../src/plan-state";
 
 afterEach(() => cleanup());
 
@@ -384,4 +385,34 @@ test("a model's own window at its limit holds only that model: another model of 
   expect(planState(week, NOW, "haiku").state).toBe("limited");
   expect(planState(fable, NOW).state).toBe("limited");
   expect(planState(fable, NOW, "auto").state).toBe("limited");
+});
+
+test("a model's own window is known by the family its name says, however Claude words it", () => {
+  const other = (label: string) => ({ kind: "other", label });
+  expect(["Fable", " Fable 5 ", "Claude Fable"].map((l) => windowModel(other(l)))).toEqual(["fable", "fable", "fable"]);
+  expect(windowModel({ kind: "seven_day_opus" })).toBe("opus");
+  expect(["Extra usage", "OAuth apps", "Claude and GPT models · 5h"].map((l) => windowModel(other(l)))).toEqual([
+    null,
+    null,
+    null,
+  ]);
+  // Long work pauses on the same windows.
+  const usage = { windows: [{ kind: "other", label: "Claude Fable", usedPercent: 96 }], at: at(0) };
+  expect(planBinding(usage, { model: "claude-fable-5-1", now: NOW })?.used).toBe(96);
+  expect(planBinding(usage, { model: "fable", now: NOW })?.used).toBe(96);
+  expect(planBinding(usage, { model: "haiku", now: NOW })).toBeNull();
+});
+
+test("a refusal holds the model it refused; one whose model isn't known holds every model", () => {
+  const refused = (limitedModel?: string): PlanMeterUsage => ({
+    windows: [{ kind: "other", label: "Fable", usedPercent: 97, resetsAt: at(8 * HOUR) }],
+    limited: true,
+    ...(limitedModel ? { limitedModel } : {}),
+    at: at(0),
+  });
+  expect(planState(refused("claude-fable-5-1"), NOW, "haiku").state).toBe("ok");
+  expect(planState(refused("claude-fable-5-1"), NOW, "fable").state).toBe("limited");
+  expect(planState(refused("claude-fable-5-1"), NOW).state).toBe("limited");
+  expect(planState(refused(), NOW, "haiku").state).toBe("limited");
+  expect(planState(refused("auto"), NOW, "haiku").state).toBe("limited");
 });

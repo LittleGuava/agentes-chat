@@ -48,6 +48,7 @@ import {
   usageWaitKey,
   usageWaitPlace,
   wakeNextInLine,
+  wakeOnRoom,
   wakePlanWaits,
 } from "../src";
 import { addMember, type Fixture, setup } from "./fixtures";
@@ -2220,4 +2221,54 @@ describe("a model its plan's live list dropped", () => {
     expect(seen.map((turn) => turn.model)).toEqual(["hy3"]);
     expect(await dropped(f)).toEqual([]);
   });
+});
+
+test("a reading with one model's own window full wakes the waits on the plan's other models, not that model's", async () => {
+  f = await setup();
+  const machineId = crypto.randomUUID();
+  const key = usageWaitKey({ code: "plan_limit", machineId, kind: "claude_code" });
+  const now = Date.now();
+  const parked = (model: string | null) => {
+    const trigger = crypto.randomUUID();
+    return {
+      orgId: f.org.id,
+      agentId: f.agent.id,
+      channelId: f.general.id,
+      threadRootId: trigger,
+      triggerMessageId: trigger,
+      trigger: "mention" as const,
+      hop: 1,
+      status: "waiting_input" as const,
+      createdAt: new Date(now - 60_000),
+      transcript: {
+        waitingForBrain: {
+          kind: "claude_code",
+          machineId,
+          code: "plan_limit",
+          waitId: crypto.randomUUID(),
+          waitKey: key,
+          until: new Date(now + 5 * 86_400_000).toISOString(),
+          model,
+        },
+        usageWait: { since: now - 3600_000, step: 0, parkedAt: now - 60_000 },
+      } as never,
+    };
+  };
+  const [haiku, fable, unknown] = await f.db
+    .insert(schema.agentRuns)
+    .values([parked("haiku"), parked("fable"), parked(null)])
+    .returning();
+  const resets = new Date(now + 5 * 86_400_000).toISOString();
+  const usage: PlanUsage = {
+    windows: [
+      { kind: "other", label: "Fable", usedPercent: 100, resetsAt: resets },
+      { kind: "seven_day", usedPercent: 76, resetsAt: resets },
+    ],
+    source: "probe",
+    at: new Date(now).toISOString(),
+  };
+  const woken = await wakeOnRoom(f.db, f.org.id, machineId, "claude_code", undefined, usage, now);
+  expect(woken).toEqual([haiku?.id ?? ""]);
+  expect(woken).not.toContain(fable?.id);
+  expect(woken).not.toContain(unknown?.id);
 });

@@ -1,4 +1,7 @@
+import { and, eq, schema } from "@agenteschat/db";
 import { planState, planWindows } from "@agenteschat/ui/plan-state";
+import { brainModelFor } from "./brains/select";
+import type { BrainKind } from "./brains/types";
 import { ago, zoneOf } from "./context";
 import { defaultAccountLabel } from "./machine-accounts";
 import { type AgentPlanUsageView, type ApiAgentUsage, agentUsageFor, type PlanAccountUsage } from "./plan-usage";
@@ -26,7 +29,7 @@ function planName(a: PlanAccountUsage) {
 }
 
 /** The plan it thinks with: its windows as the apps draw them (tightest first, a reset one empty), with its part. */
-function planText(a: PlanAccountUsage, agentId: string, zone: string, now: Date) {
+function planText(a: PlanAccountUsage, agentId: string, model: string | undefined, zone: string, now: Date) {
   const head = `You think with ${planName(a)}${a.signedOut ? ", signed out on its computer" : ""}.`;
   const usage = a.usage;
   if (!usage || (usage.windows.length === 0 && !usage.limited)) {
@@ -41,7 +44,7 @@ function planText(a: PlanAccountUsage, agentId: string, zone: string, now: Date)
     const part = w.used > 0 && w.agents ? (w.agents.find((p) => p.agentId === agentId)?.percent ?? 0) : null;
     return `- ${name}: ${w.used}% used${resets}.${part === null ? "" : ` Your part: about ${part}%.`}`;
   });
-  const { state, until } = planState(usage, at);
+  const { state, until } = planState(usage, at, model);
   return [
     head,
     lines.length > 0
@@ -94,14 +97,21 @@ export function createUsageToolSource(): ToolSource {
     async execute(_input, ctx) {
       const now = new Date();
       const person = await personBehindCall(ctx);
-      const [{ view, brain, api }, zone] = await Promise.all([
+      const { agents } = schema;
+      const [{ view, brain, api }, zone, [agent]] = await Promise.all([
         agentUsageFor(ctx.db, null, ctx.orgId, ctx.agentId, now),
         zoneOf(ctx.db, ctx.orgId, person),
+        ctx.db
+          .select({ brain: agents.brain, brainModel: agents.brainModel })
+          .from(agents)
+          .where(and(eq(agents.orgId, ctx.orgId), eq(agents.id, ctx.agentId))),
       ]);
+      // Its own model: another model's own window at its limit doesn't hold it.
+      const model = agent ? brainModelFor(agent.brain as BrainKind, agent) : undefined;
       const onApi = brain === "model";
       const parts = [
         view.current
-          ? planText(view.current, ctx.agentId, zone, now)
+          ? planText(view.current, ctx.agentId, model, zone, now)
           : onApi
             ? "You think through the API (a key, not a plan): no plan limits, only your monthly budget."
             : "No plan thinks for you right now.",

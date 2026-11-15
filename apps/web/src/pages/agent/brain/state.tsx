@@ -385,7 +385,7 @@ export function useBrainState(view: AgentBrain, opts: { added: readonly MachineA
 
   // ── the account in use ──
   const usage: PlanUsage | null = currentRow?.usage ?? null;
-  const limitedNow = usage ? planState(usage).state === "limited" : false;
+  const limitedNow = usage ? planState(usage, Date.now(), view.effectiveModel).state === "limited" : false;
   // At its limit, its owner's free accounts of the same plan with room, never another agent's (`limitOffers`).
   const offers =
     limitedNow && kind !== "model"

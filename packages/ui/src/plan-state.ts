@@ -29,6 +29,8 @@ export interface PlanMeterUsage {
   windows: readonly PlanMeterWindow[];
   /** The plan refused a request for its limit. */
   limited?: boolean;
+  /** The model the refused request ran, where the computer knows it: the refusal holds that model's family only. */
+  limitedModel?: string;
   at: string;
   /** Stuck at its limit: when the server last asked its computer to read it again. */
   checkedAt?: string;
@@ -91,22 +93,33 @@ export function planWindows<W extends PlanMeterWindow>(usage: { windows: readonl
 /** Claude's model families, as its plan names a model's own window ("Fable") and as a model id or alias says them. */
 const CLAUDE_FAMILIES = ["fable", "opus", "sonnet", "haiku"] as const;
 
+const familyIn = (name: string | null | undefined) => {
+  const words = (name ?? "").toLowerCase().split(/[^a-z]+/);
+  return CLAUDE_FAMILIES.find((f) => words.includes(f)) ?? null;
+};
+
 /** The family a model id or alias is ("claude-haiku-5-5", "haiku" → "haiku"); null: none known ("auto", none). */
-export function modelFamily(model: string | null | undefined): string | null {
-  const m = model?.toLowerCase() ?? "";
-  return CLAUDE_FAMILIES.find((f) => m.split(/[^a-z]+/).includes(f)) ?? null;
-}
+export const modelFamily = (model: string | null | undefined): string | null => familyIn(model);
+
+/** The label the runner gives a Claude plan's paid extra usage (`get_usage` `extra_usage`, `rate_limit_event` `overage`). */
+export const EXTRA_USAGE_LABEL = "Extra usage";
+
+/** `other` windows that are no model's own. */
+const NOT_A_MODEL = new Set([EXTRA_USAGE_LABEL, "OAuth apps"]);
 
 /**
- * The model family a window limits alone (Opus's and Sonnet's weeks, and a model's own window that Claude's usage
- * lists by the model's name, "Fable"); null: the account's, which limits every model.
+ * The model family a window limits alone: Opus's and Sonnet's weeks, and a window Claude's usage lists by a model's
+ * name ("Fable", "Claude Fable 5"). Null: the account's, which limits every model.
  */
 export function windowModel(w: Pick<PlanMeterWindow, "kind" | "label">): string | null {
   if (w.kind === "seven_day_opus") return "opus";
   if (w.kind === "seven_day_sonnet") return "sonnet";
-  const label = w.kind === "other" ? (w.label?.trim().toLowerCase() ?? "") : "";
-  return CLAUDE_FAMILIES.find((f) => f === label) ?? null;
+  return w.kind === "other" && w.label && !NOT_A_MODEL.has(w.label) ? familyIn(w.label) : null;
 }
+
+/** A model's own window (`windowModel`) is `model`'s: its family, or a name holding it ("opusplan"). */
+const ownWindowOf = (family: string, model: string) =>
+  modelFamily(model) === family || model.toLowerCase().includes(family);
 
 /**
  * Where the plan stands: at its limit (a window is full, or it refused a
@@ -121,10 +134,19 @@ export function planState(
   model?: string | null,
 ): { state: PlanState; until: string | null; used: number } {
   const family = modelFamily(model);
-  const counts = (w: PlanMeterWindow) => family === null || [null, family].includes(windowModel(w));
-  const rows = planWindows({ windows: usage.windows.filter(counts) }, now);
+  const holds = (w: PlanMeterWindow, f: string | null, m: string) => {
+    const own = windowModel(w);
+    return f === null || own === null || ownWindowOf(own, m);
+  };
+  const rows = planWindows({ windows: usage.windows.filter((w) => holds(w, family, model ?? "")) }, now);
   const full = rows.filter((w) => w.used >= 100);
-  const refused = usage.limited === true && !usage.windows.some((w) => w.usedPercent >= 100);
+  // A refusal no full window of the refused model explains, on this model's family (any, when either isn't known).
+  const refusedOn = usage.limitedModel ?? "";
+  const refusedFamily = modelFamily(refusedOn);
+  const refused =
+    usage.limited === true &&
+    (family === null || refusedFamily === null || refusedFamily === family) &&
+    !usage.windows.some((w) => w.usedPercent >= 100 && holds(w, refusedFamily, refusedOn));
   const used = rows[0]?.used ?? 0;
   if (full.length === 0 && !refused) return { state: used >= PLAN_ALMOST ? "almost" : "ok", until: null, used };
   const resets = full.flatMap((w) => (w.resetsAt ? [w.resetsAt] : []));
@@ -248,9 +270,6 @@ export const PLAN_PAUSE = 95;
 /** From here an agent is told where its plan stands, so it can say a long task may pause. */
 export const PLAN_NOTICE = 90;
 
-/** The label the runner gives a Claude plan's paid extra usage (`get_usage` `extra_usage`, `rate_limit_event` `overage`). */
-export const EXTRA_USAGE_LABEL = "Extra usage";
-
 /** How long each window lasts: a reading with no reset counts for no longer than that. */
 const WINDOW_MS: Partial<Record<string, number>> = {
   five_hour: 5 * 3600_000,
@@ -271,9 +290,6 @@ export const extraUsageLeft = (usage: { windows: readonly PlanMeterWindow[] } | 
   usage?.windows.some((w) => w.kind === "other" && w.label === EXTRA_USAGE_LABEL && w.usedPercent < PLAN_PAUSE) ??
   false;
 
-/** `other` windows that are no model's own week. */
-const NOT_A_MODEL = new Set([EXTRA_USAGE_LABEL, "OAuth apps"]);
-
 /**
  * The window that binds long work on a run with `model`: the most used of the windows that apply to it and still
  * count now. A model's own week counts only for that model; extra usage and OAuth apps never count.
@@ -290,11 +306,15 @@ export function planBinding(
   const read = Date.parse(usage.at);
   let top: { kind: string; used: number; resetsAt?: string } | null = null;
   for (const w of usage.windows) {
-    // A model's own week (Claude's `model_scoped`, stored as `other` with the model's name) counts for that model.
-    if (w.kind === "other" && (!w.label || NOT_A_MODEL.has(w.label) || !model.includes(w.label.toLowerCase())))
+    const own = windowModel(w);
+    if (own !== null && !ownWindowOf(own, model)) continue;
+    // Another `other` window (a provider's group of models) counts only for a model whose name holds it.
+    if (
+      own === null &&
+      w.kind === "other" &&
+      (!w.label || NOT_A_MODEL.has(w.label) || !model.includes(w.label.toLowerCase()))
+    )
       continue;
-    if (w.kind === "seven_day_opus" && !model.includes("opus")) continue;
-    if (w.kind === "seven_day_sonnet" && !model.includes("sonnet")) continue;
     const length = WINDOW_MS[w.kind] ?? 0;
     const live = w.resetsAt ? Date.parse(w.resetsAt) > now : Number.isFinite(read) && now - read < length;
     if (!live) continue;

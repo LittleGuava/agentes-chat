@@ -2,7 +2,7 @@ import type { PlanUsage, PubSub } from "@agenteschat/adapters";
 import { and, type Database, desc, type Executor, eq, inArray, type SQL, schema, sql } from "@agenteschat/db";
 import { extraUsageLeft, PLAN_PAUSE, planBinding, planState } from "@agenteschat/ui/plan-state";
 import { recordAudit } from "./audit";
-import { forgetPlanLimit, storedPlanUsage } from "./brains/select";
+import { forgetLimitsWithRoom, storedPlanUsage } from "./brains/select";
 import type { BrainKind } from "./brains/types";
 import { mayStopRun, runRequester } from "./cancel";
 import { ConflictError, ForbiddenError } from "./errors";
@@ -228,14 +228,17 @@ export async function wakePlanWaits(
         ? sql`not (${agentRuns.transcript}->'waitingForBrain' ? 'scope')`
         : sql`(not (${agentRuns.transcript}->'waitingForBrain' ? 'model') or ${agentRuns.transcript}->'waitingForBrain'->>'model' is not distinct from ${model})`,
     );
-  const limits = await db
-    .select(fields)
-    .from(agentRuns)
-    .where(parked(sql`${agentRuns.transcript}->'waitingForBrain'->>'code' = 'plan_limit'`))
-    .orderBy(agentRuns.createdAt)
-    .limit(100);
-  // Pauses have a query of their own, so the ones the reading leaves paused never take the limit waits' places.
   const reading = room?.usage;
+  // A reading wakes a wait whose own model it has room for (`planState` by model; a wait with none: every window).
+  const limits = (
+    await db
+      .select({ ...fields, waitModel: sql<string | null>`${agentRuns.transcript}->'waitingForBrain'->>'model'` })
+      .from(agentRuns)
+      .where(parked(sql`${agentRuns.transcript}->'waitingForBrain'->>'code' = 'plan_limit'`))
+      .orderBy(agentRuns.createdAt)
+      .limit(100)
+  ).filter((r) => !reading || planState(reading, now, r.waitModel).state !== "limited");
+  // Pauses have a query of their own, so the ones the reading leaves paused never take the limit waits' places.
   const pauses = reading
     ? (
         await db
@@ -284,8 +287,8 @@ export async function wakeOnRoom(
   now = Date.now(),
 ): Promise<string[]> {
   const at = Date.parse(usage.at);
-  if (!Number.isFinite(at) || planState(usage, now).state === "limited") return [];
-  forgetPlanLimit(machineId, kind, accountId);
+  if (!Number.isFinite(at)) return [];
+  forgetLimitsWithRoom(machineId, kind, accountId, usage, now);
   const key = usageWaitKey({ code: "plan_limit", machineId, kind, accountId });
   return wakePlanWaits(db, orgId, key, null, now, { at, usage });
 }
