@@ -172,6 +172,25 @@ test("at the limit: the plan says until when; unknown windows say so instead of 
   expect(unknown).not.toContain("0% used");
 });
 
+test("one model's own window full: an agent on another model isn't at the limit, one on that model is", async () => {
+  await onPlan();
+  await f.db
+    .update(schema.machineAccounts)
+    .set({
+      usage: usage([
+        { kind: "other", label: "Fable", usedPercent: 100, resetsAt: hours(72) },
+        { kind: "seven_day", usedPercent: 76, resetsAt: hours(72) },
+      ]),
+    })
+    .where(eq(schema.machineAccounts.id, PESSOAL));
+  const on = async (brainModel: string) => {
+    await f.db.update(schema.agents).set({ brainModel }).where(eq(schema.agents.id, f.agent.id));
+    return check(await runFor(f.agent.id, f.owner.id));
+  };
+  expect(await on("haiku")).not.toContain("At the limit");
+  expect(await on("fable")).toMatch(/\nAt the limit until [^\n]+\./);
+});
+
 test("on the API: how much of its budget it used, for an admin and a member alike; another agent's spend stays out", async () => {
   f = await setup({ toolSources: [createUsageToolSource()] });
   const atlas = await createAgent(

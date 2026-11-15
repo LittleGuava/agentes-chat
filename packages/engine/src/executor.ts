@@ -75,6 +75,7 @@ import {
   brainSpeedFor,
   forgetModelLimit,
   forgetPlanLimit,
+  limitModelOf,
   type ModelScope,
   mayFallBack,
   NO_AI_CODES,
@@ -84,6 +85,7 @@ import {
   offRefusal,
   recordRunBrain,
   refusalScope,
+  refusedModel,
   regionRefusal,
   resolveBrain,
   storedPlanUsage,
@@ -3783,7 +3785,16 @@ async function executeRunInner(
   ): Promise<Pick<BrainUnavailability, "scope" | "resetsAt">> => {
     const account = plan.account;
     const ownModel = ownLimitsModel(account?.provider, plan.model);
-    if (!account || !ownModel) return error.resetsAt ? { resetsAt: error.resetsAt } : {};
+    if (!account || !ownModel) {
+      // Kept under its model when it was refused (`limitModelOf`): the whole plan's unless the reading shows it was.
+      if (limitModelOf(plan.kind, account?.provider, plan.model)) {
+        const stored = await storedPlanUsage(db, run.orgId, machineId, plan.kind, account?.id).catch(() => null);
+        if (!refusedModel(plan.kind, account?.provider, plan.model, stored)) {
+          notePlanLimit(machineId, plan.kind, error.resetsAt, Date.now(), account?.id);
+        }
+      }
+      return error.resetsAt ? { resetsAt: error.resetsAt } : {};
+    }
     const stored = await storedPlanUsage(db, run.orgId, machineId, plan.kind, account.id).catch(() => null);
     const found = refusalScope(account.provider, plan.model, error.message, stored);
     const resetsAt = error.resetsAt ?? (found.scope === "account" ? undefined : found.resetsAt);
@@ -3848,7 +3859,7 @@ async function executeRunInner(
     // The account's windows say nothing about when a model's own limit resets.
     if (!budget && !scope && !(at > now) && machineId) {
       const stored = await storedPlanUsage(db, run.orgId, machineId, plan.kind, plan.account?.id).catch(() => null);
-      at = bindingReset(stored, now) ?? Number.NaN;
+      at = bindingReset(stored, now, plan.model) ?? Number.NaN;
     }
     const known = at > now;
     // An unknown reset: only the head of the line asks the plan again (one re-check an hour per plan, not one per
@@ -4604,7 +4615,14 @@ async function executeRunInner(
                 turnPlan.kind !== "model" &&
                 !ownLimitsModel(turnPlan.account?.provider, turnPlan.model)
               ) {
-                notePlanLimit(machineId, turnPlan.kind, resetsAt, Date.now(), turnPlan.account?.id);
+                notePlanLimit(
+                  machineId,
+                  turnPlan.kind,
+                  resetsAt,
+                  Date.now(),
+                  turnPlan.account?.id,
+                  limitModelOf(turnPlan.kind, turnPlan.account?.provider, turnPlan.model),
+                );
               }
             },
             ...(deps.planLimitGraceMs !== undefined ? { limitGraceMs: deps.planLimitGraceMs } : {}),
@@ -4675,7 +4693,7 @@ async function executeRunInner(
           // The plan had room for this turn: the runs parked on its limit go on now, not at their own timers.
           const planMachine = turnPlan.session?.machineId;
           if (planMachine && !turnLimited) {
-            forgetPlanLimit(planMachine, turnPlan.kind, account?.id);
+            forgetPlanLimit(planMachine, turnPlan.kind, account?.id, turnPlan.model);
             const ownModel = ownLimitsModel(account?.provider, turnPlan.model);
             if (account && ownModel)
               later(async () => {

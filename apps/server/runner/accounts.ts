@@ -2832,9 +2832,9 @@ export class AccountManager {
   }
 
   /** A Claude Code turn's `rate_limit_event` (`rate_limit_info`), for an account id or `OWN_USAGE_ID.claude_code`. */
-  noteRateLimit(key: string, info: unknown) {
+  noteRateLimit(key: string, info: unknown, model?: string) {
     const prev = this.usage.get(key);
-    const next = withRateLimit(prev, info);
+    const next = withRateLimit(prev, info, Date.now(), model);
     if (next) this.noted(key, prev, next);
   }
 

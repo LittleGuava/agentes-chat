@@ -602,3 +602,24 @@ test("what turns say: the first news and a crossed line at once, the rest at mos
   expect(m.ownUsage().claude_code?.windows[0]?.usedPercent).toBe(50);
   expect(m.ownUsage().codex?.windows[0]).toEqual({ kind: "five_hour", usedPercent: 91 });
 });
+
+test("a refusal keeps the model of the turn it refused, which the server reads back; an allowed turn drops it", () => {
+  const refused = withRateLimit(undefined, { status: "rejected", resetsAt: RESET }, NOW, "claude-fable-5-1");
+  expect(refused).toMatchObject({ limited: true, limitedModel: "claude-fable-5-1" });
+  expect(parsePlanUsage(refused)?.limitedModel).toBe("claude-fable-5-1");
+  expect(parsePlanUsage({ ...refused, limitedModel: "x".repeat(500) })?.limitedModel).toBeUndefined();
+  const allowed = withRateLimit(refused ?? undefined, { status: "allowed" }, NOW, "claude-haiku-5-5");
+  expect(allowed?.limited).toBeUndefined();
+  expect(allowed?.limitedModel).toBeUndefined();
+  // No model known: a refusal of the whole plan, as before.
+  expect(withRateLimit(undefined, { status: "rejected" }, NOW)?.limitedModel).toBeUndefined();
+  // Another model refused next, with no window said: that's news, of the other model.
+  expect(withRateLimit(refused ?? undefined, { status: "rejected" }, NOW, "claude-haiku-5-5")?.limitedModel).toBe(
+    "claude-haiku-5-5",
+  );
+  expect(usageCrossed(refused ?? undefined, { ...(refused as PlanUsage), limitedModel: "claude-haiku-5-5" })).toBe(
+    true,
+  );
+  // A model with its context in brackets is a model too.
+  expect(parsePlanUsage({ ...refused, limitedModel: "claude-opus-5-5[1m]" })?.limitedModel).toBe("claude-opus-5-5[1m]");
+});

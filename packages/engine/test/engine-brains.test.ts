@@ -16,6 +16,7 @@ import {
   type Brain,
   type BrainEvent,
   type BrainTurn,
+  bindingReset,
   brainEffortFor,
   brainFor,
   brainModelFor,
@@ -44,6 +45,8 @@ import {
   enableOperatorEvents,
   enqueue,
   executeToolForRun,
+  forgetLimitsWithRoom,
+  forgetPlanLimit,
   getMessage,
   grantScopes,
   insertMessage,
@@ -65,6 +68,7 @@ import {
   queueOnRun,
   receiptsFor,
   recoverStaleRuns,
+  refusedModel,
   resetAccountFailures,
   resolveBrain,
   resumeRunsWaitingForMachine,
@@ -76,6 +80,7 @@ import {
   statusReply,
   type ToolSource,
   taskManager,
+  usageMoved,
 } from "../src";
 import { computerPrompt } from "../src/brains/prompt";
 import { afterSteered } from "../src/steering";
@@ -257,6 +262,110 @@ test("availability: no computer, offline, old runner, not logged in, Codex missi
       statusOf("m2", { protocol: CODEX_WINDOWS_PROTOCOL - 1, executors: { codex: { version: "0.170.0" } } }),
     ),
   ).toBeNull();
+});
+
+test("Claude's plan with one model's week full: an agent on another model still thinks, one on that model waits", () => {
+  const resets = new Date(Date.now() + 8 * 3600_000).toISOString();
+  const usage = {
+    windows: [
+      { kind: "other" as const, label: "Fable", usedPercent: 100, resetsAt: resets },
+      { kind: "seven_day" as const, usedPercent: 76, resetsAt: resets },
+    ],
+    source: "probe" as const,
+    at: new Date().toISOString(),
+  };
+  const check = (model: string) =>
+    computerBrainUnavailable("claude_code", "m-fable", statusOf("m-fable"), Date.now(), undefined, true, usage, model);
+  expect(check("haiku")).toBeNull();
+  expect(check("fable")).toMatchObject({ code: "plan_limit", resetsAt: resets });
+  notePlanLimit("m-cache", "claude_code", resets, Date.now(), undefined, "fable");
+  const cached = (model: string) =>
+    computerBrainUnavailable("claude_code", "m-cache", statusOf("m-cache"), Date.now(), undefined, true, null, model);
+  expect(cached("haiku")).toBeNull();
+  expect(cached("fable")?.code).toBe("plan_limit");
+  expect(cached("auto")?.code).toBe("plan_limit");
+  forgetPlanLimit("m-cache", "claude_code");
+  expect(cached("fable")).toBeNull();
+});
+
+test("a turn through on one model frees that model and an unknown one's refusal, never another model's own", () => {
+  const hour = Date.now() + 3600_000;
+  const week = Date.now() + 5 * 86_400_000;
+  const check = (machine: string, model: string) =>
+    computerBrainUnavailable("claude_code", machine, statusOf(machine), Date.now(), undefined, true, null, model);
+  notePlanLimit("m-forget", "claude_code", new Date(week).toISOString(), Date.now(), undefined, "fable");
+  notePlanLimit("m-forget", "claude_code", new Date(hour).toISOString(), Date.now(), undefined, "auto");
+  expect(check("m-forget", "haiku")?.code).toBe("plan_limit");
+  // Both hold Fable: it waits for the later one.
+  expect(check("m-forget", "fable")?.resetsAt).toBe(new Date(week).toISOString());
+  forgetPlanLimit("m-forget", "claude_code", undefined, "haiku");
+  expect(check("m-forget", "haiku")).toBeNull();
+  expect(check("m-forget", "fable")?.code).toBe("plan_limit");
+});
+
+test("a turn's wait ends at the reset of the windows that hold its model, not another model's", () => {
+  const now = Date.now();
+  const fable = new Date(now + 5 * 86_400_000).toISOString();
+  const hours = new Date(now + 2 * 3600_000).toISOString();
+  const usage = {
+    windows: [
+      { kind: "other" as const, label: "Fable", usedPercent: 100, resetsAt: fable },
+      { kind: "five_hour" as const, usedPercent: 40, resetsAt: hours },
+    ],
+    source: "probe" as const,
+    at: new Date(now).toISOString(),
+  };
+  expect(bindingReset(usage, now, "fable")).toBe(Date.parse(fable));
+  expect(bindingReset(usage, now, "haiku")).toBe(Date.parse(hours));
+});
+
+test("a refusal is one model's only when the plan's reading shows that model's own window full and the account's not", () => {
+  const now = Date.now();
+  const resets = new Date(now + 86_400_000).toISOString();
+  const reading = (fable: number, week: number) => ({
+    windows: [
+      { kind: "other" as const, label: "Fable", usedPercent: fable, resetsAt: resets },
+      { kind: "seven_day" as const, usedPercent: week, resetsAt: resets },
+    ],
+    source: "turn" as const,
+    at: new Date(now).toISOString(),
+  });
+  expect(refusedModel("claude_code", undefined, "fable", reading(100, 76), now)).toBe("fable");
+  expect(refusedModel("claude_code", undefined, "fable", reading(100, 100), now)).toBeUndefined();
+  expect(refusedModel("claude_code", undefined, "fable", reading(90, 76), now)).toBeUndefined();
+  expect(refusedModel("claude_code", undefined, "fable", null, now)).toBeUndefined();
+  expect(refusedModel("claude_code", undefined, "auto", reading(100, 76), now)).toBeUndefined();
+  // A coding plan's aliases are one model of another maker: no family of Claude's to hold apart.
+  expect(refusedModel("claude_code", "zai", "opus", reading(100, 76), now)).toBeUndefined();
+  expect(refusedModel("codex", undefined, "fable", reading(100, 76), now)).toBeUndefined();
+  // The refusal the computer says was of this model, with the account's windows short of full, is proof too.
+  const said = (model: string, week: number) => ({ ...reading(97, week), limited: true, limitedModel: model });
+  expect(refusedModel("claude_code", undefined, "fable", said("claude-fable-5-1", 76), now)).toBe("fable");
+  expect(refusedModel("claude_code", undefined, "fable", said("claude-haiku-5-5", 76), now)).toBeUndefined();
+  expect(refusedModel("claude_code", undefined, "fable", said("claude-fable-5-1", 100), now)).toBeUndefined();
+  // People see whose refusal it is: another model's is a change.
+  expect(usageMoved(said("claude-fable-5-1", 76), said("claude-haiku-5-5", 76))).toBe(true);
+});
+
+test("a reading with room for the account frees a refusal seen on no known model, though one model's own window is full", () => {
+  const now = Date.now();
+  const resets = new Date(now + 5 * 86_400_000).toISOString();
+  const check = (model: string) =>
+    computerBrainUnavailable("claude_code", "m-room", statusOf("m-room"), now, undefined, true, null, model);
+  notePlanLimit("m-room", "claude_code", resets, now);
+  notePlanLimit("m-room", "claude_code", resets, now, undefined, "fable");
+  forgetLimitsWithRoom("m-room", "claude_code", undefined, {
+    windows: [
+      { kind: "other", label: "Fable", usedPercent: 100, resetsAt: resets },
+      { kind: "seven_day", usedPercent: 76, resetsAt: resets },
+    ],
+    limited: true,
+    limitedModel: "claude-fable-5-1",
+    source: "turn",
+    at: new Date(now).toISOString(),
+  });
+  expect(check("haiku")).toBeNull();
+  expect(check("fable")?.code).toBe("plan_limit");
 });
 
 test("a computer brain's model: the mission's, else the agent's only for the same brain, else the brain's default", () => {

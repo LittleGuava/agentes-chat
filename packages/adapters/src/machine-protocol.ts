@@ -1184,6 +1184,8 @@ export interface PlanUsage {
   windows: PlanWindow[];
   /** The plan refused a request for its limit (cleared when it allows one again). */
   limited?: boolean;
+  /** The model of the turn it refused, when known: a model's own window may be what refused it, not the account's. */
+  limitedModel?: string;
   source: "turn" | "probe";
   at: string;
   /**
@@ -3465,6 +3467,9 @@ export function parsePlanUsage(v: unknown): PlanUsage | undefined {
   return {
     windows,
     ...(v.limited === true ? { limited: true } : {}),
+    ...(v.limited === true && isString(v.limitedModel) && /^[\w.:@/[\]-]{1,80}$/.test(v.limitedModel)
+      ? { limitedModel: v.limitedModel }
+      : {}),
     source: v.source === "probe" ? "probe" : "turn",
     at,
   };

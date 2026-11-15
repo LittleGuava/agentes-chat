@@ -168,7 +168,7 @@ export function AgentAiScreen({ agentId }: { agentId: string }) {
   };
 
   const usage = view && kind ? thinkingUsage(view, kind) : undefined;
-  const limited = usage ? planState(usage).state === "limited" : false;
+  const limited = usage ? planState(usage, Date.now(), view?.effectiveModel).state === "limited" : false;
   const modelLimit = modelLimitText(t, i18n.language, usage, current?.provider, model?.value);
   const offers = limited && kind && view ? limitOffers(accounts, kind, view.account).slice(0, 2) : [];
   const signedOut = current != null && signInOf(current) === "signed_out" && current.mine;

@@ -61,7 +61,7 @@ const usedIn = (u: PlanUsage | undefined, w: PlanWindow) =>
  * (80, 90) or 100.
  */
 export function usageCrossed(prev: PlanUsage | undefined, next: PlanUsage): boolean {
-  if (!prev || Boolean(prev.limited) !== Boolean(next.limited)) return true;
+  if (!prev || Boolean(prev.limited) !== Boolean(next.limited) || prev.limitedModel !== next.limitedModel) return true;
   return next.windows.some((w) => {
     const before = usedIn(prev, w) ?? 0;
     // `PLAN_ALMOST` and `PLAN_CRITICAL` in packages/ui/src/plan-state.ts, then the limit.
@@ -93,7 +93,13 @@ const windowKey = (w: Pick<PlanWindow, "kind" | "label">) => `${w.kind}:${w.labe
  * `get_usage` has no limits to read (Claude Code 2.1.312 to 2.1.316, read
  * 2026-10-31).
  */
-export function withRateLimit(prev: PlanUsage | undefined, info: unknown, now = Date.now()): PlanUsage | null {
+export function withRateLimit(
+  prev: PlanUsage | undefined,
+  info: unknown,
+  now = Date.now(),
+  /** The turn's model: a refusal keeps it (`limitedModel`). */
+  model?: string,
+): PlanUsage | null {
   if (!isObj(info)) return null;
   const limited = info.status === "rejected";
   const read = new Map<string, PlanWindow>();
@@ -108,12 +114,13 @@ export function withRateLimit(prev: PlanUsage | undefined, info: unknown, now = 
     if (isObj(w) && reading !== undefined && !read.has(windowKey(at)))
       read.set(windowKey(at), planWindow(at, usedOf(reading), w.resetsAt));
   }
-  if (read.size === 0 && limited === Boolean(prev?.limited)) return null;
+  const refusedModel = limited ? model : undefined;
+  if (read.size === 0 && limited === Boolean(prev?.limited) && refusedModel === prev?.limitedModel) return null;
   const windows = (prev?.windows ?? []).filter((w) => !read.has(windowKey(w)));
   windows.push(...read.values());
   return {
     windows: windows.slice(-PLAN_USAGE_LIMITS.windows),
-    ...(limited ? { limited: true } : {}),
+    ...(limited ? { limited: true, ...(refusedModel ? { limitedModel: refusedModel } : {}) } : {}),
     source: "turn",
     at: iso(now),
   };

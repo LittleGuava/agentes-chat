@@ -17,6 +17,7 @@ import {
   planState,
   planWindows,
 } from "../src";
+import { planBinding, windowModel } from "../src/plan-state";
 
 afterEach(() => cleanup());
 
@@ -360,4 +361,58 @@ test("at the limit, the owner's other free accounts of the same kind and maker, 
   // One made for all of the owner's agents there is offered though another agent thinks with it.
   const all = account("all", { usedBy: ["Infra"], usage: usage(1), shared: true });
   expect(limitOffers([...accounts, all], "claude_code", "now", NOW)[0]?.account.id).toBe("all");
+});
+
+test("a model's own window at its limit holds only that model: another model of the plan still has room", () => {
+  const fable: PlanMeterUsage = {
+    windows: [
+      { kind: "other", label: "Fable", usedPercent: 100, resetsAt: at(8 * HOUR) },
+      { kind: "seven_day", usedPercent: 76, resetsAt: at(8 * HOUR) },
+    ],
+    at: at(0),
+  };
+  expect(planState(fable, NOW, "haiku")).toEqual({ state: "ok", until: null, used: 76 });
+  expect(planState(fable, NOW, "claude-haiku-5-5").state).toBe("ok");
+  expect(planState(fable, NOW, "fable")).toEqual({ state: "limited", until: at(8 * HOUR), used: 100 });
+  expect(planState(fable, NOW, "claude-fable-5-1").state).toBe("limited");
+  const opus: PlanMeterUsage = {
+    windows: [{ kind: "seven_day_opus", usedPercent: 100, resetsAt: at(HOUR) }],
+    at: at(0),
+  };
+  expect(planState(opus, NOW, "sonnet").state).toBe("ok");
+  expect(planState(opus, NOW, "opus").state).toBe("limited");
+  const week: PlanMeterUsage = { windows: [{ kind: "seven_day", usedPercent: 100, resetsAt: at(HOUR) }], at: at(0) };
+  expect(planState(week, NOW, "haiku").state).toBe("limited");
+  expect(planState(fable, NOW).state).toBe("limited");
+  expect(planState(fable, NOW, "auto").state).toBe("limited");
+});
+
+test("a model's own window is known by the family its name says, however Claude words it", () => {
+  const other = (label: string) => ({ kind: "other", label });
+  expect(["Fable", " Fable 5 ", "Claude Fable"].map((l) => windowModel(other(l)))).toEqual(["fable", "fable", "fable"]);
+  expect(windowModel({ kind: "seven_day_opus" })).toBe("opus");
+  expect(["Extra usage", "OAuth apps", "Claude and GPT models · 5h"].map((l) => windowModel(other(l)))).toEqual([
+    null,
+    null,
+    null,
+  ]);
+  // Long work pauses on the same windows.
+  const usage = { windows: [{ kind: "other", label: "Claude Fable", usedPercent: 96 }], at: at(0) };
+  expect(planBinding(usage, { model: "claude-fable-5-1", now: NOW })?.used).toBe(96);
+  expect(planBinding(usage, { model: "fable", now: NOW })?.used).toBe(96);
+  expect(planBinding(usage, { model: "haiku", now: NOW })).toBeNull();
+});
+
+test("a refusal holds the model it refused; one whose model isn't known holds every model", () => {
+  const refused = (limitedModel?: string): PlanMeterUsage => ({
+    windows: [{ kind: "other", label: "Fable", usedPercent: 97, resetsAt: at(8 * HOUR) }],
+    limited: true,
+    ...(limitedModel ? { limitedModel } : {}),
+    at: at(0),
+  });
+  expect(planState(refused("claude-fable-5-1"), NOW, "haiku").state).toBe("ok");
+  expect(planState(refused("claude-fable-5-1"), NOW, "fable").state).toBe("limited");
+  expect(planState(refused("claude-fable-5-1"), NOW).state).toBe("limited");
+  expect(planState(refused(), NOW, "haiku").state).toBe("limited");
+  expect(planState(refused("auto"), NOW, "haiku").state).toBe("limited");
 });

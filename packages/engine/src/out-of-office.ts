@@ -2,7 +2,7 @@ import type { PlanUsage } from "@agenteschat/adapters";
 import { and, type Database, eq, inArray, schema } from "@agenteschat/db";
 import type { Agent } from "./agents";
 import { brainOf } from "./brain-settings";
-import { planLimitOf } from "./brains/select";
+import { brainModelFor, planLimitOf } from "./brains/select";
 import { isComputerBrain } from "./brains/types";
 import { monthStartUtc, orgDefaultAgentBudget } from "./usage";
 import { nextMonthStart } from "./usage-pause";
@@ -24,6 +24,7 @@ export type OutOfOfficeAgent = Pick<
   | "model"
   | "credentialId"
   | "brain"
+  | "brainModel"
   | "brainFallback"
   | "brainAccountId"
   | "machineId"
@@ -76,7 +77,7 @@ export async function outOfOffice(
     const account = a.brainAccountId ? accounts.get(a.brainAccountId) : undefined;
     const usable = account && account.machineId === a.machineId && account.kind === kind ? account : undefined;
     const usage = usable ? usable.usage : (machines.get(a.machineId)?.[kind] ?? null);
-    const limited = planLimitOf(a.machineId, kind, usable?.id, usage, ms);
+    const limited = planLimitOf(a.machineId, kind, usable?.id, usage, ms, brainModelFor(kind, a));
     if (!limited) continue;
     const plan: OutOfOffice = { reason: "plan", until: limited.until !== null ? new Date(limited.until) : null };
     // A conversation falls back to the model brain (ADR 0032 §5): out only when that can't answer either.
@@ -167,6 +168,7 @@ export async function outOfOfficeIds(
       model: agents.model,
       credentialId: agents.credentialId,
       brain: agents.brain,
+      brainModel: agents.brainModel,
       brainFallback: agents.brainFallback,
       brainAccountId: agents.brainAccountId,
       machineId: agents.machineId,

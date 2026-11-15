@@ -6095,6 +6095,8 @@ export interface PlanUsage {
   windows: PlanWindow[];
   /** The plan refused a request for its limit (until a window resets). */
   limited?: boolean;
+  /** The model of the request it refused, when known: that model's family alone is held. */
+  limitedModel?: string;
   source: "turn" | "probe";
   at: string;
   /**

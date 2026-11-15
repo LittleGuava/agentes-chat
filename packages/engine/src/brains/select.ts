@@ -23,7 +23,7 @@ import {
   planOf,
   speedFits,
 } from "@agenteschat/providers/plans";
-import { planState, planWindows } from "@agenteschat/ui/plan-state";
+import { modelFamily, planState, planWindows, windowModel } from "@agenteschat/ui/plan-state";
 import type { Agent } from "../agents";
 import type { MachineStatus } from "../machine-hub";
 import { pausedMessage } from "../machines";
@@ -96,33 +96,100 @@ export const mayFallBack = (
 /**
  * Plan limits seen on this process (`limit` events), by machine, brain and account: a cache in front of the
  * stored usage (`storedPlanLimit`), which a deploy or another replica reads too. `until` null: the reset isn't known.
+ * By the model family refused (`modelFamily`; `*`: none known): one model's own window at its limit leaves the
+ * plan's other models room.
  */
-const planLimits = new Map<string, { until: number | null; seen: number }>();
+const planLimits = new Map<string, Map<string, { until: number | null; seen: number }>>();
 /** No account: the computer's own sign-in. Each account (ADR 0041) has its own plan, so its own limit. */
 const limitKey = (machineId: string, kind: BrainKind, accountId?: string) =>
   `${machineId}:${kind}:${accountId ?? "own"}`;
+const ANY_MODEL = "*";
 
 /** How long a limit with no known reset holds after it was seen: then a turn asks the plan again. */
 export const UNKNOWN_LIMIT_MS = 30 * 60_000;
 
-/** A computer brain hit its plan limit (until `resetsAt`, or `UNKNOWN_LIMIT_MS` when unknown). */
+/**
+ * The model a refusal of a turn on `model` may be kept under before the plan's reading says whose it is: Claude's own
+ * plan only, whose models have windows of their own. A coding plan's aliases are one model of another maker.
+ */
+export const limitModelOf = (kind: BrainKind, provider: unknown, model: string | undefined) =>
+  kind === "claude_code" && !planOf(provider) && modelFamily(model) !== null ? model : undefined;
+
+/**
+ * Whose a refusal of a turn on `model` was, from the plan's reading: that model's (returned) when a window of its own
+ * is full, or the computer said the refusal was of that model (`limitedModel`), and none of the account's windows is
+ * full; else undefined, the whole plan's.
+ */
+export function refusedModel(
+  kind: BrainKind,
+  provider: unknown,
+  model: string | undefined,
+  usage: PlanUsage | null | undefined,
+  now = Date.now(),
+): string | undefined {
+  const family = modelFamily(limitModelOf(kind, provider, model));
+  if (!usage || family === null) return undefined;
+  const full = planWindows(usage, now).filter((w) => w.used >= 100);
+  const said = usage.limited === true && modelFamily(usage.limitedModel) === family;
+  const own = said || full.some((w) => windowModel(w) === family);
+  return own && full.every((w) => windowModel(w) !== null) ? model : undefined;
+}
+
+/** A computer brain hit its plan limit (until `resetsAt`, or `UNKNOWN_LIMIT_MS` when unknown) on `model`. */
 export function notePlanLimit(
   machineId: string,
   kind: BrainKind,
   resetsAt?: string,
   now = Date.now(),
   accountId?: string,
+  model?: string,
 ) {
   const until = resetsAt ? Date.parse(resetsAt) : Number.NaN;
-  planLimits.set(limitKey(machineId, kind, accountId), {
-    until: Number.isFinite(until) && until > now ? until : null,
-    seen: now,
-  });
+  const key = limitKey(machineId, kind, accountId);
+  const seen = planLimits.get(key) ?? new Map();
+  seen.set(modelFamily(model) ?? ANY_MODEL, { until: Number.isFinite(until) && until > now ? until : null, seen: now });
+  planLimits.set(key, seen);
 }
 
-/** A turn on this plan went through: the limit seen here no longer holds. */
-export function forgetPlanLimit(machineId: string, kind: BrainKind, accountId?: string) {
-  planLimits.delete(limitKey(machineId, kind, accountId));
+/**
+ * A turn on this plan went through on `model`: the limits seen here that held it no longer do (another model's own
+ * limit still does). No model: every limit seen on the plan.
+ */
+export function forgetPlanLimit(machineId: string, kind: BrainKind, accountId?: string, model?: string) {
+  const key = limitKey(machineId, kind, accountId);
+  const seen = planLimits.get(key);
+  if (!seen || model === undefined) {
+    planLimits.delete(key);
+    return;
+  }
+  seen.delete(ANY_MODEL);
+  const family = modelFamily(model);
+  if (family) seen.delete(family);
+}
+
+/**
+ * A reading of the plan has room again for some models (`planState` by model): the limits seen here on those go. A
+ * limit kept under no model goes once none of the account's windows is full.
+ */
+export function forgetLimitsWithRoom(
+  machineId: string,
+  kind: BrainKind,
+  accountId: string | undefined,
+  usage: PlanUsage,
+  now = Date.now(),
+) {
+  const seen = planLimits.get(limitKey(machineId, kind, accountId));
+  if (!seen) return;
+  // The account alone: its windows, and a refusal the computer didn't say was one model's.
+  const account = {
+    ...usage,
+    windows: usage.windows.filter((w) => windowModel(w) === null),
+    limited: usage.limited === true && modelFamily(usage.limitedModel) === null,
+  };
+  for (const f of [...seen.keys()]) {
+    const state = f === ANY_MODEL ? planState(account, now) : planState(usage, now, f);
+    if (state.state !== "limited") seen.delete(f);
+  }
 }
 
 /** Tests: forget the plan limits seen. */
@@ -135,9 +202,9 @@ export function clearPlanLimits() {
  * known only from its words, no window full) the first window reset after the reading, while it is still ahead.
  * Later windows didn't refuse anything: once that first reset passed, a turn asks the plan again. Null: none known.
  */
-export function bindingReset(usage: PlanUsage | null | undefined, now = Date.now()): number | null {
+export function bindingReset(usage: PlanUsage | null | undefined, now = Date.now(), model?: string): number | null {
   if (!usage) return null;
-  const { until } = planState(usage, now);
+  const { until } = planState(usage, now, model);
   if (until) return Date.parse(until);
   const at = Date.parse(usage.at);
   const first = Math.min(
@@ -153,9 +220,10 @@ export function bindingReset(usage: PlanUsage | null | undefined, now = Date.now
 export function storedPlanLimit(
   usage: PlanUsage | null | undefined,
   now = Date.now(),
+  model?: string,
 ): { until: number | null } | null {
-  if (!usage || planState(usage, now).state !== "limited") return null;
-  const until = bindingReset(usage, now);
+  if (!usage || planState(usage, now, model).state !== "limited") return null;
+  const until = bindingReset(usage, now, model);
   if (until !== null) return { until };
   const at = Date.parse(usage.at);
   const resetSince = usage.windows.some(
@@ -164,13 +232,19 @@ export function storedPlanLimit(
   return Number.isFinite(at) && now - at < UNKNOWN_LIMIT_MS && !resetSince ? { until: null } : null;
 }
 
-/** The plan limit of this sign-in now, from this process's cache or the stored reading. */
-function planLimitNow(key: string, usage: PlanUsage | null | undefined, now: number) {
-  const seen = planLimits.get(key);
-  const cached = seen && (seen.until !== null ? seen.until > now : now - seen.seen < UNKNOWN_LIMIT_MS) ? seen : null;
-  const stored = storedPlanLimit(usage, now);
-  if (!cached && !stored) return null;
-  return { until: cached?.until ?? stored?.until ?? null };
+/** The plan limit of this sign-in now for a turn on `model`, from this process's cache or the stored reading. */
+function planLimitNow(key: string, usage: PlanUsage | null | undefined, now: number, model?: string) {
+  const family = modelFamily(model);
+  const holds = (l: { until: number | null; seen: number }) =>
+    l.until !== null ? l.until > now : now - l.seen < UNKNOWN_LIMIT_MS;
+  const seen = [...(planLimits.get(key) ?? [])].flatMap(([f, l]) =>
+    (family === null || f === ANY_MODEL || f === family) && holds(l) ? [l.until] : [],
+  );
+  const stored = storedPlanLimit(usage, now, model);
+  if (seen.length === 0 && !stored) return null;
+  // The latest of the limits that hold it: a wait never wakes at an earlier one to park again.
+  const known = [...seen, ...(stored ? [stored.until] : [])].filter((u): u is number => u !== null);
+  return { until: known.length > 0 ? Math.max(...known) : null };
 }
 
 /**
@@ -183,8 +257,9 @@ export function planLimitOf(
   accountId: string | undefined,
   usage: PlanUsage | null | undefined,
   now = Date.now(),
+  model?: string,
 ): { until: number | null } | null {
-  return planLimitNow(limitKey(machineId, kind, accountId), usage, now);
+  return planLimitNow(limitKey(machineId, kind, accountId), usage, now, model);
 }
 
 /** The account's windows a refusal's words may name that come back on a fixed day for each model too (OpenCode Go's week and month). */
@@ -377,7 +452,7 @@ export function computerBrainUnavailable(
       message: `${name}${status ? ` on ${status.name}` : ""} would think with a plan that isn't the agent's owner's.`,
     };
   }
-  const limited = planLimitNow(limitKey(machineId, kind, account?.id), usage, now);
+  const limited = planLimitNow(limitKey(machineId, kind, account?.id), usage, now, model);
   if (limited) {
     return {
       code: "plan_limit",

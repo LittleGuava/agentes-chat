@@ -1572,7 +1572,7 @@ export interface BrainManagerOptions {
     accountDir(kind: AccountKind, id: string): string | null;
     /** System mode, in a worker (protocol 29): this agent's own folder for an account root keeps (`AccountGrant`). */
     agentHome?(kind: AccountKind, id: string): string | null;
-    noteRateLimit?(key: string, info: unknown): void;
+    noteRateLimit?(key: string, info: unknown, model?: string): void;
   };
   /** The local MCP bridge (where the daemon listens and how to start `agentes-runner mcp`). */
   mcp?: { socketPath: string; command: string[] };
@@ -2136,7 +2136,13 @@ export class BrainManager {
             }
           : {}),
         endInput: !live.persistent,
-        onRateLimit: (info) => this.opts.accounts?.noteRateLimit?.(usageKey, info),
+        onRateLimit: (info) =>
+          this.opts.accounts?.noteRateLimit?.(
+            usageKey,
+            info,
+            // A coding plan's aliases name one model of another maker: no model of Claude's to hold apart.
+            !ctx.planKey && typeof req.model === "string" ? req.model : undefined,
+          ),
         ...(ctx.planKey
           ? { refused: "The plan refused its key. Paste a new key in AI accounts." }
           : ctx.oauthToken

@@ -1,12 +1,39 @@
+import { and, type Database, eq, schema } from "@agenteschat/db";
 import { planState, planWindows } from "@agenteschat/ui/plan-state";
+import { brainFor, brainModelFor } from "./brains/select";
 import { ago, zoneOf } from "./context";
 import { defaultAccountLabel } from "./machine-accounts";
+import { missionTurnFor } from "./missions-engine";
 import { type AgentPlanUsageView, type ApiAgentUsage, agentUsageFor, type PlanAccountUsage } from "./plan-usage";
 import { personBehindCall } from "./requester";
 import { describeWhen } from "./schedule";
 import type { ToolDefinition, ToolSource } from "./tools/types";
 
 export const USAGE_TOOL = "get_my_usage";
+
+/** The model this run thinks with (a mission's own, else the agent's): another model's own window doesn't hold it. */
+async function runModel(db: Database, orgId: string, agentId: string, runId: string) {
+  const { agents, agentRuns } = schema;
+  const [[agent], [run]] = await Promise.all([
+    db
+      .select({ brain: agents.brain, brainModel: agents.brainModel })
+      .from(agents)
+      .where(and(eq(agents.orgId, orgId), eq(agents.id, agentId))),
+    db
+      .select({
+        id: agentRuns.id,
+        orgId: agentRuns.orgId,
+        agentId: agentRuns.agentId,
+        threadRootId: agentRuns.threadRootId,
+        triggerMessageId: agentRuns.triggerMessageId,
+      })
+      .from(agentRuns)
+      .where(and(eq(agentRuns.orgId, orgId), eq(agentRuns.id, runId))),
+  ]);
+  if (!agent) return undefined;
+  const mission = run ? await missionTurnFor(db, run) : null;
+  return brainModelFor(brainFor(agent, { id: runId }, mission), agent, mission);
+}
 
 /** The apps' English names of a plan's windows (`aiAccounts.usage.window`). */
 const WINDOW_NAMES: Record<string, string> = {
@@ -26,7 +53,7 @@ function planName(a: PlanAccountUsage) {
 }
 
 /** The plan it thinks with: its windows as the apps draw them (tightest first, a reset one empty), with its part. */
-function planText(a: PlanAccountUsage, agentId: string, zone: string, now: Date) {
+function planText(a: PlanAccountUsage, agentId: string, model: string | undefined, zone: string, now: Date) {
   const head = `You think with ${planName(a)}${a.signedOut ? ", signed out on its computer" : ""}.`;
   const usage = a.usage;
   if (!usage || (usage.windows.length === 0 && !usage.limited)) {
@@ -41,7 +68,7 @@ function planText(a: PlanAccountUsage, agentId: string, zone: string, now: Date)
     const part = w.used > 0 && w.agents ? (w.agents.find((p) => p.agentId === agentId)?.percent ?? 0) : null;
     return `- ${name}: ${w.used}% used${resets}.${part === null ? "" : ` Your part: about ${part}%.`}`;
   });
-  const { state, until } = planState(usage, at);
+  const { state, until } = planState(usage, at, model);
   return [
     head,
     lines.length > 0
@@ -94,14 +121,15 @@ export function createUsageToolSource(): ToolSource {
     async execute(_input, ctx) {
       const now = new Date();
       const person = await personBehindCall(ctx);
-      const [{ view, brain, api }, zone] = await Promise.all([
+      const [{ view, brain, api }, zone, model] = await Promise.all([
         agentUsageFor(ctx.db, null, ctx.orgId, ctx.agentId, now),
         zoneOf(ctx.db, ctx.orgId, person),
+        runModel(ctx.db, ctx.orgId, ctx.agentId, ctx.runId).catch(() => undefined),
       ]);
       const onApi = brain === "model";
       const parts = [
         view.current
-          ? planText(view.current, ctx.agentId, zone, now)
+          ? planText(view.current, ctx.agentId, model, zone, now)
           : onApi
             ? "You think through the API (a key, not a plan): no plan limits, only your monthly budget."
             : "No plan thinks for you right now.",
