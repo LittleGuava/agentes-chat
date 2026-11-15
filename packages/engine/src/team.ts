@@ -3,7 +3,7 @@ import { type AgentStatusView, lineInEnglish, loadAgentStatuses } from "./agent-
 import { currentHandles } from "./agents";
 import { type AiStatusDeps, agentAiStates } from "./ai-status";
 import type { AgentAppearance } from "./appearance";
-import { canTalkTo, type Speaker, seesAgentDetails, speakerFor, speakerOf, viaAgent } from "./audience";
+import { canTalkTo, listsAgentTo, type Speaker, seesAgentDetails, speakerFor, speakerOf, viaAgent } from "./audience";
 import { inLine, mayCall } from "./autonomy-settings";
 import { agentBrowserStatus } from "./browser/status";
 import { BROWSER_SCOPE, DESKTOP_SCOPE } from "./browser/types";
@@ -462,7 +462,7 @@ export async function teammatesNowPrompt(
 export const TEAM_CONSULTATIONS_MS = 24 * 60 * 60_000;
 
 /**
- * The team screen: the org's agents grouped by their responsible person,
+ * The team screen: the org's agents the person's lists name (`listsAgentTo`), grouped by their responsible person,
  * what each can do (stable capability keys), who is working now, and which
  * agents consulted each other in the last day. Questions and answers stay out:
  * a conversation between agents is private.
@@ -487,7 +487,8 @@ export async function getTeam(db: Database, actorId: string, orgId: string) {
     })
     .from(agents)
     .where(and(eq(agents.orgId, orgId), isNull(agents.archivedAt)))
-    .orderBy(asc(agents.createdAt));
+    .orderBy(asc(agents.createdAt))
+    .then((rows) => rows.filter((a) => listsAgentTo(a, actorId, membership)));
   const ids = list.map((a) => a.id);
   const ownerIds = [...new Set(list.map((a) => a.ownerUserId).filter((id): id is string => !!id))];
   const since = new Date(Date.now() - TEAM_CONSULTATIONS_MS);
