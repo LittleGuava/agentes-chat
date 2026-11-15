@@ -117,7 +117,8 @@ export const limitModelOf = (kind: BrainKind, provider: unknown, model: string |
 
 /**
  * Whose a refusal of a turn on `model` was, from the plan's reading: that model's (returned) when a window of its own
- * is full and none of the account's is; else undefined, the whole plan's.
+ * is full, or the computer said the refusal was of that model (`limitedModel`), and none of the account's windows is
+ * full; else undefined, the whole plan's.
  */
 export function refusedModel(
   kind: BrainKind,
@@ -129,7 +130,8 @@ export function refusedModel(
   const family = modelFamily(limitModelOf(kind, provider, model));
   if (!usage || family === null) return undefined;
   const full = planWindows(usage, now).filter((w) => w.used >= 100);
-  const own = full.some((w) => windowModel(w) === family);
+  const said = usage.limited === true && modelFamily(usage.limitedModel) === family;
+  const own = said || full.some((w) => windowModel(w) === family);
   return own && full.every((w) => windowModel(w) !== null) ? model : undefined;
 }
 
@@ -178,7 +180,12 @@ export function forgetLimitsWithRoom(
 ) {
   const seen = planLimits.get(limitKey(machineId, kind, accountId));
   if (!seen) return;
-  const account = { ...usage, windows: usage.windows.filter((w) => windowModel(w) === null) };
+  // The account alone: its windows, and a refusal the computer didn't say was one model's.
+  const account = {
+    ...usage,
+    windows: usage.windows.filter((w) => windowModel(w) === null),
+    limited: usage.limited === true && modelFamily(usage.limitedModel) === null,
+  };
   for (const f of [...seen.keys()]) {
     const state = f === ANY_MODEL ? planState(account, now) : planState(usage, now, f);
     if (state.state !== "limited") seen.delete(f);

@@ -2272,3 +2272,86 @@ test("a reading with one model's own window full wakes the waits on the plan's o
   expect(woken).not.toContain(fable?.id);
   expect(woken).not.toContain(unknown?.id);
 });
+
+test("behind a hundred older waits on the held model, a reading still wakes the one on another model", async () => {
+  f = await setup();
+  const machineId = crypto.randomUUID();
+  const key = usageWaitKey({ code: "plan_limit", machineId, kind: "claude_code" });
+  const now = Date.now();
+  const parked = (model: string, age: number) => {
+    const trigger = crypto.randomUUID();
+    return {
+      orgId: f.org.id,
+      agentId: f.agent.id,
+      channelId: f.general.id,
+      threadRootId: trigger,
+      triggerMessageId: trigger,
+      trigger: "mention" as const,
+      hop: 1,
+      status: "waiting_input" as const,
+      createdAt: new Date(now - age),
+      transcript: {
+        waitingForBrain: {
+          kind: "claude_code",
+          machineId,
+          code: "plan_limit",
+          waitId: crypto.randomUUID(),
+          waitKey: key,
+          until: new Date(now + 5 * 86_400_000).toISOString(),
+          model,
+        },
+        usageWait: { since: now - age, step: 0, parkedAt: now - 60_000 },
+      } as never,
+    };
+  };
+  await f.db.insert(schema.agentRuns).values(Array.from({ length: 101 }, (_, i) => parked("fable", 7200_000 - i)));
+  const [haiku] = await f.db.insert(schema.agentRuns).values(parked("haiku", 60_000)).returning();
+  const resets = new Date(now + 5 * 86_400_000).toISOString();
+  const usage: PlanUsage = {
+    windows: [
+      { kind: "other", label: "Fable", usedPercent: 100, resetsAt: resets },
+      { kind: "seven_day", usedPercent: 76, resetsAt: resets },
+    ],
+    source: "probe",
+    at: new Date(now).toISOString(),
+  };
+  expect(await wakeOnRoom(f.db, f.org.id, machineId, "claude_code", undefined, usage, now)).toEqual([haiku?.id ?? ""]);
+});
+
+test("a reading that only says the plan refused wakes no long-work pause", async () => {
+  f = await setup();
+  const key = usageWaitKey({ code: "plan_limit", machineId: crypto.randomUUID(), kind: "codex" });
+  const now = Date.now();
+  const trigger = crypto.randomUUID();
+  await f.db.insert(schema.agentRuns).values({
+    orgId: f.org.id,
+    agentId: f.agent.id,
+    channelId: f.general.id,
+    threadRootId: trigger,
+    triggerMessageId: trigger,
+    trigger: "mention" as const,
+    hop: 1,
+    status: "waiting_input" as const,
+    createdAt: new Date(now - 60_000),
+    transcript: {
+      waitingForBrain: {
+        kind: "codex",
+        machineId: "",
+        code: "usage_pause",
+        source: "plan",
+        waitId: crypto.randomUUID(),
+        waitKey: key,
+        until: new Date(now + 3600_000).toISOString(),
+        model: null,
+      },
+      usageWait: { since: now - 3600_000, step: 0, parkedAt: now - 60_000 },
+    } as never,
+  });
+  const usage: PlanUsage = {
+    windows: [{ kind: "five_hour", usedPercent: 60, resetsAt: new Date(now + 3600_000).toISOString() }],
+    limited: true,
+    source: "turn",
+    at: new Date(now).toISOString(),
+  };
+  expect(await wakePlanWaits(f.db, f.org.id, key, null, now, { at: now, usage })).toEqual([]);
+});

@@ -3467,7 +3467,7 @@ export function parsePlanUsage(v: unknown): PlanUsage | undefined {
   return {
     windows,
     ...(v.limited === true ? { limited: true } : {}),
-    ...(v.limited === true && isString(v.limitedModel) && /^[\w.:@/-]{1,80}$/.test(v.limitedModel)
+    ...(v.limited === true && isString(v.limitedModel) && /^[\w.:@/[\]-]{1,80}$/.test(v.limitedModel)
       ? { limitedModel: v.limitedModel }
       : {}),
     source: v.source === "probe" ? "probe" : "turn",

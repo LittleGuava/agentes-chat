@@ -2137,7 +2137,12 @@ export class BrainManager {
           : {}),
         endInput: !live.persistent,
         onRateLimit: (info) =>
-          this.opts.accounts?.noteRateLimit?.(usageKey, info, typeof req.model === "string" ? req.model : undefined),
+          this.opts.accounts?.noteRateLimit?.(
+            usageKey,
+            info,
+            // A coding plan's aliases name one model of another maker: no model of Claude's to hold apart.
+            !ctx.planKey && typeof req.model === "string" ? req.model : undefined,
+          ),
         ...(ctx.planKey
           ? { refused: "The plan refused its key. Paste a new key in AI accounts." }
           : ctx.oauthToken

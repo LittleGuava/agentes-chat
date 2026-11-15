@@ -262,7 +262,12 @@ function accountView(
 /** People would see a difference: a window moved a point or more, its reset moved, one came or went, or the limit. */
 export function usageMoved(prev: PlanUsage | null | undefined, next: PlanUsage | null | undefined): boolean {
   if (!prev || !next) return Boolean(prev) !== Boolean(next);
-  if (Boolean(prev.limited) !== Boolean(next.limited) || prev.windows.length !== next.windows.length) return true;
+  if (
+    Boolean(prev.limited) !== Boolean(next.limited) ||
+    prev.limitedModel !== next.limitedModel ||
+    prev.windows.length !== next.windows.length
+  )
+    return true;
   return next.windows.some((w) => {
     const p = prev.windows.find((x) => x.kind === w.kind && x.label === w.label);
     return !p || Math.abs(p.usedPercent - w.usedPercent) >= 1 || p.resetsAt !== w.resetsAt;

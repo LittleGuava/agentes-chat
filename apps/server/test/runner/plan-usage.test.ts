@@ -613,4 +613,13 @@ test("a refusal keeps the model of the turn it refused, which the server reads b
   expect(allowed?.limitedModel).toBeUndefined();
   // No model known: a refusal of the whole plan, as before.
   expect(withRateLimit(undefined, { status: "rejected" }, NOW)?.limitedModel).toBeUndefined();
+  // Another model refused next, with no window said: that's news, of the other model.
+  expect(withRateLimit(refused ?? undefined, { status: "rejected" }, NOW, "claude-haiku-5-5")?.limitedModel).toBe(
+    "claude-haiku-5-5",
+  );
+  expect(usageCrossed(refused ?? undefined, { ...(refused as PlanUsage), limitedModel: "claude-haiku-5-5" })).toBe(
+    true,
+  );
+  // A model with its context in brackets is a model too.
+  expect(parsePlanUsage({ ...refused, limitedModel: "claude-opus-5-5[1m]" })?.limitedModel).toBe("claude-opus-5-5[1m]");
 });

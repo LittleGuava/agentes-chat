@@ -61,7 +61,7 @@ const usedIn = (u: PlanUsage | undefined, w: PlanWindow) =>
  * (80, 90) or 100.
  */
 export function usageCrossed(prev: PlanUsage | undefined, next: PlanUsage): boolean {
-  if (!prev || Boolean(prev.limited) !== Boolean(next.limited)) return true;
+  if (!prev || Boolean(prev.limited) !== Boolean(next.limited) || prev.limitedModel !== next.limitedModel) return true;
   return next.windows.some((w) => {
     const before = usedIn(prev, w) ?? 0;
     // `PLAN_ALMOST` and `PLAN_CRITICAL` in packages/ui/src/plan-state.ts, then the limit.
@@ -114,12 +114,13 @@ export function withRateLimit(
     if (isObj(w) && reading !== undefined && !read.has(windowKey(at)))
       read.set(windowKey(at), planWindow(at, usedOf(reading), w.resetsAt));
   }
-  if (read.size === 0 && limited === Boolean(prev?.limited)) return null;
+  const refusedModel = limited ? model : undefined;
+  if (read.size === 0 && limited === Boolean(prev?.limited) && refusedModel === prev?.limitedModel) return null;
   const windows = (prev?.windows ?? []).filter((w) => !read.has(windowKey(w)));
   windows.push(...read.values());
   return {
     windows: windows.slice(-PLAN_USAGE_LIMITS.windows),
-    ...(limited ? { limited: true, ...(model ? { limitedModel: model } : {}) } : {}),
+    ...(limited ? { limited: true, ...(refusedModel ? { limitedModel: refusedModel } : {}) } : {}),
     source: "turn",
     at: iso(now),
   };
