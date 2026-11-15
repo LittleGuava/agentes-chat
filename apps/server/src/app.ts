@@ -38,7 +38,7 @@ import { databaseRoutes } from "./routes/app/databases";
 import { desktopRoutes } from "./routes/app/desktop";
 import { deviceWaitRoutes } from "./routes/app/device-waits";
 import { dmRoutes } from "./routes/app/dms";
-import { feedbackRoutes, registerFeedbackFiles } from "./routes/app/feedback";
+import { feedbackRoutes, registerFeedbackFiles, registerFeedbackInbox } from "./routes/app/feedback";
 import { gifKeyRoutes } from "./routes/app/gif-key";
 import { gifRoutes } from "./routes/app/gifs";
 import { inviteRoutes } from "./routes/app/invites";
@@ -66,6 +66,7 @@ import { telemetryRoutes } from "./routes/app/telemetry";
 import { threadRoutes } from "./routes/app/threads";
 import { vaultRoutes } from "./routes/app/vault";
 import { speechKeyRoutes, voiceRoutes } from "./routes/app/voice";
+import { waitingRoutes } from "./routes/app/waiting";
 import { wikiRoutes } from "./routes/app/wiki";
 import {
   createDesktopReleases,
@@ -170,6 +171,7 @@ export function createApp(options: AppOptions) {
     const deps: AppDeps = { log, ...options.services };
     registerInstance(api, deps, version);
     registerFeedbackFiles(api, deps);
+    registerFeedbackInbox(api, deps);
     api.use("/app/organizations/:orgId/agents/:agentId/:part", agentDetailsGate(deps));
     api.use("/app/organizations/:orgId/*", readOnlyWhileDeleting(deps));
     api.route("/app", accountRoutes(deps));
@@ -195,6 +197,7 @@ export function createApp(options: AppOptions) {
     api.route("/app", browserProfileRoutes(deps));
     api.route("/app", desktopRoutes(deps));
     api.route("/app", notificationRoutes(deps));
+    api.route("/app", waitingRoutes(deps));
     api.route("/app", pushRoutes(deps));
     api.route("/app", secretRoutes(deps));
     api.route("/app", vaultRoutes(deps));

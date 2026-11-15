@@ -269,6 +269,12 @@ export const AgentAudience = z
   })
   .openapi("AgentAudience");
 
+/** How much an agent asks before acting (ADR 0173). */
+export const ApprovalsLevel = z.enum(["always", "risky", "never"]).openapi("ApprovalsLevel", {
+  description:
+    "`always`: every write to a connected app asks a person. `risky` (the default): what is marked sensitive asks. `never`: only merge, deploy, rollback and the like ask. A routine's run, and one a routine's reading feeds, ask for every write to a connected app at any level. Scopes, connector access and the budget bind at every level.",
+});
+
 /** An agent's autonomy brakes (ADR 0131): what it may start that nobody asked for directly, and whom it may call. */
 export const AgentBrakes = z
   .object({
@@ -427,6 +433,7 @@ export const Agent = z
       description:
         "It may send a sticker or a GIF (ADR 0091): when someone asks for one, and after a light reply as often as the workspace's `agentMedia` allows.",
     }),
+    approvalsLevel: ApprovalsLevel,
     builtin: z.enum(["right_hand"]).nullable().openapi({
       description:
         "A built-in agent the product ships (ADR 0137): `right_hand`, the team's right hand, one per workspace, never archived, deleted or exported. Null for the agents people make.",
@@ -858,6 +865,7 @@ export const BrainUnavailable = z.enum([
   "not_installed",
   "outdated",
   "not_reported",
+  "system",
 ]);
 
 export const BrainOption = z
@@ -950,6 +958,10 @@ export const MachineAccount = z
       description:
         "Claude's organization it is signed in to (opaque, runner protocol 50); only for its owner. Logins of one email in two organizations are two accounts.",
     }),
+    serves: z.enum(["everyone", "owner"]).openapi({
+      description:
+        "Who it thinks for (ADR 0059 §3): everyone in the workspace (the default), or only its owner. Only its owner changes it.",
+    }),
   })
   .openapi("MachineAccount", {
     description:
@@ -1022,7 +1034,7 @@ export const AgentBrain = z
     }),
     canUseOthersPlans: z.boolean().openapi({
       description:
-        "The caller holds `use_others_plans` (ADR 0059 §3): `accounts` lists every plan on its computer, whoever connected it, and they may give it any. Its owner is told and may take it back.",
+        "Always true since plans serve the whole workspace (ADR 0059 §3): `accounts` lists every plan on its computer that serves everyone, whoever connected it, and the caller may give it any. Older apps read it.",
     }),
     ownSignIn: z.boolean().openapi({
       description: "The computer's own sign-in can think for it: the person who connected the computer owns the agent.",
@@ -1034,6 +1046,13 @@ export const AgentBrain = z
       description:
         'Its Autonomia: the autonomy its new missions start with ("Usar como padrão"), copied with its setup.',
     }),
+    keys: z
+      .array(z.object({ id: z.string(), provider: z.string() }))
+      .optional()
+      .openapi({
+        description:
+          "The workspace's live API keys, id and provider only: the providers its owner may move it onto (only admins list the keys).",
+      }),
   })
   .openapi("AgentBrain");
 

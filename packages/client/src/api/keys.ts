@@ -135,6 +135,7 @@ export const keys = {
   devices: (orgId: string) => ["org", orgId, "machines", "devices"] as const,
   /** Under `devices`: a phone picked over Wi-Fi leaves the offer when the list refetches. */
   wifiIphones: (orgId: string, machineId: string) => ["org", orgId, "machines", "devices", "wifi", machineId] as const,
+  xcodeFix: (orgId: string, machineId: string) => ["org", orgId, "machines", "devices", "xcode", machineId] as const,
   connectLink: (orgId: string, linkId: string) => ["org", orgId, "machines", "devices", "link", linkId] as const,
   /** Under `machines`: a computer that changes refreshes what a new agent could think with. */
   brainMachines: (orgId: string) => ["org", orgId, "machines", "brains"] as const,
@@ -213,6 +214,8 @@ export const keys = {
   notifications: (orgId: string) => ["org", orgId, "notifications"] as const,
   notificationList: (orgId: string, filter: string) => ["org", orgId, "notifications", "list", filter] as const,
   notificationCount: (orgId: string) => ["org", orgId, "notifications", "count"] as const,
+  /** "Esperando você": under the notifications prefix, so whatever refreshes the inbox refreshes it. */
+  waiting: (orgId: string) => ["org", orgId, "notifications", "waiting"] as const,
   noticePrefs: (orgId: string) => ["org", orgId, "notice-prefs"] as const,
   sidebarItems: (orgId: string) => ["org", orgId, "sidebar-items"] as const,
   sidebarOrder: (orgId: string) => ["org", orgId, "sidebar-order"] as const,
@@ -269,6 +272,8 @@ export const keys = {
   browserHandoff: (orgId: string, handoffId: string) => ["org", orgId, "browser", "handoff", handoffId] as const,
   /** The agent's desktop (ADR 0058): its state as this person sees it. */
   agentDesktop: (orgId: string, agentId: string) => ["org", orgId, "desktop", agentId] as const,
+  /** What the agent keeps running on its computer (ADR 0176). */
+  agentHolds: (orgId: string, agentId: string) => ["org", orgId, "holds", agentId] as const,
   agentDesktopPicture: (orgId: string, agentId: string) => ["org", orgId, "desktop", agentId, "picture"] as const,
   /** Every agent's screen (`agentDesktop`'s prefix). */
   agentDesktops: (orgId: string) => ["org", orgId, "desktop"] as const,

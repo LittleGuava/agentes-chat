@@ -61,6 +61,7 @@ import {
   publishMachineAgentsChanged,
   requirePermission,
   revokeCredential,
+  rightHandWidgetsReady,
   SETUP_AGENTS_MAX,
   seesAgentDetails,
   setAgentAppearance,
@@ -104,6 +105,7 @@ import {
   AgentBrakes,
   AgentSetup,
   AgentSetupResult,
+  ApprovalsLevel,
   BrainEffortSetting,
   BrainKind,
   BrainMachine,
@@ -197,6 +199,10 @@ const AgentFields = z.object({
   }),
   brakes: AgentBrakes.partial().optional().openapi({
     description: "Its autonomy brakes (ADR 0131); the fields given change, the rest stay. Needs `manage_agents`.",
+  }),
+  approvalsLevel: ApprovalsLevel.optional().openapi({
+    description:
+      "How much it asks before acting (ADR 0173). Needs `manage_agents`. A new agent starts at `risky`. It never widens what the agent may use.",
   }),
 });
 
@@ -692,6 +698,7 @@ export function agentRoutes(deps: AppDeps) {
                     "plan_inactive",
                     "commands_off",
                     "plan_not_shared",
+                    "plans_not_yours",
                     "runner_outdated",
                     "plan_tools",
                   ])
@@ -699,6 +706,14 @@ export function agentRoutes(deps: AppDeps) {
                 own: z
                   .enum(["claude_code", "codex", "cursor", "opencode", "grok", "antigravity", "copilot"])
                   .optional(),
+                owner: z.string().optional().openapi({
+                  description:
+                    "With `plans_not_yours`: whose the workspace's plans are (each serves only the person who connected it).",
+                }),
+                plan: z
+                  .string()
+                  .optional()
+                  .openapi({ description: 'With `plans_not_yours`: what that plan is ("Claude").' }),
                 provider: z.string().optional().openapi({
                   description: "Ready on an API key with Automático: the maker of the key it thinks with.",
                 }),
@@ -717,6 +732,10 @@ export function agentRoutes(deps: AppDeps) {
             apiKey: z.boolean(),
             /** Memory reflects on finished conversations: a summary model it can call (ADR 0167). */
             reflection: z.boolean(),
+            widgetsReady: z.array(z.string()).openapi({
+              description:
+                "The right hand's widgets waiting for an AI, or stopped after failing in a row, whose build has one now, among those the viewer sees: whose AI its build thinks with is each widget's own people's (who made it, its routine's creator, else the workspace's).",
+            }),
           }),
         ),
         ...errors,
@@ -728,12 +747,13 @@ export function agentRoutes(deps: AppDeps) {
       await requirePermission(db, userId, orgId, "read");
       const status = aiStatusDeps(deps);
       const context = deps.extras?.context;
-      const [ai, routing, reflection] = await Promise.all([
+      const [ai, routing, reflection, widgetsReady] = await Promise.all([
         orgAiStatus(status, orgId, userId),
         orgRouting(status, deps.extras?.router?.routing ?? null, orgId, userId),
         context ? summaryModelReady(context, orgId) : false,
+        rightHandWidgetsReady({ db, ai: status }, orgId, userId),
       ]);
-      return c.json({ ...ai, ...routing, reflection }, 200);
+      return c.json({ ...ai, ...routing, reflection, widgetsReady }, 200);
     },
   );
 
@@ -1897,7 +1917,7 @@ export function agentRoutes(deps: AppDeps) {
             }),
             account: z.uuid().nullable().optional().openapi({
               description:
-                "An account on the agent's computer of the brain's kind (ADR 0041); null = the computer's own sign-in; omitted = keep (cleared when the brain kind changes). One of the agent's owner's accounts, chosen by its owner or an admin (`account.not_owner`), or anyone's there for someone with `use_others_plans` (its owner is told, `account.lent`).",
+                "An account on the agent's computer of the brain's kind (ADR 0041); null = the computer's own sign-in; omitted = keep (cleared when the brain kind changes). One of the agent's owner's accounts, chosen by its owner or an admin (`account.not_owner`), or anyone's there that serves the whole workspace (`account.lent` in the audit).",
             }),
             moveAccount: z.boolean().optional().openapi({
               description: "The account thinks for another agent (`account.in_use`): take it from that one (audited).",

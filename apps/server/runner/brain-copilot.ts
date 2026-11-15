@@ -25,7 +25,7 @@ import type { Spawn } from "./scope-gate";
 import { agentSecrets } from "./secrets";
 
 /**
- * The Copilot branch of `brain.turn` (protocol 59, ADR 0174): one agent turn as one run of GitHub's Copilot CLI
+ * The Copilot branch of `brain.turn` (protocol 65, ADR 0174): one agent turn as one run of GitHub's Copilot CLI
  * (`copilot --output-format json`, the prompt on its standard input), whose JSONL events are its own. Flags and files
  * as `copilot --help` and `copilot help config|mcp|permissions|sessions|environment` list them, and its events as it
  * printed them, on Copilot CLI 1.0.109 (2026-11-12).

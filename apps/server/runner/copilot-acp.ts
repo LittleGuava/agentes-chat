@@ -9,7 +9,7 @@ import { killTree } from "./exec";
 import { cliSpawn } from "./executors";
 
 /**
- * Whether an account's Copilot CLI sign-in works and which models it offers, without a prompt (ADR 0174, protocol 59). The CLI
+ * Whether an account's Copilot CLI sign-in works and which models it offers, without a prompt (ADR 0174, protocol 65). The CLI
  * has no status or models command; its Agent Client Protocol server (`copilot --acp --stdio`, `copilot help acp`)
  * answers both when a session opens: `session/new` lists the models, or fails with "Authentication required" (-32000)
  * signed out. Both requests go on its standard input at once and it exits when that closes, so one run is the whole
