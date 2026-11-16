@@ -2971,8 +2971,8 @@
       "cursor": "Cursor belum masuk di komputer ini. Hubungkan akun Cursor di halaman {{name}}.",
       "cursor_female": "Cursor belum masuk di komputer ini. Hubungkan akun Cursor di halaman {{name}}.",
       "grok": "Grok belum masuk di komputer ini. Hubungkan akun Grok di halaman {{name}}.",
-      "copilot": "Copilot belum masuk di komputer ini. Hubungkan akun Copilot di halaman {{name}}.",
       "grok_female": "Grok belum masuk di komputer ini. Hubungkan akun Grok di halaman {{name}}.",
+      "copilot": "Copilot belum masuk di komputer ini. Hubungkan akun Copilot di halaman {{name}}.",
       "copilot_female": "Copilot belum masuk di komputer ini. Hubungkan akun Copilot di halaman {{name}}.",
       "antigravity": "Gemini belum masuk di komputer ini. Hubungkan akun Gemini di halaman {{name}}.",
       "antigravity_female": "Gemini belum masuk di komputer ini. Hubungkan akun Gemini di halaman {{name}}.",
@@ -13871,6 +13871,19 @@
       "newFromHelp": "Balasan selalu dikirim dari alamat tujuan email itu dikirim.",
       "later": "Kamu bisa mengubah ini nanti di Alamat.",
       "saved": "Alamat {{address}} tersimpan."
+    },
+    "triage": {
+      "button": "Pemilahan",
+      "buttonName": "Pemilahan untuk {{name}}",
+      "title": "Pemilahan untuk {{address}}",
+      "label": "Pilah email baru",
+      "help": "Pemeriksaan cepat hanya membaca pengirim, subjek, dan cuplikan setiap email baru: email yang diabaikan tidak membangunkan rutinitas, dan kamu diberi tahu tentang email penting yang tidak diambil rutinitas mana pun.",
+      "scope": "Memilah email di folder yang dipantau rutinitas kotak surat ini menjadi penting, perlu dibalas, atau abaikan. Tidak pernah memulai giliran agen.",
+      "on": "Pemilahan aktif",
+      "savedOn": "Pemilahan diaktifkan untuk {{address}}.",
+      "savedOff": "Pemilahan dimatikan untuk {{address}}.",
+      "failed": "Tidak bisa mengubah pemilahan {{address}}.",
+      "notice": "Email penting di {{name}}"
     },
     "agent": {
       "title": "Email",

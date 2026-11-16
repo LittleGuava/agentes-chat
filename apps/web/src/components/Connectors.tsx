@@ -74,6 +74,7 @@ import {
   type MailFlowState,
   MailReconnectDialog,
   MailRow,
+  MailTriageDialog,
   mailChoices,
 } from "@/components/MailConnect";
 import { useOrg } from "@/components/org-context";
@@ -131,6 +132,7 @@ export function ConnectorsSection({
   const [mailFlow, setMailFlow] = useState<MailFlowState | null>(null);
   const [reconnecting, setReconnecting] = useState<MailAccount | null>(null);
   const [addressesOf, setAddressesOf] = useState<MailAccount | null>(null);
+  const [triageOf, setTriageOf] = useState<MailAccount | null>(null);
   const [removingMail, setRemovingMail] = useState<MailAccount | null>(null);
   // People's Postgres databases (ADR 0039): rows of the same list, the same kind of flow.
   const databases = useDatabases(org.id);
@@ -277,6 +279,7 @@ export function ConnectorsSection({
                 onTools={() => setMailFlow({ step: 1, account })}
                 onWho={() => setMailFlow({ step: 2, account })}
                 onAddresses={() => setAddressesOf(account)}
+                onTriage={() => setTriageOf(account)}
                 onReconnect={() => reconnect(account)}
                 onDisconnect={() => setRemovingMail(account)}
               />
@@ -367,6 +370,7 @@ export function ConnectorsSection({
         <MailConnectFlow flow={mailFlow} onChange={setMailFlow} onClose={() => setMailFlow(null)} />
         <MailReconnectDialog account={reconnecting} onClose={() => setReconnecting(null)} />
         <MailAddressesDialog account={addressesOf} onClose={() => setAddressesOf(null)} />
+        <MailTriageDialog account={triageOf} onClose={() => setTriageOf(null)} />
         <MailDisconnectDialog account={removingMail} onClose={() => setRemovingMail(null)} />
         <DatabaseConnectFlow flow={dbFlow} onChange={setDbFlow} onClose={() => setDbFlow(null)} />
         <DatabaseReconnectDialog connection={reconnectingDb} onClose={() => setReconnectingDb(null)} />

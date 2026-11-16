@@ -3086,8 +3086,8 @@
       "cursor": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "cursor_female": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "grok": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
-      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "grok_female": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
+      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "copilot_female": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "antigravity": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",
       "antigravity_female": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",
@@ -14410,6 +14410,19 @@
       "newFromHelp": "Antwoorden gaan altijd uit vanaf het adres waar de mail naartoe is gestuurd.",
       "later": "Je kunt dit later wijzigen bij Adressen.",
       "saved": "Adressen van {{address}} opgeslagen."
+    },
+    "triage": {
+      "button": "Sortering",
+      "buttonName": "Sortering van {{name}}",
+      "title": "Sortering van {{address}}",
+      "label": "Nieuwe e-mail sorteren",
+      "help": "Een snelle controle leest alleen de afzender, het onderwerp en de voorvertoning van elke nieuwe e-mail: genegeerde e-mail wekt geen routine, en je hoort over belangrijke e-mail die geen routine oppakt.",
+      "scope": "Sorteert de e-mail in de mappen die de routines van deze mailbox volgen als belangrijk, antwoord nodig of negeren. Start nooit een beurt van een agent.",
+      "on": "Sortering aan",
+      "savedOn": "Sortering aangezet voor {{address}}.",
+      "savedOff": "Sortering uitgezet voor {{address}}.",
+      "failed": "De sortering van {{address}} kon niet worden gewijzigd.",
+      "notice": "Belangrijke e-mail in {{name}}"
     },
     "agent": {
       "title": "Mail",

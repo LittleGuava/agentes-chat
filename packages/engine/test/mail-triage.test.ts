@@ -1,12 +1,17 @@
 import { afterEach, expect, test } from "bun:test";
 import type { MailSummary } from "@agenteschat/adapters";
-import { eq, schema } from "@agenteschat/db";
+import { and, eq, schema } from "@agenteschat/db";
 import {
   createFakeJudge,
   createRoutine,
+  drainOutbox,
   getMailAccountView,
   ingestMail,
+  markNotificationDone,
+  type NotificationLatest,
+  type NotificationSource,
   type RoutineDeps,
+  renderPush,
   updateMailAccount,
 } from "../src";
 import { giveMail, imapAccount, type MailFixture, mailSetup, runContext } from "./mail-fixtures";
@@ -180,4 +185,122 @@ test("an unsure judge never drops mail: ignore needs a clear call", async () => 
   const [run] = await runsOf(m, routine.id);
   const event = run?.event as { messages: { triage?: string }[] } | undefined;
   expect(event?.messages[0]?.triage).toBe("important");
+});
+
+/** The jobs waiting their time (an unclaimed email's check waits ten minutes) are due now. */
+async function runDueLater(x: MailFixture) {
+  await x.f.db.update(schema.outbox).set({ nextAttemptAt: new Date(0) });
+  await drainOutbox(x.f.db, x.f.handlers);
+}
+
+const ownerNotices = (x: MailFixture) =>
+  x.f.db
+    .select()
+    .from(schema.notifications)
+    .where(and(eq(schema.notifications.userId, x.f.owner.id), eq(schema.notifications.kind, "mail_important")))
+    .then((rows) =>
+      rows.map((r) => ({
+        id: r.id,
+        count: r.count,
+        doneAt: r.doneAt,
+        source: r.source as Partial<NotificationSource>,
+        latest: r.latest as NotificationLatest,
+      })),
+    );
+
+test("important mail no routine takes is told to the mailbox's owner, once, after other watches had their turn", async () => {
+  m = await mailSetup();
+  const judge = sortingJudge();
+  m.deps.judge = judge;
+  const account = await imapAccount(m);
+  await giveMail(m, account.id, "read");
+  const deps: RoutineDeps = { db: m.f.db, pubsub: m.f.pubsub, mail: m.mail };
+  const routine = await createRoutine(deps, m.f.owner.id, m.f.org.id, {
+    agentId: m.f.agent.id,
+    prompt: "Answer Acme's mail",
+    target: { type: "dm" },
+    trigger: { type: "email", accountId: account.id, folder: "INBOX", filter: { from: ["@acme.com"] } },
+  });
+  const [watch] = await m.f.db.select().from(schema.mailWatches).where(eq(schema.mailWatches.routineId, routine.id));
+  if (!watch) throw new Error("no watch");
+  await updateMailAccount(m.deps, m.f.owner.id, m.f.org.id, account.id, { triage: true });
+
+  // Outside the routine's filter: a contract (important), a promotion (ignore), and one another routine will take.
+  expect(
+    await ingestMail(m.deps, watch.id, [
+      mail("c1", "legal@bank.com", "Contract renewal due Friday", "Sign by Friday"),
+      mail("p1", "news@shop.com", "Weekly deals"),
+      mail("t1", "boss@other.com", "Board meeting moved"),
+    ]),
+  ).toEqual({ added: 0, fired: false });
+  expect(judge.calls.map((c) => c.state.subject).sort()).toEqual([
+    "Board meeting moved",
+    "Contract renewal due Friday",
+    "Weekly deals",
+  ]);
+  // Another watch of the mailbox took one of them meanwhile.
+  const other = await createRoutine(deps, m.f.owner.id, m.f.org.id, {
+    agentId: m.f.agent.id,
+    prompt: "Everything else",
+    target: { type: "dm" },
+    trigger: { type: "email", accountId: account.id, folder: "INBOX", filter: {} },
+  });
+  const [otherWatch] = await m.f.db.select().from(schema.mailWatches).where(eq(schema.mailWatches.routineId, other.id));
+  if (!otherWatch) throw new Error("no watch");
+  expect(await ingestMail(m.deps, otherWatch.id, [mail("t1", "boss@other.com", "Board meeting moved")])).toEqual({
+    added: 1,
+    fired: true,
+  });
+  expect(await ownerNotices(m)).toHaveLength(0);
+
+  await runDueLater(m);
+  const notices = await ownerNotices(m);
+  expect(notices.map((n) => [n.source.label, n.latest.title, n.latest.text])).toEqual([
+    ["support@example.com", "Contract renewal due Friday", "legal@bank.com · Contract renewal due Friday"],
+  ]);
+  // On the phone, in the person's language: the mailbox, then who sent what.
+  expect(
+    renderPush("pt-BR", {
+      kind: "mail_important",
+      waiting: false,
+      label: notices[0]?.source.label,
+      text: notices[0]?.latest.text,
+    }),
+  ).toEqual({
+    title: "E-mail importante em support@example.com",
+    body: "legal@bank.com · Contract renewal due Friday",
+  });
+  // The same email again (a retried delivery): judged once, told once.
+  await ingestMail(m.deps, watch.id, [mail("c1", "legal@bank.com", "Contract renewal due Friday", "Sign by Friday")]);
+  await runDueLater(m);
+  expect(await ownerNotices(m)).toHaveLength(1);
+  // Done by its owner, then delivered once more: it stays done, and nothing new comes.
+  const [told] = await ownerNotices(m);
+  if (!told) throw new Error("no notice");
+  await markNotificationDone({ db: m.f.db, pubsub: m.f.pubsub }, m.f.owner.id, m.f.org.id, told.id, true);
+  await ingestMail(m.deps, watch.id, [mail("c1", "legal@bank.com", "Contract renewal due Friday", "Sign by Friday")]);
+  await runDueLater(m);
+  const after = await ownerNotices(m);
+  expect(after.map((n) => [n.id, n.count, n.doneAt !== null])).toEqual([[told.id, 1, true]]);
+  expect(judge.calls).toHaveLength(3);
+});
+
+test("with triage off, mail outside the routine's filter is neither judged nor told", async () => {
+  m = await mailSetup();
+  const judge = sortingJudge();
+  m.deps.judge = judge;
+  const account = await imapAccount(m);
+  await giveMail(m, account.id, "read");
+  const routine = await createRoutine({ db: m.f.db, pubsub: m.f.pubsub, mail: m.mail }, m.f.owner.id, m.f.org.id, {
+    agentId: m.f.agent.id,
+    prompt: "Answer Acme's mail",
+    target: { type: "dm" },
+    trigger: { type: "email", accountId: account.id, folder: "INBOX", filter: { from: ["@acme.com"] } },
+  });
+  const [watch] = await m.f.db.select().from(schema.mailWatches).where(eq(schema.mailWatches.routineId, routine.id));
+  if (!watch) throw new Error("no watch");
+  await ingestMail(m.deps, watch.id, [mail("c1", "legal@bank.com", "Contract renewal due Friday")]);
+  await runDueLater(m);
+  expect(judge.calls).toHaveLength(0);
+  expect(await ownerNotices(m)).toHaveLength(0);
 });

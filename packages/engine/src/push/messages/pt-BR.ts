@@ -40,6 +40,7 @@ export const ptBR: PushStrings = {
   secretTitle: (a) => `${a} precisa de um segredo seu`,
   secretBody: "Toque para enviar com segurança.",
   widgetAlertTitle: (a, w) => (w ? `${a}: ${w}` : `${a} sinalizou um widget`),
+  mailImportantTitle: (m) => `E-mail importante em ${m}`,
   widgetFailedTitle: (w) => (w ? `“${w}” não atualizou` : "Um widget não atualizou"),
   widgetFailedReasons: {
     no_update: "A última atualização terminou sem dados.",

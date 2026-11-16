@@ -47,11 +47,13 @@ import {
   Locked,
   Segmented,
   Select,
+  SettingRow,
+  Switch,
   useUnsavedInDialog,
 } from "@agenteschat/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useApi } from "@/api/context";
 import { AddressList } from "@/components/AddressList";
@@ -633,6 +635,70 @@ function AddressesDialogBody({ account, onClose }: { account: MailAccount; onClo
   );
 }
 
+/**
+ * "Triagem" on a connected mailbox (ADR 0038, addendum 2026-11-15): one switch, what it does and what the quick check
+ * reads in sight, which folders it covers behind its ⓘ.
+ */
+export function MailTriageDialog({ account, onClose }: { account: MailAccount | null; onClose: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <Dialog
+      open={account !== null}
+      onOpenChange={(o) => !o && onClose()}
+      title={t("mail.triage.title", { address: account?.address ?? "" })}
+      closeLabel={t("common.close")}
+      width={520}
+    >
+      {account && <TriageDialogBody key={account.id} account={account} onClose={onClose} />}
+    </Dialog>
+  );
+}
+
+function TriageDialogBody({ account, onClose }: { account: MailAccount; onClose: () => void }) {
+  const { t } = useTranslation();
+  const { org } = useOrg();
+  const toast = useToast();
+  const { update } = useMailAction(org.id);
+  const id = useId();
+  const saved = account.triage === true;
+  const [on, setOn] = useState(saved);
+  const save = () =>
+    update.mutate(
+      { accountId: account.id, triage: on },
+      {
+        onSuccess: () => {
+          toast.show(t(on ? "mail.triage.savedOn" : "mail.triage.savedOff", { address: account.address }));
+          onClose();
+        },
+      },
+    );
+  return (
+    <>
+      <Locked when={update.isPending}>
+        <DialogBody className="cflow__body">
+          <SettingRow
+            title={t("mail.triage.label")}
+            htmlFor={id}
+            hint={{ name: t("common.about", { label: t("mail.triage.label") }), text: t("mail.triage.scope") }}
+            status={t("mail.triage.help")}
+          >
+            <Switch id={id} checked={on} onCheckedChange={setOn} />
+          </SettingRow>
+          {update.isError && (
+            <Alert>{knownErrorText(t, update.error) ?? t("mail.triage.failed", { address: account.address })}</Alert>
+          )}
+        </DialogBody>
+      </Locked>
+      <DialogFooter>
+        <Button onClick={onClose}>{t("common.cancel")}</Button>
+        <Button variant="primary" disabled={on === saved || update.isPending} loading={update.isPending} onClick={save}>
+          {t("common.save")}
+        </Button>
+      </DialogFooter>
+    </>
+  );
+}
+
 /** "Só Ana pode dar acesso…" for anyone but who connected the mailbox; nothing for them. */
 function OwnerOnlyNote({ account }: { account: MailAccount }) {
   const { t } = useTranslation();
@@ -954,6 +1020,7 @@ export function MailRow({
   onTools,
   onWho,
   onAddresses,
+  onTriage,
   onReconnect,
   onDisconnect,
 }: {
@@ -963,6 +1030,7 @@ export function MailRow({
   onTools: () => void;
   onWho: () => void;
   onAddresses: () => void;
+  onTriage: () => void;
   onReconnect: () => void;
   onDisconnect: () => void;
 }) {
@@ -973,6 +1041,7 @@ export function MailRow({
   const meta = [
     t("connectors.connectedAs", { account: account.address }),
     relativeTime(t, i18n.language, account.createdAt),
+    ...(account.triage ? [t("mail.triage.on")] : []),
   ];
   return (
     <ConnectedRow
@@ -1012,6 +1081,9 @@ export function MailRow({
             </Button>
             <Button variant="link" aria-label={t("mail.addresses.buttonName", { name })} onClick={onAddresses}>
               {t("mail.addresses.button")}
+            </Button>
+            <Button variant="link" aria-label={t("mail.triage.buttonName", { name })} onClick={onTriage}>
+              {t("mail.triage.button")}
             </Button>
             <Button variant="link" aria-label={t("connectors.disconnectName", { name })} onClick={onDisconnect}>
               {t("connectors.disconnect")}

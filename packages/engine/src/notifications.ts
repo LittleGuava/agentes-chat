@@ -126,6 +126,12 @@ export const NOTIFICATION_KINDS = [
    */
   "composio_limit",
   /**
+   * An email that triage sorted as important or needing a reply, and that no routine of its mailbox took (ADR 0038,
+   * addendum 2026-11-15): the person who connected the mailbox, `source.label` the mailbox, `latest.title` the subject,
+   * `latest.text` the sender and the subject.
+   */
+  "mail_important",
+  /**
    * An agent's owner asks for one more browser profile for it (ADR 0110): the people who can grant profiles
    * (`manage_connectors`), one row per agent, `source.agentId` and its name in `source.label`. Waiting until seen.
    */

@@ -41,6 +41,7 @@ export const strings: Partial<PushStrings> = {
   secretTitle: (a) => `${a} 님이 비밀 정보를 요청했어요`,
   secretBody: "탭해서 안전하게 보내세요.",
   widgetAlertTitle: (a, w) => (w ? `${a}: ${w}` : `${a} 님이 위젯에 알림을 보냈어요`),
+  mailImportantTitle: (m) => `${m}에 중요한 이메일`,
   widgetFailedTitle: (w) => (w ? `“${w}”이(가) 업데이트되지 않았어요` : "위젯이 업데이트되지 않았어요"),
   widgetFailedReasons: {
     no_update: "마지막 업데이트가 데이터 없이 끝났어요.",

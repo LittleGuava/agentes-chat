@@ -62,7 +62,7 @@ export function useNoticeTitle(n: AppNotification) {
           ? appCreatedLine(t, n)
           : isDashboardNotice(n.kind)
             ? t(`mobile.dashboards.notice.${n.kind}`, { names: NAMES, count: who.total, defaultValue: NAMES })
-            : n.kind === "skill_update"
+            : n.kind === "skill_update" || n.kind === "mail_important"
               ? t(workspaceHeadline(n) ?? "skills.notice.updated", { name: n.source.label ?? "" })
               : t(`mobile.activity.kind.${kind}`, {
                   names: NAMES,

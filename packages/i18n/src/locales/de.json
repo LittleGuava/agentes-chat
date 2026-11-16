@@ -3087,8 +3087,8 @@
       "cursor": "Cursor ist auf diesem Computer nicht angemeldet. Verbinde ein Cursor-Konto auf der Seite von {{name}}.",
       "cursor_female": "Cursor ist auf diesem Computer nicht angemeldet. Verbinde ein Cursor-Konto auf der Seite von {{name}}.",
       "grok": "Grok ist auf diesem Computer nicht angemeldet. Verbinde ein Grok-Konto auf der Seite von {{name}}.",
-      "copilot": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "grok_female": "Grok ist auf diesem Computer nicht angemeldet. Verbinde ein Grok-Konto auf der Seite von {{name}}.",
+      "copilot": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "copilot_female": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "antigravity": "Gemini ist auf diesem Computer nicht angemeldet. Verbinde ein Gemini-Konto auf der Seite von {{name}}.",
       "antigravity_female": "Gemini ist auf diesem Computer nicht angemeldet. Verbinde ein Gemini-Konto auf der Seite von {{name}}.",
@@ -14346,6 +14346,19 @@
       "newFromHelp": "Antworten gehen immer von der Adresse raus, an die die E-Mail ging.",
       "later": "Du kannst das später unter Adressen ändern.",
       "saved": "Adressen von {{address}} gespeichert."
+    },
+    "triage": {
+      "button": "Sortierung",
+      "buttonName": "Sortierung für {{name}}",
+      "title": "Sortierung für {{address}}",
+      "label": "Neue E-Mails sortieren",
+      "help": "Eine schnelle Prüfung liest nur Absender, Betreff und Vorschau jeder neuen E-Mail: Ignorierte E-Mails wecken keine Routine, und du erfährst von wichtigen E-Mails, die keine Routine übernimmt.",
+      "scope": "Sortiert die E-Mails der Ordner, die die Routinen dieses Postfachs beobachten, in wichtig, braucht eine Antwort oder ignorieren. Sie startet nie einen Durchlauf eines Agenten.",
+      "on": "Sortierung an",
+      "savedOn": "Sortierung für {{address}} eingeschaltet.",
+      "savedOff": "Sortierung für {{address}} ausgeschaltet.",
+      "failed": "Die Sortierung von {{address}} ließ sich nicht ändern.",
+      "notice": "Wichtige E-Mail in {{name}}"
     },
     "agent": {
       "title": "E-Mail",

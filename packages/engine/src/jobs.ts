@@ -86,6 +86,7 @@ import {
   type TaskCall,
   wakeConversationForTask,
 } from "./machine-tasks";
+import { MAIL_UNCLAIMED_JOB, tellUnclaimedMail } from "./mail/triage";
 import { isMediaAfterReply, isMediaOnly } from "./media";
 import { getMessage, referencedOf } from "./messages";
 import { checkMissionDone } from "./mission-delivery";
@@ -1153,6 +1154,10 @@ export function createJobHandlers(deps: JobDeps): JobHandlers {
     [SKILL_UPDATES_JOB]: async (job) => {
       if (!deps.skills) return;
       await runSkillUpdates(deps.skills, orgOf(job));
+    },
+    // An email triage found worth attention that no routine took (ADR 0038, addendum 2026-11-15): its mailbox's owner.
+    [MAIL_UNCLAIMED_JOB]: async (job) => {
+      await tellUnclaimedMail({ db: deps.db, pubsub: deps.pubsub }, orgOf(job), job.payload);
     },
     // A Vault connection read again (ADR 0144); a source's refusal stays on the connection, never retried here.
     [VAULT_SYNC_JOB]: async (job) => {

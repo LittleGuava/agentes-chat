@@ -41,6 +41,7 @@ export const strings: Partial<PushStrings> = {
   secretTitle: (a) => `${a} heeft een geheim van je nodig`,
   secretBody: "Tik om het veilig te sturen.",
   widgetAlertTitle: (a, w) => (w ? `${a}: ${w}` : `${a} heeft een widget gemarkeerd`),
+  mailImportantTitle: (m) => `Belangrijke e-mail in ${m}`,
   widgetFailedTitle: (w) => (w ? `“${w}” is niet bijgewerkt` : "Een widget is niet bijgewerkt"),
   widgetFailedReasons: {
     no_update: "De laatste update eindigde zonder gegevens.",

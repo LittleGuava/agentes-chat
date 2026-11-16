@@ -41,6 +41,7 @@ export const strings: Partial<PushStrings> = {
   secretTitle: (a) => `${a} 需要你提供一项机密信息`,
   secretBody: "点按安全发送。",
   widgetAlertTitle: (a, w) => (w ? `${a}：${w}` : `${a} 对一个小组件发出了提醒`),
+  mailImportantTitle: (m) => `${m} 收到重要邮件`,
   widgetFailedTitle: (w) => (w ? `“${w}”未更新` : "一个小组件未更新"),
   widgetFailedReasons: {
     no_update: "上次更新结束时没有数据。",
