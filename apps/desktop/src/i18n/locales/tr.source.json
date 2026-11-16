@@ -371,6 +371,33 @@
   "tray.allowedUndone": {
     "value": "Off again: {{tool}}"
   },
+  "tray.screenWants": {
+    "value": "{{agent}} wants to use your screen"
+  },
+  "tray.screenWantsBody": {
+    "value": "It sees what's on your screen and clicks and types for you, for up to 30 minutes. Moving your mouse or keyboard pauses it, and it never types in a password field."
+  },
+  "tray.screenUsing": {
+    "value": "{{agent}} is using your screen"
+  },
+  "tray.screenUsingBody": {
+    "value": "Until {{time}}. Moving your mouse or keyboard pauses it."
+  },
+  "tray.screenStop": {
+    "value": "Stop"
+  },
+  "tray.screenStopped": {
+    "value": "{{agent}} stopped using your screen"
+  },
+  "tray.screenDenied": {
+    "value": "Declined. {{agent}} won't use your screen."
+  },
+  "tray.screenNotifTitle": {
+    "value": "{{agent}} wants to use your screen"
+  },
+  "tray.screenNotifBody": {
+    "value": "Allow or decline in the agentes.chat icon within 90 seconds."
+  },
   "tray.quitTitle": {
     "value": "Quit agentes.chat?"
   },
@@ -1463,6 +1490,12 @@
   "tools.browserLogins": {
     "value": "Logins an agent makes stay on this {{device}}, in its folder. Use only test accounts or the agent's own."
   },
+  "tools.screenName": {
+    "value": "Your screen"
+  },
+  "tools.screenDesc": {
+    "value": "Agents can ask to see and use this {{device}}'s screen in a task you gave them. You allow it each time, here. Moving your mouse or keyboard pauses them, and Stop ends it."
+  },
   "notch.label": {
     "value": "Agents in the notch"
   },
@@ -2116,6 +2149,33 @@
   },
   "prefs.activity.said.tools.terminal": {
     "value": "the terminal"
+  },
+  "prefs.activity.said.tools.hostDesktop": {
+    "value": "your screen"
+  },
+  "prefs.activity.said.screenAsked": {
+    "value": "asked to use your screen"
+  },
+  "prefs.activity.said.screenOn": {
+    "value": "started using your screen"
+  },
+  "prefs.activity.said.screenNotNow": {
+    "value": "not now: your screen"
+  },
+  "prefs.activity.said.screenExpired": {
+    "value": "screen request expired"
+  },
+  "prefs.activity.said.screenStopped": {
+    "value": "stopped using your screen: you stopped it"
+  },
+  "prefs.activity.said.screenSwitchedOff": {
+    "value": "stopped using your screen: the switch went off"
+  },
+  "prefs.activity.said.screenLocked": {
+    "value": "stopped using your screen: it locked"
+  },
+  "prefs.activity.said.screenEnded": {
+    "value": "stopped using your screen: its 30 minutes ended"
   },
   "prefs.activity.said.folderAllowed": {
     "value": "allowed {{path}} for {{agents}}"

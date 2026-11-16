@@ -280,6 +280,8 @@ export function Tools() {
   );
   // One organization: its switch on the Commands row itself. Several: a row of their own each.
   const only = homes.length === 1 ? homes[0] : undefined;
+  // The person's own screen (ADR 0201): only where a runner serves it (Windows, for now). Set here only.
+  const screenHere = homes.some((h) => h.screen);
 
   return (
     <>
@@ -324,6 +326,23 @@ export function Tools() {
             />
           }
         />
+        {screenHere && (
+          <PrefRow
+            lead={logo("eye")}
+            htmlFor="tool-screen"
+            title={t("desktop.tools.screenName")}
+            hint={hintFor(t, t("desktop.tools.screenName"), t("desktop.tools.screenDesc"))}
+            end={
+              <Switch
+                id="tool-screen"
+                aria-describedby="tool-screen-hint"
+                checked={tools.hostDesktop === true}
+                disabled={homes.length === 0 || pending !== null}
+                onCheckedChange={(on) => void set("hostDesktop", on)}
+              />
+            }
+          />
+        )}
       </PrefCard>
 
       <ToolAccounts homes={homes} executors={executors} />

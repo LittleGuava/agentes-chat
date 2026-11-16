@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { DESKTOP_USE_PROTOCOL, type MachineRequest } from "@agenteschat/adapters";
+import { DESKTOP_USE_PROTOCOL, HOST_DESKTOP_PROTOCOL, type MachineRequest } from "@agenteschat/adapters";
 import { and, eq, schema } from "@agenteschat/db";
 import {
   ARTIFACT_LIMITS,
@@ -27,8 +27,9 @@ import {
   updateSandboxSettings,
 } from "../src";
 import { pickApp } from "../src/desktop/surface";
+import { postPersonMessage } from "../src/messages";
 import { APPS, fakeHub, lookOf } from "./desktop-fixtures";
-import { type Fixture, setup } from "./fixtures";
+import { addMember, type Fixture, setup } from "./fixtures";
 import { pairMachine, pushFromFolder } from "./machine-fixtures";
 import { runContext } from "./mail-fixtures";
 import { jpegOf, THUNAR } from "./screen-fixtures";
@@ -548,3 +549,89 @@ test("desktop_do keeps steps that went through under a name and runs them again;
     'No saved steps are called "Sign in to Acme". Yours on the desktop: "Open my documents".',
   );
 });
+
+// ADR 0201: the person's own screen on their own computer (protocol 81, `hello.hostDesktop`).
+test("on a person's own computer: its own switch, set there, and only in runs the person who paired it asked for", async () => {
+  const d = await desktopSetup();
+  await d.grant(DESKTOP_SCOPE, SANDBOX_SCOPE);
+  const host = (tools: Record<string, boolean>): Partial<MachineStatus> => ({
+    protocol: HOST_DESKTOP_PROTOCOL,
+    os: "win32",
+    pairedByUserId: f.owner.id,
+    // The agents' own desktops don't run on Windows: only the person's.
+    executors: { desktopUse: { available: false, reason: "Linux only" }, hostDesktop: { available: true } },
+    access: { folders: [], tools: { claude: false, codex: false, commands: true, ...tools } },
+  });
+  const status = (runId?: string) => agentDesktopUseStatus(f.db, d.hub, f.org.id, f.agent.id, runId);
+
+  // Its own switch, whatever the agents' desktop switch says.
+  d.s.status = host({ desktop: true });
+  expect(await d.names()).toEqual([]);
+  expect(await status(d.ctx.runId)).toMatchObject({ available: false, code: "host_switched_off" });
+  d.s.status = host({ hostDesktop: true, commands: false });
+  expect(await status(d.ctx.runId)).toMatchObject({ code: "commands_off" });
+  d.s.status = {
+    ...host({ hostDesktop: true }),
+    executors: { hostDesktop: { available: false, reason: "Only on Windows" } },
+  };
+  expect(await status(d.ctx.runId)).toMatchObject({ code: "not_ready", detail: "Only on Windows" });
+
+  // The pairer's own run: offered, and the call reaches the computer.
+  d.s.status = host({ hostDesktop: true });
+  expect(await d.names()).toEqual(TOOLS);
+  expect(await status(d.ctx.runId)).toMatchObject({ available: true, host: true });
+  let sent = d.since();
+  await d.call("desktop_read", {});
+  expect(sent().map((c) => c.op)).toContain("desktop.look");
+
+  // Someone else's run: not offered, and a call made anyway reaches nothing.
+  const bia = await addMember(f.db, f.org.id, "member", "Bia");
+  await f.db.insert(schema.channelMembers).values({ orgId: f.org.id, channelId: f.general.id, userId: bia.id });
+  const other = await runFrom(bia.id, false);
+  const tools = f.tools as NonNullable<Fixture["tools"]>;
+  expect((await tools.list(other)).filter((t) => t.name.startsWith("desktop_"))).toEqual([]);
+  sent = d.since();
+  const read = (await d.source.tools(d.ctx)).find((t) => t.name === "desktop_read") as ToolDefinition;
+  const refused = await read.execute({}, other);
+  expect(refused.isError).toBe(true);
+  expect(refused.content).toMatch(/owner asked you for/);
+  expect(sent()).toEqual([]);
+
+  // A routine's run, though the pairer set it up: never.
+  const routine = await runFrom(f.owner.id, true);
+  expect(await status(routine.runId)).toMatchObject({ code: "not_the_owner" });
+  expect((await tools.list(routine)).filter((t) => t.name.startsWith("desktop_"))).toEqual([]);
+
+  // The workspace's own computer is never a person's own.
+  d.s.status = { ...host({ hostDesktop: true }), kind: "managed" };
+  expect(await status(d.ctx.runId)).toMatchObject({ available: false, code: "switched_off" });
+});
+
+/** A run started by `personId`'s message in #general; `background`: a routine's run. */
+async function runFrom(personId: string, background: boolean) {
+  const msg = await postPersonMessage({ db: f.db, pubsub: f.pubsub }, personId, f.org.id, f.general.id, {
+    body: "look at my screen",
+  });
+  const [run] = await f.db
+    .insert(schema.agentRuns)
+    .values({
+      orgId: f.org.id,
+      agentId: f.agent.id,
+      channelId: f.general.id,
+      threadRootId: msg.id,
+      triggerMessageId: msg.id,
+      trigger: "mention",
+      hop: 1,
+      background,
+    })
+    .returning();
+  return {
+    db: f.db,
+    orgId: f.org.id,
+    agentId: f.agent.id,
+    runId: run?.id ?? "",
+    channelId: f.general.id,
+    threadRootId: msg.id,
+    triggerMessageId: msg.id,
+  };
+}

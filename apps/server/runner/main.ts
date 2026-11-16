@@ -21,6 +21,7 @@ import {
 } from "@agenteschat/adapters/machine-protocol";
 import { createTerm, type Spinner, type Term } from "@agenteschat/setup/src/term";
 import {
+  APP_ONLY_TOOLS,
   addFolder,
   allowRelaySite,
   ControlError,
@@ -1245,6 +1246,10 @@ function tools(p: Parsed): number {
   }
   if ((sub === "enable" || sub === "disable") && tool && (TOOL_NAMES as readonly string[]).includes(tool)) {
     const t = tool as keyof RunnerTools;
+    if (sub === "enable" && APP_ONLY_TOOLS.has(t)) {
+      console.error(`${TOOL_LABELS[t]}: turn it on in the agentes.chat app on this computer.`);
+      return 1;
+    }
     saveAccess(paired.home, setTool(access, t, sub === "enable"));
     console.log(`${TOOL_LABELS[t]} ${sub === "enable" ? "on" : "off"}.`);
     return 0;

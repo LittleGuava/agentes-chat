@@ -499,6 +499,25 @@ describe("Preferences: a setting's explanation behind its ⓘ", () => {
       { someCommands: true },
     ));
 
+  test("Tools: Your screen only where the runner serves it (ADR 0201), off until the person turns it on here", () =>
+    pane(
+      "selfhost",
+      <Tools />,
+      (el) => el.querySelector("#tool-browser") && !(el.querySelector("#tool-browser") as HTMLButtonElement).disabled,
+      async (el, host) => {
+        expect(el.querySelector("#tool-screen")).toBeNull();
+        for (const runner of host.runners.values()) await act(async () => runner.raiseScreenRequest());
+        await until(() => el.querySelector("#tool-screen"));
+        expect(row(el, "Your screen")?.hint).toBe(
+          "Agents can ask to see and use this Mac's screen in a task you gave them. You allow it each time, here. Moving your mouse or keyboard pauses them, and Stop ends it.",
+        );
+        const state = () => el.querySelector("#tool-screen")?.getAttribute("aria-checked");
+        expect(state()).toBe("false");
+        await act(async () => (el.querySelector("#tool-screen") as HTMLElement).click());
+        await until(() => state() === "true");
+      },
+    ));
+
   test("Tools › accounts: what the card is for behind its title's ⓘ; signing in, the wrong account behind one", () =>
     pane(
       "selfhost",

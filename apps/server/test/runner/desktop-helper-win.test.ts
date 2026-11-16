@@ -390,6 +390,22 @@ describe.skipIf(!onWindows)("the helper on this Windows computer (dry)", () => {
     expect(out).not.toContain("Olá7Q");
   }, 60_000);
 
+  test("the person's own input stops the agent's: input right after it is refused as stopped, reading goes on", async () => {
+    const { replies } = await talk([
+      { id: 1, op: "hello" },
+      { id: 2, op: "input", steps: [{ move: [5, 5] }] },
+      // Dry mode's stand-in for the low-level hooks: the person just moved the mouse.
+      { id: 3, op: "person" },
+      { id: 4, op: "input", steps: [{ move: [5, 5] }] },
+      { id: 5, op: "extents", nodes: [] },
+    ]);
+    expect(replies[0]).toMatchObject({ ok: true, data: { watching: true } });
+    expect(replies[1]).toMatchObject({ ok: true, data: { sent: ["move 5,5"] } });
+    expect(replies[2]).toMatchObject({ ok: true });
+    expect(replies[3]).toMatchObject({ ok: false, code: "stopped" });
+    expect(replies[4]).toMatchObject({ ok: true });
+  }, 60_000);
+
   test("its look of the real desktop becomes screen text, and its elements answer extents", async () => {
     const proc = Bun.spawn(winHelperCommand({ dry: true }), { stdin: "pipe", stdout: "pipe", stderr: "pipe" });
     procs.push(proc);

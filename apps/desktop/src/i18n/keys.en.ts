@@ -137,6 +137,16 @@ export const desktopEn = {
     allowedUndo: "Undo",
     allowedOk: "OK",
     allowedUndone: "Off again: {{tool}}",
+    screenWants: "{{agent}} wants to use your screen",
+    screenWantsBody:
+      "It sees what's on your screen and clicks and types for you, for up to 30 minutes. Moving your mouse or keyboard pauses it, and it never types in a password field.",
+    screenUsing: "{{agent}} is using your screen",
+    screenUsingBody: "Until {{time}}. Moving your mouse or keyboard pauses it.",
+    screenStop: "Stop",
+    screenStopped: "{{agent}} stopped using your screen",
+    screenDenied: "Declined. {{agent}} won't use your screen.",
+    screenNotifTitle: "{{agent}} wants to use your screen",
+    screenNotifBody: "Allow or decline in the agentes.chat icon within 90 seconds.",
     quitTitle: "Quit agentes.chat?",
     quitBody:
       "Agents can't use this {{device}} while the app is closed. What is already running finishes and sends the result when you open it again.",
@@ -605,6 +615,9 @@ export const desktopEn = {
     browserDesc: "Opens websites for the agents in a browser of their own, without your logins.",
     browserLogins:
       "Logins an agent makes stay on this {{device}}, in its folder. Use only test accounts or the agent's own.",
+    screenName: "Your screen",
+    screenDesc:
+      "Agents can ask to see and use this {{device}}'s screen in a task you gave them. You allow it each time, here. Moving your mouse or keyboard pauses them, and Stop ends it.",
   },
   notch: {
     label: "Agents in the notch",
@@ -857,7 +870,16 @@ export const desktopEn = {
           browser: "the browser",
           desktop: "the agents' desktops",
           terminal: "the terminal",
+          hostDesktop: "your screen",
         },
+        screenAsked: "asked to use your screen",
+        screenOn: "started using your screen",
+        screenNotNow: "not now: your screen",
+        screenExpired: "screen request expired",
+        screenStopped: "stopped using your screen: you stopped it",
+        screenSwitchedOff: "stopped using your screen: the switch went off",
+        screenLocked: "stopped using your screen: it locked",
+        screenEnded: "stopped using your screen: its 30 minutes ended",
         folderAllowed: "allowed {{path}} for {{agents}}",
         folderAgents: "{{path}} now for {{agents}}",
         folderRemoved: "removed {{path}}",

@@ -1,10 +1,10 @@
 # 0201. Host computer use: an agent on the person's own Windows or Mac desktop
 
-- Status: Proposed (2026-11-15; built: the Windows helper and the runner's pure reading of its replies, §4–§7. Not wired: no runner serves it, no switch, no consent, no tools; §9 says what comes next)
+- Status: Proposed (2026-11-15; built: the Windows helper and the runner's pure reading of its replies, §4–§7. Wired on Windows on 2026-11-16, see the addendum: the switch, consent in the desktop app, the stop on the person's own input, protocol 81 and the tools for the pairer's own runs. macOS and the rest of §9 stay later)
 - Date: 2026-11-15
 - Extends: ADR 0062 (desktop computer use: the screen layer on a desktop, the helper's JSON lines, the tree as screen text), ADR 0058 (agent desktops, who drives a computer), ADR 0036 (switches on the machine, set only at the computer), ADR 0066 (the desktop app runs the runner), ADR 0027 (secrets and redaction)
 - Changes ADR 0062 §3's last line ("Mac and Windows runners have none") once §3 below is built: until then it holds.
-- Code: `apps/server/runner/desktop-helper-win.cs` (the helper), `apps/server/runner/desktop-helper-win.ts` (its command, request and reply types, `fromUia`, `winSteps`)
+- Code: `apps/server/runner/desktop-helper-win.cs` (the helper), `apps/server/runner/desktop-helper-win.ts` (its command, request and reply types, `fromUia`, `winSteps`), `apps/server/runner/host-desktop.ts` (`windowsHost`, `HostConsent`), `apps/server/runner/desktop.ts` (`DesktopManager` with a host), `packages/engine/src/desktop/status.ts` (the host branch), the desktop app's `windows/Popover.tsx` (`ScreenRequestCard`, `ScreenBanner`) and `windows/prefs/Tools.tsx`
 
 ## Context
 
@@ -84,7 +84,7 @@ Started with `dry`, the helper reads the desktop as usual but sends nothing: eac
 
 ### 7. Not available until it is wired
 
-The runner keeps answering `desktopUse: { available: false }` on Windows and macOS (ADR 0062 §3) until §2 and §3 are built: the helper is reachable from no run.
+The runner keeps answering `desktopUse: { available: false }` on Windows and macOS (ADR 0062 §3) until §2 and §3 are built: the helper is reachable from no run. (Built on Windows: the addendum says how the host is told apart without changing this answer.)
 
 ### 8. macOS
 
@@ -92,9 +92,10 @@ The same shape with the Mac's APIs: the AX API (`AXUIElementCopyMultipleAttribut
 
 ### 9. Later
 
-- The runner: `DesktopManager` serving host use (one helper for the computer, the switch and the session's consent checked on every request), `hello.desktopUse` saying `host: true`, and a protocol number for it.
-- The engine: availability, the consent request card and its decision, the tools under ADR 0058's `desktop:use` for the pairer's own runs.
-- The desktop app: the `hostDesktop` switch, the band and the tray while an agent holds the screen, Stop, and the stop on the person's own input (low-level hooks without the injected flag).
+- ~~The runner, the engine and the desktop app's wiring~~: built on Windows, see the addendum.
+- A session that ends with the run that asked for it (today it ends by its 30 minutes, Stop, the switch, the lock or the runner's end).
+- The band at the screen's top edge, outside the app's own menu (today: the tray's dot, the menu's band and the notification).
+- The web and phone apps saying the computer serves the person's screen (today: only the desktop app on that computer).
 - Settling by DXGI desktop duplication's dirty rectangles; the screen re-checked by events (`StructureChanged`) instead of a fresh cache.
 - Several monitors.
 - An elevated window in front told apart before acting (its process can't be opened for its integrity level from an unelevated one), so input UIPI would drop is refused as `failed`.
@@ -109,3 +110,42 @@ The same shape with the Mac's APIs: the AX API (`AXUIElementCopyMultipleAttribut
 - The guard is the person's consent and presence, not an OS boundary: a person who says yes lets the agent act as them on their screen for that run.
 - Starting the helper costs Windows PowerShell's start and a C# compile, about a second and a half, once per helper.
 - Chromium and Electron windows are the slow ones, as on Linux: a look with one in front can take the whole 2 s the first time.
+
+## Addendum (2026-11-16): wired on Windows
+
+What §9 listed for the runner, the engine and the desktop app is built for Windows, with these decisions. macOS (§8) stays later.
+
+### Protocol 81 and a field of its own
+
+- The runner says it serves the person's screen in `hello.hostDesktop` (an availability, as `desktopUse`), not in `desktopUse`: `desktopUse` keeps meaning the agents' own Linux desktops and stays `available: false` on Windows (§7). An older server ignores the new field, and a server reading an older runner sees none: both fail closed. `MACHINE_PROTOCOL_VERSION` and `HOST_DESKTOP_PROTOCOL` are 81; the server keeps the field in `machines.executors.hostDesktop` (jsonb, no migration).
+- `RunnerTools.hostDesktop` is the switch (§3), off by default. It is set only from the desktop app's control channel on that computer: the server's `access.allow` refuses it, and so does the CLI's `tools enable hostDesktop` (`APP_ONLY_TOOLS`), because a terminal command can be run by anything already running as the person, and the switch is the person's own decision in the app.
+- The runner serves it only on win32, outside system mode, and only with a desktop app connected to its control channel (`mode === "app"`): without one there is nobody to ask, and the ask is refused at once.
+
+### Consent in the desktop app, not in the conversation
+
+§3 put the ask in the conversation as a request card. It is on the computer instead: the server can't answer it, a person can't answer it from another device, and the one who answers is the one in front of the screen. When a run first asks for the screen, the runner holds the request and the desktop app shows a card (Allow, Not now) in its tray menu, raises a notification and puts the dot on the tray icon; the agent's tool call waits for the answer, at most 90 seconds, then is refused with words the agent can say to the person. A yes is a session of that agent on the screen for at most 30 minutes; one agent holds the screen at a time, and another one's ask is refused while it does. The consent lives only in the runner's memory: a restart ends it.
+
+### The server: only the pairer's own runs
+
+`agentDesktopUseStatus` takes the run. On a computer whose `executors.hostDesktop` is available, at protocol 81 or later, not the workspace's own (`kind = managed`): the tools are offered only with the switch and Commands on, and only when the run's authority (ADR 0053) is a person who is the computer's pairer. A routine, an unattended run or another person's run gets nothing (`not_the_owner`), and a call made anyway reaches no computer. The tools are ADR 0062's `desktop_do`, `desktop_read` and `desktop_screenshot`, unchanged.
+
+### The person's own input
+
+The helper reads the person's mouse and keyboard with low-level hooks (`WH_MOUSE_LL`, `WH_KEYBOARD_LL`) on a thread of its own, skipping events with Windows' injected flag (its own `SendInput`). Input of the person's in the last 1.5 s, or during a request, stops that request's input where it is (`stopped`): the agent is told the person moved and may try again, and the session goes on. The click on Allow is the person's own input, so the runner tells the helper to forget it (`forget`) before the first action after a yes. Stop in the app ends the session at once and stops the helper.
+
+The hooks are what antivirus software looks for in keyloggers: the helper keeps only the time of the last event, never which key, and runs only while a session needs it. A helper whose hooks were refused (an antivirus, a policy) says so in its hello (`watching: false`), and the runner then serves no screen at all, with words that say why: without the hooks the person's input couldn't stop the agent.
+
+### Refusals
+
+- Typing into a password field (the focused element, or a step's target by ref or point) is refused before any input, as is `fill` into one: secrets are the person's (§3).
+- Keys that lock or leave the session (`super+l`, `ctrl+alt+Delete`, `ctrl+shift+Escape`) are refused, and the Start menu, the taskbar and Explorer's own windows join the session apps that ADR 0062 never acts on.
+- A locked screen or the secure desktop (`unavailable`) ends the session, as Stop does.
+- `desktop.text` (session screening, ADR 0076) is refused on the person's own screen.
+
+### Audit
+
+Each ask, yes, no, expiry and end (Stop, the switch, the lock, its 30 minutes) is a line in the computer's activity (`screen` entries, shown in the desktop app's Activity). Each call goes through the Tool Gateway like any other: `desktop_do` is a `tool.call` row in the workspace's audit log, and its steps go on the message (ADR 0062 §11).
+
+### Verified, and not
+
+Every test runs the helper in its dry mode (§6), and the runner's tests use a fake helper: no click, key or hook was sent to or set on a real desktop while building this. The hooks are compiled and started only outside dry mode, so a person's input stopping an agent is proven only through the helper's dry `person` op, and the whole flow only with fakes.

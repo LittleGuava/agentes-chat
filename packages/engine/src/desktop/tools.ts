@@ -298,7 +298,8 @@ export function createDesktopToolSource(deps: DesktopToolDeps): ToolSource {
   > {
     const gate = await gateOf(ctx);
     if ("refused" in gate) return { ok: false, text: gate.refused };
-    const status = await agentDesktopUseStatus(ctx.db, hub, ctx.orgId, ctx.agentId);
+    // On the person's own computer the run is checked on every call: a routine's or someone else's never gets it.
+    const status = await agentDesktopUseStatus(ctx.db, hub, ctx.orgId, ctx.agentId, ctx.runId);
     if (!status.available) return { ok: false, text: desktopUseUnavailableText(status) };
     if (!hub) return { ok: false, text: "Connected computers are not available on this server." };
     const caller = hub;
@@ -317,6 +318,9 @@ export function createDesktopToolSource(deps: DesktopToolDeps): ToolSource {
       try {
         return await callWhenBack(caller, machineId, call, ctx.signal);
       } catch (error) {
+        // The person's own screen: no switch the apps can turn on, and the runner's words say why (their no).
+        if (error instanceof MachineRequestError && error.code === "not_allowed" && status.host)
+          throw new Error(error.message, { cause: error });
         if (error instanceof MachineRequestError && error.code === "not_allowed")
           throw new ToolOffError(explain(error, machineName), { machineId, tool: "desktop" }, { cause: error });
         throw new Error(explain(error, machineName));
@@ -606,7 +610,7 @@ export function createDesktopToolSource(deps: DesktopToolDeps): ToolSource {
       if (!definitions.some((t) => isAllowed(accessWithNeeds(granted, t).state))) return definitions;
       const gate = await gateOf(ctx, granted);
       if ("refused" in gate) return [];
-      if (!(await agentDesktopUseStatus(ctx.db, hub, ctx.orgId, ctx.agentId)).available) return [];
+      if (!(await agentDesktopUseStatus(ctx.db, hub, ctx.orgId, ctx.agentId, ctx.runId)).available) return [];
       // Where every command asks a person first, so does driving the desktop.
       return gate.approvals
         ? definitions.map((t) => (t.name === "desktop_do" ? { ...t, sensitive: true } : t))

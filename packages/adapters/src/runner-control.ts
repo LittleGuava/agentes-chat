@@ -114,6 +114,8 @@ export interface ControlStatus {
   phones?: RunnerPhone[];
   /** The OS user agents' commands run as here (absent: older runner). */
   user?: string;
+  /** Protocol 81: who holds the person's screen and who asks (absent: older runner, or not served here). */
+  screen?: ControlScreen;
   /**
    * Grows by one for every status the runner reports (events and `status` replies alike), from 1
    * when the process starts; the app keeps the newest and drops anything older. Absent: older runner.
@@ -143,7 +145,8 @@ export interface ControlJob {
 export interface ActivityEntry {
   at: string;
   agent?: { id: string; name: string };
-  kind: "file" | "command" | "task" | "brain" | "access" | "pause" | "pair" | "update";
+  /** `screen` (protocol 81): an agent asked for, held or stopped using the person's own screen (ADR 0201). */
+  kind: "file" | "command" | "task" | "brain" | "access" | "pause" | "pair" | "update" | "screen";
   /** What happened, short (`read src/app.ts`, `bun test`, `paused until 16:24`), in English. */
   summary: string;
   /**
@@ -169,6 +172,27 @@ export interface ControlAccessRequest {
   reason: string;
   at: string;
   expiresAt: string;
+}
+
+/** An agent asks to use the person's own screen (protocol 81, ADR 0201): only the person answers, here. */
+export interface ControlScreenRequest {
+  requestId: string;
+  agent: { id: string; name: string };
+  at: string;
+  expiresAt: string;
+}
+
+/** The agent holding the person's screen, since when, and when its session ends by itself. */
+export interface ControlScreenSession {
+  agent: { id: string; name: string };
+  since: string;
+  until: string;
+}
+
+/** Who holds the person's screen now (one agent at most) and who asks: the app's band and its cards. */
+export interface ControlScreen {
+  session: ControlScreenSession | null;
+  requests: ControlScreenRequest[];
 }
 
 /** Settings the app may change (never the token, server, machine id). */
@@ -259,6 +283,14 @@ export type ControlRequest =
   | { type: "access.pending" }
   | { type: "access.answer"; requestId: string; decision: "granted" | "denied"; scope: "agent" | "all" }
   /**
+   * Protocol 81 (ADR 0201): the person's own screen. `screen.answer` is the person's yes or no to an agent's ask
+   * (only here: the server can't answer it); `screen.stop` ends the session (one agent's, or whoever's). An older
+   * runner answers `bad_request`.
+   */
+  | { type: "screen.get" }
+  | { type: "screen.answer"; requestId: string; decision: "granted" | "denied" }
+  | { type: "screen.stop"; agentId?: string }
+  /**
    * Drops the connection to the server and opens it again at once (the app's
    * "Reconnect"). `reconnecting: false` when there is no connection to drop
    * (not paired, or refused). An older runner answers `bad_request`.
@@ -330,6 +362,9 @@ export interface ControlReplies {
   "executors.check": ControlStatus;
   "access.pending": { requests: ControlAccessRequest[] };
   "access.answer": { access: RunnerAccess };
+  "screen.get": ControlScreen;
+  "screen.answer": ControlScreen;
+  "screen.stop": ControlScreen;
   reconnect: { reconnecting: boolean };
   "browser.stop": { stopped: boolean };
   "mychrome.connect": { session: MyChromeSession };
@@ -373,7 +408,12 @@ export type ControlEvent =
   | { kind: "access.resolved"; requestId: string; decision: "granted" | "denied" | "expired" }
   | { kind: "access.changed"; access: RunnerAccess }
   /** The computer's owner turned `tool` on from the apps (`access.allow`): the app says so, with Undo. */
-  | { kind: "access.allowed"; tool: keyof RunnerTools; byName: string };
+  | { kind: "access.allowed"; tool: keyof RunnerTools; byName: string }
+  /** Protocol 81: an agent asks for the person's screen; the app shows a card and a notification. */
+  | { kind: "screen.requested"; request: ControlScreenRequest }
+  | { kind: "screen.resolved"; requestId: string; decision: "granted" | "denied" | "expired" }
+  /** Who holds the screen changed (a yes, Stop, the switch, the lock, the end of its time). */
+  | { kind: "screen.changed"; screen: ControlScreen };
 
 /** Runner → app. */
 export type ControlOut =

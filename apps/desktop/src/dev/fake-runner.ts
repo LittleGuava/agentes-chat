@@ -15,6 +15,7 @@ import {
   type ControlIphoneSetup,
   type ControlJob,
   type ControlOut,
+  type ControlScreen,
   type ControlStatus,
   parseControlIn,
 } from "@agenteschat/adapters/runner-control";
@@ -232,6 +233,8 @@ export class FakeRunner {
   private pairTimers: ReturnType<typeof setTimeout>[] = [];
   private tick: ReturnType<typeof setInterval> | null = null;
   private machineName = "MacBook de Você";
+  /** The person's own screen (ADR 0201): only once `raiseScreenRequest` says this runner serves it. */
+  private screen: ControlScreen | null = null;
   /** Added Claude/Codex accounts (ADR 0041) and sign-ins in progress: done ~6 s after `account.begin`. */
   private accounts: RunnerAccountInfo[] = [
     {
@@ -341,6 +344,28 @@ export class FakeRunner {
     };
     s.requests.push(request);
     this.emit({ kind: "access.requested", request });
+  }
+
+  /** Dev controls: an agent asks for the person's own screen now (the runner serves it from then on). */
+  raiseScreenRequest() {
+    const a = this.seed?.agents[0];
+    if (!a) return;
+    const at = Date.now();
+    const request = {
+      requestId: `scr_${rid()}`,
+      agent: { id: a.id, name: a.name },
+      at: new Date(at).toISOString(),
+      expiresAt: new Date(at + 90_000).toISOString(),
+    };
+    const screen = this.screen ?? { session: null, requests: [] };
+    this.screen = { ...screen, requests: [...screen.requests, request] };
+    this.emit({ kind: "screen.requested", request });
+  }
+
+  private screenChanged(next: ControlScreen) {
+    this.screen = next;
+    this.emit({ kind: "screen.changed", screen: next });
+    return next;
   }
 
   handle(line: string) {
@@ -473,6 +498,24 @@ export class FakeRunner {
         return this.accessChanged(reply);
       case "access.pending":
         return reply({ requests: s?.requests ?? [] });
+      case "screen.get":
+        return this.screen ? reply(this.screen) : fail("bad_request", "not served here");
+      case "screen.answer": {
+        const screen = this.screen;
+        const r = screen?.requests.find((x) => x.requestId === msg.requestId);
+        if (!screen || !r) return fail("not_found", "no such request");
+        const requests = screen.requests.filter((x) => x !== r);
+        this.emit({ kind: "screen.resolved", requestId: r.requestId, decision: msg.decision });
+        const now = Date.now();
+        const session =
+          msg.decision === "granted"
+            ? { agent: r.agent, since: new Date(now).toISOString(), until: new Date(now + 30 * 60_000).toISOString() }
+            : screen.session;
+        return reply(this.screenChanged({ session, requests }));
+      }
+      case "screen.stop":
+        if (!this.screen) return fail("bad_request", "not served here");
+        return reply(this.screenChanged({ ...this.screen, session: null }));
       case "access.answer": {
         if (!s) return fail("not_paired", "not paired");
         const r = s.requests.find((x) => x.requestId === msg.requestId);
@@ -613,6 +656,7 @@ export class FakeRunner {
       agents: s?.agents ?? [],
       access: s?.access,
       ...(s ? { phones: this.phones, user: "sam" } : {}),
+      ...(this.screen ? { screen: this.screen } : {}),
     };
   }
 
