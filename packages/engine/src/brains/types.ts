@@ -73,7 +73,7 @@ export const isComputerBrain = (v: unknown): v is ComputerBrainKind =>
 
 /**
  * Brains whose shell runs in a sandbox of the CLI's own (ADR 0053 §3, 0114, 0142, 0143), the limit of what their turns
- * do. Claude Code's own sandbox is never switched on here, OpenCode has none, and the Copilot CLI's is off (ADR 0186).
+ * do. Claude Code's own sandbox is never switched on here, OpenCode has none, and the Copilot CLI's is off (ADR 0189).
  */
 export const isSandboxedBrain = (v: unknown) => v === "codex" || v === "cursor" || v === "grok" || v === "antigravity";
 

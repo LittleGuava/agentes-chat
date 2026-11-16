@@ -54,6 +54,11 @@ export interface PlanMeterText {
   ago(iso: string): string;
   /** The same past `PLAN_STALE_MS`: "desatualizado, de há 7 h". */
   stale(iso: string): string;
+  /**
+   * The full meter's heading over a model group's quotas (`modelQuota`): "Só Claude and GPT"; null, over the
+   * account's own, "Todos os modelos". Absent: the windows stay one list, each by its own name.
+   */
+  group?(name: string | null): string;
 }
 
 export type PlanState = "ok" | "almost" | "limited";
@@ -78,6 +83,44 @@ export const PLAN_TONE = {
 } as const satisfies Record<PlanLevel, "ink" | "warn" | "danger">;
 
 const KIND_ORDER = ["five_hour", "seven_day", "seven_day_opus", "seven_day_sonnet", "monthly", "other"];
+
+/** The label the runner gives a Claude plan's paid extra usage (`get_usage` `extra_usage`, `rate_limit_event` `overage`). */
+export const EXTRA_USAGE_LABEL = "Extra usage";
+
+/** `other` windows that are no model's own week. */
+const NOT_A_MODEL = new Set([EXTRA_USAGE_LABEL, "OAuth apps"]);
+
+/** A model's own quota: an `other` window named for a model or a group of them (Claude's `model_scoped`, Antigravity's groups). */
+const modelOwn = (w: { kind: string; label?: string }) => w.kind === "other" && !!w.label && !NOT_A_MODEL.has(w.label);
+
+/**
+ * A model group's own quota as the runner names it (`<group> · 5h|7d`, the Antigravity CLI's groups): the group
+ * ("Claude and GPT models" → "Claude and GPT") and the window it is. Null for any other window, a model's own week
+ * named by the model alone (Claude's `model_scoped`) included.
+ */
+export function modelQuota(w: { kind: string; label?: string }): {
+  group: string;
+  kind: "five_hour" | "seven_day";
+} | null {
+  if (!modelOwn(w) || !w.label) return null;
+  const named = /^(.+?)\s*·\s*(5h|7d)$/.exec(w.label);
+  const group = named?.[1]?.replace(/\s+models?$/i, "").trim();
+  return group ? { group, kind: named?.[2] === "5h" ? "five_hour" : "seven_day" } : null;
+}
+
+/**
+ * Whether a model's own quota (`modelOwn`) is `model`'s: its name, without the window's length and "models", each
+ * model it names (`Claude and GPT models · 7d` → claude, gpt; `Gemini 4 Argon · 7d` → gemini-4-argon; `Fable`)
+ * found in the model's id.
+ */
+const quotaOfModel = (label: string, model: string) =>
+  label
+    .toLowerCase()
+    .replace(/\s*·\s*(?:5h|7d)$/, "")
+    .replace(/\bmodels?\b/g, "")
+    .split(/\s+and\s+|,|\//)
+    .map((name) => name.trim().replace(/\s+/g, "-"))
+    .some((name) => name !== "" && model.includes(name));
 const passed = (iso: string | undefined, now: number) => iso !== undefined && Date.parse(iso) <= now;
 
 /**
@@ -85,9 +128,15 @@ const passed = (iso: string | undefined, now: number) => iso !== undefined && Da
  * `used` as it stands now: a window whose reset already passed is empty again.
  */
 export function planWindows<W extends PlanMeterWindow>(usage: { windows: readonly W[] }, now = Date.now()) {
+  // A model's own quota comes after the account's: the line leads with what every model runs on.
   return usage.windows
     .map((w) => ({ ...w, used: passed(w.resetsAt, now) ? 0 : w.usedPercent }))
-    .sort((a, b) => b.used - a.used || KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind));
+    .sort(
+      (a, b) =>
+        Number(modelOwn(a)) - Number(modelOwn(b)) ||
+        b.used - a.used ||
+        KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind),
+    );
 }
 
 /** Claude's model families, as its plan names a model's own window ("Fable") and as a model id or alias says them. */
@@ -101,12 +150,6 @@ const familyIn = (name: string | null | undefined) => {
 /** The family a model id or alias is ("claude-haiku-5-5", "haiku" → "haiku"); null: none known ("auto", none). */
 export const modelFamily = (model: string | null | undefined): string | null => familyIn(model);
 
-/** The label the runner gives a Claude plan's paid extra usage (`get_usage` `extra_usage`, `rate_limit_event` `overage`). */
-export const EXTRA_USAGE_LABEL = "Extra usage";
-
-/** `other` windows that are no model's own. */
-const NOT_A_MODEL = new Set([EXTRA_USAGE_LABEL, "OAuth apps"]);
-
 /**
  * The model family a window limits alone: Opus's and Sonnet's weeks, and a window Claude's usage lists by a model's
  * name ("Fable", "Claude Fable 5"). Null: the account's, which limits every model.
@@ -114,7 +157,8 @@ const NOT_A_MODEL = new Set([EXTRA_USAGE_LABEL, "OAuth apps"]);
 export function windowModel(w: Pick<PlanMeterWindow, "kind" | "label">): string | null {
   if (w.kind === "seven_day_opus") return "opus";
   if (w.kind === "seven_day_sonnet") return "sonnet";
-  return w.kind === "other" && w.label && !NOT_A_MODEL.has(w.label) ? familyIn(w.label) : null;
+  // A group's quota (`modelQuota`) is never one family's, whatever it names.
+  return modelOwn(w) && !modelQuota(w) ? familyIn(w.label) : null;
 }
 
 /** A model's own window (`windowModel`) is `model`'s: its family, or a name holding it ("opusplan"). */
@@ -122,11 +166,21 @@ const ownWindowOf = (family: string, model: string) =>
   modelFamily(model) === family || model.toLowerCase().includes(family);
 
 /**
+ * A window of the whole plan: not an `other` one (a single model's week, extra usage, another model group's quota),
+ * which never puts the plan at its limit; a refusal it causes still does (`limited`).
+ */
+export const planOwn = (w: Pick<PlanMeterWindow, "kind">) => w.kind !== "other";
+
+/** A window of the whole plan is full now. */
+export const planFull = (usage: { windows: readonly PlanMeterWindow[] }, now = Date.now()) =>
+  planWindows(usage, now).some((w) => planOwn(w) && w.used >= 100);
+
+/**
  * Where the plan stands: at its limit (a window is full, or it refused a
  * request and no full window has reset since), almost (`PLAN_ALMOST`), or fine.
  * `until`: when every full window has reset; `used`: the tightest window's.
- * `model`: the plan as a turn on that model sees it, without the windows of the plan's other models; none (or one
- * whose family isn't known) sees every window.
+ * `model`: the plan as a turn on that model sees it, the whole plan's windows and that model's own; none (or one
+ * whose family isn't known) sees the whole plan's alone (`planOwn`).
  */
 export function planState(
   usage: PlanMeterUsage,
@@ -134,20 +188,25 @@ export function planState(
   model?: string | null,
 ): { state: PlanState; until: string | null; used: number } {
   const family = modelFamily(model);
+  // What holds a turn on a model of family `f` (`m`): the whole plan's windows and that family's own. No family known
+  // (no model, "auto", another maker's): the whole plan's alone (`planOwn`).
   const holds = (w: PlanMeterWindow, f: string | null, m: string) => {
     const own = windowModel(w);
-    return f === null || own === null || ownWindowOf(own, m);
+    return own === null || f === null ? planOwn(w) : ownWindowOf(own, m);
   };
-  const rows = planWindows({ windows: usage.windows.filter((w) => holds(w, family, model ?? "")) }, now);
+  const rows = planWindows(usage, now).filter((w) => holds(w, family, model ?? ""));
   const full = rows.filter((w) => w.used >= 100);
-  // A refusal no full window of the refused model explains, on this model's family (any, when either isn't known).
+  // A refusal no full window explains, on this model's family (any, when either isn't known). What explains it: for
+  // the whole plan, a window of its own; for a model, a window that holds the refused one (any, when it isn't known).
   const refusedOn = usage.limitedModel ?? "";
   const refusedFamily = modelFamily(refusedOn);
+  const explains = (w: PlanMeterWindow) =>
+    family === null ? planOwn(w) : refusedFamily === null || holds(w, refusedFamily, refusedOn);
   const refused =
     usage.limited === true &&
     (family === null || refusedFamily === null || refusedFamily === family) &&
-    !usage.windows.some((w) => w.usedPercent >= 100 && holds(w, refusedFamily, refusedOn));
-  const used = rows[0]?.used ?? 0;
+    !usage.windows.some((w) => w.usedPercent >= 100 && explains(w));
+  const used = Math.max(0, ...rows.map((w) => w.used));
   if (full.length === 0 && !refused) return { state: used >= PLAN_ALMOST ? "almost" : "ok", until: null, used };
   const resets = full.flatMap((w) => (w.resetsAt ? [w.resetsAt] : []));
   const until = full.length > 0 && resets.length === full.length ? (resets.sort().at(-1) ?? null) : null;
@@ -308,12 +367,8 @@ export function planBinding(
   for (const w of usage.windows) {
     const own = windowModel(w);
     if (own !== null && !ownWindowOf(own, model)) continue;
-    // Another `other` window (a provider's group of models) counts only for a model whose name holds it.
-    if (
-      own === null &&
-      w.kind === "other" &&
-      (!w.label || NOT_A_MODEL.has(w.label) || !model.includes(w.label.toLowerCase()))
-    )
+    // Another `other` window (a model group's quota, Antigravity's) counts only for the models it names.
+    if (own === null && w.kind === "other" && (!w.label || NOT_A_MODEL.has(w.label) || !quotaOfModel(w.label, model)))
       continue;
     const length = WINDOW_MS[w.kind] ?? 0;
     const live = w.resetsAt ? Date.parse(w.resetsAt) > now : Number.isFinite(read) && now - read < length;

@@ -164,7 +164,7 @@ describe("the agent's AI", () => {
     expect(says(pt, false, { brain: "grok", plan: null }).text).toBe(
       "Os planos do Grok são para uso pessoal. Deixar outras pessoas usarem o seu é uma zona cinzenta nos termos do Grok.",
     );
-    // A Copilot plan (ADR 0186): the same note, in Copilot's name.
+    // A Copilot plan (ADR 0189): the same note, in Copilot's name.
     expect(says(en, false, { brain: "copilot", plan: null })).toEqual({
       line: "Ada answers only you, on your Copilot plan.",
       about: "About the plan's terms",

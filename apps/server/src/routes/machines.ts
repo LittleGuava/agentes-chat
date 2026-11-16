@@ -116,7 +116,7 @@ export const MachineAccess = z
       copilot: z
         .boolean()
         .optional()
-        .openapi({ description: "GitHub's Copilot CLI (protocol 67, ADR 0186); absent = follows `codex`." }),
+        .openapi({ description: "GitHub's Copilot CLI (protocol 68, ADR 0189); absent = follows `codex`." }),
       commands: z.boolean(),
       browser: z
         .boolean()

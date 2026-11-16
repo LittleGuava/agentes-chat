@@ -1,7 +1,15 @@
 import type { PlanUsage, PubSub } from "@agenteschat/adapters";
 import { and, type Database, desc, type Executor, eq, inArray, or, type SQL, schema, sql } from "@agenteschat/db";
-import { extraUsageLeft, PLAN_PAUSE, planBinding, planState } from "@agenteschat/ui/plan-state";
+import {
+  extraUsageLeft,
+  modelFamily,
+  PLAN_PAUSE,
+  planBinding,
+  planState,
+  windowModel,
+} from "@agenteschat/ui/plan-state";
 import { recordAudit } from "./audit";
+import { UUID } from "./authority";
 import { forgetLimitsWithRoom, storedPlanUsage } from "./brains/select";
 import type { BrainKind } from "./brains/types";
 import { mayStopRun, runRequester } from "./cancel";
@@ -51,6 +59,16 @@ export const usageWaitKey = (
     | { code: "plan_limit"; machineId: string; kind: BrainKind; accountId?: string }
     | { code: "budget"; agentId: string },
 ) => (w.code === "budget" ? `budget:${w.agentId}` : `plan:${w.machineId}:${w.kind}:${w.accountId ?? "own"}`);
+
+/**
+ * A plan's `usageWaitKey` read back: the computer its sign-in is on and, when the sign-in is an account's, that
+ * account (null: the computer's own). Null for a budget's key and for anything else.
+ */
+export function planOfWaitKey(key: unknown): { machineId: string | null; accountId: string | null } | null {
+  const [plan, machineId = "", kind, accountId = "", ...more] = typeof key === "string" ? key.split(":") : [];
+  if (plan !== "plan" || !kind || !accountId || more.length > 0) return null;
+  return { machineId: UUID.test(machineId) ? machineId : null, accountId: UUID.test(accountId) ? accountId : null };
+}
 
 /** A run in a usage line: people's conversations (0), then long work (1), then routines (2). */
 const lineRank = (r: { background: boolean; workId: string | null }) => (r.background ? 2 : r.workId ? 1 : 0);
@@ -233,14 +251,17 @@ export async function wakePlanWaits(
   const onModel = (m: string | null) => (m === null ? sql`${waitModel} is null` : sql`${waitModel} = ${m}`);
   const limitCode = parked(sql`${agentRuns.transcript}->'waitingForBrain'->>'code' = 'plan_limit'`);
   const pauseCode = parked(sql`${agentRuns.transcript}->'waitingForBrain'->>'code' = 'usage_pause'`);
-  // A reading wakes a wait whose own model it has room for (`planState` by model; a wait with none: every window),
-  // chosen before the line's 100, so waits on a model still held never take the others' places.
+  // A reading wakes a wait whose own model it has room for (`planState` by model; a wait whose model's family isn't
+  // known also waits while a single family's own window is full, since the wait may be that family's), chosen before
+  // the line's 100, so waits on a model still held never take the others' places.
+  const heldForOne = (w: PlanUsage["windows"][number]) =>
+    windowModel(w) !== null && w.usedPercent >= 100 && !(Date.parse(w.resetsAt ?? "") <= now);
+  const roomFor = (usage: PlanUsage, m: string | null) =>
+    planState(usage, now, m).state !== "limited" && (modelFamily(m) !== null || !usage.windows.some(heldForOne));
   let limitRoom: SQL | undefined;
   if (reading) {
     const models = await db.selectDistinct({ model: waitModel }).from(agentRuns).where(limitCode);
-    const open = models
-      .filter((r) => planState(reading, now, r.model).state !== "limited")
-      .map((r) => onModel(r.model));
+    const open = models.filter((r) => roomFor(reading, r.model)).map((r) => onModel(r.model));
     limitRoom = or(sql`false`, ...open);
   }
   const limits = await db
@@ -259,11 +280,7 @@ export async function wakePlanWaits(
       .innerJoin(agents, eq(agents.id, agentRuns.agentId))
       .where(pauseCode);
     const open = kinds
-      .filter(
-        (k) =>
-          planState(reading, now, k.model).state !== "limited" &&
-          longWorkHasRoom(planReading(reading, k.model, k.extraUsage, now)),
-      )
+      .filter((k) => roomFor(reading, k.model) && longWorkHasRoom(planReading(reading, k.model, k.extraUsage, now)))
       .map((k) => and(onModel(k.model), eq(agents.brainExtraUsage, k.extraUsage)));
     pauses = await db
       .select(fields)
