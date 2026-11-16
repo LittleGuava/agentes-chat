@@ -1,10 +1,62 @@
 import { and, arrayContained, asc, type Database, desc, eq, inArray, isNull, ne, or, schema } from "@agenteschat/db";
+import { NotFoundError } from "./errors";
 import { type BundleRoutine, type BundleRule, IMPORT_LIMITS, type MigrationBundle, NOTE_KINDS } from "./imports";
 import { requirePermission } from "./organizations";
 import type { RoutineTarget } from "./routines";
 
-const { organizations, agents, skills, skillFiles, agentSkills, channels, channelMembers, routines, contextItems } =
-  schema;
+const {
+  organizations,
+  agents,
+  agentGroups,
+  skills,
+  skillFiles,
+  agentSkills,
+  channels,
+  channelMembers,
+  routines,
+  contextItems,
+} = schema;
+
+/**
+ * A part of the workspace to export (ADR 0055 addendum 2026-11-15): the agents of these setores (`agent_groups`,
+ * ADR 0148) and these agents, together. Ids from another workspace, an archived agent or the right hand are not found.
+ */
+export interface ExportScope {
+  agentIds?: string[];
+  groupIds?: string[];
+}
+
+/** The ids of the exportable agents a scope names, in no order; throws when any id isn't one here. */
+async function scopedAgentIds(db: Database, orgId: string, scope: ExportScope): Promise<string[]> {
+  const agentIds = [...new Set(scope.agentIds ?? [])];
+  const groupIds = [...new Set(scope.groupIds ?? [])];
+  const [groups, named, inGroups] = await Promise.all([
+    groupIds.length > 0
+      ? db
+          .select({ id: agentGroups.id })
+          .from(agentGroups)
+          .where(and(eq(agentGroups.orgId, orgId), inArray(agentGroups.id, groupIds)))
+      : [],
+    agentIds.length > 0
+      ? db
+          .select({ id: agents.id })
+          .from(agents)
+          .where(and(exportable(orgId), inArray(agents.id, agentIds)))
+      : [],
+    groupIds.length > 0
+      ? db
+          .select({ id: agents.id })
+          .from(agents)
+          .where(and(exportable(orgId), inArray(agents.groupId, groupIds)))
+      : [],
+  ]);
+  if (groups.length !== groupIds.length) throw new NotFoundError("Setor not found", "agent_group.not_found");
+  if (named.length !== agentIds.length) throw new NotFoundError("Agent not found", "agent.not_found");
+  return [...new Set([...named, ...inGroups].map((a) => a.id))];
+}
+
+// The right hand is the product's, not the team's (ADR 0137): never exported, so never imported elsewhere.
+const exportable = (orgId: string) => and(eq(agents.orgId, orgId), isNull(agents.archivedAt), isNull(agents.builtin));
 
 /** A stored skill as a `SKILL.md`: name, description and the rest of its frontmatter, then the body. */
 function skillMarkdown(s: { name: string; description: string; body: string; metadata: Record<string, unknown> }) {
@@ -46,17 +98,28 @@ function bundleRoutine(r: RoutineRow, channelIds: Set<string>): BundleRoutine | 
  * memory everyone here can see, up to the import limit, most relevant
  * first. Never credentials, connections or their tokens, computers, runs,
  * usage, audit or messages.
+ *
+ * With a `scope`, only a part: its agents and what they use, the skills they have on, the public channels they're
+ * in (with only them in it), their routines and their own memory; the workspace's memory, everyone's, isn't any
+ * agent's and stays. A scope naming nobody exports nothing, never the whole workspace.
  */
-export async function exportBundle(db: Database, actorId: string, orgId: string): Promise<MigrationBundle> {
+export async function exportBundle(
+  db: Database,
+  actorId: string,
+  orgId: string,
+  scope?: ExportScope,
+): Promise<MigrationBundle> {
   await requirePermission(db, actorId, orgId, "manage_agents");
+  const chosen = scope ? await scopedAgentIds(db, orgId, scope) : undefined;
   const [org] = await db.select({ name: organizations.name }).from(organizations).where(eq(organizations.id, orgId));
-  const [agentRows, skillRows, channelRows] = await Promise.all([
-    db
-      .select()
-      .from(agents)
-      // The right hand is the product's, not the team's (ADR 0137): never exported, so never imported elsewhere.
-      .where(and(eq(agents.orgId, orgId), isNull(agents.archivedAt), isNull(agents.builtin)))
-      .orderBy(asc(agents.createdAt)),
+  const [agentRows, allSkills, publicChannels] = await Promise.all([
+    chosen?.length === 0
+      ? []
+      : db
+          .select()
+          .from(agents)
+          .where(and(exportable(orgId), chosen ? inArray(agents.id, chosen) : undefined))
+          .orderBy(asc(agents.createdAt)),
     db
       .select()
       .from(skills)
@@ -78,9 +141,10 @@ export async function exportBundle(db: Database, actorId: string, orgId: string)
       .orderBy(asc(channels.createdAt)),
   ]);
   const agentIds = agentRows.map((a) => a.id);
-  const skillIds = skillRows.map((s) => s.id);
-  const channelIds = new Set(channelRows.map((c) => c.id));
-  const [skillsOn, files, members, routineRows, noteRows] = await Promise.all([
+  const skillIds = allSkills.map((s) => s.id);
+  // Every public channel: what memory may come from. Only the exported ones may be a routine's target.
+  const publicIds = new Set(publicChannels.map((c) => c.id));
+  const [skillsOn, allFiles, members, routineRows, noteRows] = await Promise.all([
     agentIds.length > 0 && skillIds.length > 0
       ? db
           .select({ agentId: agentSkills.agentId, skillId: agentSkills.skillId })
@@ -102,7 +166,7 @@ export async function exportBundle(db: Database, actorId: string, orgId: string)
             and(eq(skillFiles.orgId, orgId), inArray(skillFiles.skillId, skillIds), ne(skillFiles.status, "ignored")),
           )
       : [],
-    agentIds.length > 0 && channelIds.size > 0
+    agentIds.length > 0 && publicIds.size > 0
       ? db
           .select({
             channelId: channelMembers.channelId,
@@ -113,7 +177,7 @@ export async function exportBundle(db: Database, actorId: string, orgId: string)
           .where(
             and(
               eq(channelMembers.orgId, orgId),
-              inArray(channelMembers.channelId, [...channelIds]),
+              inArray(channelMembers.channelId, [...publicIds]),
               inArray(channelMembers.agentId, agentIds),
             ),
           )
@@ -128,33 +192,44 @@ export async function exportBundle(db: Database, actorId: string, orgId: string)
       : [],
     // What a person would stand behind: kept, verified, undisputed knowledge (an import stores it as theirs).
     // Learned in a private channel or a DM, it stays: the other workspace would show it to everyone.
-    db
-      .select({
-        id: contextItems.id,
-        agentId: contextItems.agentId,
-        kind: contextItems.kind,
-        title: contextItems.title,
-        content: contextItems.content,
-      })
-      .from(contextItems)
-      .where(
-        and(
-          eq(contextItems.orgId, orgId),
-          eq(contextItems.status, "active"),
-          eq(contextItems.trust, "high"),
-          eq(contextItems.verified, true),
-          eq(contextItems.disputed, false),
-          inArray(contextItems.kind, [...NOTE_KINDS]),
-          inArray(contextItems.scopeType, ["org", "agent"]),
-          agentIds.length > 0
-            ? or(isNull(contextItems.agentId), inArray(contextItems.agentId, agentIds))
-            : isNull(contextItems.agentId),
-          arrayContained(contextItems.channelIds, [...channelIds]),
-        ),
-      )
-      .orderBy(desc(contextItems.pinned), desc(contextItems.relevance), desc(contextItems.updatedAt))
-      .limit(IMPORT_LIMITS.notes),
+    chosen?.length === 0
+      ? []
+      : db
+          .select({
+            id: contextItems.id,
+            agentId: contextItems.agentId,
+            kind: contextItems.kind,
+            title: contextItems.title,
+            content: contextItems.content,
+          })
+          .from(contextItems)
+          .where(
+            and(
+              eq(contextItems.orgId, orgId),
+              eq(contextItems.status, "active"),
+              eq(contextItems.trust, "high"),
+              eq(contextItems.verified, true),
+              eq(contextItems.disputed, false),
+              inArray(contextItems.kind, [...NOTE_KINDS]),
+              inArray(contextItems.scopeType, ["org", "agent"]),
+              chosen
+                ? inArray(contextItems.agentId, agentIds)
+                : agentIds.length > 0
+                  ? or(isNull(contextItems.agentId), inArray(contextItems.agentId, agentIds))
+                  : isNull(contextItems.agentId),
+              arrayContained(contextItems.channelIds, [...publicIds]),
+            ),
+          )
+          .orderBy(desc(contextItems.pinned), desc(contextItems.relevance), desc(contextItems.updatedAt))
+          .limit(IMPORT_LIMITS.notes),
   ]);
+
+  // A part takes the skills its agents have on and the public channels they're in; the whole takes every one.
+  const used = new Set(skillsOn.map((s) => s.skillId));
+  const skillRows = chosen ? allSkills.filter((s) => used.has(s.id)) : allSkills;
+  const files = chosen ? allFiles.filter((f) => used.has(f.skillId)) : allFiles;
+  const channelRows = chosen ? publicChannels.filter((c) => members.some((m) => m.channelId === c.id)) : publicChannels;
+  const channelIds = new Set(channelRows.map((c) => c.id));
 
   const leftOut: MigrationBundle["leftOut"] = [];
   const bundleRoutines: BundleRoutine[] = [];

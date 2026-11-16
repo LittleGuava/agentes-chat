@@ -21,6 +21,7 @@ import {
   type AppDeps,
   body,
   createAppRouter,
+  csv,
   errors,
   json,
   MULTIPART_SLACK_BYTES,
@@ -31,6 +32,11 @@ import {
 } from "./context";
 
 const tags = ["Agents"];
+
+const ExportQuery = z.object({
+  agents: csv("Comma-separated agent ids to export, with the agents of `groups`.", z.uuid(), IMPORT_LIMITS.agents),
+  groups: csv("Comma-separated setor (agent group) ids: their agents are exported.", z.uuid(), IMPORT_LIMITS.agents),
+});
 
 const ImportedFiles = z
   .object({
@@ -413,14 +419,16 @@ export function agentImportRoutes(deps: AppDeps) {
       path: "/organizations/{orgId}/export",
       tags,
       security,
-      summary: "Download this workspace as an import bundle (admins)",
+      summary: "Download this workspace, or a part of it, as an import bundle (admins)",
       description:
-        "Agents, skills (SKILL.md), public channels with their agents, scheduled routines and the memory everyone can see. Never keys, connections, computers, runs, usage, audit or messages.",
-      request: { params: OrgParams },
+        "Agents, skills (SKILL.md), public channels with their agents, scheduled routines and the memory everyone can see. Never keys, connections, computers, runs, usage, audit or messages. With `agents` or `groups` (setores), only those agents together and what they use: the skills they have on, the public channels they're in, their routines and their own memory; the workspace's memory stays. An id not in this workspace is a 404.",
+      request: { params: OrgParams, query: ExportQuery },
       responses: { 200: json(Bundle), ...errors },
     }),
     async (c) => {
-      const bundle = await exportBundle(deps.db, c.get("user").id, c.req.valid("param").orgId);
+      const { agents, groups } = c.req.valid("query");
+      const scope = agents || groups ? { agentIds: agents, groupIds: groups } : undefined;
+      const bundle = await exportBundle(deps.db, c.get("user").id, c.req.valid("param").orgId, scope);
       const day = new Date().toISOString().slice(0, 10);
       return c.json(bundle, 200, { "content-disposition": attachmentDisposition(`agentes-chat-${day}.json`) });
     },
