@@ -212,27 +212,7 @@ export async function completeComposioOAuth(
 ): Promise<{ connection: ConnectorConnection; returnTo: string; outcome: ConnectOutcome }> {
   const composio = deps.composio;
   if (!composio) throw new ValidationError("Composio is not set up on this server", "connector.unavailable");
-  if (!row.composioAccountId || code !== row.composioAccountId) {
-    throw new ConflictError("This authorization link is invalid or expired");
-  }
-  const userId = composioUserId(row.orgId);
-  let remote: Awaited<ReturnType<ComposioClient["getConnectedAccount"]>> = { status: "pending", address: null };
-  for (let read = 1; read <= RETURN_READS; read++) {
-    remote = await composio.client.getConnectedAccount(code, userId, { readAddress: false }).catch((error: unknown) => {
-      if (read < RETURN_READS && error instanceof MailError && error.retryable) {
-        return { status: "pending" as const, address: null };
-      }
-      throw error;
-    });
-    if (remote.status !== "pending") break;
-    if (read < RETURN_READS) await Bun.sleep(deps.composioPollMs ?? 1000);
-  }
-  if (remote.status !== "active") {
-    // Its state is used up, so nothing can finish it here: one still pending could turn active at Composio later,
-    // holding a sign-in no connection knows.
-    await forgetComposioAccount(composio.client, code);
-    throw new ConflictError("The sign-in at Composio didn't finish", "connector.unfinished");
-  }
+  const remote = await activeComposioAccount(deps, composio, row, code);
   try {
     const stored = await storeCustomConnection(deps, {
       orgId: row.orgId,
@@ -249,6 +229,39 @@ export async function completeComposioOAuth(
     await forgetComposioAccount(composio.client, code);
     throw error;
   }
+}
+
+/**
+ * The account a Composio return names, once it is the one the link made and Composio says it is active (read until
+ * then). Anything else drops it there and is refused: its state is used up, so nothing can finish it here, and one
+ * still pending could turn active at Composio later, holding a sign-in nobody knows.
+ */
+export async function activeComposioAccount(
+  deps: Pick<ConnectorDeps, "composioPollMs">,
+  composio: ComposioConnectors,
+  row: Pick<typeof oauthStates.$inferSelect, "orgId" | "composioAccountId">,
+  code: string,
+) {
+  if (!row.composioAccountId || code !== row.composioAccountId) {
+    throw new ConflictError("This authorization link is invalid or expired");
+  }
+  const userId = composioUserId(row.orgId);
+  let remote: Awaited<ReturnType<ComposioClient["getConnectedAccount"]>> = { status: "pending", address: null };
+  for (let read = 1; read <= RETURN_READS; read++) {
+    remote = await composio.client.getConnectedAccount(code, userId, { readAddress: false }).catch((error: unknown) => {
+      if (read < RETURN_READS && error instanceof MailError && error.retryable) {
+        return { status: "pending" as const, address: null };
+      }
+      throw error;
+    });
+    if (remote.status !== "pending") break;
+    if (read < RETURN_READS) await Bun.sleep(deps.composioPollMs ?? 1000);
+  }
+  if (remote.status !== "active") {
+    await forgetComposioAccount(composio.client, code);
+    throw new ConflictError("The sign-in at Composio didn't finish", "connector.unfinished");
+  }
+  return remote;
 }
 
 /**

@@ -61,7 +61,7 @@ export function DesktopConnectorPage({
       {
         onSuccess: (done) => {
           const to = safeRedirect(done.returnTo) ?? `/org/${encodeURIComponent(org)}/settings/connectors`;
-          const back = `connected=${encodeURIComponent(done.connector)}&outcome=${done.outcome}`;
+          const back = `connected=${encodeURIComponent(done.connector)}&outcome=${done.personal ? "personal" : done.outcome}`;
           go(`${to}${to.includes("?") ? "&" : "?"}${back}`);
         },
         onError: (failed) =>
