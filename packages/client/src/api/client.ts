@@ -250,6 +250,7 @@ import type {
   NotificationCount,
   NotificationFilter,
   NotificationPage,
+  OAuthAppInput,
   Organization,
   OrgOverview,
   OrgPlanUsage,
@@ -1421,11 +1422,18 @@ export interface ApiClient {
      * Connects to an https MCP server: a new account, or with `connectionId` a new sign-in for that one
      * ("Reconectar"). Without `apiKey` the server tries OAuth (discovery + dynamic client registration); if the
      * MCP server doesn't support it, answers `needs_key` (`reason: "not_approved"` when it only registers apps it
-     * approved, with its refusal in `detail`).
+     * approved, with its refusal in `detail`). With `oauthClient`, it signs in with the admin's own app instead.
      */
     connect(
       orgId: string,
-      input: { serverUrl: string; apiKey?: string; label?: string; returnTo: string; connectionId?: string },
+      input: {
+        serverUrl: string;
+        apiKey?: string;
+        label?: string;
+        returnTo: string;
+        connectionId?: string;
+        oauthClient?: OAuthAppInput;
+      },
     ): Promise<CustomConnectStart>;
     /** Lists the server's tools again; new ones come back unclassified. */
     refresh(orgId: string, serverId: string): Promise<CustomServer>;

@@ -14700,6 +14700,18 @@
     "needsKey": "Questo server non supporta OAuth. Collegalo con una chiave API.",
     "notApproved": "{{name}} consente l'accesso solo alle app che ha approvato, e agentes.chat non è ancora approvato. Se ti fornisce una chiave API, puoi collegarti con quella.",
     "serverSaid": "Il server ha risposto: {{detail}}",
+    "ownApp": {
+      "title": "Accedi con un'app che hai registrato",
+      "redirectUri": "URI di reindirizzamento",
+      "redirectUriHelp": "Aggiungi questo indirizzo all'app che hai registrato nell'accesso del server (in Microsoft Entra ID, per esempio).",
+      "clientId": "ID client",
+      "clientIdMissing": "Scrivi l'ID client dell'app",
+      "clientSecret": "Segreto client (facoltativo)",
+      "clientSecretHelp": "Solo per un'app confidenziale. Viene salvato cifrato e non viene più mostrato. Se lo lasci vuoto, resta quello salvato.",
+      "scopes": "Scope (facoltativi)",
+      "scopesExample": "Separati da spazi, ad es. api://mio-server/.default. Vuoto: quelli del server.",
+      "signIn": "Accedi con questa app"
+    },
     "nothingYet": "Niente è disponibile per gli agenti fino al passaggio 3.",
     "allCanUse": "Una volta collegato, ogni agente può usarlo. Puoi regolarlo in seguito.",
     "replace": "Sostituisce l'accesso attuale. Chi lo usa resta invariato.",

@@ -1989,6 +1989,13 @@
       "when": 1794779459843,
       "tag": "0287_announcements",
       "breakpoints": true
+    },
+    {
+      "idx": 286,
+      "version": "7",
+      "when": 1794779516549,
+      "tag": "0288_mcp_oauth_preregistered_apps",
+      "breakpoints": true
     }
   ]
 }
