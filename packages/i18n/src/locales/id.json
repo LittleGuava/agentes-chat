@@ -4898,6 +4898,7 @@
       "missionStopped": "<b>{{name}}</b> menghentikan misi",
       "routineFinished": "<b>{{name}}</b> menyelesaikan rutinitas",
       "routineFailed": "<b>{{name}}</b> tidak bisa menjalankan rutinitas",
+      "routineFailedRetried": "<b>{{name}}</b> tidak bisa menjalankan rutinitas, bahkan setelah dicoba lagi",
       "runFailed": "<b>{{name}}</b> tidak bisa menyelesaikan",
       "runFailedMany_other": "<b>{{count}} agen</b> tidak bisa melanjutkan: {{cause}}",
       "runFailedManyAny_other": "<b>{{count}} agen</b> tidak bisa melanjutkan",

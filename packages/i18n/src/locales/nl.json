@@ -5069,6 +5069,7 @@
       "missionStopped": "<b>{{name}}</b> heeft een missie gestopt",
       "routineFinished": "<b>{{name}}</b> heeft een routine afgerond",
       "routineFailed": "<b>{{name}}</b> kon een routine niet uitvoeren",
+      "routineFailedRetried": "<b>{{name}}</b> kon een routine niet uitvoeren, ook niet na een nieuwe poging",
       "runFailed": "<b>{{name}}</b> kon het niet afmaken",
       "runFailedMany_one": "<b>{{count}} agent</b> kon niet verder: {{cause}}",
       "runFailedMany_other": "<b>{{count}} agents</b> konden niet verder: {{cause}}",

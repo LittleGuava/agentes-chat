@@ -380,6 +380,8 @@ export interface NotificationLatest {
    * translates).
    */
   reason?: string;
+  /** `routine_failed`: it failed once more on its automatic retry (ADR 0177 addendum 2026-11-15). */
+  retried?: boolean;
   /**
    * `widget_failed` with `missing_credential`: why its agent has no AI (`AgentAi.reason`, coded), kept apart from
    * `text`, which the island, the push and the phone show as it is.

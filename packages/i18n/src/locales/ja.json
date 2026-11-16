@@ -4883,6 +4883,7 @@
       "missionStopped": "<b>{{name}}</b>がミッションを停止しました",
       "routineFinished": "<b>{{name}}</b>がルーティンを完了しました",
       "routineFailed": "<b>{{name}}</b>はルーティンを実行できませんでした",
+      "routineFailedRetried": "<b>{{name}}</b> が再試行してもルーティンを実行できませんでした",
       "runFailed": "<b>{{name}}</b>は最後まで完了できませんでした",
       "runFailedMany_other": "<b>{{count}}人のエージェント</b>が続けられませんでした：{{cause}}",
       "runFailedManyAny_other": "<b>{{count}}人のエージェント</b>が続けられませんでした",

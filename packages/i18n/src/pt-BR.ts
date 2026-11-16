@@ -5325,6 +5325,7 @@ export const ptBR = {
       missionStopped: "<b>{{name}}</b> parou uma missão",
       routineFinished: "<b>{{name}}</b> terminou uma rotina",
       routineFailed: "<b>{{name}}</b> não conseguiu rodar uma rotina",
+      routineFailedRetried: "<b>{{name}}</b> não conseguiu rodar uma rotina, mesmo após uma nova tentativa",
       runFailed: "<b>{{name}}</b> não conseguiu terminar",
       /** Agents that failed for one cause close together, on one row; `cause` is a `failedCause` line. */
       runFailedMany_one: "<b>{{count}} agente</b> não conseguiu continuar: {{cause}}",

@@ -15,6 +15,7 @@ export const strings: Partial<PushStrings> = {
   replyTitle: (a) => `${a} a répondu`,
   missionStoppedTitle: "Une mission s’est arrêtée",
   routineFailedTitle: "Une routine n’a pas abouti",
+  routineFailedRetriedTitle: "Une routine n’a pas abouti, même après un nouvel essai",
   runFailedTitle: (a) => `${a} n’a pas pu terminer`,
   routineFailedBody: "Touchez pour voir ce qui s’est passé.",
   routinePausedTitle: "Une routine a été mise en pause",

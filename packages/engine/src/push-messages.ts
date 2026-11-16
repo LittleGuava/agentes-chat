@@ -49,6 +49,8 @@ export interface PushTextInput {
   screen?: string | null;
   /** `browser_handoff` still unanswered an hour later: the title says the agent still needs them. */
   reminder?: boolean;
+  /** `routine_failed` once its automatic retry failed too: the title says it was tried again. */
+  retried?: boolean;
   /** One reminder for all the person left unread: how many things still wait, this one included (`latest.still`). */
   still?: number | null;
   /** `usage_limit`: what happened (`latest.statusTo`) and the share of the limit used. */
@@ -111,7 +113,7 @@ function renderOne(locale: PushLocale, input: PushTextInput): { title: string; b
       // Only its name: the reason it stopped may carry technical details.
       return out(s.missionStoppedTitle, what || s.openBody);
     case "routine_failed":
-      return out(s.routineFailedTitle, what || s.routineFailedBody);
+      return out(input.retried ? s.routineFailedRetriedTitle : s.routineFailedTitle, what || s.routineFailedBody);
     case "run_failed":
       return out(s.runFailedTitle(actor), s.routineFailedBody);
     case "routine_paused":

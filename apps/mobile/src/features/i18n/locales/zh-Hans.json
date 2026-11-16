@@ -880,6 +880,7 @@
       "mission_stopped_other": "专项任务已停止",
       "routine_finished_other": "例行工作已完成",
       "routine_failed_other": "例行工作失败",
+      "routine_failed_retried_other": "例行工作重试后仍失败",
       "run_failed_other": "无法完成",
       "admin_ask_channel_agent": "{{names}} 请你把 {{agent}} 加入 #{{label}}",
       "admin_ask_create_agents": "{{names}} 请求获得创建智能体的权限",

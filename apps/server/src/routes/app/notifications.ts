@@ -95,6 +95,10 @@ const Notification = z
         .string()
         .optional()
         .openapi({ description: "`routine_paused`: why it paused; `routine_failed`: its run's code (both coded)." }),
+      retried: z
+        .boolean()
+        .optional()
+        .openapi({ description: "`routine_failed`: it failed once more on its automatic retry." }),
       detail: z.string().optional().openapi({
         description:
           "`widget_failed` with `missing_credential`: why its agent has no AI (`no_key`, `not_signed_in`, `plan_not_shared`…, coded).",

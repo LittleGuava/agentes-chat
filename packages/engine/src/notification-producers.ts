@@ -819,7 +819,7 @@ async function routineAudience(deps: Pick<NotificationDeps, "db">, orgId: string
  */
 export async function notifyRoutineFailed(
   deps: NotificationDeps,
-  input: { orgId: string; routineId: string; streakKey: string; reason?: string | null },
+  input: { orgId: string; routineId: string; streakKey: string; reason?: string | null; retried?: boolean },
 ) {
   const r = await routineAudience(deps, input.orgId, input.routineId);
   if (!r) return;
@@ -830,7 +830,7 @@ export async function notifyRoutineFailed(
     groupKey: `routine_failed:${input.routineId}:${input.streakKey}`,
     actor: agent(r.agentId),
     source: { routineId: input.routineId, label: r.name },
-    latest: { title: r.name, reason: input.reason ?? undefined },
+    latest: { title: r.name, reason: input.reason ?? undefined, ...(input.retried ? { retried: true } : {}) },
   });
 }
 

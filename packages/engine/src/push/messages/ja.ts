@@ -15,6 +15,7 @@ export const strings: Partial<PushStrings> = {
   replyTitle: (a) => `${a} が返信しました`,
   missionStoppedTitle: "ミッションが止まりました",
   routineFailedTitle: "ルーティンが完了しませんでした",
+  routineFailedRetriedTitle: "ルーティンが再試行しても完了しませんでした",
   runFailedTitle: (a) => `${a} が作業を完了できませんでした`,
   routineFailedBody: "タップして何が起きたかを確認",
   routinePausedTitle: "ルーティンが一時停止されました",

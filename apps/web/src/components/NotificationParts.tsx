@@ -159,6 +159,7 @@ type WhatKey =
   | "missionStopped"
   | "routineFinished"
   | "routineFailed"
+  | "routineFailedRetried"
   | "runFailed"
   | "runFailedMany"
   | "runFailedManyAny"
@@ -282,7 +283,7 @@ export function Headline({
     case "routine_finished":
       return k("routineFinished", { name });
     case "routine_failed":
-      return k("routineFailed", { name });
+      return k(n.latest.retried ? "routineFailedRetried" : "routineFailed", { name });
     case "run_failed": {
       // Agents that failed for one cause close together: one line for all of them.
       const group = runFailedGroupOf(n);

@@ -12375,6 +12375,9 @@
   "notifications.what.routineFailed": {
     "value": "<b>{{name}}</b> couldn't run a routine"
   },
+  "notifications.what.routineFailedRetried": {
+    "value": "<b>{{name}}</b> couldn't run a routine, even after one more try"
+  },
   "notifications.what.runFailed": {
     "value": "<b>{{name}}</b> couldn't finish"
   },

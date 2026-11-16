@@ -4881,6 +4881,7 @@
       "missionStopped": "<b>{{name}}</b>이(가) 미션을 중지했어요",
       "routineFinished": "<b>{{name}}</b>이(가) 루틴을 끝냈어요",
       "routineFailed": "<b>{{name}}</b>이(가) 루틴을 실행하지 못했어요",
+      "routineFailedRetried": "<b>{{name}}</b>이(가) 다시 시도했는데도 루틴을 실행하지 못했어요",
       "runFailed": "<b>{{name}}</b>이(가) 끝내지 못했어요",
       "runFailedMany_other": "<b>에이전트 {{count}}명</b>이 계속하지 못했어요: {{cause}}",
       "runFailedManyAny_other": "<b>에이전트 {{count}}명</b>이 계속하지 못했어요",

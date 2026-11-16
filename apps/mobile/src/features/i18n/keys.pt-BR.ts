@@ -960,6 +960,8 @@ export const featureKeysPtBR = {
       run_failed_one: "Não conseguiu terminar",
       run_failed_other: "Não conseguiu terminar",
       routine_failed_other: "Rotina falhou",
+      routine_failed_retried_one: "Rotina falhou após uma nova tentativa",
+      routine_failed_retried_other: "Rotina falhou após uma nova tentativa",
       admin_ask_channel_agent: "{{names}} pede para adicionar {{agent}} a #{{label}}",
       admin_ask_create_agents: "{{names}} pede para poder criar agentes",
       admin_ask_webhook: "{{names}} pede para ligar o webhook do {{service}} para rotinas",

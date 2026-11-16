@@ -5406,6 +5406,7 @@
       "missionStopped": "<b>{{name}}</b> остановил(а) миссию",
       "routineFinished": "<b>{{name}}</b> выполнил(а) регулярную задачу",
       "routineFailed": "<b>{{name}}</b>: не удалось выполнить регулярную задачу",
+      "routineFailedRetried": "<b>{{name}}</b> не удалось выполнить регулярную задачу даже после повторной попытки",
       "runFailed": "<b>{{name}}</b>: не удалось закончить работу",
       "runFailedMany_one": "<b>{{count}} агент</b>: не удалось продолжить: {{cause}}",
       "runFailedMany_few": "<b>{{count}} агента</b>: не удалось продолжить: {{cause}}",

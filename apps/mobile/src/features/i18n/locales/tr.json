@@ -919,6 +919,8 @@
       "routine_finished_other": "Rutin bitti",
       "routine_failed_one": "Rutin başarısız oldu",
       "routine_failed_other": "Rutin başarısız oldu",
+      "routine_failed_retried_one": "Rutin yeniden denendikten sonra da başarısız oldu",
+      "routine_failed_retried_other": "Rutin yeniden denendikten sonra da başarısız oldu",
       "run_failed_one": "Tamamlanamadı",
       "run_failed_other": "Tamamlanamadı",
       "admin_ask_channel_agent": "{{names}}, {{agent}} ajanını #{{label}} kanalına eklemenizi istiyor",

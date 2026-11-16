@@ -14,6 +14,8 @@ export interface PushStrings {
   replyTitle: (actor: string) => string;
   missionStoppedTitle: string;
   routineFailedTitle: string;
+  /** `routine_failed` once its automatic retry failed too (ADR 0177 addendum 2026-11-15). */
+  routineFailedRetriedTitle: string;
   runFailedTitle: (actor: string) => string;
   routineFailedBody: string;
   routinePausedTitle: string;
@@ -121,6 +123,7 @@ export const en: PushStrings = {
   replyTitle: (a) => `${a} replied`,
   missionStoppedTitle: "A mission stopped",
   routineFailedTitle: "A routine didn't finish",
+  routineFailedRetriedTitle: "A routine didn't finish, even after one more try",
   runFailedTitle: (a) => `${a} couldn't finish`,
   routineFailedBody: "Tap to see what happened.",
   routinePausedTitle: "A routine was paused",

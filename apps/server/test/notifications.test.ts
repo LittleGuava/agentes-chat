@@ -300,3 +300,27 @@ test("notification prefs: every category with its default, one switched per call
   await signUp(other, "other@example.com");
   expect((await other(`/api/app/organizations/${orgId}/notification-prefs`)).status).toBe(403);
 });
+
+test("a routine that failed on its automatic retry says so to the apps (ADR 0177 addendum 2026-11-15)", async () => {
+  t = await createTestServer({ reply: () => ({ chunks: ["ok"] }) });
+  const { api, orgId, userId, agentId } = await signedIn();
+  const deps = { db: t.db, pubsub: t.adapters.pubsub };
+  for (const [key, retried] of [
+    ["once", false],
+    ["again", true],
+  ] as const) {
+    await notify(deps, {
+      orgId,
+      userIds: [userId],
+      kind: "routine_failed",
+      groupKey: `routine_failed:${key}`,
+      actor: { type: "agent", id: agentId },
+      source: { label: key },
+      latest: { title: key, reason: "provider_error", ...(retried ? { retried } : {}) },
+    });
+  }
+  const page = (await (await api("/notifications")).json()) as Page;
+  const by = (label: string) => page.items.find((i) => i.source.label === label)?.latest;
+  expect(by("again")).toMatchObject({ reason: "provider_error", retried: true });
+  expect(by("once")?.retried).toBeUndefined();
+});

@@ -14,6 +14,7 @@ export const ptBR: PushStrings = {
   replyTitle: (a) => `${a} respondeu`,
   missionStoppedTitle: "Uma missão parou",
   routineFailedTitle: "Uma rotina não terminou",
+  routineFailedRetriedTitle: "Uma rotina falhou após uma nova tentativa",
   runFailedTitle: (a) => `${a} não conseguiu terminar`,
   routineFailedBody: "Toque para ver o que aconteceu.",
   routinePausedTitle: "Uma rotina foi pausada",

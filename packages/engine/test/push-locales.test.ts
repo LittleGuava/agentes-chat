@@ -80,3 +80,13 @@ test("a language without a word says it in English", () => {
   expect(pushStrings("ru").questionBody).not.toBe(pushStrings("en").questionBody);
   expect(pushStrings("pt-BR").questionBody).not.toBe(pushStrings("en").questionBody);
 });
+
+test("a routine that failed on its automatic retry says it was tried again, in every language", () => {
+  for (const locale of LOCALE_CODES) {
+    const once = renderPush(locale, { kind: "routine_failed", waiting: false, title: "Relatório" });
+    const again = renderPush(locale, { kind: "routine_failed", waiting: false, title: "Relatório", retried: true });
+    expect([locale, again.title]).not.toEqual([locale, once.title]);
+    expect(again.body).toBe(once.body);
+    expect(again.title.length).toBeLessThanOrEqual(PUSH_TITLE_MAX);
+  }
+});

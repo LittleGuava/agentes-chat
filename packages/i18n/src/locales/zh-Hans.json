@@ -4886,6 +4886,7 @@
       "missionStopped": "<b>{{name}}</b> 停止了一个专项任务",
       "routineFinished": "<b>{{name}}</b> 完成了一个例行工作",
       "routineFailed": "<b>{{name}}</b> 无法运行一个例行工作",
+      "routineFailedRetried": "<b>{{name}}</b> 重试后仍未能运行一项例行工作",
       "runFailed": "<b>{{name}}</b> 没能完成",
       "runFailedMany_other": "<b>{{count}} 个智能体</b>没能继续：{{cause}}",
       "runFailedManyAny_other": "<b>{{count}} 个智能体</b>没能继续",

@@ -5216,6 +5216,7 @@
       "missionStopped": "<b>{{name}}</b> detuvo una misión",
       "routineFinished": "<b>{{name}}</b> terminó una rutina",
       "routineFailed": "<b>{{name}}</b> no pudo ejecutar una rutina",
+      "routineFailedRetried": "<b>{{name}}</b> no pudo ejecutar una rutina, ni siquiera con un segundo intento",
       "runFailed": "<b>{{name}}</b> no pudo terminar",
       "runFailedMany_one": "<b>{{count}} agente</b> no pudo seguir: {{cause}}",
       "runFailedMany_many": "<b>{{count}} de agentes</b> no pudieron seguir: {{cause}}",

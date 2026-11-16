@@ -5049,6 +5049,7 @@
       "missionStopped": "<b>{{name}}</b> bir misyonu durdurdu",
       "routineFinished": "<b>{{name}}</b> bir rutini bitirdi",
       "routineFailed": "<b>{{name}}</b> bir rutini çalıştıramadı",
+      "routineFailedRetried": "<b>{{name}}</b> yeniden denemeye rağmen bir rutini çalıştıramadı",
       "runFailed": "<b>{{name}}</b> bitiremedi",
       "runFailedMany_one": "<b>{{count}} ajan</b> devam edemedi: {{cause}}",
       "runFailedMany_other": "<b>{{count}} ajan</b> devam edemedi: {{cause}}",

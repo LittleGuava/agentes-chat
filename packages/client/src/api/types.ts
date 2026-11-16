@@ -6949,6 +6949,8 @@ export interface NotificationLatest {
    * Both said in the person's language.
    */
   reason?: string;
+  /** `routine_failed`: it failed once more on its automatic retry (ADR 0177 addendum 2026-11-15). */
+  retried?: boolean;
   /** `widget_failed` with `missing_credential`: why its agent has no AI, coded (`widgetFailureKey`'s `detail`). */
   detail?: string;
   /** `approval`: asked while nobody watched, by a routine or an unattended run (ADR 0053 §8). */

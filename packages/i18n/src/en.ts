@@ -5449,6 +5449,8 @@ export const en = {
       missionStopped: "<b>{{name}}</b> stopped a mission",
       routineFinished: "<b>{{name}}</b> finished a routine",
       routineFailed: "<b>{{name}}</b> couldn't run a routine",
+      /** Its automatic retry failed too (ADR 0177 addendum 2026-11-15). */
+      routineFailedRetried: "<b>{{name}}</b> couldn't run a routine, even after one more try",
       runFailed: "<b>{{name}}</b> couldn't finish",
       /** Agents that failed for one cause close together, on one row; `cause` is a `failedCause` line. */
       runFailedMany_one: "<b>{{count}} agent</b> couldn't go on: {{cause}}",

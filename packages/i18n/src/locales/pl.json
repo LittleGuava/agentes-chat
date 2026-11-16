@@ -5405,6 +5405,7 @@
       "missionStopped": "Misja zatrzymana przez <b>{{name}}</b>",
       "routineFinished": "Rutyna ukończona przez <b>{{name}}</b>",
       "routineFailed": "<b>{{name}}</b>: nie udało się uruchomić rutyny",
+      "routineFailedRetried": "<b>{{name}}</b> nie udało się uruchomić rutyny, nawet po ponownej próbie",
       "runFailed": "<b>{{name}}</b>: nie udało się dokończyć",
       "runFailedMany_one": "<b>{{count}} agent</b>: nie udało się kontynuować: {{cause}}",
       "runFailedMany_few": "<b>{{count}} agentów</b>: nie udało się kontynuować: {{cause}}",

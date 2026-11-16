@@ -2196,6 +2196,12 @@
       "other": "Routine failed"
     }
   },
+  "activity.kind.routine_failed_retried": {
+    "value": {
+      "one": "Routine failed after one more try",
+      "other": "Routine failed after one more try"
+    }
+  },
   "activity.kind.run_failed": {
     "value": {
       "one": "Couldn't finish",
