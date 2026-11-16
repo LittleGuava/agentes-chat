@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import { useChannelActions } from "@/components/channel-actions";
 import { MenuEntries } from "@/components/DesktopMenus";
 import { useOrg } from "@/components/org-context";
+import { useListenEntry } from "@/components/ReadAloud";
 import { PinToDashboard } from "@/components/widgets/PinToDashboard";
 import {
   contextMenuHandler,
@@ -121,6 +122,8 @@ export function useMessageMenu(
     [message.author.type, message.author.id, message.local, message.body, options.readOnly],
   );
   const [pinningChart, setPinningChart] = useState(false);
+  // "Ouvir" on an agent's reply (ADR 0209): on touch the menu stands in for the bar.
+  const listen = useListenEntry(message);
   const entries = (selected: string, touch = false): MenuEntry[] => {
     if (message.local) return [];
     const copy = (text: string, id: string, label: string): MenuEntry => ({
@@ -204,6 +207,7 @@ export function useMessageMenu(
               run: () => reactions.toggle(DOWN),
             },
             { kind: "item", id: "correct", label: t("channel.correct"), icon: "edit", run: () => setCorrecting(true) },
+            ...(listen ? [listen] : []),
           ] satisfies MenuEntry[])
         : []),
       { kind: "separator" },

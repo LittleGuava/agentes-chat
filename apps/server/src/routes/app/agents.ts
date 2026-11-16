@@ -1,3 +1,4 @@
+import { READ_ALOUD_VOICE } from "@agenteschat/adapters";
 import {
   type AgentBrainSummary,
   type Agent as AgentRow,
@@ -199,6 +200,10 @@ const AgentFields = z.object({
   mediaReplies: z.boolean().optional().openapi({
     description:
       "It may send a sticker or a GIF (ADR 0091): when someone asks for one, and after a light reply as often as the workspace's `agentMedia` allows; off: never. Like the other fields, editing it needs `manage_agents`. Default on.",
+  }),
+  readAloudVoice: z.string().regex(READ_ALOUD_VOICE).nullable().optional().openapi({
+    description:
+      "The voice its replies are read aloud in (ADR 0209): the engine's voice id (an ElevenLabs voice id, or a name the server's own engine knows); null = the server's default. Needs `manage_agents`.",
   }),
   brakes: AgentBrakes.partial().optional().openapi({
     description: "Its autonomy brakes (ADR 0131); the fields given change, the rest stay. Needs `manage_agents`.",

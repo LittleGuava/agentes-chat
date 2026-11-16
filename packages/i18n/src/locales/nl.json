@@ -2599,6 +2599,19 @@
     "endOfReply": "Einde van het antwoord",
     "mentionSuggestions": "Suggesties voor vermeldingen"
   },
+  "readAloud": {
+    "listen": "Luisteren",
+    "stop": "Stoppen",
+    "failed": "Kon het nu niet voorlezen.",
+    "limit": "Je hebt de limiet van vandaag voor het beluisteren van antwoorden bereikt.",
+    "auto": "Antwoorden voorlezen",
+    "autoHint": "Elk antwoord van een agent dat in het open gesprek binnenkomt, wordt op dit apparaat voorgelezen.",
+    "voice": "Stem",
+    "voiceHint": "De stem waarin zijn antwoorden worden voorgelezen: een stem-ID van ElevenLabs, of de naam van een stem die je spraakserver kent.",
+    "voiceDefault": "Standaardstem",
+    "voiceInvalid": "Gebruik alleen letters, cijfers, punten, koppeltekens en underscores.",
+    "voiceSaved": "Stem opgeslagen"
+  },
   "receipts": {
     "picked_one": "{{names}} gaat antwoorden",
     "picked_other": "{{names}} gaan antwoorden",

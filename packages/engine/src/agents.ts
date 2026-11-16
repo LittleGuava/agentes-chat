@@ -103,6 +103,8 @@ export interface AgentInput {
   monthlyBudgetNanoUsd?: number | null;
   /** It may follow a light reply with a sticker or a GIF (ADR 0091), as often as the workspace allows. */
   mediaReplies?: boolean;
+  /** The voice its replies are read aloud in (ADR 0209); null = the server's default. */
+  readAloudVoice?: string | null;
   /** Its autonomy brakes (ADR 0131), stored as `autonomySettings` reads them. */
   autonomyBrakes?: Partial<AutonomySettings>;
   /** How much it asks before acting (ADR 0173): its own choice; null follows the workspace's. */
@@ -783,6 +785,8 @@ export const agentView = (a: Agent) => ({
   appearance: (a.appearance ?? null) as AgentAppearance | null,
   /** It may follow a light reply with a sticker or a GIF (ADR 0091). */
   mediaReplies: a.mediaReplies,
+  /** The voice its replies are read aloud in (ADR 0209); null = the server's default. */
+  readAloudVoice: a.readAloudVoice ?? null,
   /** A built-in agent the product ships (ADR 0137): `right_hand`, the team's right hand. Null for the others. */
   builtin: a.builtin ?? null,
   /** "Responde a" (ADR 0148 addendum): the agent it reports to; null = its owner, else its setor's lead. */

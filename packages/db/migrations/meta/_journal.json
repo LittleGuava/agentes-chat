@@ -1989,6 +1989,13 @@
       "when": 1794843855115,
       "tag": "0287_memory_valid_until",
       "breakpoints": true
+    },
+    {
+      "idx": 286,
+      "version": "7",
+      "when": 1794843892179,
+      "tag": "0288_read_aloud",
+      "breakpoints": true
     }
   ]
 }

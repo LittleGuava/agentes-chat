@@ -466,6 +466,13 @@ export interface ApiClient {
      */
     speech(orgId: string, messageId: string): Promise<Blob>;
   };
+  /** Agents' replies read aloud (ADR 0209). */
+  readAloud: {
+    /** Whether this server reads replies aloud at all. */
+    available(orgId: string): Promise<{ available: boolean }>;
+    /** Makes a reply's audio, or finds it made; play it from `readAloudAudioUrl`. */
+    make(orgId: string, messageId: string): Promise<{ clipId: string }>;
+  };
   account: {
     authConfig(): Promise<AuthConfig>;
     /**

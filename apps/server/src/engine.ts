@@ -2,6 +2,7 @@ import {
   type Adapters,
   type BrainTurnRequest,
   createCallVoice,
+  createReadAloudEngine,
   type ErrorReporter,
   type S3Fetch,
   type SpeechFetch,
@@ -112,6 +113,7 @@ import {
   prepareAgentCode,
   publishUserEvent,
   queueBudgetEmail,
+  type ReadAloudDeps,
   type ResolveHost,
   RIGHT_HAND_TURN,
   ROUTER_QUIET_MS,
@@ -790,6 +792,34 @@ export function buildEngine(o: EngineOptions) {
         }
       : null,
   };
+  // Agents' replies read aloud (ADR 0209): off unless the environment picks an engine; a voice key alone never does.
+  const readAloud: ReadAloudDeps = {
+    db,
+    blobs: artifacts.blobs,
+    engine:
+      config.READ_ALOUD_ENGINE === "off"
+        ? null
+        : createReadAloudEngine(
+            config.READ_ALOUD_ENGINE,
+            config.READ_ALOUD_ENGINE === "elevenlabs"
+              ? { apiKey: config.ELEVENLABS_API_KEY, voice: config.READ_ALOUD_VOICE }
+              : {
+                  baseUrl: config.READ_ALOUD_URL,
+                  model: config.READ_ALOUD_MODEL,
+                  apiKey: config.READ_ALOUD_API_KEY,
+                  voice: config.READ_ALOUD_VOICE,
+                },
+            { fetch: o.speechFetch },
+          ),
+    cacheDays: config.READ_ALOUD_CACHE_DAYS,
+    limits: isAgentesCloud(config.PUBLIC_URL)
+      ? { personCharsPerDay: config.READ_ALOUD_LIMIT_PERSON_CHARS_PER_DAY }
+      : null,
+  };
+  if (config.READ_ALOUD_ENGINE !== "off" && !readAloud.engine) {
+    const needs = config.READ_ALOUD_ENGINE === "elevenlabs" ? "ELEVENLABS_API_KEY" : "READ_ALOUD_URL";
+    o.log?.warn(`READ_ALOUD_ENGINE=${config.READ_ALOUD_ENGINE} without ${needs}: reading aloud stays off`);
+  }
   const jobDeps: JobDeps = {
     feedbackBlobs: adapters.platformBlobs,
     feedbackFetch: o.http,
@@ -914,6 +944,7 @@ export function buildEngine(o: EngineOptions) {
     /** Likewise: the speech engines, read before the first voice message. */
     speech,
     voice,
+    readAloud,
   };
 }
 

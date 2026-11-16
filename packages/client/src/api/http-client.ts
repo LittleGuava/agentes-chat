@@ -1076,6 +1076,14 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       exportUrl: (orgId, scope) => `${base}${org(orgId)}/export${exportQuery(scope)}`,
       exportBundle: (orgId, scope) => request<MigrationBundle>(`${org(orgId)}/export${exportQuery(scope)}`),
     },
+    readAloud: {
+      available: (orgId) => request<{ available: boolean }>(`${org(orgId)}/read-aloud`),
+      make: (orgId, messageId) =>
+        request<{ clipId: string }>(`${org(orgId)}/messages/${enc(messageId)}/read-aloud`, {
+          method: "POST",
+          json: {},
+        }),
+    },
     voice: {
       allowed: (orgId) => request<{ allowed: boolean }>(`${org(orgId)}/voice/allowed`),
       send: (orgId, channelId, input) => {

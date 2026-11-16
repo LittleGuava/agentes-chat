@@ -112,6 +112,7 @@ import { useApi } from "@/api/context";
 import { checkAppVersion } from "@/lib/app-version";
 import { desktopNotice, inDesktopApp, thisMac } from "@/lib/desktop";
 import { feedIsland, island } from "@/lib/island";
+import { readArrivedReply } from "@/lib/read-aloud";
 import { notificationAudience } from "@/lib/sounds";
 import { useToast } from "@/lib/toast";
 import { settleShownPushes } from "@/lib/web-push";
@@ -801,6 +802,8 @@ export function useChannelRealtime(orgId: string, channelId: string, enabled: bo
       handledEvents.add(event);
       streams.apply(event);
       applyMembershipEvent(qc, orgId, event);
+      // A finished agent reply, read aloud where this device asked for it (ADR 0209).
+      if (event.type === "message.created") readArrivedReply(qc, api, orgId, event.message);
       if (event.type === "approval.created" || event.type === "approval.decided") {
         cacheApproval(qc, orgId, event.approval);
       }

@@ -42,6 +42,7 @@ export * from "./push-apns";
 export * from "./push-fcm";
 export * from "./push-relay";
 export * from "./rate-limiter";
+export * from "./read-aloud";
 export * from "./read-capped";
 export * from "./redact";
 export * from "./s3";

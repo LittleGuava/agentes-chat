@@ -2520,6 +2520,19 @@
     "endOfReply": "回复结束",
     "mentionSuggestions": "提及建议"
   },
+  "readAloud": {
+    "listen": "收听",
+    "stop": "停止",
+    "failed": "现在无法朗读。",
+    "limit": "你已达到今天收听回复的上限。",
+    "auto": "朗读回复",
+    "autoHint": "在此设备上朗读打开的对话中收到的每条智能体回复。",
+    "voice": "声音",
+    "voiceHint": "朗读其回复所用的声音：ElevenLabs 的声音 ID，或你的语音服务器认识的声音名称。",
+    "voiceDefault": "默认声音",
+    "voiceInvalid": "只能使用字母、数字、点、连字符和下划线。",
+    "voiceSaved": "声音已保存"
+  },
   "receipts": {
     "picked_other": "{{names}} 将会回答",
     "claimed_other": "{{names}} 正在回答",

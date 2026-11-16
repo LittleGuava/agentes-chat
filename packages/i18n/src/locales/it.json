@@ -2680,6 +2680,19 @@
     "endOfReply": "Fine della risposta",
     "mentionSuggestions": "Suggerimenti di menzione"
   },
+  "readAloud": {
+    "listen": "Ascolta",
+    "stop": "Ferma",
+    "failed": "Non è stato possibile leggerlo ad alta voce ora.",
+    "limit": "Hai raggiunto il limite di oggi per ascoltare le risposte.",
+    "auto": "Leggi le risposte ad alta voce",
+    "autoHint": "Ogni risposta di un agente che arriva nella conversazione aperta viene letta ad alta voce, su questo dispositivo.",
+    "voice": "Voce",
+    "voiceHint": "La voce in cui vengono lette le sue risposte: l'ID di una voce ElevenLabs, o il nome di una voce che il tuo server vocale conosce.",
+    "voiceDefault": "Voce predefinita",
+    "voiceInvalid": "Usa solo lettere, numeri, punti, trattini e trattini bassi.",
+    "voiceSaved": "Voce salvata"
+  },
   "receipts": {
     "picked_one": "{{names}} risponderà",
     "picked_many": "{{names}} risponderanno",

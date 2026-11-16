@@ -6464,6 +6464,39 @@
   "channel.mentionSuggestions": {
     "value": "Mention suggestions"
   },
+  "readAloud.listen": {
+    "value": "Listen"
+  },
+  "readAloud.stop": {
+    "value": "Stop"
+  },
+  "readAloud.failed": {
+    "value": "Couldn't read it aloud now."
+  },
+  "readAloud.limit": {
+    "value": "You've reached today's limit for listening to replies."
+  },
+  "readAloud.auto": {
+    "value": "Read replies aloud"
+  },
+  "readAloud.autoHint": {
+    "value": "Each agent reply that arrives in the open conversation is read aloud, on this device."
+  },
+  "readAloud.voice": {
+    "value": "Voice"
+  },
+  "readAloud.voiceHint": {
+    "value": "The voice its replies are read aloud in: an ElevenLabs voice id, or a voice name your speech server knows."
+  },
+  "readAloud.voiceDefault": {
+    "value": "Default voice"
+  },
+  "readAloud.voiceInvalid": {
+    "value": "Use only letters, numbers, dots, hyphens and underscores."
+  },
+  "readAloud.voiceSaved": {
+    "value": "Voice saved"
+  },
   "receipts.picked": {
     "value": {
       "one": "{{names}} will answer",

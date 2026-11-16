@@ -243,6 +243,8 @@ export const agents = pgTable(
      * `organization_settings.agent_media` allows. Off: never.
      */
     mediaReplies: boolean().notNull().default(true),
+    /** The voice its replies are read aloud in (ADR 0209): the engine's voice id; null = the server's default. */
+    readAloudVoice: text(),
     /**
      * The most context its model reads, in tokens (`200000`, `400000`, `1000000`; validated in code): the API
      * brain compacts past it, Claude Code and Codex compact there too. Null = the model's own window.

@@ -591,7 +591,8 @@ export const envVars = {
   },
   ELEVENLABS_API_KEY: {
     schema: z.string().optional(),
-    description: "ElevenLabs key for voice messages, optional (ADR 0100). The audio goes to ElevenLabs to become text.",
+    description:
+      "ElevenLabs key for voice messages, optional (ADR 0100): the audio goes to ElevenLabs to become text. With `READ_ALOUD_ENGINE=elevenlabs`, also the key that reads agents' replies aloud (ADR 0209).",
     section: "Chat",
     secret: true,
   },
@@ -690,6 +691,51 @@ export const envVars = {
   VOICE_CALL_SPEECH_VOICE: {
     schema: z.string().max(100).optional(),
     description: "The voice it reads in, a name that server knows (default `alloy`).",
+    section: "Chat",
+  },
+  READ_ALOUD_ENGINE: {
+    schema: z.enum(["off", "elevenlabs", "local"]).default("off"),
+    description:
+      "Reads agents' replies aloud, for the \"Ouvir\" button (ADR 0209). `off`: no button. `elevenlabs`: ElevenLabs with `ELEVENLABS_API_KEY`; the reply's words go to ElevenLabs. `local`: a server of your own speaking the OpenAI speech format at `READ_ALOUD_URL` (Kokoro, Speaches); the words stay with you. A key set for voice messages alone never turns this on.",
+    section: "Chat",
+  },
+  READ_ALOUD_VOICE: {
+    schema: z
+      .string()
+      .regex(/^[A-Za-z0-9_.-]{1,100}$/)
+      .optional(),
+    description:
+      "The voice replies are read in when the agent has none of its own: an ElevenLabs voice id, or a voice name your server knows. Default: ElevenLabs' `JBFqnCBsd6RMkjVDRZzb`, or `alloy` on the OpenAI format.",
+    section: "Chat",
+  },
+  READ_ALOUD_URL: {
+    schema: z.url().optional(),
+    description:
+      "With `READ_ALOUD_ENGINE=local`: the base of a speech server of your own in the OpenAI format; requests go to `/audio/speech` under it. It may be on your own network: only this server calls it.",
+    section: "Chat",
+    example: "http://tts:8880/v1",
+  },
+  READ_ALOUD_MODEL: {
+    schema: z.string().optional(),
+    description: "The model that speech server loads (default `tts-1`).",
+    section: "Chat",
+  },
+  READ_ALOUD_API_KEY: {
+    schema: z.string().optional(),
+    description: "The key that speech server asks for, if it asks for one (sent as `Authorization: Bearer`).",
+    section: "Chat",
+    secret: true,
+  },
+  READ_ALOUD_CACHE_DAYS: {
+    schema: z.coerce.number().int().min(1).default(7),
+    description:
+      "Days a reply read aloud is kept, so everyone who listens hears the same file (ADR 0209). After that it is made again when someone listens. At least 1.",
+    section: "Chat",
+  },
+  READ_ALOUD_LIMIT_PERSON_CHARS_PER_DAY: {
+    schema: z.coerce.number().int().min(0).default(20000),
+    description:
+      "agentes.chat's own servers: characters of replies one person may have read aloud in 24 hours (ADR 0209); a reply already read plays for free. 0 = no limit. Never applies on a self-hosted server.",
     section: "Chat",
   },
   CONNECTOR_GITHUB_CLIENT_ID: {

@@ -49,6 +49,7 @@ import {
   purgeDeletedArtifacts,
   purgeDeletedWikiPages,
   queueApprovalDigests,
+  type ReadAloudDeps,
   reapRoutineRuns,
   recheckStuckPlans,
   reconcileComposioAccounts,
@@ -60,6 +61,7 @@ import {
   sweepEndedInboxes,
   sweepExpiredVoice,
   sweepFeedbackFiles,
+  sweepReadAloud,
   sweepWidgetDrafts,
   type VoiceDeps,
   wakeSnoozedNotifications,
@@ -123,6 +125,8 @@ export interface WorkerDeps {
   feedbackFiles?: FeedbackFileDeps;
   /** Voice recordings (deleting them past their retention, ADR 0100). */
   voice?: VoiceDeps;
+  /** Replies read aloud (deleting the cache past its days, ADR 0209). */
+  readAloud?: ReadAloudDeps;
   /** Approval reminder emails. */
   approvalDigest?: { publicUrl: string; afterHours: number };
   /** People's mailboxes (ADR 0038): IMAP polling for routines, and Composio account checks. */
@@ -178,6 +182,7 @@ export const WORKER_INTERVALS_MS = {
   /** Wiki pages in the trash past 30 days are removed with their history. */
   wikiPurge: 6 * 3600_000,
   voiceExpiry: 24 * 3600_000,
+  readAloudExpiry: 3600_000,
   /** How often watched IMAP folders are looked at (each is checked every `MAIL_POLL_SECONDS`). */
   mailPoll: 30_000,
   /** Composio accounts' state: mailboxes (expired → "Reconnect") and connectors marked to reconnect (working again → active). */
@@ -430,6 +435,14 @@ export function startWorkers(deps: WorkerDeps) {
     every("voiceExpiry", WORKER_INTERVALS_MS.voiceExpiry, async () => {
       const { swept, failed } = await sweepExpiredVoice(voice);
       if (swept + failed > 0) log.info("expired voice recordings deleted", { swept, failed });
+    });
+  }
+
+  const readAloud = deps.readAloud;
+  if (readAloud) {
+    every("readAloudExpiry", WORKER_INTERVALS_MS.readAloudExpiry, async () => {
+      const swept = await sweepReadAloud(readAloud);
+      if (swept > 0) log.info("replies read aloud deleted from the cache", { swept });
     });
   }
 

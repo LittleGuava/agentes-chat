@@ -2517,6 +2517,19 @@
     "endOfReply": "返信の終わり",
     "mentionSuggestions": "メンションの候補"
   },
+  "readAloud": {
+    "listen": "聞く",
+    "stop": "停止",
+    "failed": "今は読み上げできませんでした。",
+    "limit": "今日の返信の読み上げ上限に達しました。",
+    "auto": "返信を読み上げる",
+    "autoHint": "開いている会話に届いたエージェントの返信を、このデバイスで読み上げます。",
+    "voice": "声",
+    "voiceHint": "返信を読み上げる声：ElevenLabs の声の ID、または音声サーバーが知っている声の名前。",
+    "voiceDefault": "既定の声",
+    "voiceInvalid": "英数字、ピリオド、ハイフン、アンダースコアのみ使えます。",
+    "voiceSaved": "声を保存しました"
+  },
   "receipts": {
     "picked_other": "{{names}}が回答します",
     "claimed_other": "{{names}}が回答中",

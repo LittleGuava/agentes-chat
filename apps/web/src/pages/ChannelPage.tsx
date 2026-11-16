@@ -373,6 +373,7 @@ import { AuthorStatus } from "@/components/Presence";
 import { ProfileTrigger } from "@/components/ProfileCard";
 import { ReachLines } from "@/components/ReachLines";
 import { MessageReactions, useEmojiLabels } from "@/components/Reactions";
+import { ListenButton } from "@/components/ReadAloud";
 import {
   type AskRegistry,
   AskRegistryProvider,
@@ -5141,7 +5142,12 @@ export const TimelineMessage = memo(function TimelineMessage({
                 agentName={agent?.name ?? t("channel.unknownAgent")}
                 active={active}
                 initial={m.reactions}
-                quick={<ReplyButton message={m} />}
+                quick={
+                  <>
+                    <ReplyButton message={m} />
+                    <ListenButton message={m} />
+                  </>
+                }
                 more={<MessageMoreMenu entries={menu.more} />}
               />
             )}

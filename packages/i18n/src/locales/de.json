@@ -2596,6 +2596,19 @@
     "endOfReply": "Ende der Antwort",
     "mentionSuggestions": "Vorschläge für Erwähnungen"
   },
+  "readAloud": {
+    "listen": "Anhören",
+    "stop": "Stopp",
+    "failed": "Konnte es gerade nicht vorlesen.",
+    "limit": "Du hast das heutige Limit zum Anhören von Antworten erreicht.",
+    "auto": "Antworten vorlesen",
+    "autoHint": "Jede Antwort eines Agenten, die im geöffneten Gespräch ankommt, wird auf diesem Gerät vorgelesen.",
+    "voice": "Stimme",
+    "voiceHint": "Die Stimme, in der seine Antworten vorgelesen werden: eine ElevenLabs-Stimmen-ID oder der Name einer Stimme, die dein Sprachserver kennt.",
+    "voiceDefault": "Standardstimme",
+    "voiceInvalid": "Nur Buchstaben, Zahlen, Punkte, Bindestriche und Unterstriche.",
+    "voiceSaved": "Stimme gespeichert"
+  },
   "receipts": {
     "picked_one": "{{names}} wird antworten",
     "picked_other": "{{names}} werden antworten",

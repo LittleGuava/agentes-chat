@@ -388,6 +388,10 @@ const AgentDetail = z
       description:
         "It may send a sticker or a GIF (ADR 0091): when someone asks for one, and after a light reply as often as the workspace's `agentMedia` allows.",
     }),
+    readAloudVoice: z.string().nullable().openapi({
+      description:
+        "The voice its replies are read aloud in (ADR 0209): the engine's voice id (an ElevenLabs voice id, or a name the server's own engine knows); null = the server's default.",
+    }),
   })
   .openapi("AgentDetail");
 
@@ -1606,6 +1610,7 @@ export function managementRoutes(deps: AppDeps) {
           seesDetails,
           appearance: v.appearance,
           mediaReplies: v.mediaReplies,
+          readAloudVoice: v.readAloudVoice,
           channels: d.channels,
           createdAt: v.createdAt.toISOString(),
         },

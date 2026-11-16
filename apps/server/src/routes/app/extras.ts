@@ -9,6 +9,7 @@ import type {
   JevKey,
   McpConnect,
   ModelGateway,
+  ReadAloudDeps,
   ResolveHost,
   RouterDeps,
   SandboxDeps,
@@ -69,4 +70,6 @@ export interface AppExtras {
   /** Speech engines and what voice messages need (ADR 0100); absent: no voice messages. */
   speech?: SpeechSettings;
   voice?: VoiceDeps;
+  /** Agents' replies read aloud (ADR 0209); absent: no "Ouvir". */
+  readAloud?: ReadAloudDeps;
 }

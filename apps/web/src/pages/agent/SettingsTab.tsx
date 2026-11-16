@@ -46,6 +46,7 @@ import {
 import { AgentSecretsList } from "@/components/AgentSecrets";
 import { LoadingLine } from "@/components/Loading";
 import { useOrg } from "@/components/org-context";
+import { ReadAloudVoiceField } from "@/components/ReadAloud";
 import { ReportsList, ReportsToField } from "@/components/team/ReportsTo";
 import { useComputerEdition } from "@/components/WorkspaceComputer";
 import { useDirectory } from "@/hooks/useDirectory";
@@ -333,6 +334,8 @@ export function SettingsTab({
                   {/* Responde a (ADR 0148 addendum): applied at once with Desfazer, never part of the save bar. In a
                     personal workspace it is in Advanced, with its owner. */}
                   {part === "all" && <ReportsTo />}
+                  {/* The voice its replies are read aloud in (ADR 0209): saved when left, never in the save bar. */}
+                  <ReadAloudVoiceField agent={agent} />
                 </div>
               </div>
               {can("look") ? (

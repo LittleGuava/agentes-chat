@@ -2596,6 +2596,19 @@
     "endOfReply": "Yanıtın sonu",
     "mentionSuggestions": "Bahsetme önerileri"
   },
+  "readAloud": {
+    "listen": "Dinle",
+    "stop": "Durdur",
+    "failed": "Şu anda sesli okunamadı.",
+    "limit": "Bugünkü yanıt dinleme sınırına ulaştın.",
+    "auto": "Yanıtları sesli oku",
+    "autoHint": "Açık sohbete gelen her ajan yanıtı bu cihazda sesli okunur.",
+    "voice": "Ses",
+    "voiceHint": "Yanıtlarının okunduğu ses: bir ElevenLabs ses kimliği ya da konuşma sunucunun bildiği bir sesin adı.",
+    "voiceDefault": "Varsayılan ses",
+    "voiceInvalid": "Yalnızca harf, rakam, nokta, kısa çizgi ve alt çizgi kullan.",
+    "voiceSaved": "Ses kaydedildi"
+  },
   "receipts": {
     "picked_one": "{{names}} yanıtlayacak",
     "picked_other": "{{names}} yanıtlayacak",

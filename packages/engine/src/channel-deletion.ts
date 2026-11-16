@@ -11,6 +11,7 @@ import { concludeMission, OPEN_MISSION_STATUSES } from "./missions";
 import { clearChannelNotifications } from "./notifications";
 import { requirePermission } from "./organizations";
 import { enqueue } from "./outbox";
+import { dropChannelReadAloud } from "./read-aloud";
 import { deleteChannelRoutines } from "./routines";
 import { ACTIVE_RUN_STATUSES } from "./run-inbox";
 import { enqueueIndex } from "./search";
@@ -219,5 +220,8 @@ export async function purgeChannel(
       await tx.delete(table).where(and(eq(table.orgId, orgId), eq(table.channelId, channelId)));
     }
   });
-  if (deps.blobs) await dropChannelVoice({ db, blobs: deps.blobs }, orgId, channelId);
+  if (deps.blobs) {
+    await dropChannelVoice({ db, blobs: deps.blobs }, orgId, channelId);
+    await dropChannelReadAloud({ db, blobs: deps.blobs }, orgId, channelId);
+  }
 }
