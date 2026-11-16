@@ -6,7 +6,7 @@ import { CONNECTOR_CATALOG, type ConnectorCategory } from "./catalog";
 import type { ComposioConnectors } from "./composio";
 import { activeConnections } from "./connections";
 import { isCustom } from "./custom";
-import { composioToolkitUrl, MCP_PRESETS, type McpPreset, presetForServer } from "./presets";
+import { composioToolkitUrl, MCP_PRESETS, type McpPreset, presetForServer, takesKey } from "./presets";
 
 /**
  * Brand icons the web app serves, keyed by icon name. One color, from
@@ -93,6 +93,11 @@ export const CONNECTOR_BRANDS: Record<string, { file: string; color: string | nu
   pinterest: { file: "pinterest", color: "#BD081C" },
   reddit: { file: "reddit", color: "#FF4500" },
   whatsapp: { file: "whatsapp", color: "#25D366" },
+  agentmail: { file: "agentmail", color: null },
+  agentphone: { file: "agentphone", color: null },
+  vapi: { file: "vapi", color: null },
+  whop: { file: "whop", color: "#FA4616" },
+  youcom: { file: "youcom", color: "#5368EE" },
 };
 
 export interface ConnectorListingEntry {
@@ -105,7 +110,7 @@ export interface ConnectorListingEntry {
    */
   kind: "catalog" | "remote_mcp";
   category: ConnectorCategory;
-  /** How it connects. A one-click server takes a key too, except one marked `cloudOAuthOnly`, on the Cloud. */
+  /** How it connects. A one-click server takes a key too, except one marked `oauthOnly`, or `cloudOAuthOnly` on the Cloud. */
   auth: ("oauth" | "api_key")[];
   /** Signs in with OAuth here: our OAuth app, the vendor's MCP OAuth, or Composio's. */
   oauthConfigured: boolean;
@@ -210,7 +215,7 @@ export function connectorListing(server: ServerCatalog): ConnectorListingEntry[]
       kind: "remote_mcp",
       category: p.category,
       // A service through Composio signs in there; a vendor's own server takes a key too.
-      auth: way.via === "composio" || (p.cloudOAuthOnly && server.cloud) ? ["oauth"] : ["oauth", "api_key"],
+      auth: way.via !== "composio" && takesKey(p, Boolean(server.cloud)) ? ["oauth", "api_key"] : ["oauth"],
       oauthConfigured: true,
       ...way,
       ...brand(p.icon),
