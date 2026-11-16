@@ -2094,6 +2094,13 @@
       "when": 1794844616300,
       "tag": "0302_right_hand_incidents",
       "breakpoints": true
+    },
+    {
+      "idx": 301,
+      "version": "7",
+      "when": 1794844677781,
+      "tag": "0303_away_email",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,5 @@
 import { and, type Database, eq, schema, sql } from "@agenteschat/db";
+import { ValidationError } from "./errors";
 import type { NotificationKind } from "./notifications";
 import { requirePermission } from "./organizations";
 
@@ -85,16 +86,34 @@ export async function readNoticePrefs(db: Database, orgId: string, userId: strin
   return noticePrefsOf(row?.prefs);
 }
 
+/**
+ * How long a person is away from a workspace before an email of the mentions, DMs and finished work they haven't read
+ * (ADR 0069, addendum 2026-11-15), in minutes, and then at most how often: 15 minutes, an hour, a day. 0: never.
+ */
+export const AWAY_EMAIL_CHOICES = [0, 15, 60, 1440] as const;
+export type AwayEmailMinutes = (typeof AWAY_EMAIL_CHOICES)[number];
+/** What a person who never chose has (`organization_members.away_email_minutes`' default). */
+export const AWAY_EMAIL_DEFAULT_MINUTES: AwayEmailMinutes = 60;
+
+export const isAwayEmailMinutes = (value: unknown): value is AwayEmailMinutes =>
+  (AWAY_EMAIL_CHOICES as readonly unknown[]).includes(value);
+
 export interface NoticePrefsView {
   categories: { id: NoticeCategory; on: boolean }[];
   /** The person's phones that get pushes (the phone app, any workspace): the settings say where they arrive. */
   phones: number;
+  /** The email when they're away: one of `AWAY_EMAIL_CHOICES`, 0 off. */
+  awayEmail: AwayEmailMinutes;
 }
 
 /** The person's choices in this workspace, every category in order, and how many phones they have. */
 export async function noticePrefsView(db: Database, orgId: string, userId: string): Promise<NoticePrefsView> {
   await requirePermission(db, userId, orgId, "read");
-  const prefs = await readNoticePrefs(db, orgId, userId);
+  const [row] = await db
+    .select({ prefs: organizationMembers.noticePrefs, away: organizationMembers.awayEmailMinutes })
+    .from(organizationMembers)
+    .where(and(eq(organizationMembers.orgId, orgId), eq(organizationMembers.userId, userId)));
+  const prefs = noticePrefsOf(row?.prefs);
   const [phones] = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(pushDevices)
@@ -102,6 +121,7 @@ export async function noticePrefsView(db: Database, orgId: string, userId: strin
   return {
     categories: NOTICE_CATEGORIES.map((id) => ({ id, on: prefs[id] ?? NOTICE_DEFAULTS[id] })),
     phones: phones?.n ?? 0,
+    awayEmail: isAwayEmailMinutes(row?.away) ? row.away : AWAY_EMAIL_DEFAULT_MINUTES,
   };
 }
 
@@ -119,6 +139,22 @@ export async function setNoticePref(
     .set({
       noticePrefs: sql`${organizationMembers.noticePrefs} || jsonb_build_object(${category}::text, ${on}::boolean)`,
     })
+    .where(and(eq(organizationMembers.orgId, orgId), eq(organizationMembers.userId, userId)));
+  return noticePrefsView(db, orgId, userId);
+}
+
+/** How long the person is away from this workspace before the email of what they missed (`AWAY_EMAIL_CHOICES`). */
+export async function setAwayEmail(
+  db: Database,
+  orgId: string,
+  userId: string,
+  minutes: number,
+): Promise<NoticePrefsView> {
+  await requirePermission(db, userId, orgId, "read");
+  if (!isAwayEmailMinutes(minutes)) throw new ValidationError(`awayEmail: one of ${AWAY_EMAIL_CHOICES.join(", ")}`);
+  await db
+    .update(organizationMembers)
+    .set({ awayEmailMinutes: minutes })
     .where(and(eq(organizationMembers.orgId, orgId), eq(organizationMembers.userId, userId)));
   return noticePrefsView(db, orgId, userId);
 }

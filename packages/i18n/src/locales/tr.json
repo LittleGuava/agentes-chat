@@ -1892,6 +1892,15 @@
     "on": "Açık",
     "failed": "Kaydedilemedi. Tekrar deneyin.",
     "loadFailed": "Seçimleriniz şu an yüklenemedi.",
+    "away": {
+      "title": "Uzaktayken e-posta",
+      "label": "Kaçırdıklarımı e-postayla gönder",
+      "help": "Görmediğin bahsetmeler, doğrudan mesajlar ve biten işler, bu çalışma alanından bu kadar uzak kaldığında e-postayla gelir. Sonra en fazla bu sıklıkta.",
+      "off": "Asla",
+      "m15": "15 dakika sonra",
+      "m60": "Bir saat sonra",
+      "m1440": "Bir gün sonra"
+    },
     "category": {
       "waiting": {
         "title": "Sizi bekliyor",

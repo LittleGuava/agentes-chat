@@ -111,6 +111,7 @@ import type {
   AuditPage,
   AuditQuery,
   AuditRow,
+  AwayEmailMinutes,
   BlockState,
   BrainScope,
   CalendarEventInput,
@@ -6188,6 +6189,25 @@ export function useSetNoticePref(orgId: string) {
       const before = qc.getQueryData<NoticePrefs>(keys.noticePrefs(orgId));
       qc.setQueryData<NoticePrefs>(keys.noticePrefs(orgId), (prefs) =>
         prefs ? { ...prefs, categories: prefs.categories.map((c) => (c.id === category ? { ...c, on } : c)) } : prefs,
+      );
+      return { before };
+    },
+    onError: (_error, _input, context) => qc.setQueryData(keys.noticePrefs(orgId), context?.before),
+    onSuccess: (prefs) => qc.setQueryData(keys.noticePrefs(orgId), prefs),
+  });
+}
+
+/** The email when I'm away (ADR 0069, addendum 2026-11-15): the choice shows at once, and goes back if refused. */
+export function useSetAwayEmail(orgId: string) {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (minutes: AwayEmailMinutes) => api.notifications.setAwayEmail(orgId, minutes),
+    onMutate: async (minutes) => {
+      await qc.cancelQueries({ queryKey: keys.noticePrefs(orgId) });
+      const before = qc.getQueryData<NoticePrefs>(keys.noticePrefs(orgId));
+      qc.setQueryData<NoticePrefs>(keys.noticePrefs(orgId), (prefs) =>
+        prefs ? { ...prefs, awayEmail: minutes } : prefs,
       );
       return { before };
     },

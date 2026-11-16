@@ -1892,6 +1892,15 @@
     "on": "An",
     "failed": "Das konnte nicht gespeichert werden. Versuch es noch einmal.",
     "loadFailed": "Deine Auswahl konnte gerade nicht geladen werden.",
+    "away": {
+      "title": "E-Mail, wenn ich weg bin",
+      "label": "Verpasstes per E-Mail",
+      "help": "Erwähnungen, Direktnachrichten und fertige Arbeit, die du nicht gesehen hast, per E-Mail, wenn du so lange nicht in diesem Workspace warst. Danach höchstens so oft.",
+      "off": "Nie",
+      "m15": "Nach 15 Minuten",
+      "m60": "Nach einer Stunde",
+      "m1440": "Nach einem Tag"
+    },
     "category": {
       "waiting": {
         "title": "Wartet auf dich",

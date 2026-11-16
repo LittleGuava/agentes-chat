@@ -1997,6 +1997,15 @@
     "on": "Włączone",
     "failed": "Nie udało się tego zapisać. Spróbuj ponownie.",
     "loadFailed": "Nie udało się teraz wczytać twoich wyborów.",
+    "away": {
+      "title": "E-mail, gdy mnie nie ma",
+      "label": "Wyślij mi e-mailem, co przegapiłem",
+      "help": "Wzmianki, wiadomości bezpośrednie i skończona praca, których nie widziałeś, e-mailem, gdy nie było cię w tym workspace'ie tak długo. Potem najwyżej tak często.",
+      "off": "Nigdy",
+      "m15": "Po 15 minutach",
+      "m60": "Po godzinie",
+      "m1440": "Po dniu"
+    },
     "category": {
       "waiting": {
         "title": "Czeka na ciebie",

@@ -1,5 +1,6 @@
 import { SCREEN_KINDS } from "@agenteschat/adapters";
 import {
+  AWAY_EMAIL_CHOICES,
   askAdmins,
   listNotifications,
   markAllNotificationsDone,
@@ -11,6 +12,7 @@ import {
   NOTIFICATION_KINDS,
   noticePrefsView,
   notificationCounts,
+  setAwayEmail,
   setNoticePref,
   snoozeNotification,
 } from "@agenteschat/engine";
@@ -167,9 +169,15 @@ const NoticeCategory = z.enum(NOTICE_CATEGORIES).openapi({
   description:
     "`waiting` (approvals, questions, help in the browser, anything waiting on you), `replies` (an agent's answer to you), `mentions` (mentions and DMs), `threads`, `tasks`, `routines` (missions and routines that stopped or failed), `computers`, `reactions`.",
 });
+const AwayEmail = z.literal(AWAY_EMAIL_CHOICES).openapi({
+  description:
+    "Minutes away from the workspace before an email of the mentions, DMs and finished work you haven't read, then at most that often (ADR 0069, addendum 2026-11-15). 0: never.",
+});
 const NoticePrefs = z.object({
   categories: z.array(z.object({ id: NoticeCategory, on: z.boolean() })),
   phones: z.number().int().openapi({ description: "Your phones that get pushes (the phone app)." }),
+  awayEmail: AwayEmail,
+  emails: z.boolean().openapi({ description: "Whether this server sends emails: without, no away email goes out." }),
 });
 
 /**
@@ -180,6 +188,7 @@ const NoticePrefs = z.object({
  */
 export function notificationRoutes(deps: AppDeps) {
   const { db, adapters } = deps;
+  const emails = adapters.email.delivers === true;
   const app = createAppRouter(deps);
   app.use("/organizations/*", requireSession(deps.auth));
   const nd = { db, pubsub: adapters.pubsub };
@@ -334,7 +343,7 @@ export function notificationRoutes(deps: AppDeps) {
     }),
     async (c) => {
       const { orgId } = c.req.valid("param");
-      return c.json(await noticePrefsView(db, orgId, c.get("user").id), 200);
+      return c.json({ ...(await noticePrefsView(db, orgId, c.get("user").id)), emails }, 200);
     },
   );
 
@@ -351,7 +360,26 @@ export function notificationRoutes(deps: AppDeps) {
     async (c) => {
       const { orgId } = c.req.valid("param");
       const { category, on } = c.req.valid("json");
-      return c.json(await setNoticePref(db, orgId, c.get("user").id, category, on), 200);
+      return c.json({ ...(await setNoticePref(db, orgId, c.get("user").id, category, on)), emails }, 200);
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "put",
+      path: "/organizations/{orgId}/notification-prefs/away-email",
+      tags,
+      security,
+      summary: "How long I'm away from this workspace before an email of what I missed",
+      description:
+        "The mentions, DMs and finished work still unread in your inbox, once you were away this long, then at most that often. 0 turns it off.",
+      request: { params: OrgParams, body: body(z.object({ minutes: AwayEmail })) },
+      responses: { 200: json(NoticePrefs), ...errors },
+    }),
+    async (c) => {
+      const { orgId } = c.req.valid("param");
+      const { minutes } = c.req.valid("json");
+      return c.json({ ...(await setAwayEmail(db, orgId, c.get("user").id, minutes)), emails }, 200);
     },
   );
 

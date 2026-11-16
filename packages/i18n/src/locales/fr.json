@@ -1945,6 +1945,15 @@
     "on": "Activé",
     "failed": "Impossible d'enregistrer. Réessayez.",
     "loadFailed": "Impossible de charger vos choix pour le moment.",
+    "away": {
+      "title": "Email quand je suis absent",
+      "label": "M'envoyer ce que j'ai manqué",
+      "help": "Mentions, messages directs et travail terminé que vous n'avez pas vus, par email, après ce temps hors de ce workspace. Ensuite, au plus à cette fréquence.",
+      "off": "Jamais",
+      "m15": "Après 15 minutes",
+      "m60": "Après une heure",
+      "m1440": "Après un jour"
+    },
     "category": {
       "waiting": {
         "title": "Vous attend",

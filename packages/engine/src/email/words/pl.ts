@@ -6,6 +6,11 @@ import type { EmailWords } from "./index";
  * The emails in pl: whatever is here replaces English, word group by word group (`deepMerge`); write a count's
  * forms with `plural("pl", n, { one, few, many, other })` from `@agenteschat/i18n/format`.
  */
+/** How long the reader was away, and how often the away email comes (ADR 0069, addendum 2026-11-15). */
+const awayFor = (m: number) => (m >= 1440 ? "dzień" : m >= 60 ? "godzinę" : `${m} minut`);
+const awayOften = (m: number) =>
+  `Przychodzi najwyżej ${m >= 1440 ? "raz dziennie" : m >= 60 ? "raz na godzinę" : `co ${m} minut`}, nigdy dwa razy w tej samej sprawie. Zmień lub wyłącz w Ustawieniach, Powiadomienia.`;
+
 export const words: EmailWords = {
   sentBy: (host) =>
     host ? atHost("Wysłano z serwera agentes.chat pod", "adresem", host) : "Wysłano przez agentes.chat.",
@@ -209,6 +214,35 @@ export const words: EmailWords = {
         }),
       why: (_org, hours) =>
         `Otrzymujesz tę wiadomość, ponieważ możesz zatwierdzać te prośby.${hours ? ` Przychodzi, gdy prośba czeka dłużej niż ${hours} godz., raz na każdą prośbę.` : ""}`,
+    },
+  },
+  away: {
+    subject: (n) =>
+      plural("pl", n, {
+        one: "Coś nowego, gdy cię nie było",
+        few: `${n} nowe rzeczy, gdy cię nie było`,
+        many: `${n} nowych rzeczy, gdy cię nie było`,
+        other: `${n} nowej rzeczy, gdy cię nie było`,
+      }),
+    preheader: "Wzmianki, wiadomości bezpośrednie i skończona praca, których jeszcze nie widziałeś.",
+    headline: (n) =>
+      plural("pl", n, {
+        one: "Czeka na ciebie jedna rzecz",
+        few: `Czekają na ciebie ${n} rzeczy`,
+        many: `Czeka na ciebie ${n} rzeczy`,
+        other: `Czeka na ciebie ${n} rzeczy`,
+      }),
+    body: (org) => ["Gdy cię nie było, w ", { b: org }, " pojawiło się to, a ty jeszcze tego nie widziałeś."],
+    groups: { mentions: "Wspomnieli o tobie", dms: "Wiadomości bezpośrednie", done: "Skończona praca" },
+    media: { gif: "Wysłał GIF-a", sticker: "Wysłał naklejkę", voice: "Wysłał wiadomość głosową" },
+    message: "Wysłał wiadomość",
+    more: (k) => `I jeszcze ${k} w skrzynce odbiorczej.`,
+    button: "Otwórz skrzynkę odbiorczą",
+    why: (org, minutes) =>
+      `Dostajesz ten e-mail, bo nie było cię w ${org} przez ${awayFor(minutes)}. ${awayOften(minutes)}`,
+    personal: {
+      body: () => "Gdy cię nie było, pojawiło się to, a ty jeszcze tego nie widziałeś.",
+      why: (_org, minutes) => `Dostajesz ten e-mail, bo nie było cię przez ${awayFor(minutes)}. ${awayOften(minutes)}`,
     },
   },
   ready: {

@@ -7371,11 +7371,21 @@ export type NoticeCategory =
   | "computers"
   | "reactions";
 
+/**
+ * Minutes away from a workspace before an email of the mentions, DMs and finished work I haven't read, then at most
+ * that often (`AWAY_EMAIL_CHOICES` in packages/engine/src/notice-prefs.ts, ADR 0069 addendum 2026-11-15). 0: never.
+ */
+export type AwayEmailMinutes = 0 | 15 | 60 | 1440;
+
 export interface NoticePrefs {
   /** Every category, in the order the settings show them. */
   categories: { id: NoticeCategory; on: boolean }[];
   /** My phones that get pushes (the phone app). */
   phones: number;
+  /** The email when I'm away from this workspace. */
+  awayEmail: AwayEmailMinutes;
+  /** Whether this server sends emails at all: without, the setting isn't offered. */
+  emails: boolean;
 }
 
 /** A tool at the top of the sidebar (`SIDEBAR_ITEMS` in packages/engine/src/sidebar-items.ts). */

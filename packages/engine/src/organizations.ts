@@ -2359,19 +2359,26 @@ export async function joinOrganization(
   await restoreDms(tx, orgId, userId);
 }
 
-/** Marks a person as seen now in an organization (WebSocket connect/disconnect). */
-/** Not while the person is hidden: a "last seen" that keeps moving would give them away. */
+/**
+ * Marks a person as seen now in an organization (WebSocket connect/disconnect). `lastSeenAt` not while the person is
+ * hidden: a "last seen" that keeps moving would give them away. `activeAt`, which nobody else sees, always.
+ */
 export async function touchLastSeen(db: Database, orgId: string, userId: string, at = new Date()) {
   await db
     .update(organizationMembers)
-    .set({ lastSeenAt: at })
-    .where(
-      and(
-        eq(organizationMembers.orgId, orgId),
-        eq(organizationMembers.userId, userId),
-        ne(organizationMembers.availability, "hidden"),
-      ),
-    );
+    .set({
+      activeAt: at,
+      lastSeenAt: sql`case when ${organizationMembers.availability} = 'hidden' then ${organizationMembers.lastSeenAt} else ${at} end`,
+    })
+    .where(and(eq(organizationMembers.orgId, orgId), eq(organizationMembers.userId, userId)));
+}
+
+/** The person still has the workspace open (an open socket, every few minutes): only the private `activeAt` moves. */
+export async function markActive(db: Database, orgId: string, userId: string, at = new Date()) {
+  await db
+    .update(organizationMembers)
+    .set({ activeAt: at })
+    .where(and(eq(organizationMembers.orgId, orgId), eq(organizationMembers.userId, userId)));
 }
 
 export type InviteOutcome =

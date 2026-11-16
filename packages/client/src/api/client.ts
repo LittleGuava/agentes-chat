@@ -88,6 +88,7 @@ import type {
   AuditPage,
   AuditQuery,
   AuthConfig,
+  AwayEmailMinutes,
   BatchInviteResult,
   BillingFrom,
   BlockState,
@@ -1851,6 +1852,8 @@ export interface ApiClient {
     /** What reaches my devices as a notification in this workspace (ADR 0071 §8). */
     prefs(orgId: string): Promise<NoticePrefs>;
     setPref(orgId: string, category: NoticeCategory, on: boolean): Promise<NoticePrefs>;
+    /** How long I'm away from this workspace before an email of what I missed (0: never). */
+    setAwayEmail(orgId: string, minutes: AwayEmailMinutes): Promise<NoticePrefs>;
     /** "Pedir a um admin": an inbox row for whoever may do it (`admin_ask`); how many it reached. */
     askAdmins(orgId: string, ask: AdminAsk): Promise<{ sent: number }>;
   };

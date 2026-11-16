@@ -16,6 +16,7 @@ import {
 import type { Config } from "@agenteschat/config";
 import { and, type Database, eq, inArray, isNotNull, isNull, or, schema, sql } from "@agenteschat/db";
 import {
+  ACTIVE_MARK_MS,
   activityAudience,
   adminChannelSql,
   announcePresence,
@@ -29,6 +30,7 @@ import {
   getMembership,
   isConnected,
   type LiveWatch,
+  markActive,
   NotFoundError,
   type OrgEvent,
   profileIdOfKey,
@@ -105,6 +107,8 @@ export interface RealtimeDeps {
   streams?: StreamSockets;
   /** How often an open socket checks its session and channels again (`SESSION_RECHECK_MS`; tests go faster). */
   sessionRecheckMs?: number;
+  /** How often an open socket marks its person active, on a recheck (`ACTIVE_MARK_MS`; tests go faster). */
+  activeMarkMs?: number;
 }
 
 /** A browser tab of the web app. */
@@ -116,6 +120,8 @@ export interface BrowserSocketData {
   sessionValidatedAt: number;
   sessionCheckInFlight: Promise<boolean> | null;
   sessionTimer: ReturnType<typeof setInterval> | null;
+  /** When this socket last marked its person active (`markActive`): the away email's "here" (ADR 0069). */
+  activeMarkedAt: number;
   orgId: string;
   subscriptions: Map<string, Unsubscribe>;
   /** Org and user topic listeners. */
@@ -737,6 +743,7 @@ export function createRealtime(deps: RealtimeDeps) {
         sessionValidatedAt: 0,
         sessionCheckInFlight: null,
         sessionTimer: null,
+        activeMarkedAt: 0,
         orgId,
         subscriptions: new Map(),
         system: [],
@@ -778,6 +785,10 @@ export function createRealtime(deps: RealtimeDeps) {
           void (async () => {
             try {
               if (!(await liveSession(ws, true))) return;
+              if (Date.now() - ws.data.activeMarkedAt >= (deps.activeMarkMs ?? ACTIVE_MARK_MS)) {
+                ws.data.activeMarkedAt = Date.now();
+                await markActive(deps.db, orgId, user.id).catch(() => {});
+              }
               let timeout: ReturnType<typeof setTimeout> | undefined;
               const deadline = new Promise<never>((_, reject) => {
                 timeout = setTimeout(
@@ -837,6 +848,7 @@ export function createRealtime(deps: RealtimeDeps) {
         // Closed while it connected: `close` found nothing to disconnect, so nobody stays online for this socket.
         if (ws.readyState !== 1) return void (await deps.presence.disconnect(orgId, user.id, ws.data.connectionId));
         await touchLastSeen(deps.db, orgId, user.id).catch(() => {});
+        ws.data.activeMarkedAt = Date.now();
         if (!wasConnected) await announcePresence(deps, orgId, user.id).catch(() => {});
         send(ws, { type: "ready", orgId: ws.data.orgId, userId: ws.data.user.id });
       },
