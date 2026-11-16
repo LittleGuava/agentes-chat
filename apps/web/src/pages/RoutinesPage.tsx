@@ -289,6 +289,7 @@ export function useWhen() {
     if (r.trigger.type === "email") return emailWhen(t, r, mailboxes.data);
     if (r.trigger.type === "connector") return connectorWhen(t, r);
     if (r.trigger.type === "webhook") return t("routines.webhook.when");
+    if (r.trigger.type === "meeting") return t("routines.meeting.when", { minutes: r.trigger.leadMinutes });
     const zone = r.trigger.type === "event" ? "" : r.trigger.timezone || "UTC";
     const zoneNote = zone && zone !== myZone ? ` (${timezoneName(zone, i18n.language)})` : "";
     if (r.trigger.type === "schedule")
@@ -2547,34 +2548,38 @@ function RoutineDialog({
     if (r.prompt !== null && prompt.trim() !== r.prompt) patch.prompt = prompt.trim();
     if (agentId !== r.agentId) patch.agentId = agentId;
     if (target !== TARGET_KEEP && target !== targetChoice(r.target)) patch.target = targetValue();
+    // The form can't set a meeting trigger (ADR 0190): it keeps it, whatever the form shows.
     const triggerChanged =
-      kind === "connector"
-        ? r.trigger.type !== "connector" ||
-          JSON.stringify(connectorTrigger()) !==
-            JSON.stringify({
-              type: "connector",
-              connectionId: r.trigger.connectionId,
-              event: r.trigger.event,
-              inboxId: null,
-              filter: cleanConnectorFilter(r.trigger.filter),
-            })
-        : kind === "webhook"
-          ? r.trigger.type !== "webhook"
-          : kind === "email"
-            ? r.trigger.type !== "email" ||
-              JSON.stringify(emailTrigger()) !==
-                JSON.stringify({
-                  type: "email",
-                  accountId: r.trigger.accountId,
-                  folder: r.trigger.folder,
-                  filter: cleanFilter(r.trigger.filter ?? {}),
-                })
-            : kind === "event"
-              ? r.trigger.type !== "event" || r.trigger.event !== event
-              : once
-                ? r.trigger.type !== "once" ||
-                  JSON.stringify(trigger()) !== JSON.stringify({ type: "once", at: r.trigger.at, timezone: savedZone })
-                : r.trigger.type !== "schedule" || JSON.stringify(toApiRule(rule)) !== savedRule;
+      r.trigger.type === "meeting"
+        ? false
+        : kind === "connector"
+          ? r.trigger.type !== "connector" ||
+            JSON.stringify(connectorTrigger()) !==
+              JSON.stringify({
+                type: "connector",
+                connectionId: r.trigger.connectionId,
+                event: r.trigger.event,
+                inboxId: null,
+                filter: cleanConnectorFilter(r.trigger.filter),
+              })
+          : kind === "webhook"
+            ? r.trigger.type !== "webhook"
+            : kind === "email"
+              ? r.trigger.type !== "email" ||
+                JSON.stringify(emailTrigger()) !==
+                  JSON.stringify({
+                    type: "email",
+                    accountId: r.trigger.accountId,
+                    folder: r.trigger.folder,
+                    filter: cleanFilter(r.trigger.filter ?? {}),
+                  })
+              : kind === "event"
+                ? r.trigger.type !== "event" || r.trigger.event !== event
+                : once
+                  ? r.trigger.type !== "once" ||
+                    JSON.stringify(trigger()) !==
+                      JSON.stringify({ type: "once", at: r.trigger.at, timezone: savedZone })
+                  : r.trigger.type !== "schedule" || JSON.stringify(toApiRule(rule)) !== savedRule;
     if (triggerChanged) patch.trigger = trigger();
     if (report !== r.report) patch.report = report;
     return patch;
