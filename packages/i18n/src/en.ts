@@ -1399,6 +1399,7 @@ export const en = {
         unchanged: "already here",
         skip: "skipped",
         join: "already exists",
+        keptHere: "changed here",
       },
       why: {
         exists: "One with this name already exists here, and it stays as it is.",
@@ -1412,6 +1413,7 @@ export const en = {
         invalid: "It came incomplete, or in a shape we can't use here.",
         failed: "Couldn't be created right now. Try again.",
         too_many_routines: "Arrives paused: its agent is at the limit of active routines.",
+        edited_here: "Changed here since the import: it stays as it is.",
       },
       whyExists: {
         skill: "A skill with this name already exists here. It stays as it is.",
@@ -1420,6 +1422,10 @@ export const en = {
       renamed: "Becomes @{{handle}}: @{{wanted}} already exists here.",
       joins: "The agents join the existing #{{name}}.",
       updates: "Changed in the other app since the last import: the version here makes way for the new one.",
+      /** An item someone changed here, also changed at the source: unchecked it stays, checked it is overwritten. */
+      keptHere:
+        "Changed here since the import, and in the other app too. It stays as it is. Check it to take the new version.",
+      overwrites: "Replaces what was changed here with the new version.",
       trimmed: "Cut to fit: {{fields}}.",
       fields: {
         name: "name",
@@ -1523,6 +1529,8 @@ export const en = {
         kept_other: "{{count}} items were already here and stay as they are.",
         capped_one: "{{count}} routine arrived paused: its agent was at the limit of active routines.",
         capped_other: "{{count}} routines arrived paused: their agents were at the limit of active routines.",
+        keptHere_one: "{{count}} item changed here stays as it is.",
+        keptHere_other: "{{count}} items changed here stay as they are.",
         notCame: "Didn't come",
         another: "Import another file",
       },
@@ -16870,6 +16878,25 @@ export const en = {
       download: "Download the file",
       neverLine: "Never includes keys, passwords, logins or conversations.",
       whatsIn: "What's in the file",
+      /** What this person brought from other apps, each package with a way to undo it. */
+      undo: {
+        title: "Your imports",
+        action: "Undo",
+        dialogTitle: "Undo the import from {{name}}",
+        back: "Agents and channels are archived and skills deleted. Importing again brings them back.",
+        goes: "Removed",
+        stays: "Stays",
+        why: {
+          edited_here: "Changed here since the import.",
+          in_use: "People talked in it.",
+          failed: "Couldn't be undone. Try again.",
+        },
+        nothing: "Nothing to undo: what it brought was changed here.",
+        confirm: "Undo import",
+        done_one: "{{count}} item undone.",
+        done_other: "{{count}} items undone.",
+        failed: "Couldn't undo the import. Try again.",
+      },
     },
     readOnly: "Only admins change settings.",
     default: "Workspace default",

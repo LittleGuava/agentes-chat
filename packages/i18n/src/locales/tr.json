@@ -1268,7 +1268,8 @@
         "update": "güncellenecek",
         "unchanged": "zaten burada",
         "skip": "atlandı",
-        "join": "zaten var"
+        "join": "zaten var",
+        "keptHere": "burada değişti"
       },
       "why": {
         "exists": "Burada bu adda biri zaten var ve olduğu gibi kalır.",
@@ -1281,7 +1282,8 @@
         "channel_not_picked": "Kanalı gelmiyor.",
         "invalid": "Eksik ya da burada kullanamayacağımız bir biçimde geldi.",
         "failed": "Şu an oluşturulamadı. Tekrar deneyin.",
-        "too_many_routines": "Duraklatılmış olarak gelir: ajanı etkin rutin sınırında."
+        "too_many_routines": "Duraklatılmış olarak gelir: ajanı etkin rutin sınırında.",
+        "edited_here": "İçe aktarmadan sonra burada değişti: olduğu gibi kalır."
       },
       "whyExists": {
         "skill": "Burada bu adda bir beceri zaten var. Olduğu gibi kalır.",
@@ -1290,6 +1292,8 @@
       "renamed": "@{{handle}} olur: @{{wanted}} burada zaten var.",
       "joins": "Ajanlar mevcut #{{name}} kanalına katılır.",
       "updates": "Son içe aktarmadan beri diğer uygulamada değişti: buradaki sürüm yerini yenisine bırakır.",
+      "keptHere": "İçe aktarmadan sonra burada değişti, diğer uygulamada da. Olduğu gibi kalır. Yeni sürümü almak için işaretleyin.",
+      "overwrites": "Burada değiştirileni yeni sürümle değiştirir.",
       "trimmed": "Sığması için kısaltıldı: {{fields}}.",
       "fields": {
         "name": "ad",
@@ -1391,6 +1395,8 @@
         "kept_other": "{{count}} öğe zaten buradaydı ve olduğu gibi kalıyor.",
         "capped_one": "{{count}} rutin duraklatılmış olarak geldi: ajanı etkin rutin sınırındaydı.",
         "capped_other": "{{count}} rutin duraklatılmış olarak geldi: ajanları etkin rutin sınırındaydı.",
+        "keptHere_one": "Burada değişen {{count}} öğe olduğu gibi kaldı.",
+        "keptHere_other": "Burada değişen {{count}} öğe olduğu gibi kaldı.",
         "notCame": "Gelmeyenler",
         "another": "Başka bir dosya içe aktar"
       },
@@ -16493,7 +16499,25 @@
       "exportTitle": "Dışa aktar",
       "download": "Dosyayı indir",
       "neverLine": "Asla anahtar, şifre, oturum bilgisi ya da konuşma içermez.",
-      "whatsIn": "Dosyada neler var"
+      "whatsIn": "Dosyada neler var",
+      "undo": {
+        "title": "İçe aktarmalarınız",
+        "action": "Geri al",
+        "dialogTitle": "{{name}} içe aktarmasını geri al",
+        "back": "Ajanlar ve kanallar arşivlenir, yetenekler silinir. Yeniden içe aktarmak onları geri getirir.",
+        "goes": "Kaldırılacak",
+        "stays": "Kalacak",
+        "why": {
+          "edited_here": "İçe aktarmadan sonra burada değişti.",
+          "in_use": "İçinde konuşma var.",
+          "failed": "Geri alınamadı. Tekrar deneyin."
+        },
+        "nothing": "Geri alınacak bir şey yok: gelenler burada değişti.",
+        "confirm": "İçe aktarmayı geri al",
+        "done_one": "{{count}} öğe geri alındı.",
+        "done_other": "{{count}} öğe geri alındı.",
+        "failed": "İçe aktarma geri alınamadı. Tekrar deneyin."
+      }
     },
     "readOnly": "Ayarları yalnızca yöneticiler değiştirir.",
     "default": "Çalışma alanı varsayılanı",
