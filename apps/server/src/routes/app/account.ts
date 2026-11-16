@@ -27,6 +27,7 @@ import {
   isEmailVerified,
   isValidTimeZone,
   joinStatus,
+  listAccountSessions,
   listInvitations,
   listMembers,
   listMemberships,
@@ -62,6 +63,8 @@ import {
   setOrgLogo,
   settleJoinRequests,
   signInOptions,
+  signOutAccountSession,
+  signOutOtherAccountSessions,
   soleOwnerRefusal,
   toldReason,
   USER_LOCALES,
@@ -1118,6 +1121,113 @@ export function accountRoutes(deps: AppDeps) {
       // Every session ended: this browser's too.
       for (const cookie of expiredSessionCookies()) c.header("set-cookie", cookie, { append: true });
       return c.json(back, 200);
+    },
+  );
+
+  // ── Where the account is signed in (ADR 0006, addendum 2026-11-15) ────────
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/account/sessions",
+      tags,
+      security,
+      summary: "Where your account is signed in",
+      description:
+        "The account's sessions that still work, this request's first (`current`), then the last used first: each with the device its sign-in came from (`device`, read from its user agent: a browser and its system, the phone app, or `unknown`), the address it signed in from when one was kept, when it signed in and when it was last renewed (`lastActiveAt`, moved at most once a day). Sessions are named by id: no session token is answered.",
+      responses: {
+        200: json(
+          z.object({
+            sessions: z.array(
+              z.object({
+                id: z.string(),
+                current: z.boolean(),
+                device: z.object({
+                  kind: z.enum(["browser", "phone_app", "unknown"]),
+                  browser: z.string().nullable(),
+                  os: z.string().nullable(),
+                }),
+                ip: z.string().nullable(),
+                signedInAt: z.string(),
+                lastActiveAt: z.string(),
+              }),
+            ),
+          }),
+        ),
+        401: errors[401],
+      },
+    }),
+    async (c) => {
+      const current = await sessionOf(deps.auth, c.req.raw.headers);
+      if (!current) return apiError(c, 401, "unauthorized", "Sign in to continue");
+      const sessions = await listAccountSessions(db, current.user.id, current.session.id);
+      return c.json(
+        {
+          sessions: sessions.map((s) => ({
+            ...s,
+            signedInAt: s.signedInAt.toISOString(),
+            lastActiveAt: s.lastActiveAt.toISOString(),
+          })),
+        },
+        200,
+      );
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "delete",
+      path: "/account/sessions/{sessionId}",
+      tags,
+      security,
+      summary: "Sign one of your sessions out",
+      description:
+        "Ends that session at once: its requests answer 401, its open sockets close, and the browser pushes it turned on stop. Not this request's own (`session.current`): signing out is `POST /api/auth/sign-out`.",
+      request: {
+        params: z.object({
+          sessionId: z
+            .string()
+            .min(1)
+            .max(200)
+            .openapi({ param: { name: "sessionId", in: "path" } }),
+        }),
+      },
+      responses: {
+        204: noContent[204],
+        401: errors[401],
+        404: errorResponse("No such session of yours"),
+        409: errorResponse("This request's own session (`session.current`)"),
+      },
+    }),
+    async (c) => {
+      const current = await sessionOf(deps.auth, c.req.raw.headers);
+      if (!current) return apiError(c, 401, "unauthorized", "Sign in to continue");
+      const { sessionId } = c.req.valid("param");
+      if (sessionId === current.session.id) {
+        return apiError(c, 409, "session.current", "This is the session you're using: sign out instead");
+      }
+      if (!(await signOutAccountSession(db, current.user.id, sessionId))) {
+        return apiError(c, 404, "not_found", "Session not found");
+      }
+      return c.body(null, 204);
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "post",
+      path: "/account/sessions/sign-out-others",
+      tags,
+      security,
+      summary: "Sign out every session but this one",
+      description:
+        "Ends every other session of the account, as `DELETE /account/sessions/{sessionId}` ends one; this request's stays. `signedOut`: how many ended.",
+      responses: { 200: json(z.object({ signedOut: z.number().int() })), 401: errors[401] },
+    }),
+    async (c) => {
+      const current = await sessionOf(deps.auth, c.req.raw.headers);
+      if (!current) return apiError(c, 401, "unauthorized", "Sign in to continue");
+      const signedOut = await signOutOtherAccountSessions(db, current.user.id, current.session.id);
+      return c.json({ signedOut }, 200);
     },
   );
 
