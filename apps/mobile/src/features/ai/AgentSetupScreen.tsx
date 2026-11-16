@@ -1,5 +1,7 @@
 import { keys, useAgentBrain, useAiStatus, useApi, useModels, useSetupPreview } from "@agenteschat/client";
 import {
+  approvalsName,
+  approvalsWords,
   autonomyName,
   changes,
   setupOfBrain,
@@ -8,9 +10,11 @@ import {
   sortedResults,
   takers,
 } from "@agenteschat/client/lib/agent-setup";
+import { approvalsLevelOf } from "@agenteschat/client/lib/approvals-level";
 import { setupPlanOpens, setupPlanQuestion } from "@agenteschat/client/lib/audience";
 import { brainLine } from "@agenteschat/client/lib/brain";
 import { firstName } from "@agenteschat/client/lib/format";
+import { can as orgCan } from "@agenteschat/client/lib/permissions";
 import { isAuto } from "@agenteschat/client/lib/providers";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -31,7 +35,8 @@ import { Note } from "./parts";
 /*
  * "Usar em outros agentes" on the phone (ADR 0094), the web's dialog over "Quem pensa" as a screen of its own, from
  * "Pensa com": every other agent with what the agent's setup would do to it (the server's preview), those that can
- * take it first, "Todos" on top. "Usar" sends them in one call; the server checks each again.
+ * take it first, "Todos" on top. "Levar as aprovações" (ADR 0173), only for who manages agents, starts off. "Usar"
+ * sends them in one call; the server checks each again.
  */
 
 /** Opens "Usar em outros agentes" for an agent's saved setup. */
@@ -39,7 +44,7 @@ export const openAgentSetup = (agentId: string) => router.push(`/agent-setup/${a
 
 export function AgentSetupScreen({ agentId }: { agentId: string }) {
   const { t, i18n } = useTranslation();
-  const { orgId } = useOrg();
+  const { orgId, org } = useOrg();
   const api = useApi();
   const qc = useQueryClient();
   const toast = useToast();
@@ -52,7 +57,13 @@ export function AgentSetupScreen({ agentId }: { agentId: string }) {
   // "Levar a autonomia" off: the others keep their own.
   const [withAutonomy, setWithAutonomy] = useState(true);
   const view = brain.data && !withAutonomy ? { ...brain.data, autonomy: undefined } : brain.data;
-  const setup = view ? setupOfBrain(view) : null;
+  // How much it asks goes along only from who manages agents, and only once turned on (ADR 0173).
+  const [withApprovals, setWithApprovals] = useState(false);
+  const self = dir.agentById.get(agentId);
+  const approvals = self && orgCan(org, "manage_agents") ? approvalsLevelOf(self) : undefined;
+  const carriedLevel = withApprovals ? approvals : undefined;
+  const base = view ? setupOfBrain(view) : null;
+  const setup = base && carriedLevel ? { ...base, approvalsLevel: carriedLevel } : base;
   const others = dir.agents.filter((a) => a.id !== agentId);
   const preview = useSetupPreview(
     orgId,
@@ -64,7 +75,12 @@ export function AgentSetupScreen({ agentId }: { agentId: string }) {
   const results = sortedResults(preview.data ?? []);
   const can = takers(results);
   const chosen = can.filter((id) => picked.has(id));
-  const setupText = view ? setupWords(t, i18n.language, view, { apiKey, now: advancedOf(view) }) : "";
+  const setupText = view
+    ? [
+        setupWords(t, i18n.language, view, { apiKey, now: advancedOf(view) }),
+        ...(carriedLevel ? [approvalsWords(t, carriedLevel)] : []),
+      ].join(" · ")
+    : "";
   const toggle = (id: string) =>
     setPicked((p) => {
       const next = new Set(p);
@@ -86,11 +102,13 @@ export function AgentSetupScreen({ agentId }: { agentId: string }) {
     setBusy(true);
     try {
       const results = await api.agents.applySetup(orgId, { setup, agentIds: chosen });
-      const { done, autonomyOnly, missed } = setupOutcome(results, chosen.length);
+      const { done, autonomyOnly, approvalsOnly, missed } = setupOutcome(results, chosen.length);
       if (done > 0)
         toast({ title: t("agentPage.work.brain.copy.done", { count: done, setup: setupText }), icon: "check" });
       if (autonomyOnly > 0)
         toast({ title: t("agentPage.work.brain.copy.autonomyOnly", { count: autonomyOnly }), icon: "check" });
+      if (approvalsOnly)
+        toast({ title: t("agentPage.work.brain.copy.approvalsOnly", { count: approvalsOnly }), icon: "check" });
       if (missed > 0) toast({ title: t("agentPage.work.brain.copy.missed", { count: missed }), icon: "x" });
       router.back();
     } catch {
@@ -135,6 +153,24 @@ export function AgentSetupScreen({ agentId }: { agentId: string }) {
                     toggle={withAutonomy}
                     disabled={busy}
                     onPress={() => setWithAutonomy((on) => !on)}
+                  />
+                </GroupedList>
+              </View>
+            ) : null}
+            {approvals ? (
+              <View style={styles.autonomy}>
+                <GroupedList>
+                  <GroupedRow
+                    icon="shield"
+                    label={t("agentPage.work.brain.copy.withApprovals")}
+                    sub={t("agentPage.work.brain.copy.withApprovalsLine", {
+                      value: approvalsName(t, approvals),
+                      text: t(`approvalsLevel.${approvals}.text`),
+                    })}
+                    subLines={0}
+                    toggle={withApprovals}
+                    disabled={busy}
+                    onPress={() => setWithApprovals((on) => !on)}
                   />
                 </GroupedList>
               </View>

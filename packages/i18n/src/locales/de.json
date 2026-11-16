@@ -3087,8 +3087,8 @@
       "cursor": "Cursor ist auf diesem Computer nicht angemeldet. Verbinde ein Cursor-Konto auf der Seite von {{name}}.",
       "cursor_female": "Cursor ist auf diesem Computer nicht angemeldet. Verbinde ein Cursor-Konto auf der Seite von {{name}}.",
       "grok": "Grok ist auf diesem Computer nicht angemeldet. Verbinde ein Grok-Konto auf der Seite von {{name}}.",
-      "copilot": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "grok_female": "Grok ist auf diesem Computer nicht angemeldet. Verbinde ein Grok-Konto auf der Seite von {{name}}.",
+      "copilot": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "copilot_female": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "antigravity": "Gemini ist auf diesem Computer nicht angemeldet. Verbinde ein Gemini-Konto auf der Seite von {{name}}.",
       "antigravity_female": "Gemini ist auf diesem Computer nicht angemeldet. Verbinde ein Gemini-Konto auf der Seite von {{name}}.",
@@ -3426,7 +3426,8 @@
     "never": {
       "title": "Nie fragen",
       "text": "Fragt nie, auch nicht bei Merge, Deploy, Zahlungen und Routinen."
-    }
+    },
+    "changed": "Freigaben: {{value}}"
   },
   "brakes": {
     "title": "Arbeit, um die niemand gebeten hat",
@@ -5577,6 +5578,9 @@
           "autonomy": "Autonomie: {{from}} → {{to}}",
           "withAutonomy": "Autonomie übernehmen",
           "withAutonomyLine": "{{value}}, wie bei diesem Agenten. Aus: Jeder behält seine eigene.",
+          "approvals": "Freigaben: {{from}} → {{to}}",
+          "withApprovals": "Freigaben übernehmen",
+          "withApprovalsLine": "{{value}}, wie bei diesem Agenten. {{text}} Aus: Jeder behält seine eigenen.",
           "reasons": {
             "not_allowed": "Nur Admins und {{owner}} können es ändern",
             "not_allowedNobody": "Nur Admins können es ändern",
@@ -5598,6 +5602,8 @@
           "done_other": "{{count}} Agenten denken jetzt mit {{setup}}.",
           "autonomyOnly_one": "Bei {{count}} Agenten wurde nur die Autonomie geändert.",
           "autonomyOnly_other": "Bei {{count}} Agenten wurde nur die Autonomie geändert.",
+          "approvalsOnly_one": "{{count}} Agent hat seine KI behalten und die Freigaben geändert.",
+          "approvalsOnly_other": "{{count}} Agenten haben ihre KI behalten und die Freigaben geändert.",
           "missed_one": "{{count}} Agent wurde nicht geändert.",
           "missed_other": "{{count}} Agenten wurden nicht geändert."
         },

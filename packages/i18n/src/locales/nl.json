@@ -3086,8 +3086,8 @@
       "cursor": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "cursor_female": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "grok": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
-      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "grok_female": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
+      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "copilot_female": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "antigravity": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",
       "antigravity_female": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",
@@ -3429,7 +3429,8 @@
     "never": {
       "title": "Nooit vragen",
       "text": "Vraagt nooit, ook niet bij merge, deploy, betalingen en routines."
-    }
+    },
+    "changed": "Goedkeuringen: {{value}}"
   },
   "brakes": {
     "title": "Werk waar niemand om vroeg",
@@ -5600,6 +5601,9 @@
           "autonomy": "Autonomie: {{from}} → {{to}}",
           "withAutonomy": "Autonomie meenemen",
           "withAutonomyLine": "{{value}}, zoals bij deze agent. Uit: elk houdt de eigen autonomie.",
+          "approvals": "Goedkeuringen: {{from}} → {{to}}",
+          "withApprovals": "Goedkeuringen meenemen",
+          "withApprovalsLine": "{{value}}, zoals bij deze agent. {{text}} Uit: elk houdt de eigen goedkeuringen.",
           "reasons": {
             "not_allowed": "Alleen beheerders en {{owner}} wijzigen dit",
             "not_allowedNobody": "Alleen beheerders wijzigen dit",
@@ -5621,6 +5625,8 @@
           "done_other": "{{count}} agents denken nu met {{setup}}.",
           "autonomyOnly_one": "Bij {{count}} agent is alleen de autonomie gewijzigd.",
           "autonomyOnly_other": "Bij {{count}} agents is alleen de autonomie gewijzigd.",
+          "approvalsOnly_one": "{{count}} agent hield zijn AI en wijzigde de goedkeuringen.",
+          "approvalsOnly_other": "{{count}} agents hielden hun AI en wijzigden de goedkeuringen.",
           "missed_one": "{{count}} agent is niet gewijzigd.",
           "missed_other": "{{count}} agents zijn niet gewijzigd."
         },
