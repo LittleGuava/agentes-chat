@@ -2581,6 +2581,7 @@
     "membersButton_few": "Członkowie kanału ({{count}})",
     "membersButton_many": "Członkowie kanału ({{count}})",
     "membersButton_other": "Członkowie kanału ({{count}})",
+    "viewers": "Teraz tutaj: {{names}}",
     "membersAgents": "Agenci",
     "you": "ty",
     "agentState": {

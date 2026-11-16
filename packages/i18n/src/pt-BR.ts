@@ -2482,6 +2482,8 @@ export const ptBR = {
     header: { pins: "Mensagens fixadas", showMembers: "Mostrar membros", hideMembers: "Esconder membros" },
     membersButton_one: "Membros do canal ({{count}})",
     membersButton_other: "Membros do canal ({{count}})",
+    /** A dica nos rostos de quem também está com a conversa aberta: "Aqui agora: Ana, Bruno e mais 2". */
+    viewers: "Aqui agora: {{names}}",
     membersAgents: "Agentes",
     you: "você",
     agentState: { idle: "disponível", thinking: "pensando", writing: "escrevendo" },

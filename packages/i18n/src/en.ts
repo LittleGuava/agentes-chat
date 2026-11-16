@@ -2590,6 +2590,8 @@ export const en = {
     header: { pins: "Pinned messages", showMembers: "Show members", hideMembers: "Hide members" },
     membersButton_one: "Channel members ({{count}})",
     membersButton_other: "Channel members ({{count}})",
+    /** The tip on the faces of who else has the conversation open: "Here now: Ana, Bruno and 2 more". */
+    viewers: "Here now: {{names}}",
     membersAgents: "Agents",
     you: "you",
     agentState: { idle: "available", thinking: "thinking", writing: "writing" },

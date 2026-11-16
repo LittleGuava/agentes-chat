@@ -2348,6 +2348,7 @@
       "hideMembers": "Sembunyikan anggota"
     },
     "membersButton_other": "Anggota kanal ({{count}})",
+    "viewers": "Sedang di sini: {{names}}",
     "membersAgents": "Agen",
     "you": "kamu",
     "agentState": {

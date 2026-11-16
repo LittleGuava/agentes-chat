@@ -2580,6 +2580,7 @@
     "membersButton_few": "Участники канала ({{count}})",
     "membersButton_many": "Участники канала ({{count}})",
     "membersButton_other": "Участники канала ({{count}})",
+    "viewers": "Сейчас здесь: {{names}}",
     "membersAgents": "Агенты",
     "you": "вы",
     "agentState": {

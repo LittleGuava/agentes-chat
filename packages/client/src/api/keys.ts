@@ -236,6 +236,9 @@ export const keys = {
   wikiReads: (orgId: string) => ["org", orgId, "wiki", "reads"] as const,
   wikiTrash: (orgId: string) => ["org", orgId, "wiki", "trash"] as const,
   pins: (orgId: string, channelId: string) => ["org", orgId, "channel", channelId, "pins"] as const,
+  /** Who else has a conversation open; `anyViewers` is every conversation's. */
+  viewers: (orgId: string, channelId: string) => ["org", orgId, "viewers", channelId] as const,
+  anyViewers: (orgId: string) => ["org", orgId, "viewers"] as const,
   followUps: (orgId: string, channelId: string) => ["org", orgId, "channel", channelId, "follow-ups"] as const,
   /** Every GIF search (prefix): the workspace's rating or its GIFs switch changing refreshes them all (ADR 0091). */
   gifs: (orgId: string) => ["org", orgId, "gifs"] as const,
