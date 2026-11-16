@@ -44,6 +44,7 @@ import { gifRoutes } from "./routes/app/gifs";
 import { inviteRoutes } from "./routes/app/invites";
 import { issueRoutes } from "./routes/app/issues";
 import { jevRoutes } from "./routes/app/jev";
+import { joinDomainRoutes } from "./routes/app/join-domains";
 import { knowledgeRoutes } from "./routes/app/knowledge";
 import { machineAccountRoutes } from "./routes/app/machine-accounts";
 import { mailRoutes } from "./routes/app/mail";
@@ -205,6 +206,7 @@ export function createApp(options: AppOptions) {
     api.route("/app", secretRoutes(deps));
     api.route("/app", vaultRoutes(deps));
     api.route("/app", inviteRoutes(deps));
+    api.route("/app", joinDomainRoutes(deps));
     api.route("/app", roleRoutes(deps));
     api.route("/app", storageRoutes(deps));
     api.route("/app", billingRoutes(deps));

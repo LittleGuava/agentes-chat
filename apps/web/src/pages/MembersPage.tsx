@@ -57,6 +57,7 @@ import { useFilterCopy } from "@/components/filters";
 import { useCopied } from "@/components/invite/copied";
 import { State, Who, whenWords } from "@/components/invite/InviteRows";
 import { LoadingList } from "@/components/Loading";
+import { JoinDomains } from "@/components/members/JoinDomains";
 import { CreateAgentLink } from "@/components/new-agent/NewAgentDialog";
 import { useOrg } from "@/components/org-context";
 import { ProfileTrigger } from "@/components/ProfileCard";
@@ -386,6 +387,9 @@ export function MembersPage({ embedded = false }: { embedded?: boolean } = {}) {
             })}
           </List>
         </section>
+
+        {/* Not in sight in a personal workspace (ADR 0159): one person's own, with no company domain to name. */}
+        {manage && !personal && <JoinDomains />}
       </div>
     </div>
   );

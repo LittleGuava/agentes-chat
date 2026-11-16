@@ -1926,6 +1926,13 @@
       "when": 1794778776000,
       "tag": "0278_channel_instructions",
       "breakpoints": true
+    },
+    {
+      "idx": 277,
+      "version": "7",
+      "when": 1794778826668,
+      "tag": "0279_join_domains",
+      "breakpoints": true
     }
   ]
 }
