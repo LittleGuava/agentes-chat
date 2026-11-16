@@ -2035,7 +2035,9 @@
       "order": "Ordre des sections",
       "orderHint": "Faites glisser ou utilisez les flèches. Les agents d'abord, par exemple.",
       "moveSection": "Faites glisser pour déplacer la section {{name}} ou cliquez pour voir les options",
-      "moveTool": "Faites glisser pour déplacer {{name}}"
+      "moveTool": "Faites glisser pour déplacer {{name}}",
+      "ownOrder": "Utiliser mon ordre",
+      "ownOrderHint": "Classez canaux, agents et conversations à votre façon, dans chaque section. La liste des autres ne change pas."
     },
     "inviteHint": "Par e-mail ou lien",
     "profileHint": "Nom, photo et @",

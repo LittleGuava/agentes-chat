@@ -248,6 +248,7 @@ import type {
   OrgPlanUsage,
   OrgRoles,
   OrgSettings,
+  OwnOrder,
   PageTarget,
   PendingReturn,
   PeopleUsage,
@@ -574,6 +575,10 @@ export interface ApiClient {
     sidebarView(orgId: string): Promise<SidebarView>;
     /** Replaces my sidebar view here; answers with what the server kept. */
     setSidebarView(orgId: string, view: SidebarView): Promise<SidebarView>;
+    /** "Usar a minha ordem" here, and my order. */
+    ownOrder(orgId: string): Promise<OwnOrder>;
+    /** Replaces my own order here; answers with what the server kept. */
+    setOwnOrder(orgId: string, own: OwnOrder): Promise<OwnOrder>;
     /** My profile photo: a square image (JSON only: base64), already cropped. */
     /** `portrait`: the recipe of a portrait drawn in the app; it comes back on the address as a `#px=` fragment. */
     setAvatar(

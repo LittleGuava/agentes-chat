@@ -44,6 +44,7 @@ import {
   upsertInPages,
   withServerCounts,
 } from "../lib/notifications";
+import { OWN_ORDER_DEFAULT } from "../lib/own-order";
 import { workspaceUsesApi } from "../lib/plan-usage";
 import { learnPlanModels } from "../lib/plans";
 import { setMyReaction } from "../lib/reactions";
@@ -152,6 +153,7 @@ import type {
   NotificationEvent,
   NotificationFilter,
   OrgRoles,
+  OwnOrder,
   PendingReturn,
   Person,
   PersonalTokenInput,
@@ -5985,6 +5987,47 @@ export function useSetSidebarView(orgId: string) {
   return (change: (now: SidebarView) => SidebarView) => {
     void qc.cancelQueries({ queryKey: key });
     const next = change(qc.getQueryData<SidebarView>(key) ?? SIDEBAR_VIEW_DEFAULT);
+    qc.setQueryData(key, next);
+    save.mutate(next);
+  };
+}
+
+/** "Usar a minha ordem" and my order in this workspace (ADR 0080, addendum of 2026-11-16); off until it loads. */
+export const useOwnOrder = (orgId: string): OwnOrder => {
+  const api = useApi();
+  return (
+    useQuery({
+      queryKey: keys.ownOrder(orgId),
+      queryFn: () => api.orgs.ownOrder(orgId),
+      staleTime: 60_000,
+    }).data ?? OWN_ORDER_DEFAULT
+  );
+};
+
+/**
+ * Changes my own order, as `useSetSidebarView` changes the view: at once on screen, one request at a time, each change
+ * from the latest order on screen; a refusal brings back what the server keeps.
+ */
+export function useSetOwnOrder(orgId: string) {
+  const api = useApi();
+  const qc = useQueryClient();
+  const key = keys.ownOrder(orgId);
+  const mutationKey = ["own-order", orgId];
+  const save = useMutation({
+    mutationKey,
+    scope: { id: `own-order:${orgId}` },
+    mutationFn: (own: OwnOrder) => api.orgs.setOwnOrder(orgId, own),
+    onError: () => {
+      if (qc.isMutating({ mutationKey }) > 1) return;
+      void qc.invalidateQueries({ queryKey: key });
+    },
+    onSuccess: (own) => {
+      if (qc.isMutating({ mutationKey }) <= 1) qc.setQueryData(key, own);
+    },
+  });
+  return (change: (now: OwnOrder) => OwnOrder) => {
+    void qc.cancelQueries({ queryKey: key });
+    const next = change(qc.getQueryData<OwnOrder>(key) ?? OWN_ORDER_DEFAULT);
     qc.setQueryData(key, next);
     save.mutate(next);
   };

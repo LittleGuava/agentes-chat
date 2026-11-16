@@ -225,6 +225,7 @@ export const keys = {
   issuesView: (orgId: string) => ["org", orgId, "issues-view"] as const,
   sidebarToolOrder: (orgId: string) => ["org", orgId, "sidebar-tool-order"] as const,
   sidebarView: (orgId: string) => ["org", orgId, "sidebar-view"] as const,
+  ownOrder: (orgId: string) => ["org", orgId, "own-order"] as const,
   wiki: (orgId: string) => ["org", orgId, "wiki"] as const,
   wikiTree: (orgId: string) => ["org", orgId, "wiki", "tree"] as const,
   wikiPage: (orgId: string, slug: string) => ["org", orgId, "wiki", "page", slug] as const,

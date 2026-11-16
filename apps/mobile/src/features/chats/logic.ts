@@ -5,11 +5,13 @@ import type {
   MediaKind,
   Mission,
   MissionStatus,
+  OwnOrder,
   PreviewMeta,
   ThreadActor,
   ThreadInfo,
 } from "@agenteschat/client";
 import { hiddenAgentIds, hiddenDm } from "@agenteschat/client/lib/audience";
+import { inOwnOrder, type OwnOrderKind } from "@agenteschat/client/lib/own-order";
 import { dmActivityAt } from "@agenteschat/client/lib/recent";
 import type { ServerCheck, ServerProblem } from "@agenteschat/client/lib/server";
 import { looksUnread, unreadTotal } from "@agenteschat/client/lib/unread";
@@ -331,6 +333,11 @@ export interface HomeBlock {
   unread: ConversationRow[];
   /** How many of its first rows are pinned ("Fixar no topo"). */
   pinned?: number;
+  /**
+   * With "Usar a minha ordem": the ids of the whole section's rows that aren't pinned, in my order, the ones a long
+   * press moves among (not only the rows the home shows).
+   */
+  order?: string[];
 }
 
 /** A category's "Ver todos" route segment (`conversations/category-<id>`). */
@@ -340,13 +347,16 @@ export const categoryOfListKind = (kind: string) =>
   kind.startsWith(CATEGORY_LIST_PREFIX) ? kind.slice(CATEGORY_LIST_PREFIX.length) || null : null;
 
 /** The row's agent, channel or person, as "Fixar no topo" names it. */
-const pinIdOf = (r: ConversationRow) => (r.kind === "dm" ? r.with.id : r.kind === "channel" ? r.channelId : null);
+export const pinIdOf = (r: ConversationRow) =>
+  r.kind === "dm" ? r.with.id : r.kind === "channel" ? r.channelId : null;
 
 /**
  * The home with channel categories: Agentes, Canais (the channels with no category), one section per category
  * in the sidebar's order, then Pessoas; each the first `max` by latest activity, its pinned rows first (`pins`, as
  * the web sidebar: a pinned channel on top of Canais whatever its category). A channel whose category is unknown
- * counts as having none. Sections with no rows are left out.
+ * counts as having none. Sections with no rows are left out. `own` ("Usar a minha ordem" on, ADR 0080, addendum of
+ * 2026-11-16): each section's rows that aren't pinned in the person's order, a row they never ordered keeping its
+ * place by activity.
  */
 export function homeLayout(
   rows: ConversationRow[],
@@ -358,8 +368,15 @@ export function homeLayout(
     channels: [],
     people: [],
   },
+  own?: Pick<OwnOrder, OwnOrderKind>,
 ): HomeBlock[] {
   const known = new Set(categories.map((c) => c.id));
+  // The rows that aren't pinned, in my order when it's on; and that order, for a long press's moves.
+  const mine = (kind: OwnOrderKind, all: ConversationRow[], top: readonly ConversationRow[] = []) => {
+    const rest = all.filter((r) => !top.includes(r));
+    const list = own ? inOwnOrder(rest, own[kind], (r) => pinIdOf(r) ?? r.key) : rest;
+    return { list: [...top, ...list], extra: own ? { order: list.map((r) => pinIdOf(r) ?? r.key) } : {} };
+  };
   const pinnedFirst = (all: ConversationRow[], ids: readonly string[]) => {
     const top = ids.flatMap((id) => all.filter((r) => pinIdOf(r) === id));
     return { list: [...top, ...all.filter((r) => !top.includes(r))], pinned: top.length };
@@ -374,9 +391,10 @@ export function homeLayout(
     unread: all.filter((r) => r.unread > 0),
     ...extra,
   });
-  const pinned = (key: HomeKey, all: ConversationRow[], ids: readonly string[]) => {
+  const pinned = (key: HomeKey, kind: OwnOrderKind, all: ConversationRow[], ids: readonly string[]) => {
     const { list, pinned: count } = pinnedFirst(all, ids);
-    return block(key, list, count ? { pinned: Math.min(count, max) } : {});
+    const ordered = mine(kind, list, list.slice(0, count));
+    return block(key, ordered.list, { ...(count ? { pinned: Math.min(count, max) } : {}), ...ordered.extra });
   };
   const allChannels = rowsOfKind(rows, "channels");
   const topChannels = pins.channels.flatMap((id) => allChannels.filter((r) => pinIdOf(r) === id));
@@ -385,17 +403,17 @@ export function homeLayout(
   return [
     // No conversation with an agent yet: the team's agents, to start one ("Ver todos" would list none).
     agents.length > 0
-      ? pinned("agents", agents, pins.agents)
-      : { ...pinned("agents", starters, pins.agents), more: false },
-    pinned("channels", [...topChannels, ...channels.filter((r) => categoryOf(r) === null)], pins.channels),
-    ...categories.map((c) =>
-      block(
-        `category:${c.id}`,
+      ? pinned("agents", "agents", agents, pins.agents)
+      : { ...pinned("agents", "agents", starters, pins.agents), more: false },
+    pinned("channels", "channels", [...topChannels, ...channels.filter((r) => categoryOf(r) === null)], pins.channels),
+    ...categories.map((c) => {
+      const ordered = mine(
+        "channels",
         channels.filter((r) => categoryOf(r) === c.id),
-        { name: c.name, categoryId: c.id },
-      ),
-    ),
-    pinned("people", rowsOfKind(rows, "people"), pins.people),
+      );
+      return block(`category:${c.id}`, ordered.list, { name: c.name, categoryId: c.id, ...ordered.extra });
+    }),
+    pinned("people", "people", rowsOfKind(rows, "people"), pins.people),
   ].filter((b) => b.total > 0);
 }
 

@@ -197,6 +197,7 @@ function AppStack() {
       <Stack.Screen name="me/approvals" options={{ ...pushed, ...scrollUnder }} />
       <Stack.Screen name="me/start" options={{ ...pushed, ...scrollUnder }} />
       <Stack.Screen name="me/activity" options={{ ...pushed, ...scrollUnder }} />
+      <Stack.Screen name="me/own-order" options={{ ...pushed, ...scrollUnder }} />
       <Stack.Screen name="me/agent-style" options={{ ...pushed, ...scrollUnder }} />
       <Stack.Screen name="me/chat-look" options={{ ...pushed, ...scrollUnder }} />
       <Stack.Screen name="me/sounds" options={{ ...pushed, ...scrollUnder }} />

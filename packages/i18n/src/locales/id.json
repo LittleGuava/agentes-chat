@@ -1933,7 +1933,9 @@
       "order": "Urutan bagian",
       "orderHint": "Seret atau pakai tanda panah. Misalnya, Agen di urutan pertama.",
       "moveSection": "Seret untuk memindahkan bagian {{name}}, atau klik untuk melihat opsi",
-      "moveTool": "Seret untuk memindahkan {{name}}"
+      "moveTool": "Seret untuk memindahkan {{name}}",
+      "ownOrder": "Pakai urutan saya",
+      "ownOrderHint": "Urutkan kanal, agen, dan percakapan sesukamu, di dalam tiap bagian. Daftar orang lain tidak berubah."
     },
     "inviteHint": "Lewat email atau tautan",
     "profileHint": "Nama, foto, dan @",

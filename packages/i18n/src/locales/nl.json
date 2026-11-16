@@ -1983,7 +1983,9 @@
       "order": "Volgorde van de onderdelen",
       "orderHint": "Sleep of gebruik de pijlen. Bijvoorbeeld agents eerst.",
       "moveSection": "Sleep om de sectie {{name}} te verplaatsen of klik voor opties",
-      "moveTool": "Sleep om {{name}} te verplaatsen"
+      "moveTool": "Sleep om {{name}} te verplaatsen",
+      "ownOrder": "Mijn volgorde gebruiken",
+      "ownOrderHint": "Zet kanalen, agents en gesprekken in je eigen volgorde, binnen elke sectie. De lijst van anderen verandert niet."
     },
     "inviteHint": "Via e-mail of link",
     "profileHint": "Naam, foto en @",

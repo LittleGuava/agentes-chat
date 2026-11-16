@@ -1,4 +1,5 @@
-import { useChannelCategories } from "@agenteschat/client";
+import { useChannelCategories, useOwnOrder } from "@agenteschat/client";
+import { inOwnOrder } from "@agenteschat/client/lib/own-order";
 import { rightHandOf } from "@agenteschat/client/lib/right-hand";
 import { isPersonal } from "@agenteschat/client/lib/workspace-mode";
 import { useTranslation } from "react-i18next";
@@ -14,7 +15,7 @@ import { FocusLive, PushedHeader } from "../shared/parts";
 import { useConversations, useWorkingNow } from "../shared/queries";
 import { useHidesQuietGeneral } from "./ChatsScreen";
 import { ConversationRowView } from "./ConversationRowView";
-import { type ConversationRow, type ListKind, rightHandPin, rowsOfKind, withoutQuietGeneral } from "./logic";
+import { type ConversationRow, type ListKind, pinIdOf, rightHandPin, rowsOfKind, withoutQuietGeneral } from "./logic";
 import { useAgentRowStates } from "./useHomeNow";
 import { useWaitingItems } from "./useWaitingItems";
 
@@ -40,7 +41,12 @@ export function ConversationListScreen({ kind, categoryId }: { kind: ListKind; c
   const hideGeneral = useHidesQuietGeneral();
   // The right hand has its own row on Conversas, never one in Agentes (ADR 0137).
   const all = withoutQuietGeneral(rightHandPin(list.rows, rightHandOf(dir.agents)).rows, hideGeneral);
-  const rows = categoryId ? rowsOfKind(all, "channels").filter(inCategory) : rowsOfKind(all, kind);
+  const byActivity = categoryId ? rowsOfKind(all, "channels").filter(inCategory) : rowsOfKind(all, kind);
+  // "Usar a minha ordem" (ADR 0080, addendum of 2026-11-16): on, the list in the person's order, as on Conversas.
+  const own = useOwnOrder(useOrgId());
+  const rows = own.on
+    ? inOwnOrder(byActivity, own[categoryId ? "channels" : kind], (r) => pinIdOf(r) ?? r.key)
+    : byActivity;
   const work = useWorkingNow();
   const waiting = useWaitingItems();
   const agentStates = useAgentRowStates(list.rows, work, waiting.items);

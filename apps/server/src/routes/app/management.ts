@@ -35,10 +35,12 @@ import {
   memberPresence,
   memberStatus,
   myIssuesView,
+  myOwnOrder,
   mySidebarItems,
   mySidebarOrder,
   mySidebarToolOrder,
   mySidebarView,
+  OWN_ORDER_LIMIT,
   orgOverview,
   pickerEndpoint,
   pickerModels,
@@ -62,6 +64,7 @@ import {
   setAgentStyle,
   setChatPrefs,
   setMyIssuesView,
+  setMyOwnOrder,
   setMySidebarItem,
   setMySidebarItems,
   setMySidebarOrder,
@@ -1095,6 +1098,51 @@ export function managementRoutes(deps: AppDeps) {
     async (c) => {
       const { orgId } = c.req.valid("param");
       return c.json({ view: await setMySidebarView(db, orgId, c.get("user").id, c.req.valid("json").view) }, 200);
+    },
+  );
+
+  const OwnIds = z.array(z.string().min(1).max(64)).max(OWN_ORDER_LIMIT);
+  const OwnOrder = z
+    .object({
+      on: z.boolean().openapi({ description: "Your sidebar lists its channels, agents and people in your order." }),
+      channels: OwnIds,
+      people: OwnIds,
+      agents: OwnIds,
+    })
+    .openapi("OwnOrder", {
+      description: `"Usar a minha ordem": channel, user and agent ids in your order (only their order inside each section counts), at most ${OWN_ORDER_LIMIT} each. Off, the order stays saved. Nobody else's sidebar changes, nor the workspace's order.`,
+    });
+
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/organizations/{orgId}/me/sidebar/own-order",
+      tags: ["Members"],
+      security,
+      summary: "Whether your sidebar uses your own order in this workspace, and that order",
+      request: { params: OrgParams },
+      responses: { 200: json(z.object({ own: OwnOrder })), ...errors },
+    }),
+    async (c) => {
+      const { orgId } = c.req.valid("param");
+      return c.json({ own: await myOwnOrder(db, orgId, c.get("user").id) }, 200);
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "put",
+      path: "/organizations/{orgId}/me/sidebar/own-order",
+      tags: ["Members"],
+      security,
+      summary: "Keep whether your sidebar uses your own order in this workspace, and that order",
+      description: "Yours alone, on every device. The workspace's order and everyone else's sidebar stay as they are.",
+      request: { params: OrgParams, body: body(z.object({ own: OwnOrder })) },
+      responses: { 200: json(z.object({ own: OwnOrder })), ...errors },
+    }),
+    async (c) => {
+      const { orgId } = c.req.valid("param");
+      return c.json({ own: await setMyOwnOrder(db, orgId, c.get("user").id, c.req.valid("json").own) }, 200);
     },
   );
 

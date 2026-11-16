@@ -5,8 +5,10 @@ import {
   useChannels,
   useDms,
   useNoticePrefs,
+  useOwnOrder,
   useSetAgentStyle,
   useSetNoticePref,
+  useSetOwnOrder,
   useSetShowActivity,
   useSetStart,
 } from "@agenteschat/client";
@@ -241,6 +243,34 @@ export function ActivityPage() {
           hint={{ name: t("common.about", { label: t("mobile.me.activityShow") }), text: t("mobile.me.activityHint") }}
           toggle={on}
           onPress={() => set.mutate(!on, { onError: () => toast({ title: t("mobile.me.activityFailed"), icon: "x" }) })}
+        />
+      </GroupedList>
+    </Page>
+  );
+}
+
+/**
+ * "Usar a minha ordem" (ADR 0080, addendum of 2026-11-16): Conversas and its "Ver todos" in the person's order
+ * instead of by latest activity, and the web's sidebar too, the same on every device. Off, the order stays saved.
+ */
+export function OwnOrderPage() {
+  const { t } = useTranslation();
+  const { orgId } = useOrg();
+  const own = useOwnOrder(orgId);
+  const setOwn = useSetOwnOrder(orgId);
+  return (
+    <Page title={t("shell.sidebarSetup.ownOrder")}>
+      <View style={styles.gap} />
+      <GroupedList>
+        <GroupedRow
+          label={t("shell.sidebarSetup.ownOrder")}
+          labelLines={2}
+          hint={{
+            name: t("common.about", { label: t("shell.sidebarSetup.ownOrder") }),
+            text: t("shell.sidebarSetup.ownOrderHint"),
+          }}
+          toggle={own.on}
+          onPress={() => setOwn((now) => ({ ...now, on: !now.on }))}
         />
       </GroupedList>
     </Page>

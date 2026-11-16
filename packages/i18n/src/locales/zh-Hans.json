@@ -1933,7 +1933,9 @@
       "order": "分区顺序",
       "orderHint": "拖动或使用箭头调整。比如把智能体放在最前面。",
       "moveSection": "拖动以移动“{{name}}”分区，或点击查看选项",
-      "moveTool": "拖动以移动“{{name}}”"
+      "moveTool": "拖动以移动“{{name}}”",
+      "ownOrder": "使用我的顺序",
+      "ownOrderHint": "在每个分区内按你的方式排列频道、智能体和对话。其他人的列表不会改变。"
     },
     "inviteHint": "通过邮件或链接",
     "profileHint": "名称、照片和 @",

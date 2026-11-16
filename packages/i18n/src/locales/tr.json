@@ -1983,7 +1983,9 @@
       "order": "Bölüm sırası",
       "orderHint": "Sürükleyin ya da okları kullanın. Örneğin önce ajanlar.",
       "moveSection": "{{name}} bölümünü taşımak için sürükleyin veya seçenekler için tıklayın",
-      "moveTool": "{{name}} öğesini taşımak için sürükleyin"
+      "moveTool": "{{name}} öğesini taşımak için sürükleyin",
+      "ownOrder": "Kendi sıramı kullan",
+      "ownOrderHint": "Kanalları, ajanları ve konuşmaları her bölümün içinde kendi sırana koy. Başkalarının listesi değişmez."
     },
     "inviteHint": "E-posta veya bağlantıyla",
     "profileHint": "Ad, fotoğraf ve @",

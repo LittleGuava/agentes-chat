@@ -1,4 +1,4 @@
-import { useAuthConfig, useIssues, useMe, useOverview } from "@agenteschat/client";
+import { useAuthConfig, useIssues, useMe, useOverview, useOwnOrder } from "@agenteschat/client";
 import { showsAbout } from "@agenteschat/client/lib/about";
 import { isPersonal, modeKey } from "@agenteschat/client/lib/workspace-mode";
 import { isAppLocale, localeInfo, readyLocales } from "@agenteschat/i18n/locale";
@@ -118,6 +118,7 @@ export function MeScreen() {
   const issues = useIssues(org.orgId);
   const proposals = useOverview(org.orgId).data?.proposalsWaitingForMe ?? 0;
   const push = usePushSwitch().on;
+  const ownOrder = useOwnOrder(org.orgId).on;
   const about = showsAbout(useAuthConfig().data);
   const mine = meId ? dir.memberById.get(meId) : undefined;
   // How you appear (to yourself: hidden stays hidden), on your photo's corner (ADR 0084).
@@ -400,6 +401,15 @@ export function MeScreen() {
                 onPress={() => open("/me/activity")}
               />
             ) : null}
+            {/* "Usar a minha ordem" (ADR 0080, addendum of 2026-11-16): Conversas in the person's order. */}
+            <GroupedRow
+              key="own-order"
+              icon="list"
+              label={t("shell.sidebarSetup.ownOrder")}
+              value={ownOrder ? t("mobile.me.on") : t("mobile.me.off")}
+              chevron
+              onPress={() => open("/me/own-order")}
+            />
             {/* Likewise: a server from before the choice sends no `chatPrefs`. */}
             {org.org?.chatPrefs !== undefined ? (
               <GroupedRow

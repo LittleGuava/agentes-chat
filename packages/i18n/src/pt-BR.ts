@@ -2028,6 +2028,10 @@ export const ptBR = {
       orderHint: "Arraste ou use as setas. Agentes primeiro, por exemplo.",
       moveSection: "Arraste para mover a seção {{name}} ou clique para ver as opções",
       moveTool: "Arraste para mover {{name}}",
+      /** "Usar a minha ordem" (ADR 0080, addendum of 2026-11-16): the person's own order of the rows, off by default. */
+      ownOrder: "Usar a minha ordem",
+      ownOrderHint:
+        "Ordene canais, agentes e conversas do seu jeito, dentro de cada seção. A lista dos outros não muda.",
     },
     inviteHint: "Por email ou link",
     profileHint: "Nome, foto e @",

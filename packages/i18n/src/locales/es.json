@@ -2034,7 +2034,9 @@
       "order": "Orden de las secciones",
       "orderHint": "Arrastra o usa las flechas. Agentes primero, por ejemplo.",
       "moveSection": "Arrastra para mover la sección {{name}} o haz clic para ver opciones",
-      "moveTool": "Arrastra para mover {{name}}"
+      "moveTool": "Arrastra para mover {{name}}",
+      "ownOrder": "Usar mi orden",
+      "ownOrderHint": "Ordena canales, agentes y conversaciones a tu manera, dentro de cada sección. La lista de los demás no cambia."
     },
     "inviteHint": "Por correo o enlace",
     "profileHint": "Nombre, foto y @",

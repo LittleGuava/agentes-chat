@@ -2035,7 +2035,9 @@
       "order": "Ordine delle sezioni",
       "orderHint": "Trascina o usa le frecce. Ad esempio, prima gli agenti.",
       "moveSection": "Trascina per spostare la sezione {{name}} o fai clic per le opzioni",
-      "moveTool": "Trascina per spostare {{name}}"
+      "moveTool": "Trascina per spostare {{name}}",
+      "ownOrder": "Usa il mio ordine",
+      "ownOrderHint": "Ordina canali, agenti e conversazioni a modo tuo, dentro ogni sezione. L'elenco degli altri non cambia."
     },
     "inviteHint": "Per email o link",
     "profileHint": "Nome, foto e @",

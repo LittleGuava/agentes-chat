@@ -1983,7 +1983,9 @@
       "order": "Reihenfolge der Bereiche",
       "orderHint": "Zieh oder nutze die Pfeile. Zum Beispiel Agenten zuerst.",
       "moveSection": "Ziehen, um den Bereich {{name}} zu verschieben, oder klicken für Optionen",
-      "moveTool": "Ziehen, um {{name}} zu verschieben"
+      "moveTool": "Ziehen, um {{name}} zu verschieben",
+      "ownOrder": "Meine Reihenfolge verwenden",
+      "ownOrderHint": "Ordne Kanäle, Agenten und Unterhaltungen nach deiner Art, innerhalb jedes Abschnitts. Die Liste der anderen ändert sich nicht."
     },
     "inviteHint": "Per E-Mail oder Link",
     "profileHint": "Name, Foto und @",
