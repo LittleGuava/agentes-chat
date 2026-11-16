@@ -44,6 +44,7 @@ import type { AccountGrant } from "./accounts";
 import { type AgentUser, keepContainers, readAgentUsers, rootlessContainers, systemLauncher } from "./agent-users";
 import { type BindPolicyOptions, ensureBrowserBindPolicy } from "./browser-bind-policy";
 import type { BrowserViews } from "./browser-views";
+import type { Binaries } from "./config";
 import { backoffDelay } from "./connection";
 import type { DelegatedBridge } from "./delegated-tools";
 import { DESKTOP_USE_OPS } from "./desktop";
@@ -173,6 +174,8 @@ export interface WorkerState {
   accounts?: string[];
   /** The language of its agent's person (`MachineAgent.locale`), for the pages people see in its browser. */
   locale?: string;
+  /** The computer's own binary for each brain, from root's config (ADR 0187): the worker's CLIs start from these. */
+  binaries?: Binaries;
 }
 
 /** The agent's desktop as its worker uses it (desktop use, its Chrome): where it runs, never its VNC passwords. */

@@ -1981,7 +1981,15 @@ export interface RunnerExecutorInfo {
    * Protocol 43, `grok`: the models `grok models` lists. Protocol 44, `antigravity`: the models `agy models` lists.
    */
   models?: CursorModelInfo[];
+  /**
+   * The computer's own binary it runs from instead of the PATH's, as whoever runs the computer set it there (ADR 0187);
+   * absent: the PATH's. An older server drops it.
+   */
+  binary?: string;
 }
+
+/** The longest `RunnerExecutorInfo.binary` kept. */
+export const CLI_BINARY_MAX = 4096;
 
 /** A model Cursor's CLI (`agent models`) or OpenCode's (`opencode models`) lists. */
 export interface CursorModelInfo {
@@ -3370,7 +3378,8 @@ export function parseCursorModels(v: unknown): CursorModelInfo[] {
 
 /**
  * `hello.executors`: only `claude`, `codex`, `cursor`, `opencode`, `grok`, `antigravity` and `copilot`, each with a short version
- * line (and Claude Code's login), and `broken`: the error line of each of them that is there and can't start.
+ * line (and Claude Code's login, and the computer's own binary it runs from), and `broken`: the error line of each of
+ * them that is there and can't start.
  */
 export function parseExecutors(v: Record<string, unknown>): NonNullable<RunnerInfo["executors"]> {
   const out: NonNullable<RunnerInfo["executors"]> = {};
@@ -3380,11 +3389,20 @@ export function parseExecutors(v: Record<string, unknown>): NonNullable<RunnerIn
     if (!isObject(e) || !isString(e.version)) continue;
     const authMethod = word(e.authMethod);
     const plan = word(e.plan);
+    // A path as the runner's config holds it: absolute, one line, no control characters.
+    const binary =
+      isString(e.binary) &&
+      e.binary.length <= CLI_BINARY_MAX &&
+      ![...e.binary].some((c) => c.charCodeAt(0) < 0x20 || c.charCodeAt(0) === 0x7f) &&
+      /^(?:\/|[a-zA-Z]:[\\/]|\\\\)/.test(e.binary)
+        ? e.binary
+        : undefined;
     out[name] = {
       version: e.version.replace(/\s+/g, " ").trim().slice(0, 80),
       ...(typeof e.loggedIn === "boolean" ? { loggedIn: e.loggedIn } : {}),
       ...(authMethod ? { authMethod } : {}),
       ...(plan ? { plan } : {}),
+      ...(binary ? { binary } : {}),
     };
     const models = name === "claude" || name === "codex" ? [] : parseCursorModels(e.models);
     if (models.length) out[name] = { ...out[name], models } as RunnerExecutorInfo;
