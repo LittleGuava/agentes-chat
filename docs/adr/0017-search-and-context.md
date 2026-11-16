@@ -79,3 +79,27 @@ holds for all the agent's work when its giver decides the agent's approvals, so 
 what a computer brain keeps in its own files. Those rest on the prompt line. A preference kept "everywhere" from a DM
 still reads in that person's own runs in a channel, where everyone reads the reply, and in the memory list of who holds
 `review_memory`.
+
+## Addendum (2026-11-15): searching a stretch of time
+
+Asked "what did we do yesterday?" (a standup, a weekly note), an agent had to guess words: `search_context` required
+`query`, though the index already filters by date (ADR 0123). Now:
+
+- `search_context` takes `since` and `until`, and `query` is optional when either is given (neither is an error).
+  Each is `today`, `yesterday`, a span back from now (`6h`, `7d`, `2w`), a day (`YYYY-MM-DD`) or a time
+  (`YYYY-MM-DDTHH:mm`, local unless it names its own offset). Anything else is refused with the forms it takes,
+  never read as no bound.
+- Days are the person's: the zone of the person behind the run, else the workspace's, else UTC (`zoneOf`, now in
+  `zones.ts`), a midnight a DST change skips starting at its first minute. A day or a word covers its whole stretch
+  on both sides, so `since` and `until` set to `yesterday` read all of yesterday (`until` ends where the day ends;
+  ADR 0123's `after:` operator for people means something else and is unchanged). Pure function: `resolvePeriod`
+  (`context/period.ts`).
+- Without `query`, the index lists the period's newest documents (`sort: newest`, no embedding paid for; 20 unless
+  `limit` says otherwise, against 8 for a search with words), shown oldest first, after a line naming the stretch and
+  the zone. One more than `limit` is asked, so a list the index cut says so. With `query`, the ranking stays
+  relevance, only inside the period. Any search with a period dates its lines in local date and time.
+- Visibility is untouched: the same scope, the same post-filters (the agents' DM, files, rules, `personMayRead`, wiki
+  pages), and a right hand in a person's DM still reads through `searchForUser`. The agent's own earlier steps are
+  bounded by the period too; with no words there are none to match, so a listing holds documents only.
+- Not done: paging past `limit` (a cut is said, not walked). On the right hand's path `searchForUser` drops what the
+  person can't see before the count, so a list cut there may not say so.
