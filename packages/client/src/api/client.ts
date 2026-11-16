@@ -302,6 +302,7 @@ import type {
   ServerTelemetry,
   ServerUpdate,
   SetupStep,
+  ShareDmTarget,
   SidebarItem,
   SidebarItems,
   SidebarPlace,
@@ -1407,6 +1408,15 @@ export interface ApiClient {
     markRead(orgId: string, channelId: string): Promise<void>;
     /** Where the other people of a DM stopped reading ("Visto"); empty for any other channel. */
     reads(orgId: string, channelId: string): Promise<DmRead[]>;
+    /**
+     * Shares my DM with an agent as a read-only copy, posted with `note` in a channel I'm in or in my DM with a
+     * person. Nothing takes it back: the apps confirm first.
+     */
+    share(
+      orgId: string,
+      channelId: string,
+      input: { to: ShareDmTarget; note: string; clientId?: string },
+    ): Promise<{ channelId: string; message: Message }>;
   };
   questions: {
     /** Answers an agent's question with a choice or free text. */
