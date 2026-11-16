@@ -12,7 +12,7 @@ import type { JobDeps } from "./jobs";
  */
 
 /** The switches on the right hand's page that belong to a lane. */
-export const LODI_SWITCHES = ["digest", "reminders", "teamWatch", "welcomePeople"] as const;
+export const LODI_SWITCHES = ["digest", "reminders", "teamWatch", "welcomePeople", "incidents"] as const;
 export type LodiSwitch = (typeof LODI_SWITCHES)[number];
 
 /** Who the right hand is talking to when a lane adds to its prompt: always its own DM with that person. */

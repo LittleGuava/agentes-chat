@@ -553,14 +553,14 @@ describe("the workspace's switches", () => {
   test("on with no settings row, saved by who configures the workspace only", async () => {
     f = await setup({ rightHand: true });
     await f.db.delete(schema.organizationSettings).where(eq(schema.organizationSettings.orgId, f.org.id));
-    expect(await lodiSwitches(f.db, f.org.id)).toEqual({ teamWatch: true, welcomePeople: true });
+    expect(await lodiSwitches(f.db, f.org.id)).toEqual({ teamWatch: true, welcomePeople: true, incidents: true });
     expect(await getOrgSettings(f.db, f.owner.id, f.org.id)).toMatchObject({ teamWatch: true, welcomePeople: true });
     const bia = await addMember(f.db, f.org.id, "member", "bia");
     await expect(updateOrgSettings(f.db, bia.id, f.org.id, { teamWatch: false })).rejects.toThrow();
     await updateOrgSettings(f.db, f.owner.id, f.org.id, { teamWatch: false });
-    expect(await lodiSwitches(f.db, f.org.id)).toEqual({ teamWatch: false, welcomePeople: true });
+    expect(await lodiSwitches(f.db, f.org.id)).toEqual({ teamWatch: false, welcomePeople: true, incidents: true });
     await updateOrgSettings(f.db, f.owner.id, f.org.id, { welcomePeople: false, teamWatch: true });
-    expect(await lodiSwitches(f.db, f.org.id)).toEqual({ teamWatch: true, welcomePeople: false });
+    expect(await lodiSwitches(f.db, f.org.id)).toEqual({ teamWatch: true, welcomePeople: false, incidents: true });
   });
 });
 
@@ -585,7 +585,13 @@ describe("lanes", () => {
   test("every lane that ships is wired and does nothing until it is built", async () => {
     f = await setup({ rightHand: true });
     const lanes = lodiLanes();
-    expect(lanes.map((l) => l.switch).sort()).toEqual(["digest", "reminders", "teamWatch", "welcomePeople"]);
+    expect(lanes.map((l) => l.switch).sort()).toEqual([
+      "digest",
+      "incidents",
+      "reminders",
+      "teamWatch",
+      "welcomePeople",
+    ]);
     expect(liveLodiSwitches()).toEqual(lanes.filter((l) => l.live).map((l) => l.switch));
     const handlers = lodiLaneHandlers({ db: f.db } as JobDeps);
     const kinds = ["approvals_digest.post", "right_hand.task_check", "right_hand.welcome", "team_watch.check"];
@@ -719,10 +725,10 @@ describe("a built lane's switch", () => {
       expect(action.does).toContain("watches for what stops the team");
       const done = await action.run(deps, f.owner.id, f.org.id, { team_watch: false });
       expect(done).toMatchObject({ before: { teamWatch: true }, after: { teamWatch: false } });
-      expect(await lodiSwitches(f.db, f.org.id)).toEqual({ teamWatch: false, welcomePeople: true });
+      expect(await lodiSwitches(f.db, f.org.id)).toEqual({ teamWatch: false, welcomePeople: true, incidents: true });
       const row = { orgId: f.org.id, before: done.before, after: done.after } as never;
       await action.revert?.(deps, f.owner.id, row, "undo", () => new Error("changed since"));
-      expect(await lodiSwitches(f.db, f.org.id)).toEqual({ teamWatch: true, welcomePeople: true });
+      expect(await lodiSwitches(f.db, f.org.id)).toEqual({ teamWatch: true, welcomePeople: true, incidents: true });
     });
     // Not built: the same input changes nothing it knows.
     if (!teamWatchLane.live)

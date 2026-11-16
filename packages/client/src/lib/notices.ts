@@ -23,6 +23,8 @@ export const NOTICE_KINDS = [
   "work_follow_up",
   "message_edited",
   "burst_results",
+  "run_incident",
+  "run_retry",
 ] as const;
 export type NoticeKind = (typeof NOTICE_KINDS)[number];
 
@@ -53,6 +55,7 @@ export const AGENT_ONLY_NOTICES: ReadonlySet<string> = new Set<NoticeKind>([
   "work_check_in",
   "work_follow_up",
   "burst_results",
+  "run_incident",
 ]);
 
 /** A message that is a notice only its agent reads: left out of the conversation. */
@@ -210,6 +213,11 @@ export function noticeView(
     }
     case "wait_result":
       return line("chat.notice.waitResult", { name: names.author });
+    // The right hand asked the agent to try a failed task again (packages/engine/src/incidents.ts).
+    case "run_retry":
+      return notice.refs.byAgentName
+        ? line("chat.notice.runRetry", { name: names.author, by: notice.refs.byAgentName })
+        : line("chat.notice.runRetryAnon", { name: names.author });
     // What happened on GitHub: "Ver" opens what they wrote there and the link. Once someone asked the agent to answer
     // a stranger, the new notice says who asked.
     case "github_event": {
@@ -241,6 +249,7 @@ export function noticeView(
     case "burst_results":
     case "talker_reply":
     case "run_stopped":
+    case "run_incident":
       return line("chat.notice.other", { name: names.author });
     default:
       kind satisfies never;

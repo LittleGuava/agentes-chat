@@ -168,6 +168,7 @@ export * from "./host-computer";
 export * from "./id-refs";
 export * from "./image-tools";
 export * from "./imports";
+export * from "./incidents";
 export * from "./invite-choices";
 export * from "./invite-requests";
 export * from "./issue-columns";

@@ -13,7 +13,9 @@ import { untrustedBlock } from "./untrusted";
  * something that happened on GitHub to an item it worked on or that names the app (`github_event`, `git/github-events.ts`), its background
  * work ending after people's messages were passed on to it (`work_follow_up`, `works.ts`), a person editing a message
  * it answered and asking for a new answer (`message_edited`, `message-edit.ts`, ADR 0207), what its attempts at a
- * person's `/burst` wrote (`burst_results`, `best-of.ts`, ADR 0192). Stored on the notice
+ * person's `/burst` wrote (`burst_results`, `best-of.ts`, ADR 0192), a task that failed for a cause that may pass,
+ * told to the right hand in its DM with the person behind it (`run_incident`, `incidents.ts`), and the right hand
+ * asking the agent whose task failed to try it again (`run_retry`). Stored on the notice
  * message as `meta.notice`; the agent's context reads it as an event, never
  * as a person's words.
  *
@@ -37,7 +39,9 @@ export type NoticeKind =
   | "github_event"
   | "work_follow_up"
   | "message_edited"
-  | "burst_results";
+  | "burst_results"
+  | "run_incident"
+  | "run_retry";
 
 /**
  * Notices only for the agent they are for: another agent's note, the late result of a wait it stopped waiting on, what
@@ -53,6 +57,7 @@ export const AGENT_ONLY_NOTICES: readonly NoticeKind[] = [
   "work_check_in",
   "work_follow_up",
   "burst_results",
+  "run_incident",
 ];
 
 /** Whether a message is a notice only its agent reads (`AGENT_ONLY_NOTICES`). */
@@ -69,12 +74,19 @@ export const agentOnlyNoticeSql = (meta: SQL): SQL =>
 /**
  * Notices people see in the conversation but that are never news: a person stopping a task is a receipt (ADR 0128), a
  * follow-up's line and the notice that wakes it are followed by the agent's own reply, an @mention that couldn't
- * wake an agent is said under the message that named it (`meta.reach`), and an edit asking for a new answer is the
- * person's own doing (ADR 0207). Their text is written for the agent, in
+ * wake an agent is said under the message that named it (`meta.reach`), an edit asking for a new answer is the
+ * person's own doing (ADR 0207), and a failed task tried again is followed by the agent's new answer. Their text is
+ * written for the agent, in
  * English. Conversation previews, unread counts, a thread's activity, notifications and search skip them, like the
  * agent-only ones.
  */
-export const QUIET_NOTICES: readonly NoticeKind[] = ["run_stopped", "follow_up", "wake_skipped", "message_edited"];
+export const QUIET_NOTICES: readonly NoticeKind[] = [
+  "run_stopped",
+  "follow_up",
+  "wake_skipped",
+  "message_edited",
+  "run_retry",
+];
 
 /** Agent-only or quiet (`QUIET_NOTICES`): never news, never found. */
 export const isQuietNotice = (meta: Record<string, unknown> | null | undefined) =>
@@ -169,6 +181,19 @@ export const HANDED_TASK_GUIDANCE =
 /** What the turn the drafts of a `/burst` woke does with them (ADR 0192). */
 export const BURST_GUIDANCE =
   "Only you see these drafts. Answer the person here once, in their language: give the best draft as your answer, or merge the best parts when that is clearly better. Don't redo the work, don't list or number the drafts, and say which you chose only when it helps them. None came back: say so in a line and offer to try again.";
+
+/**
+ * How the right hand's turn woken by an incident goes on (`incidents.ts`): the person already heard the task failed,
+ * so a retry is said in a line, a cause it can't pass is explained once, and anything else is passed.
+ */
+export const incidentGuidance = (retriesLeft: string | undefined) =>
+  retriesLeft === "0"
+    ? "Only you see this; they were already told it failed. It was tried again as many times as it may be: don't retry it. Tell them here in a sentence or two, in their language, what keeps failing and what could fix it, unless this conversation shows they know already: then pass."
+    : "Only you see this; they were already told it failed. When the cause may pass by itself, call retry_run with this run id, then tell them here in one line, in their language, that you asked it to try again. When it can't pass by itself, tell them in a sentence or two what failed and what only they can do. When there's nothing worth adding, pass.";
+
+/** How the run a `run_retry` woke goes on: the same request, once, without redoing what already happened. */
+export const RETRY_GUIDANCE =
+  "Do what was asked in the message your failed task answered (above), as you would have. First check what of it already happened (a message, a change, a call) and don't do it twice. If it fails again for the same reason, say so in a line.";
 
 /**
  * A notice as the agent it is for reads it in its conversation (null when the message isn't one); `personal`: a
@@ -271,6 +296,21 @@ ${untrustedBlock("burst attempts", n.text)}${
 ${BURST_GUIDANCE}`
     : ""
 }`;
+    // Written by the server alone (`incidents.ts`): no outside words in it.
+    case "run_incident":
+      return `[Incident: a task of the team failed]: ${n.text}${
+        current
+          ? `
+${incidentGuidance(n.refs?.retriesLeft)}`
+          : ""
+      }`;
+    case "run_retry":
+      return `[You are asked to try again]: ${n.text}${
+        current
+          ? `
+${RETRY_GUIDANCE}`
+          : ""
+      }`;
     default:
       return `[${from ?? "Notice"}]: ${n.text}`;
   }

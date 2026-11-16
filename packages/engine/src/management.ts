@@ -94,6 +94,8 @@ export interface OrgSettings extends MediaSettings {
   welcomePeople: boolean;
   /** What agents may think with (ADR 0191); null: nothing restricted. */
   allowedBrains: BrainPolicy | null;
+  /** A task that failed for a cause that may pass becomes the right hand's incident, which it may retry. On by default. */
+  incidents: boolean;
 }
 
 export const TEAM_SIZES = ["solo", "small", "medium", "large"] as const;
@@ -121,6 +123,7 @@ export async function getOrgSettings(db: Database, actorId: string, orgId: strin
     teamWatch: s?.teamWatch ?? true,
     welcomePeople: s?.welcomePeople ?? true,
     allowedBrains: policyOf(s?.allowedBrains),
+    incidents: s?.incidents ?? true,
     ...mediaSettingsFrom(s),
   };
 }
@@ -272,6 +275,7 @@ export async function updateOrgSettings(
       ...(input.teamWatch !== undefined ? { teamWatch: input.teamWatch } : {}),
       ...(input.welcomePeople !== undefined ? { welcomePeople: input.welcomePeople } : {}),
       ...(allowedBrains !== undefined ? { allowedBrains: allowedBrains ? { ...allowedBrains } : null } : {}),
+      ...(input.incidents !== undefined ? { incidents: input.incidents } : {}),
       ...(input.autoModels !== undefined
         ? { autoModels: mergeAutoModels(await storedAutoModels(), input.autoModels) }
         : {}),

@@ -247,6 +247,8 @@ const BUILTIN: Record<string, ActivityKind> = {
   find_agent: "findingAgent",
   // The right hand's look at the team: its tasks, open and stuck, and what waits.
   team_status: "listingTasks",
+  // Its retry of a failed task: the line in that conversation says who tries again.
+  retry_run: "updatingWork",
   cancel_follow_up: "cancelingFollowUp",
   web_search: "searchingWeb",
   web_fetch: "readingWeb",
