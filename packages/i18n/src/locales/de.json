@@ -3087,8 +3087,8 @@
       "cursor": "Cursor ist auf diesem Computer nicht angemeldet. Verbinde ein Cursor-Konto auf der Seite von {{name}}.",
       "cursor_female": "Cursor ist auf diesem Computer nicht angemeldet. Verbinde ein Cursor-Konto auf der Seite von {{name}}.",
       "grok": "Grok ist auf diesem Computer nicht angemeldet. Verbinde ein Grok-Konto auf der Seite von {{name}}.",
-      "copilot": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "grok_female": "Grok ist auf diesem Computer nicht angemeldet. Verbinde ein Grok-Konto auf der Seite von {{name}}.",
+      "copilot": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "copilot_female": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "antigravity": "Gemini ist auf diesem Computer nicht angemeldet. Verbinde ein Gemini-Konto auf der Seite von {{name}}.",
       "antigravity_female": "Gemini ist auf diesem Computer nicht angemeldet. Verbinde ein Gemini-Konto auf der Seite von {{name}}.",
@@ -16291,6 +16291,7 @@
         "shown": "Angesehen",
         "copied": "Kopiert",
         "used": "Verwendet",
+        "exported": "Exportiert",
         "other": "Geändert"
       },
       "area": {
@@ -16323,6 +16324,7 @@
         "invitation": "Einladung",
         "credential": "KI-Schlüssel",
         "vault": "den Vault",
+        "conversation": "Unterhaltung",
         "other": "Workspace"
       }
     },
@@ -20064,5 +20066,15 @@
       "alwaysOn": "Ab jetzt gehen solche Berichte ohne Nachfrage raus.",
       "askFirst": "Vor dem Senden fragen"
     }
+  },
+  "transcript": {
+    "menu": "Unterhaltung exportieren",
+    "menuThread": "Thread exportieren",
+    "title": "Unterhaltung exportieren",
+    "titleThread": "Thread exportieren",
+    "format": "Format",
+    "files": "Dateien einschließen",
+    "filesHelp": "Eine .zip mit der Unterhaltung und den Dateien, die du öffnen kannst, bis 50 MB.",
+    "download": "Herunterladen"
   }
 }

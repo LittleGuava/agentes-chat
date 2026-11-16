@@ -16516,6 +16516,7 @@ export const ptBR = {
         shown: "Viu",
         copied: "Copiou",
         used: "Usou",
+        exported: "Exportou",
         other: "Mexeu em",
       },
       area: {
@@ -16548,6 +16549,7 @@ export const ptBR = {
         invitation: "um convite",
         credential: "uma chave de IA",
         vault: "o Cofre",
+        conversation: "uma conversa",
         other: "o workspace",
       },
     },
@@ -20584,5 +20586,15 @@ export const ptBR = {
       alwaysOn: "Daqui em diante, relatos assim vão sem perguntar.",
       askFirst: "Perguntar antes de enviar",
     },
+  },
+  transcript: {
+    menu: "Exportar conversa",
+    menuThread: "Exportar thread",
+    title: "Exportar conversa",
+    titleThread: "Exportar thread",
+    format: "Formato",
+    files: "Incluir anexos",
+    filesHelp: "Um .zip com a conversa e os arquivos que você pode abrir, até 50 MB.",
+    download: "Baixar",
   },
 } satisfies LocaleStrings;

@@ -3202,8 +3202,8 @@
       "cursor": "Cursor non ha effettuato l'accesso su questo computer. Collega un account Cursor nella pagina di {{name}}.",
       "cursor_female": "Cursor non ha effettuato l'accesso su questo computer. Collega un account Cursor nella pagina di {{name}}.",
       "grok": "Grok non ha effettuato l'accesso su questo computer. Collega un account Grok nella pagina di {{name}}.",
-      "copilot": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "grok_female": "Grok non ha effettuato l'accesso su questo computer. Collega un account Grok nella pagina di {{name}}.",
+      "copilot": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "copilot_female": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "antigravity": "Gemini non ha effettuato l'accesso su questo computer. Collega un account Gemini nella pagina di {{name}}.",
       "antigravity_female": "Gemini non ha effettuato l'accesso su questo computer. Collega un account Gemini nella pagina di {{name}}.",
@@ -16823,6 +16823,7 @@
         "shown": "Ha visto",
         "copied": "Ha copiato",
         "used": "Ha usato",
+        "exported": "Ha esportato",
         "other": "Ha cambiato"
       },
       "area": {
@@ -16855,6 +16856,7 @@
         "invitation": "un invito",
         "credential": "una chiave IA",
         "vault": "il Vault",
+        "conversation": "una conversazione",
         "other": "lo spazio di lavoro"
       }
     },
@@ -20769,5 +20771,15 @@
       "alwaysOn": "D'ora in poi, segnalazioni come questa partono senza chiedere.",
       "askFirst": "Chiedi prima di inviare"
     }
+  },
+  "transcript": {
+    "menu": "Esporta conversazione",
+    "menuThread": "Esporta thread",
+    "title": "Esporta conversazione",
+    "titleThread": "Esporta thread",
+    "format": "Formato",
+    "files": "Includi i file",
+    "filesHelp": "Uno .zip con la conversazione e i file che puoi aprire, fino a 50 MB.",
+    "download": "Scarica"
   }
 }

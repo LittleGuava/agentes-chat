@@ -2971,8 +2971,8 @@
       "cursor": "Cursor belum masuk di komputer ini. Hubungkan akun Cursor di halaman {{name}}.",
       "cursor_female": "Cursor belum masuk di komputer ini. Hubungkan akun Cursor di halaman {{name}}.",
       "grok": "Grok belum masuk di komputer ini. Hubungkan akun Grok di halaman {{name}}.",
-      "copilot": "Copilot belum masuk di komputer ini. Hubungkan akun Copilot di halaman {{name}}.",
       "grok_female": "Grok belum masuk di komputer ini. Hubungkan akun Grok di halaman {{name}}.",
+      "copilot": "Copilot belum masuk di komputer ini. Hubungkan akun Copilot di halaman {{name}}.",
       "copilot_female": "Copilot belum masuk di komputer ini. Hubungkan akun Copilot di halaman {{name}}.",
       "antigravity": "Gemini belum masuk di komputer ini. Hubungkan akun Gemini di halaman {{name}}.",
       "antigravity_female": "Gemini belum masuk di komputer ini. Hubungkan akun Gemini di halaman {{name}}.",
@@ -15790,6 +15790,7 @@
         "shown": "Melihat",
         "copied": "Menyalin",
         "used": "Menggunakan",
+        "exported": "Mengekspor",
         "other": "Mengubah"
       },
       "area": {
@@ -15822,6 +15823,7 @@
         "invitation": "undangan",
         "credential": "kunci AI",
         "vault": "Vault",
+        "conversation": "sebuah percakapan",
         "other": "ruang kerja"
       }
     },
@@ -19550,5 +19552,15 @@
       "alwaysOn": "Mulai sekarang, laporan seperti ini dikirim tanpa bertanya.",
       "askFirst": "Tanya dulu sebelum mengirim"
     }
+  },
+  "transcript": {
+    "menu": "Ekspor percakapan",
+    "menuThread": "Ekspor utas",
+    "title": "Ekspor percakapan",
+    "titleThread": "Ekspor utas",
+    "format": "Format",
+    "files": "Sertakan file",
+    "filesHelp": "File .zip berisi percakapan dan file yang bisa kamu buka, hingga 50 MB.",
+    "download": "Unduh"
   }
 }

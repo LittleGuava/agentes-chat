@@ -351,6 +351,14 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       get: (orgId, agentId, limit) =>
         request<AgentForYou>(`${org(orgId)}/agents/${enc(agentId)}/for-you`, { query: { limit } }),
     },
+    transcripts: {
+      url: (orgId, channelId, options) => {
+        const params = new URLSearchParams({ format: options.format });
+        if (options.threadId) params.set("threadId", options.threadId);
+        if (options.files) params.set("files", "true");
+        return `${base}${org(orgId)}/channels/${enc(channelId)}/export?${params.toString()}`;
+      },
+    },
     pins: {
       list: async (orgId, channelId) =>
         (await request<{ pins: MessagePin[] }>(`${org(orgId)}/channels/${enc(channelId)}/pins`)).pins,

@@ -994,7 +994,8 @@
       "storage.connect.awsRegion.eu-central-2",
       "storage.connect.awsRegion.eu-west-3",
       "storage.connect.awsRegion.eu-south-1",
-      "storage.connect.awsRegion.eu-north-1"
+      "storage.connect.awsRegion.eu-north-1",
+      "transcript.format"
     ],
     "de": [
       "devices.iphone.steps.account",
@@ -1456,7 +1457,8 @@
       "storage.connect.theirName.s3Secret",
       "storage.connect.theirName.b2Key",
       "storage.connect.theirName.b2Secret",
-      "storage.connect.awsRegion.il-central-1"
+      "storage.connect.awsRegion.il-central-1",
+      "transcript.format"
     ],
     "it": [
       "shell.email.label",
@@ -3256,7 +3258,8 @@
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
       "storage.connect.provider.b2",
-      "storage.connect.awsRegion.il-central-1"
+      "storage.connect.awsRegion.il-central-1",
+      "transcript.format"
     ],
     "tr": [
       "devices.cpus",
@@ -3754,7 +3757,8 @@
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
       "storage.connect.provider.b2",
-      "storage.connect.region"
+      "storage.connect.region",
+      "transcript.format"
     ],
     "ru": [
       "channel.tooLong.fileName",

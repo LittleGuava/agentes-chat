@@ -172,6 +172,7 @@ const VERBS = [
   "shown",
   "copied",
   "used",
+  "exported",
 ] as const;
 const AREAS = [
   "routine",
@@ -198,6 +199,7 @@ const AREAS = [
   "webhook",
   "issue",
   "message",
+  "conversation",
   "run",
   "member",
   "invitation",
