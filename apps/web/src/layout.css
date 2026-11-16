@@ -8713,7 +8713,7 @@ html:not([data-pointer]) .machine-connect__toggle:focus-visible {
     margin-bottom: calc(var(--cap-top) - 2 * var(--cap-mid) - 0.5lh);
   }
 }
-/* A hold says why and where to ask, whole: it wraps instead of cutting the line. */
+/* A hold says why and where to ask, whole: it wraps instead of cutting the line (an announcement is drawn the same). */
 .hold-banner .outage__text {
   flex-wrap: wrap;
   row-gap: 2px;
@@ -8758,6 +8758,10 @@ html:not([data-pointer]) .machine-connect__toggle:focus-visible {
   .outage.hold-banner:has(> .outage__acts > .ac-btn:not(.ac-btn--ghost)) {
     padding-block: calc(var(--action-clear) + var(--control-h-sm) / 2 - 11px);
   }
+}
+/* An announcement's words keep the operator's line breaks. */
+.announcement__body {
+  white-space: pre-line;
 }
 /* Where to write for help: the address reads as part of the sentence. */
 .support-line a {

@@ -16236,6 +16236,11 @@
     "how": "Zo werken computers",
     "hostMissing": "Deze server kan ook de computer van je agents zijn: <guide>zo werkt het</guide>."
   },
+  "announcement": {
+    "region": "Aankondigingen",
+    "dismiss": "Aankondiging sluiten",
+    "open": "Meer informatie"
+  },
   "outage": {
     "region": "Offline computers",
     "title": "{{name}} ging {{ago}} offline",

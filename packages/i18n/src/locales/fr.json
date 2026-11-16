@@ -16689,6 +16689,11 @@
     "how": "Comment fonctionnent les ordinateurs",
     "hostMissing": "Ce serveur peut aussi être l'ordinateur de vos agents : <guide>voici comment</guide>."
   },
+  "announcement": {
+    "region": "Annonces",
+    "dismiss": "Fermer l’annonce",
+    "open": "En savoir plus"
+  },
   "outage": {
     "region": "Ordinateurs hors ligne",
     "title": "{{name}} est hors ligne depuis {{ago}}",

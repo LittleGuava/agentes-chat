@@ -1,5 +1,6 @@
 export * from "./agent-api";
 export * from "./agents";
+export * from "./announcements";
 export * from "./apps";
 export * from "./auth";
 export * from "./browser";

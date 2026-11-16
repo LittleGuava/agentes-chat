@@ -15616,6 +15616,11 @@
     "how": "コンピューターのしくみ",
     "hostMissing": "このサーバーもエージェントのコンピューターにできます。<guide>やり方を見る</guide>"
   },
+  "announcement": {
+    "region": "お知らせ",
+    "dismiss": "お知らせを閉じる",
+    "open": "詳しく見る"
+  },
   "outage": {
     "region": "オフラインのコンピューター",
     "title": "{{name}}が{{ago}}にオフラインになりました",

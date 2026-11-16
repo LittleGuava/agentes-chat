@@ -16521,6 +16521,13 @@ export const en = {
     how: "How computers work",
     hostMissing: "This server can be your agents' computer too: <guide>here's how</guide>.",
   },
+  /** What the people who run this server tell its people: a card on top of the work area, closed for good with its ×. */
+  announcement: {
+    region: "Announcements",
+    dismiss: "Close announcement",
+    /** The link's words when the announcement gives none: it opens a page outside the app. */
+    open: "Learn more",
+  },
   outage: {
     region: "Offline computers",
     title: "{{name}} went offline {{ago}}",

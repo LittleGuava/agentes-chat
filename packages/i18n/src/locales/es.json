@@ -16618,6 +16618,11 @@
     "how": "Cómo funcionan las computadoras",
     "hostMissing": "Este servidor también puede ser la computadora de tus agentes: <guide>mira cómo</guide>."
   },
+  "announcement": {
+    "region": "Avisos",
+    "dismiss": "Cerrar aviso",
+    "open": "Más información"
+  },
   "outage": {
     "region": "Computadoras desconectadas",
     "title": "{{name}} se desconectó {{ago}}",

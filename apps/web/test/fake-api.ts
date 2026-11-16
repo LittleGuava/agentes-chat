@@ -13,6 +13,7 @@ import type {
   AgentSetupResult,
   AgentStatus,
   AiStatus,
+  Announcement,
   ApiClient,
   AppNotification,
   Approval,
@@ -316,6 +317,8 @@ export interface FakeState {
   /** A person's month by id; unset: an empty month. */
   personUsage?: Record<string, PersonUsage>;
   personLimits?: PersonLimits;
+  /** What the server's operator tells the signed-in person (`orgs.announcements`); unset: nothing. */
+  announcements?: Announcement[];
   /** What Lodi does by itself for the signed-in person; unset: both cards on, no other switch. */
   teamWeek?: Partial<LodiPrefs>;
   /** The workspace's own switches of Lodi; unset: on. */
@@ -2242,6 +2245,11 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
       },
       refuseMoreUsage: async (orgId, userId) => {
         log("orgs.refuseMoreUsage", orgId, userId);
+      },
+      announcements: async () => ({ announcements: state.announcements ?? [] }),
+      dismissAnnouncement: async (orgId, id) => {
+        log("orgs.dismissAnnouncement", orgId, id);
+        state.announcements = state.announcements?.filter((a) => a.id !== id);
       },
       teamWeek: async () => lodiPrefs(state),
       setTeamWeek: async (orgId, patch) => {

@@ -16108,6 +16108,11 @@
     "how": "Bilgisayarlar nasıl çalışır",
     "hostMissing": "Bu sunucu da ajanlarınızın bilgisayarı olabilir: <guide>nasıl yapılır</guide>."
   },
+  "announcement": {
+    "region": "Duyurular",
+    "dismiss": "Duyuruyu kapat",
+    "open": "Daha fazla bilgi"
+  },
   "outage": {
     "region": "Çevrimdışı bilgisayarlar",
     "title": "{{name}} {{ago}} çevrimdışı oldu",

@@ -15671,6 +15671,11 @@
     "how": "Cara kerja komputer",
     "hostMissing": "Server ini juga bisa jadi komputer agenmu: <guide>begini caranya</guide>."
   },
+  "announcement": {
+    "region": "Pengumuman",
+    "dismiss": "Tutup pengumuman",
+    "open": "Selengkapnya"
+  },
   "outage": {
     "region": "Komputer offline",
     "title": "{{name}} offline sejak {{ago}}",

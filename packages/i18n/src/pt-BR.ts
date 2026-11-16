@@ -16423,6 +16423,11 @@ export const ptBR = {
     how: "Como os computadores funcionam",
     hostMissing: "Este servidor também pode ser o computador dos agentes: <guide>veja como</guide>.",
   },
+  announcement: {
+    region: "Avisos",
+    dismiss: "Fechar aviso",
+    open: "Saiba mais",
+  },
   outage: {
     region: "Computadores desconectados",
     title: "O {{name}} desconectou {{ago}}",

@@ -16702,6 +16702,11 @@
     "how": "Come funzionano i computer",
     "hostMissing": "Anche questo server può essere il computer dei tuoi agenti: <guide>ecco come</guide>."
   },
+  "announcement": {
+    "region": "Annunci",
+    "dismiss": "Chiudi annuncio",
+    "open": "Scopri di più"
+  },
   "outage": {
     "region": "Computer offline",
     "title": "{{name}} è andato offline {{ago}}",

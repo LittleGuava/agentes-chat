@@ -15680,6 +15680,11 @@
     "how": "电脑如何运作",
     "hostMissing": "这台服务器也可以作为智能体的电脑：<guide>查看方法</guide>。"
   },
+  "announcement": {
+    "region": "公告",
+    "dismiss": "关闭公告",
+    "open": "了解更多"
+  },
   "outage": {
     "region": "离线的电脑",
     "title": "{{name}} 在{{ago}}离线了",

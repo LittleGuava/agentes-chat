@@ -117,6 +117,7 @@ export const keys = {
   personUsage: (orgId: string, userId: string) => ["org", orgId, "people-usage", "person", userId] as const,
   personLimits: (orgId: string) => ["org", orgId, "people-usage", "limits"] as const,
   teamWeek: (orgId: string) => ["org", orgId, "team-week"] as const,
+  announcements: (orgId: string) => ["org", orgId, "announcements"] as const,
   platformKey: (orgId: string) => ["org", orgId, "platform-key"] as const,
   roster: (orgId: string, channelId: string) => ["org", orgId, "channel", channelId, "roster"] as const,
   /** All the agents' memories, for the workspace's map. */

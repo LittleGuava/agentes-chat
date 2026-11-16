@@ -5314,6 +5314,18 @@ export interface ComputerQueue {
   waiting: QueueWaiting[];
 }
 
+/** What the server's operator tells me in a workspace (ADR 0056, addendum on announcements): plain text. */
+export interface Announcement {
+  id: string;
+  title: string;
+  /** Line breaks kept. */
+  body: string;
+  /** An https address; `label` null: the app's own words. */
+  link: { url: string; label: string | null } | null;
+  startsAt: string;
+  endsAt: string | null;
+}
+
 /** `GET …/machines/outages`. */
 export interface MachineOutages {
   outages: MachineOutage[];

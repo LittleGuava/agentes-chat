@@ -65,6 +65,7 @@ import type {
   AgentUsage,
   AiAccounts,
   AiStatus,
+  Announcement,
   ApiRule,
   AppConsent,
   AppConsentDecision,
@@ -727,6 +728,10 @@ export interface ApiClient {
     requestMoreUsage(orgId: string): Promise<{ requestedAt: string }>;
     raisePersonLimit(orgId: string, userId: string, limitUsd: number): Promise<void>;
     refuseMoreUsage(orgId: string, userId: string): Promise<void>;
+    /** What the server's operator tells me here now (ADR 0056, addendum on announcements). */
+    announcements(orgId: string): Promise<{ announcements: Announcement[] }>;
+    /** Closes one for good, in every workspace. */
+    dismissAnnouncement(orgId: string, id: string): Promise<void>;
     /** Lodi's weekly card (ADR 0137 §9): when mine comes, or that it is off. */
     teamWeek(orgId: string): Promise<LodiPrefs>;
     setTeamWeek(orgId: string, patch: LodiPrefsPatch | LegacyPrefsPatch): Promise<LodiPrefs>;

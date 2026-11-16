@@ -17218,6 +17218,11 @@
     "how": "Jak działają komputery",
     "hostMissing": "Ten serwer też może być komputerem twoich agentów: <guide>zobacz jak</guide>."
   },
+  "announcement": {
+    "region": "Ogłoszenia",
+    "dismiss": "Zamknij ogłoszenie",
+    "open": "Dowiedz się więcej"
+  },
   "outage": {
     "region": "Komputery offline",
     "title": "{{name}} jest offline od {{ago}}",

@@ -15608,6 +15608,11 @@
     "how": "컴퓨터 작동 방식",
     "hostMissing": "이 서버도 에이전트의 컴퓨터가 될 수 있어요. <guide>방법 보기</guide>"
   },
+  "announcement": {
+    "region": "공지",
+    "dismiss": "공지 닫기",
+    "open": "자세히 보기"
+  },
   "outage": {
     "region": "오프라인 컴퓨터",
     "title": "{{name}}이(가) {{ago}} 오프라인이 됐어요",

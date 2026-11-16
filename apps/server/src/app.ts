@@ -23,6 +23,7 @@ import { actionRoutes } from "./routes/app/actions";
 import { agentApiKeyRoutes } from "./routes/app/agent-api-keys";
 import { agentImportRoutes } from "./routes/app/agent-imports";
 import { agentRoutes } from "./routes/app/agents";
+import { announcementRoutes } from "./routes/app/announcements";
 import { approvalRoutes } from "./routes/app/approvals";
 import { appRoutes } from "./routes/app/apps";
 import { artifactRoutes } from "./routes/app/artifacts";
@@ -238,6 +239,7 @@ export function createApp(options: AppOptions) {
     api.route("/app", planUsageRoutes(deps));
     api.route("/app", personUsageRoutes(deps));
     api.route("/app", teamWeekRoutes(deps));
+    api.route("/app", announcementRoutes(deps));
     api.route("/app", dashboardRoutes(deps));
     api.route("/app", telemetryRoutes(deps));
     api.route("/app", serverUpdateRoutes(deps));

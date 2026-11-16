@@ -127,6 +127,8 @@ const KEPT: Record<string, string[]> = {
   connector_connections: ["connector", "label", "auth_type", "status", "last_error"],
   mail_accounts: ["provider", "via", "preset", "label", "status", "last_error"],
   db_connections: ["label", "status", "last_error"],
+  // The operator's own words to the instance's people, written only through this API (ADR 0056, announcements).
+  announcements: ["title", "body", "link_url", "link_label", "audience"],
 };
 
 /** The places the proof is about: each holds a canary before any read, and after every column got one. */
@@ -788,6 +790,19 @@ beforeAll(async () => {
     .values({ orgId, installationId: 1, accountLogin: "canary-login", accountType: "Organization" });
   await db.insert(schema.channelPermissionOverrides).values({ orgId, channelId, userId: ownerId, deny: ["post"] });
   await db.insert(schema.signupSettings).values({ mode: "invite" });
+  // An announcement the operator published to the workspace, which its owner closed.
+  const [announcement] = await db
+    .insert(schema.announcements)
+    .values({
+      title: "Maintenance tonight",
+      body: "The app pauses for ten minutes.",
+      linkUrl: "https://example.com/status",
+      linkLabel: "Status",
+      audience: "workspace",
+      orgId,
+    })
+    .returning({ id: schema.announcements.id });
+  await db.insert(schema.announcementDismissals).values({ announcementId: announcement?.id ?? "", userId: ownerId });
   await db.insert(schema.claudeAuthSettings).values({ method: "setup_token" });
   await countToolCall(db, { orgId, agentId, connector: { key: "github", via: "mcp", tool: "get_issue" }, calls: 2 });
   await countComposio(db, { orgId, toolkit: "gmail", action: "GMAIL_FETCH_EMAILS", executions: 1 });
@@ -852,6 +867,7 @@ beforeAll(async () => {
     `/analytics/ai-accounts?${days}`,
     "/ai-accounts?limit=200",
     "/claude-auth",
+    "/announcements",
     "/users?q=acme&limit=200",
     "/users?email=owner%40acme.test",
     "/jobs?limit=200",

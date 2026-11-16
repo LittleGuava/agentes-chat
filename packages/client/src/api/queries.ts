@@ -98,6 +98,7 @@ import type {
   AgentSetup,
   AgentStyle,
   AiStatus,
+  Announcement,
   ApiRule,
   AppConsentDecision,
   AppNotification,
@@ -3392,6 +3393,45 @@ export const useRaisePersonLimit = (orgId: string) => {
 export const useRefuseMoreUsage = (orgId: string) => {
   const api = useApi();
   return usePeopleUsageMutation(orgId, (userId: string) => api.orgs.refuseMoreUsage(orgId, userId));
+};
+
+/** How often the announcements are read again while the workspace is open, besides its window coming into focus. */
+const ANNOUNCEMENTS_POLL_MS = 15 * 60_000;
+
+/**
+ * What the server's operator tells me here now (ADR 0056, addendum on announcements). Nothing comes over the socket:
+ * read when the workspace opens, on focus and every 15 minutes.
+ */
+export const useAnnouncements = (orgId: string, enabled = true) => {
+  const api = useApi();
+  return useQuery({
+    queryKey: keys.announcements(orgId),
+    queryFn: () => api.orgs.announcements(orgId),
+    enabled,
+    retry: false,
+    refetchInterval: ANNOUNCEMENTS_POLL_MS,
+    refetchOnWindowFocus: true,
+    meta: { quiet: true },
+  });
+};
+
+/** Closes one for good: it leaves at once, and comes back only if the server refuses. */
+export const useDismissAnnouncement = (orgId: string) => {
+  const api = useApi();
+  const qc = useQueryClient();
+  const key = keys.announcements(orgId);
+  return useMutation({
+    mutationFn: (id: string) => api.orgs.dismissAnnouncement(orgId, id),
+    onMutate: async (id: string) => {
+      await qc.cancelQueries({ queryKey: key });
+      const before = qc.getQueryData<{ announcements: Announcement[] }>(key);
+      if (before) qc.setQueryData(key, { announcements: before.announcements.filter((a) => a.id !== id) });
+      return { before };
+    },
+    onError: (_error, _id, context) => {
+      if (context?.before) qc.setQueryData(key, context.before);
+    },
+  });
 };
 
 /** What Lodi does for me by itself: when its daily and weekly cards come, and its other switches (ADR 0137 §9). */
