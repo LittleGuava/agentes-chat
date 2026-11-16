@@ -3202,8 +3202,8 @@
       "cursor": "Cursor non ha effettuato l'accesso su questo computer. Collega un account Cursor nella pagina di {{name}}.",
       "cursor_female": "Cursor non ha effettuato l'accesso su questo computer. Collega un account Cursor nella pagina di {{name}}.",
       "grok": "Grok non ha effettuato l'accesso su questo computer. Collega un account Grok nella pagina di {{name}}.",
-      "copilot": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "grok_female": "Grok non ha effettuato l'accesso su questo computer. Collega un account Grok nella pagina di {{name}}.",
+      "copilot": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "copilot_female": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "antigravity": "Gemini non ha effettuato l'accesso su questo computer. Collega un account Gemini nella pagina di {{name}}.",
       "antigravity_female": "Gemini non ha effettuato l'accesso su questo computer. Collega un account Gemini nella pagina di {{name}}.",
@@ -16775,6 +16775,11 @@
         "token_created": "Ha creato il token personale {{app}}",
         "token_revoked": "Ha revocato il token personale {{app}}",
         "message_sent": "Ha inviato un messaggio tramite {{app}}"
+      },
+      "agent_api": {
+        "key_created": "Ha creato la chiave API {{app}}",
+        "key_revoked": "Ha revocato la chiave API {{app}}",
+        "message_sent": "Ha inviato un messaggio con la chiave API {{app}}"
       },
       "vault": {
         "item_created": "Ha salvato un elemento nel Vault",

@@ -2,6 +2,7 @@ export * from "./access";
 export * from "./account-contacts";
 export * from "./admin-asks";
 export * from "./agent-actions";
+export * from "./agent-api";
 export * from "./agent-audit";
 export * from "./agent-deletion";
 export * from "./agent-for-you";

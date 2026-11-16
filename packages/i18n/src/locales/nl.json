@@ -3086,8 +3086,8 @@
       "cursor": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "cursor_female": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "grok": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
-      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "grok_female": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
+      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "copilot_female": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "antigravity": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",
       "antigravity_female": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",
@@ -16307,6 +16307,11 @@
         "token_created": "Persoonlijk token {{app}} gemaakt",
         "token_revoked": "Persoonlijk token {{app}} ingetrokken",
         "message_sent": "Een bericht verstuurd via {{app}}"
+      },
+      "agent_api": {
+        "key_created": "API-sleutel {{app}} gemaakt",
+        "key_revoked": "API-sleutel {{app}} ingetrokken",
+        "message_sent": "Bericht gestuurd via API-sleutel {{app}}"
       },
       "vault": {
         "item_created": "Een item in de Vault opgeslagen",

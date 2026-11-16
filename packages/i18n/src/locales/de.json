@@ -3087,8 +3087,8 @@
       "cursor": "Cursor ist auf diesem Computer nicht angemeldet. Verbinde ein Cursor-Konto auf der Seite von {{name}}.",
       "cursor_female": "Cursor ist auf diesem Computer nicht angemeldet. Verbinde ein Cursor-Konto auf der Seite von {{name}}.",
       "grok": "Grok ist auf diesem Computer nicht angemeldet. Verbinde ein Grok-Konto auf der Seite von {{name}}.",
-      "copilot": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "grok_female": "Grok ist auf diesem Computer nicht angemeldet. Verbinde ein Grok-Konto auf der Seite von {{name}}.",
+      "copilot": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "copilot_female": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "antigravity": "Gemini ist auf diesem Computer nicht angemeldet. Verbinde ein Gemini-Konto auf der Seite von {{name}}.",
       "antigravity_female": "Gemini ist auf diesem Computer nicht angemeldet. Verbinde ein Gemini-Konto auf der Seite von {{name}}.",
@@ -16243,6 +16243,11 @@
         "token_created": "Hat den persönlichen Token {{app}} erstellt",
         "token_revoked": "Hat den persönlichen Token {{app}} widerrufen",
         "message_sent": "Hat eine Nachricht über {{app}} gesendet"
+      },
+      "agent_api": {
+        "key_created": "Hat den API-Schlüssel {{app}} erstellt",
+        "key_revoked": "Hat den API-Schlüssel {{app}} widerrufen",
+        "message_sent": "Hat eine Nachricht über den API-Schlüssel {{app}} gesendet"
       },
       "vault": {
         "item_created": "Hat einen Eintrag im Vault gespeichert",
