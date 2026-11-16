@@ -14620,6 +14620,8 @@
       "gone": "O hesap artık bağlı değil.",
       "unfinished": "Composio'da giriş tamamlanmadı. Tekrar deneyin.",
       "unavailable": "Bu hizmet burada bağlanamaz.",
+      "notPerPerson": "Bu bağlantı artık herkes için tek bir hesap kullanıyor. Sayfayı yenileyin.",
+      "perPersonUnsupported": "Yalnızca Composio üzerinden bağlanan bir hizmet herkesin kendi hesabını kullanabilir.",
       "misconfigured": "Sunucuda {{provider}} bağlantısı yanlış ayarlanmış, bu yüzden tamamlanamıyor. Sunucuyu yöneten kişinin anahtarı uygulamanın ayarlarında değiştirmesi gerekiyor."
     },
     "wiki": {

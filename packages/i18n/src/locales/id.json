@@ -14202,6 +14202,8 @@
       "gone": "Akun itu sudah tidak terhubung.",
       "unfinished": "Proses masuk di Composio tidak selesai. Coba lagi.",
       "unavailable": "Layanan ini tidak bisa dihubungkan di sini.",
+      "notPerPerson": "Koneksi ini sekarang memakai satu akun untuk semua orang. Muat ulang halaman.",
+      "perPersonUnsupported": "Hanya layanan yang terhubung melalui Composio yang bisa memakai akun masing-masing orang.",
       "misconfigured": "Koneksi ke {{provider}} di server salah diatur, jadi tidak bisa selesai. Pengelola server perlu mengganti kunci di pengaturan aplikasi."
     },
     "wiki": {

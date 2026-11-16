@@ -191,6 +191,8 @@ const KNOWN = {
   "connector.gone": "errors.connector.gone",
   "connector.unfinished": "errors.connector.unfinished",
   "connector.unavailable": "errors.connector.unavailable",
+  "connector.not_per_person": "errors.connector.notPerPerson",
+  "connector.per_person_unsupported": "errors.connector.perPersonUnsupported",
   "connector.misconfigured": "errors.connector.misconfigured",
   // Facts only (the phone shows this one): the web's onboarding says `standing.createUnpaid` beside the way to pay.
   "org.create_unpaid": "standing.createInactive",

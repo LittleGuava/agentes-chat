@@ -14863,6 +14863,8 @@ export const en = {
       gone: "That account is no longer connected.",
       unfinished: "The sign-in at Composio didn't finish. Try again.",
       unavailable: "This service can't be connected here.",
+      notPerPerson: "This connection uses one account for everyone now. Reload the page.",
+      perPersonUnsupported: "Only a service connected through Composio can use each person's own account.",
       /**
        * {{provider}} refused this server's own OAuth app for it, whose client secret (or id) is wrong
        * (`connector_error=misconfigured`): trying again can't help, only whoever runs the server can fix it.

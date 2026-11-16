@@ -15197,6 +15197,8 @@
       "gone": "Quell'account non è più collegato.",
       "unfinished": "L'accesso su Composio non è stato completato. Riprova.",
       "unavailable": "Questo servizio non si può collegare qui.",
+      "notPerPerson": "Questa connessione ora usa un solo account per tutti. Ricarica la pagina.",
+      "perPersonUnsupported": "Solo un servizio collegato tramite Composio può usare l'account di ciascuna persona.",
       "misconfigured": "Il collegamento a {{provider}} è configurato male sul server, quindi non può finire. Chi gestisce il server deve sostituire la chiave nelle impostazioni dell'app."
     },
     "wiki": {

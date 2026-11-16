@@ -14852,6 +14852,8 @@ export const ptBR = {
       gone: "Essa conta não está mais conectada.",
       unfinished: "O login na Composio não terminou. Tente de novo.",
       unavailable: "Este serviço não conecta aqui.",
+      notPerPerson: "Esta conexão agora usa uma conta para todos. Recarregue a página.",
+      perPersonUnsupported: "Só um serviço conectado pela Composio pode usar a conta de cada pessoa.",
       /**
        * O {{provider}} recusou o app de OAuth deste servidor para ele, com a chave secreta (ou o ID) errada
        * (`connector_error=misconfigured`): tentar de novo não resolve, só quem cuida do servidor conserta.

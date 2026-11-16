@@ -6,6 +6,7 @@ import { randomToken, sha256 } from "../crypto";
 import { ConflictError, NotFoundError, ValidationError } from "../errors";
 import { composioUserId } from "../mail/accounts";
 import { getMembership, requireChangePermission } from "../organizations";
+import { enqueue } from "../outbox";
 import { activeComposioAccount, type ComposioConnectors, composioServiceOf, forgetComposioAccount } from "./composio";
 import {
   type ConnectOutcome,
@@ -25,6 +26,11 @@ import { oauthReturnTo } from "./oauth-return";
 const { connectorConnections, connectorPersonalAccounts, oauthStates, users } = schema;
 
 export type PersonalAccount = typeof connectorPersonalAccounts.$inferSelect;
+
+/** The job that has Composio forget the accounts of people who left (`forgetLeaversAccounts`). */
+export const PERSONAL_FORGET_JOB = "connector.personal.forget";
+/** The backoff tops out at 3 h: the job keeps trying through a Composio outage for about 30 days. */
+const PERSONAL_FORGET_ATTEMPTS = 240;
 
 /** One's own account on a per-person connection, as its owner sees it (never anyone else's). */
 export interface PersonalAccountView {
@@ -206,6 +212,51 @@ export async function forgetPersonalAccounts(
     )
     .returning({ accountId: connectorPersonalAccounts.composioAccountId });
   if (deps.composio) for (const g of gone) await forgetComposioAccount(deps.composio.client, g.accountId);
+}
+
+/**
+ * A person leaves a workspace (`removeMember`), or every one (`deleteAccount`, `orgId` null): their own accounts and
+ * the sign-ins they started and never finished go here at once, in the caller's transaction, and a job has Composio
+ * forget them there. Composio may be down: the job retries, and an account already gone there is no error, so running
+ * it twice, or the job dying halfway, ends the same.
+ */
+export async function dropAccountsOfLeaver(tx: Executor, userId: string, orgId: string | null) {
+  const accounts = await tx
+    .delete(connectorPersonalAccounts)
+    .where(
+      and(
+        eq(connectorPersonalAccounts.ownerUserId, userId),
+        orgId ? eq(connectorPersonalAccounts.orgId, orgId) : undefined,
+      ),
+    )
+    .returning({ accountId: connectorPersonalAccounts.composioAccountId });
+  const links = await tx
+    .delete(oauthStates)
+    .where(
+      and(
+        eq(oauthStates.userId, userId),
+        eq(oauthStates.forPerson, true),
+        orgId ? eq(oauthStates.orgId, orgId) : undefined,
+      ),
+    )
+    .returning({ accountId: oauthStates.composioAccountId });
+  const accountIds = [...new Set([...accounts, ...links].flatMap((a) => (a.accountId ? [a.accountId] : [])))];
+  if (accountIds.length === 0) return;
+  // No org_id: the job outlives the workspace, whose deletion would take its rows with it.
+  await enqueue(tx, {
+    orgId: null,
+    kind: PERSONAL_FORGET_JOB,
+    payload: { accountIds },
+    maxAttempts: PERSONAL_FORGET_ATTEMPTS,
+  });
+}
+
+/** Job `connector.personal.forget`: Composio forgets each account, never revoking a grant its apps share. */
+export async function forgetLeaversAccounts(composio: Pick<ComposioConnectors, "client">, accountIds: unknown) {
+  if (!Array.isArray(accountIds)) return;
+  for (const id of accountIds) {
+    if (typeof id === "string") await composio.client.deleteConnectedAccount(id, { revoke: false });
+  }
 }
 
 /**

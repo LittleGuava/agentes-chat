@@ -1,8 +1,16 @@
-import type { ConnectorCategory, ConnectorDef, CustomConnectStart } from "@agenteschat/client";
+import type { ConnectOutcome, ConnectorCategory, ConnectorDef, CustomConnectStart } from "@agenteschat/client";
 import { hiddenWithoutComposio } from "@agenteschat/client/lib/composio";
-import { CONNECTOR_MARK, type ConnectedItem, OWN_MARK, SERVER_ICON } from "@agenteschat/client/lib/connected";
+import {
+  CONNECTOR_MARK,
+  type ConnectedItem,
+  connectsMine,
+  mineOf,
+  OWN_MARK,
+  SERVER_ICON,
+} from "@agenteschat/client/lib/connected";
 import { mixHex } from "@agenteschat/ui/agent/engine";
 import type { TFunction } from "i18next";
+import { returnHref } from "./review";
 
 /**
  * The connectors gallery on the phone: pure pieces the screen and
@@ -44,6 +52,28 @@ export function accountActions(
 ): ("rename" | "reconnect" | "add")[] {
   if (item.viaGithubApp) return ["rename"];
   return item.custom ? ["rename", "reconnect", "add"] : ["rename", "reconnect"];
+}
+
+/**
+ * What anyone, admin or not, does with their own account on a per-person connection's screen (ADR 0195): connect it
+ * while there is none or it stopped working, and disconnect the one they have.
+ */
+export function mineActions(item: Pick<ConnectedItem, "perPerson" | "mine">): ("connect" | "disconnect")[] {
+  const state = mineOf(item);
+  return [
+    ...(connectsMine(item) ? (["connect"] as const) : []),
+    ...(state === "active" || state === "broken" ? (["disconnect"] as const) : []),
+  ];
+}
+
+/**
+ * Where a finished sign-in lands: a new workspace account on its tools to review, one's own account (it brings no
+ * tools) or a sign-in again on its connection.
+ */
+export function landingAfter(done: { connectionId: string; outcome?: ConnectOutcome; personal?: boolean }) {
+  return (done.outcome ?? "connected") === "connected" && !done.personal
+    ? returnHref(done.connectionId)
+    : `/connectors/${done.connectionId}`;
 }
 
 /** The first three suggestions that can be connected here and aren't yet. */

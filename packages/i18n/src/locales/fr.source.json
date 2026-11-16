@@ -36086,6 +36086,12 @@
   "errors.connector.unavailable": {
     "value": "This service can't be connected here."
   },
+  "errors.connector.notPerPerson": {
+    "value": "This connection uses one account for everyone now. Reload the page."
+  },
+  "errors.connector.perPersonUnsupported": {
+    "value": "Only a service connected through Composio can use each person's own account."
+  },
   "errors.connector.misconfigured": {
     "value": "The connection to {{provider}} is set up wrong on the server, so it can't finish. Whoever runs the server needs to replace the key in the app's settings."
   },

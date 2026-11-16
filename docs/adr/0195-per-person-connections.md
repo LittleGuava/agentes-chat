@@ -4,12 +4,15 @@
 - Date: 2026-11-15
 - Code: schema `packages/db/src/schema/connectors.ts` (`connector_connections.per_person`, `connector_personal_accounts`,
   `oauth_states.for_person`); engine `packages/engine/src/connectors/personal.ts` (`setPerPerson`,
-  `beginPersonalConnect`, `completePersonalConnect`, `disconnectPersonal`, `personalAccountFor`, `personalRefusal`),
+  `beginPersonalConnect`, `completePersonalConnect`, `disconnectPersonal`, `personalAccountFor`, `personalRefusal`,
+  `dropAccountsOfLeaver`, job `connector.personal.forget`), `organizations.ts` (`removeMember`, `deleteAccount`),
   `connectors/mcp.ts` (a per-person connection's tools: `checkCall` and `execute`), `connectors/connections.ts`
   (`completeOAuth`, `revokeConnection`), `connectors/custom.ts` (`listCustomServers`: `perPerson`, `mine`),
   `workspace-deletion.ts` (`revokeGrants`); routes `apps/server/src/routes/app/connectors.ts`
-  (`PUT …/connectors/{connectionId}/per-person`, `POST`/`DELETE …/connectors/{connectionId}/mine`); web
-  `apps/web/src/components/Connectors.tsx`; tests `packages/engine/test/personal-connections.test.ts`
+  (`PUT …/connectors/{connectionId}/per-person`, `POST`/`DELETE …/connectors/{connectionId}/mine`); the viewer's own
+  account as words `packages/client/src/lib/connected.ts` (`mineOf`, `mineText`, `connectsMine`); web
+  `apps/web/src/components/Connectors.tsx`; phone `apps/mobile/src/features/connectors/ConnectionScreen.tsx`
+  (`MineGroup`); tests `packages/engine/test/personal-connections.test.ts`
 
 ## Context
 
@@ -71,9 +74,14 @@ behind them, and ADR 0053 §1 says a routine's run never acts as its creator.
 
 6. **Lifecycle.** Disconnecting the workspace connection, or turning per person off, drops every personal account of
    it at the provider (best effort, never revoking a shared grant, as ADR 0107 does). Deleting the workspace drops
-   them with its other grants (`revokeGrants`). A person who left the workspace is no longer a member, so the gateway
-   refuses their account at once. Their account stays at Composio until the connection or the workspace goes, and
-   deleting their own agentes.chat account removes the row with it (see Later).
+   them with its other grants (`revokeGrants`). A person who leaves the workspace or is removed (`removeMember`), or
+   deletes their agentes.chat account (`deleteAccount`, before the user row, whose deletion would take the rows and
+   leave nothing here that knows the accounts), loses their own accounts and the sign-ins they started and never
+   finished there (`dropAccountsOfLeaver`): the rows go in the same transaction, and a job
+   (`connector.personal.forget`, no `org_id`, so it outlives a workspace deleted meanwhile) has Composio forget the
+   accounts. Composio may be down: the job retries for about 30 days, and an account already gone there is no error,
+   so the job running twice or dying halfway ends the same. Until then the gateway refuses the account anyway: its
+   row is gone, and the person is no longer a member.
 
 7. **First slice: services through Composio.** A personal account there is a Composio connected account made by a
    Connect Link under the workspace's Composio user (`org_<orgId>`), so its calls count against the workspace's
@@ -99,13 +107,13 @@ behind them, and ADR 0053 §1 says a routine's run never acts as its creator.
   token refresh and its lock (`refreshing_until`) per personal row, and sealing bound to it. API keys per person too.
 - **Per-person mailboxes.** Gmail and Outlook are mailboxes here (ADR 0038, `mail/accounts.ts`), not connectors: a
   mailbox per person is a decision of its own over that model (who reads, routines on received mail).
-- **Leaving the workspace.** `removeMember` and `deleteAccount` should drop the person's personal accounts at the
-  provider at once. Today they stop working at once; after `removeMember` they go away at Composio with the
-  connection or the workspace, but `deleteAccount` deletes the row with the person (`owner_user_id` cascades), and
-  then nothing here knows the account at Composio any more, so it stays there.
+- **A sign-in finishing while its person leaves.** One that finishes in the instant of the removal may write its row
+  after the removal's transaction. The gateway still refuses it (no member), and the workspace's deletion forgets it,
+  but until then it stays at Composio. Checking membership under the `org-members` lock when the row is written
+  closes it.
 - **Composio's webhook and the reconcile tick** (`markComposioAccountBroken`, `reconcileComposioConnectors`) should
   mark and heal personal rows too; today a personal account is marked when a call fails and healed by reconnecting.
-- **The phone and desktop apps.** The phone's connectors screen gets "Connect my account" and "Disconnect my
-  account"; the API is already there.
+- **The phone's managers' switch.** On the phone everyone connects and disconnects their own account on the
+  connection's screen; turning a connection per person (or back) is still done on the web or the desktop app.
 - **Per-agent consent.** A person may want only some agents to use their account; today every agent the workspace
   granted the connection may, for the person who asked.

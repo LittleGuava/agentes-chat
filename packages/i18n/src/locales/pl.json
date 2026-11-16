@@ -15692,6 +15692,8 @@
       "gone": "To konto nie jest już połączone.",
       "unfinished": "Logowanie w Composio nie zostało dokończone. Spróbuj ponownie.",
       "unavailable": "Tej usługi nie można tu połączyć.",
+      "notPerPerson": "To połączenie używa teraz jednego konta dla wszystkich. Odśwież stronę.",
+      "perPersonUnsupported": "Tylko usługa połączona przez Composio może używać własnego konta każdej osoby.",
       "misconfigured": "Połączenie z {{provider}} jest źle skonfigurowane na serwerze, więc nie może się zakończyć. Osoba zarządzająca serwerem musi zmienić klucz w ustawieniach aplikacji."
     },
     "wiki": {

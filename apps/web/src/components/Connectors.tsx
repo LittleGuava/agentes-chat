@@ -24,8 +24,11 @@ import {
   type ConnectedItem,
   connectedIds,
   connectedItems,
+  connectsMine,
   isMcpItem,
   itemName,
+  mineOf,
+  mineText,
   outcomeText,
   reconnectAddsText,
 } from "@agenteschat/client/lib/connected";
@@ -449,22 +452,10 @@ function ServiceRow({
   const adds = reconnectAddsText(t, item);
   const name = itemName(t, item);
   // Each person's own account (ADR 0195): everyone sees their own, and connects it here.
-  const mine = item.perPerson ? (item.mine ?? null) : null;
-  const personal = item.perPerson
-    ? [
-        t("connectors.personal.perPerson"),
-        !mine
-          ? t("connectors.personal.mineNone")
-          : mine.status === "needs_reconnect"
-            ? t("connectors.personal.mineBroken")
-            : mine.accountLabel
-              ? t("connectors.personal.mine", { account: mine.accountLabel })
-              : null,
-      ]
-        .filter(Boolean)
-        .join(" · ")
-    : null;
-  const connectMine = item.perPerson && (!mine || mine.status === "needs_reconnect") && (
+  const mine = mineOf(item);
+  const hasMine = mine === "active" || mine === "broken";
+  const personal = mine ? [t("connectors.personal.perPerson"), mineText(t, item)].filter(Boolean).join(" · ") : null;
+  const connectMine = connectsMine(item) && (
     <Button
       size="sm"
       variant="primary"
@@ -561,7 +552,7 @@ function ServiceRow({
                   {t(item.perPerson ? "connectors.personal.turnOff" : "connectors.personal.turnOn")}
                 </MenuItem>
               )}
-              {mine && (
+              {hasMine && (
                 <MenuItem icon="power" onSelect={onDisconnectMine}>
                   {t("connectors.personal.disconnectMine")}
                 </MenuItem>
@@ -576,7 +567,7 @@ function ServiceRow({
           item.perPerson && (
             <>
               {connectMine}
-              {mine && (
+              {hasMine && (
                 <Button variant="link" onClick={onDisconnectMine}>
                   {t("connectors.personal.disconnectMine")}
                 </Button>
