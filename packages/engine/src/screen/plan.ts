@@ -12,7 +12,16 @@ import {
   screenDigest,
   screenRef,
 } from "./observation";
-import { locateOnImage, resolveTarget, type TargetCache, type TargetUse } from "./targets";
+import {
+  costlyTarget,
+  fromMemory,
+  locateOnImage,
+  memoryOf,
+  resolveTarget,
+  type TargetCache,
+  type TargetMemory,
+  type TargetUse,
+} from "./targets";
 
 /**
  * Plans (ADR 0054): several steps on a screen in one call of the agent's
@@ -72,6 +81,11 @@ export interface ScreenStep {
   find?: string;
   /** After the step, this should be true on the screen; the plan stops when it isn't. */
   expect?: string;
+  /**
+   * Saved steps only (`recipeOf`), never from a model's input (`screenStepOf` drops it): where each of the step's
+   * targets was when it was saved, in order. It is found again only there, by code, or the plan stops at the step.
+   */
+  pinned?: TargetMemory[];
 }
 
 /** Where an action lands: an element, or a point found on an image (the surface's pixels). */
@@ -203,6 +217,11 @@ export interface PlanDeps {
    * throw work away: the plan stops there and says what covers it.
    */
   dismiss?: boolean;
+  /**
+   * The plan is to be kept as saved steps (`recipeOf`): each target found without the judge (a name, a number) is
+   * asked once whether it can't be undone, which saved steps never do again (ADR 0054, addendum 2026-11-15).
+   */
+  keep?: boolean;
   /** How long an `expect` that isn't true yet may take to become true (default `EXPECT_GRACE_MS`). */
   expectGraceMs?: number;
   now?: () => number;
@@ -217,8 +236,10 @@ export interface StepReport {
   note?: string;
   /** The element acted on (for a drag, the one dragged). */
   element?: Pick<ScreenElement, "ref" | "role" | "name"> | null;
-  /** How the target was found. */
-  via?: "ref" | "exact" | "cache" | "judge" | "image";
+  /** How the target was found (`saved`: where saved steps say it was). */
+  via?: "ref" | "exact" | "cache" | "judge" | "image" | "saved";
+  /** Where each target was, when every one was an element: what saved steps keep (`recipeOf`). */
+  pinned?: TargetMemory[];
   /** Another element closed first (a banner in the way). */
   dismissed?: string;
   /** The step's `expect`, as checked. */
@@ -268,6 +289,9 @@ const USES: Partial<Record<ScreenVerb, TargetUse>> = {
 
 /** Steps that need a target (`type` and `scroll` act on one only when it is given). */
 export const needsTarget = (step: ScreenStep) => step.do in USES;
+/** Steps that act on a target: those that need one, and a `type` or a `scroll` given one. */
+export const actsOnTarget = (step: ScreenStep) =>
+  needsTarget(step) || ((step.do === "type" || step.do === "scroll") && Boolean(step.target?.trim()));
 
 const COVERED = /covered by|intercept|obscured|another element would receive/i;
 const STALE = /stale|unknown ref|ref\b.*\b(not found|no longer|invalid)|no element (for|matches) ref/i;
@@ -308,7 +332,7 @@ const elementOf = (e: ScreenElement | null | undefined) => (e ? { ref: e.ref, ro
  */
 const quoted = (e: Pick<ScreenElement, "role" | "ref">) => `${e.role} (${e.ref})`;
 
-type Found = { at: ActTarget; element: ScreenElement | null; via: NonNullable<StepReport["via"]> };
+type Found = { at: ActTarget; element: ScreenElement | null; via: NonNullable<StepReport["via"]>; costly?: true };
 
 /** What a step that acts on elements acts on (one, or two for a drag), and its action on them. */
 interface Targets {
@@ -509,6 +533,22 @@ export async function runPlan(deps: PlanDeps, steps: ScreenStep[]): Promise<Plan
     }
   }
 
+  /**
+   * A saved target, where it was: the one element with its role, name and place, by code and never by a number, which
+   * names another element on another day. Never one the judge found can't be undone (as the target cache, ADR 0054).
+   */
+  async function pinnedOn(pin: TargetMemory, fresh: boolean): Promise<Found> {
+    if (pin.costly) {
+      throw new Stop("this step can't be undone, so it isn't repeated from saved steps: do it yourself, by its number");
+    }
+    const kept = fresh ? null : screen;
+    let hit = fromMemory(pin, kept ?? (await look()));
+    if (!hit && kept) hit = fromMemory(pin, await look());
+    // Its role only: names are page text (see `quoted`).
+    if (!hit) throw new Stop(`the saved ${pin.role} isn't on the ${noun} as it was when these steps were saved`);
+    return { at: { ref: hit.ref }, element: hit, via: "saved" };
+  }
+
   /** Where `words` are on the screen (see the comments inside); `fresh`: never on the look kept from before. */
   async function find(words: string, use: TargetUse, fresh: boolean): Promise<Found> {
     // A number from the page needs no look: the surface checks it (a stale one fails and says so).
@@ -525,7 +565,7 @@ export async function runPlan(deps: PlanDeps, steps: ScreenStep[]): Promise<Plan
       current = await look();
       r = await resolveOn(current);
     }
-    if (r.found) return { at: { ref: r.ref }, element: r.element, via: r.via };
+    if (r.found) return { at: { ref: r.ref }, element: r.element, via: r.via, ...(r.costly ? { costly: true } : {}) };
     // Not in the text (an icon without a name, a canvas): look at the screen itself.
     if (deps.vision && deps.surface.capture && use !== "type_secret") {
       const image = await deps.surface.capture().catch(() => null);
@@ -645,7 +685,15 @@ export async function runPlan(deps: PlanDeps, steps: ScreenStep[]): Promise<Plan
     // Each end of a drag is found on the screen as it is: the second on the look the first was found on.
     const findAll = async (fresh: boolean) => {
       const out: Found[] = [];
-      for (const [i, w] of words.entries()) out.push(await find(w, use, fresh && i === 0));
+      for (const [i, w] of words.entries()) {
+        const first = fresh && i === 0;
+        if (!step.pinned) out.push(await find(w, use, first));
+        else {
+          const pin = step.pinned[i];
+          if (!pin) throw new Stop("these saved steps don't say where this target was");
+          out.push(await pinnedOn(pin, first));
+        }
+      }
       return out;
     };
     const noteOf = (f: Found) =>
@@ -658,6 +706,12 @@ export async function runPlan(deps: PlanDeps, steps: ScreenStep[]): Promise<Plan
           ? `${found.length} boxes, ${noteOf(first)} to ${noteOf(last)}`
           : found.map(noteOf).join(" to ");
       report.via = found.some((f) => f.via === "image") ? "image" : found[0]?.via;
+      // Kept for saved steps only when each target is an element: a spot on an image can't be found again by code.
+      const elements = found.flatMap((f) =>
+        f.element && f.via !== "image" ? [{ ...memoryOf(f.element), ...(f.costly ? { costly: true } : {}) }] : [],
+      );
+      if (elements.length === found.length) report.pinned = elements;
+      else delete report.pinned;
     };
     const perform = (found: Found[]) => deps.surface.perform(act(found.map((f) => f.at)), { settle: true });
 
@@ -694,6 +748,14 @@ export async function runPlan(deps: PlanDeps, steps: ScreenStep[]): Promise<Plan
     }
     if (!out.ok) throw new ActFailed(out.error);
     describe(found);
+    if (deps.keep && report.pinned) {
+      // The judge's pick says it already; a target taken from memory was never costly (`resolveTarget`).
+      for (const [i, f] of found.entries()) {
+        const pin = report.pinned[i];
+        if (!pin || !f.element || f.via === "judge" || f.via === "cache") continue;
+        if (await costlyTarget({ ...ids, element: f.element, use, url: screen?.url ?? null })) pin.costly = true;
+      }
+    }
     if (out.typed) report.typed = out.typed;
     await lookAfter(out.observation);
   }

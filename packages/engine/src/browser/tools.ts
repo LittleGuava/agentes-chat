@@ -67,6 +67,7 @@ import {
   screenStepOf,
   type TargetCache,
 } from "../screen";
+import { afterPlanAsk, planAskOf, recipeProperties } from "../screen-recipes";
 import { keepRecording, RECORD_INPUT, screenHeld } from "../screen-recordings";
 import { requestSecretTool } from "../secret-request-tool";
 import { REQUEST_SECRET_TOOL, SITE_SECRET_TTL_TEXT, siteSecretGone } from "../secrets";
@@ -1179,7 +1180,13 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
   async function plan(
     ctx: ToolContext,
     steps: ScreenStep[],
-    options: { trail?: boolean; made?: boolean; record?: boolean; onReport?: (report: PlanReport) => void } = {},
+    options: {
+      trail?: boolean;
+      made?: boolean;
+      record?: boolean;
+      keep?: boolean;
+      onReport?: (report: PlanReport) => void;
+    } = {},
   ): Promise<ToolOutput> {
     for (const s of steps) {
       const refused = s.do === "open" && s.url ? await outboundRefusal(ctx, s.url) : null;
@@ -1265,6 +1272,7 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
         last: seen.within(key, FRESH_LOOK_MS),
         before: seen.within(key, KNOWN_LOOK_MS),
         vision: deps.vision?.() === true && linked.status.protocol >= BROWSER_FAST_PROTOCOL,
+        ...(options.keep ? { keep: true } : {}),
         now,
       },
       steps,
@@ -1558,22 +1566,27 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
         properties: {
           steps: { type: "array", minItems: 1, maxItems: MAX_PLAN_STEPS, items: STEP_SCHEMA },
           record: RECORD_INPUT,
+          ...recipeProperties("browser"),
         },
-        required: ["steps"],
         additionalProperties: false,
       },
       async (input, ctx) => {
-        const raw = Array.isArray(input.steps) ? input.steps : [];
-        const steps = raw.map(stepOf);
-        if (steps.length === 0 || steps.some((s) => s === null)) {
-          return { content: "Give `steps`, each with a known `do`.", isError: true };
-        }
-        const valid = steps as ScreenStep[];
-        if (actsBeforeOpening(valid)) {
+        const ask = await planAskOf(ctx, "browser", input, stepOf, VERBS);
+        if ("error" in ask) return { content: ask.error, isError: true };
+        if (actsBeforeOpening(ask.steps)) {
           const stale = await requirePageRead(ctx.db, ctx);
           if (stale) return stale;
         }
-        return plan(ctx, valid, { trail: true, record: input.record === true });
+        let report: PlanReport | null = null;
+        const out = await plan(ctx, ask.steps, {
+          trail: true,
+          record: input.record === true,
+          ...(ask.saveAs ? { keep: true } : {}),
+          onReport: (r) => {
+            report = r;
+          },
+        });
+        return afterPlanAsk(ctx, "browser", ask, report, out);
       },
     ),
     tool(

@@ -33,6 +33,7 @@ import {
   normalizeRef,
   pngChunks,
   screenHeld,
+  screenRecipeNames,
   setAgentBrowserDomains,
   startTakeover,
   type ToolSideEffects,
@@ -1310,4 +1311,82 @@ test("a recording takes no picture while a person has the agent's browser", asyn
   await startTakeover({ db: f.db, pubsub: f.pubsub }, f.owner.id, f.org.id, f.agent.id, b.ctx.runId);
   expect(await held()).toBe(true);
   expect(await screenHeld(b.ctx, "desktop", since)()).toBe(false);
+});
+
+test("browser_do keeps a plan that went through under a name and runs it again by code, handing back where it stops", async () => {
+  const judge = createFakeJudge((kind, id) => {
+    if (kind === "screen_check") return 0.95;
+    if (kind !== "screen_target") return undefined;
+    if (id === "present") return 0.95;
+    return { choice: "e7", probabilities: { e7: 0.93 } };
+  });
+  const b = await browserSetup({ judge });
+  await grantScopes(f.db, f.org.id, f.agent.id, [{ connectionId: null, scope: "browser:use" }]);
+  let login = '- form "Sign in"\n  - textbox "Email" [ref=e3]\n  - button "Sign in" [ref=e7]';
+  let at = "login";
+  b.s.respond = (r) => {
+    const a = r as Act;
+    if (a.op === "browser.act" && a.command === "open") at = "login";
+    if (a.op === "browser.act" && a.command === "click") at = "home";
+    return at === "login"
+      ? page(login, "https://app.acme.example/login")
+      : page('- heading "Dashboard" [level=1]', "https://app.acme.example/home");
+  };
+  const steps = [
+    { do: "open", url: "https://app.acme.example/login" },
+    { do: "fill", target: "Email", text: "ana@acme.example" },
+    { do: "click", target: "the button that signs me in", expect: "the dashboard shows" },
+  ];
+  const first = await b.call("browser_do", { steps, save_as: "Sign in to Acme" });
+  expect(first.isError).toBeUndefined();
+  expect(first.content).toStartWith('Saved these steps as "Sign in to Acme"');
+
+  // Another day the page numbers its elements otherwise: the saved steps find them where they were, by code.
+  login = '- link "Help" [ref=e2]\n- form "Sign in"\n  - textbox "Email" [ref=e4]\n  - button "Sign in" [ref=e9]';
+  const asked = judge.calls.filter((c) => c.kind === "screen_target").length;
+  const sent = b.since();
+  const again = await b.call("browser_do", { recipe: "sign in to acme" });
+  expect(again.isError).toBeUndefined();
+  expect(again.content).toStartWith('Ran your saved steps "Sign in to Acme".\nDone: all 3 steps.');
+  expect(judge.calls.filter((c) => c.kind === "screen_target")).toHaveLength(asked);
+  expect(
+    sent()
+      .filter((c) => c.command === "fill" || c.command === "click")
+      .map((c) => [c.command, c.args]),
+  ).toEqual([
+    ["fill", ["@e4", "ana@acme.example"]],
+    ["click", ["@e9"]],
+  ]);
+  expect(again.data?.browserTrail).toEqual([
+    { tool: "browser_open", detail: "app.acme.example/login" },
+    { tool: "browser_fill" },
+    { tool: "browser_click" },
+  ]);
+
+  // The button is gone: nothing is clicked, and the agent gets the rest to go on by hand.
+  login = '- form "Sign in"\n  - textbox "Email" [ref=e4]';
+  const stopping = b.since();
+  const stopped = await b.call("browser_do", { recipe: "Sign in to Acme" });
+  expect(stopped.content).toContain(
+    'Stopped at step 3 of 3 (click "the button that signs me in"): the saved button isn\'t on the page as it was when these steps were saved',
+  );
+  expect(stopped.content).toContain(
+    'The saved steps from there, to go on yourself with `steps`: [{"do":"click","target":"the button that signs me in","expect":"the dashboard shows"}]',
+  );
+  expect(stopping().filter((c) => c.command === "click")).toEqual([]);
+
+  // A plan that stopped isn't kept; a name that isn't saved lists what is.
+  const failed = await b.call("browser_do", { steps, save_as: "Broken" });
+  expect(failed.content).toStartWith('Not saved as "Broken": they didn\'t all go through.');
+  const unknown = await b.call("browser_do", { recipe: "Broken" });
+  expect(unknown.isError).toBe(true);
+  expect(unknown.content).toBe('No saved steps are called "Broken". Yours on the browser: "Sign in to Acme".');
+  // One of the two, and a name only for steps written out.
+  expect((await b.call("browser_do", { steps, recipe: "Sign in to Acme" })).isError).toBe(true);
+  expect((await b.call("browser_do", { recipe: "Sign in to Acme", save_as: "Copy" })).isError).toBe(true);
+  expect((await b.call("browser_do", {})).isError).toBe(true);
+  // Kept for this agent's screen alone.
+  const other = { orgId: f.org.id, screen: "browser" as const };
+  expect(await screenRecipeNames(f.db, { ...other, key: `${f.org.id}:${f.agent.id}` })).toEqual(["Sign in to Acme"]);
+  expect(await screenRecipeNames(f.db, { ...other, key: `${f.org.id}:${crypto.randomUUID()}` })).toEqual([]);
 });

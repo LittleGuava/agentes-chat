@@ -517,3 +517,34 @@ test("desktop_do with record, without Write files: the recording stays in the fo
   expect(d.calls.filter((c) => c.op === "write")).toHaveLength(1);
   expect(d.calls.filter((c) => c.op === "push")).toEqual([]);
 });
+
+test("desktop_do keeps steps that went through under a name and runs them again; the browser's are not the desktop's", async () => {
+  // Opening a folder can be undone: kept steps may do it again.
+  const d = await desktopSetup({ judge: createFakeJudge((kind) => (kind === "screen_costly" ? 0.05 : undefined)) });
+  await d.grant(DESKTOP_SCOPE, SANDBOX_SCOPE);
+  const saved = await d.call("desktop_do", {
+    steps: [
+      { do: "open", app: "Files" },
+      { do: "double_click", target: "Documents" },
+    ],
+    save_as: "Open my documents",
+  });
+  expect(saved.content).toStartWith('Saved these steps as "Open my documents"');
+  // The same window, every element numbered otherwise.
+  d.s.look = lookOf(THUNAR.replaceAll("[ref=e", "[ref=e1"));
+  const sent = d.since();
+  const again = await d.call("desktop_do", { recipe: "Open my documents" });
+  expect(again.content).toStartWith('Ran your saved steps "Open my documents".');
+  expect(acts(sent()).map((a) => a.action)).toEqual([
+    { kind: "launch", app: "thunar.desktop" },
+    { kind: "double_click", at: { ref: "e132" } },
+  ]);
+  expect(again.data?.desktopTrail).toEqual([
+    { tool: "desktop_open", detail: "Files" },
+    { tool: "desktop_double_click" },
+  ]);
+  const unknown = await d.call("desktop_do", { recipe: "Sign in to Acme" });
+  expect(unknown.content).toBe(
+    'No saved steps are called "Sign in to Acme". Yours on the desktop: "Open my documents".',
+  );
+});

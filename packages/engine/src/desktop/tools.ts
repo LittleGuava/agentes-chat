@@ -34,6 +34,7 @@ import {
   screenStepOf,
   type TargetCache,
 } from "../screen";
+import { afterPlanAsk, planAskOf, recipeProperties } from "../screen-recipes";
 import { keepRecording, RECORD_INPUT, screenHeld } from "../screen-recordings";
 import type { JsonSchema } from "../tools/json-schema";
 import { accessWithNeeds, grantedScopeKeys, isAllowed, toolAccess } from "../tools/scopes";
@@ -351,7 +352,11 @@ export function createDesktopToolSource(deps: DesktopToolDeps): ToolSource {
   }
 
   /** Runs steps on the agent's desktop (`runPlan`) and answers with the report and the screen at the end. */
-  async function plan(ctx: ToolContext, steps: ScreenStep[], options: { record?: boolean } = {}): Promise<ToolOutput> {
+  async function plan(
+    ctx: ToolContext,
+    steps: ScreenStep[],
+    options: { record?: boolean; keep?: boolean; onReport?: (report: PlanReport) => void } = {},
+  ): Promise<ToolOutput> {
     const linked = await linkFor(ctx);
     if (!linked.ok) return { content: linked.text, isError: true };
     const key = await seenKey(ctx);
@@ -402,10 +407,12 @@ export function createDesktopToolSource(deps: DesktopToolDeps): ToolSource {
         vision: deps.vision?.() === true,
         // What covers a target on a desktop is usually a real dialog ("Save changes?"): never closed on a guess.
         dismiss: false,
+        ...(options.keep ? { keep: true } : {}),
         now,
       },
       steps,
     );
+    options.onReport?.(report);
     await auditOpened(ctx, linked.machineId, acted);
     // The agent has seen the screen (the report shows it); not when a person changed it meanwhile.
     if (!handedBack && report.after) await markPageRead(ctx.db, ctx, "desktop");
@@ -467,23 +474,27 @@ export function createDesktopToolSource(deps: DesktopToolDeps): ToolSource {
         properties: {
           steps: { type: "array", minItems: 1, maxItems: MAX_PLAN_STEPS, items: STEP_SCHEMA },
           record: RECORD_INPUT,
+          ...recipeProperties("desktop"),
         },
-        required: ["steps"],
         additionalProperties: false,
       },
       async (input, ctx) => {
-        const raw = Array.isArray(input.steps) ? input.steps : [];
-        const steps = raw.map((s) => screenStepOf(s, VERBS));
-        if (steps.length === 0 || steps.some((s) => s === null)) {
-          return { content: "Give `steps`, each with a known `do`.", isError: true };
-        }
-        const valid = steps as ScreenStep[];
-        if (valid.some(opensWebPage)) return { content: `Nothing was done: ${BROWSER_HINT}.`, isError: true };
-        if (actsBeforeOpening(valid)) {
+        const ask = await planAskOf(ctx, "desktop", input, (s) => screenStepOf(s, VERBS), VERBS);
+        if ("error" in ask) return { content: ask.error, isError: true };
+        if (ask.steps.some(opensWebPage)) return { content: `Nothing was done: ${BROWSER_HINT}.`, isError: true };
+        if (actsBeforeOpening(ask.steps)) {
           const stale = await requirePageRead(ctx.db, ctx, "desktop");
           if (stale) return stale;
         }
-        return plan(ctx, valid, { record: input.record === true });
+        let report: PlanReport | null = null;
+        const out = await plan(ctx, ask.steps, {
+          record: input.record === true,
+          ...(ask.saveAs ? { keep: true } : {}),
+          onReport: (r) => {
+            report = r;
+          },
+        });
+        return afterPlanAsk(ctx, "desktop", ask, report, out);
       },
     ),
     tool(

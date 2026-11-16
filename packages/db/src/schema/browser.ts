@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   foreignKey,
   index,
+  jsonb,
   pgTable,
   primaryKey,
   text,
@@ -145,6 +146,41 @@ export const browserProfileGrants = pgTable(
       foreignColumns: [browserProfiles.orgId, browserProfiles.id],
     }).onDelete("cascade"),
     foreignKey({ columns: [t.orgId, t.agentId], foreignColumns: [agents.orgId, agents.id] }).onDelete("cascade"),
+    index().on(t.agentId),
+  ],
+);
+
+/**
+ * Saved steps (ADR 0054, addendum 2026-11-15): a plan on one of an agent's screens that went through, kept under a
+ * name the agent chose, with where each target was, to run again without a model picking the targets. Kept per
+ * screen as the server remembers it (`screenKey`: the agent, and on the right hand the seat), so one seat's steps
+ * never run in another's. Steps are read back as data from outside, checked as a model's steps are.
+ */
+export const screenRecipes = pgTable(
+  "screen_recipes",
+  {
+    id: uuid()
+      .primaryKey()
+      .$defaultFn(() => Bun.randomUUIDv7()),
+    orgId: uuid()
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    agentId: uuid().notNull(),
+    /** Whose screen: the engine's `screenKey` (the agent, or the right hand's seat). */
+    screenKey: text().notNull(),
+    /** Which screen: the machine protocol's `ScreenKind` (this package can't import it). */
+    screen: text().$type<"browser" | "desktop">().notNull(),
+    name: text().notNull(),
+    /** The engine's `ScreenStep[]`, each target with where it was (`pinned`). */
+    steps: jsonb().$type<unknown[]>().notNull(),
+    /** The run that saved them last. */
+    runId: uuid().references(() => agentRuns.id, { onDelete: "set null" }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    foreignKey({ columns: [t.orgId, t.agentId], foreignColumns: [agents.orgId, agents.id] }).onDelete("cascade"),
+    uniqueIndex().on(t.screenKey, t.screen, t.name),
     index().on(t.agentId),
   ],
 );

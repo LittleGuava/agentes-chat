@@ -2052,6 +2052,13 @@
       "when": 1794844314532,
       "tag": "0296_image_generations",
       "breakpoints": true
+    },
+    {
+      "idx": 295,
+      "version": "7",
+      "when": 1794844355975,
+      "tag": "0297_screen_recipes",
+      "breakpoints": true
     }
   ]
 }

@@ -8,6 +8,7 @@ export * from "./apng";
 export * from "./checks";
 export * from "./observation";
 export * from "./plan";
+export * from "./recipe";
 export * from "./recording";
 export * from "./report";
 export * from "./targets";
