@@ -157,6 +157,22 @@ test("the workspace's two switches are saved by who configures it, and read by e
   expect((await nina(settings, { method: "PATCH", json: { welcomePeople: false } })).status).toBe(403);
 });
 
+test("the switch for failed tasks goes through the settings route, and the team week lists it", async () => {
+  const owner = browser(t);
+  await signUp(owner, "owner@example.com");
+  const { orgId } = await seedOrg(owner);
+  const settings = `/api/app/organizations/${orgId}/settings`;
+  expect(await (await owner(settings)).json()).toMatchObject({ incidents: true });
+  const saved = await owner(settings, { method: "PATCH", json: { incidents: false } });
+  expect(saved.status).toBe(200);
+  expect(await saved.json()).toMatchObject({ incidents: false, teamWatch: true });
+  expect(await (await owner(settings)).json()).toMatchObject({ incidents: false });
+  const week = (await (await owner(`/api/app/organizations/${orgId}/team-week`)).json()) as { switches: string[] };
+  expect(week.switches).toContain("incidents");
+  const nina = await joinByInvitation(t, owner, orgId, "nina@example.com");
+  expect((await nina(settings, { method: "PATCH", json: { incidents: true } })).status).toBe(403);
+});
+
 test("one suggestion put away alone is not the card put away, and its proposal says why in words every build has", async () => {
   const owner = browser(t);
   await signUp(owner, "owner@example.com");

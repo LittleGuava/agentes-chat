@@ -244,6 +244,10 @@ const Settings = z
       description:
         "What agents may think with (ADR 0191); null: nothing restricted. Every member reads it, since their pickers explain it; the Model Gateway, the runs and every save hold it.",
     }),
+    incidents: z.boolean().openapi({
+      description:
+        "A task that failed for a cause that may pass (an AI provider's outage, a computer or its CLI that stopped) becomes an incident in the right hand's DM with the person behind it, and the right hand may try it again, within limits (ADR 0177 addendum 2026-11-15). On by default.",
+    }),
     voiceAvailable: z.boolean().openapi({
       description: "Read only: this server has a speech engine now, from its environment or from its owner's Settings.",
     }),
@@ -690,6 +694,7 @@ export function managementRoutes(deps: AppDeps) {
               description:
                 "The whole rule (ADR 0191), replacing the one before; null lifts it. 400 `brain_policy.invalid`: an empty list, an unknown brain, provider or model, or a model of a provider it leaves out. Audited (`organization.brain_policy_changed`).",
             }),
+            incidents: z.boolean().optional(),
           }),
         ),
       },

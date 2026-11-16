@@ -2677,7 +2677,9 @@
         "teamWatch": "照看团队",
         "teamWatchHelp": "{{name}}会留意让团队停下来的问题，比如 AI 登录已结束或某个应用需要重新连接，并告诉能解决的人。",
         "welcome": "欢迎新加入的人",
-        "welcomeHelp": "{{name}}会问候每一位新加入的人，并帮他们设置第一个智能体。"
+        "welcomeHelp": "{{name}}会问候每一位新加入的人，并帮他们设置第一个智能体。",
+        "incidents": "处理失败的任务",
+        "incidentsHelp": "当智能体的任务因可能自行恢复的原因失败（例如 AI 服务中断）时，{{name}}会查看，并可以让该智能体重试，最多两次。"
       },
       "audit": "查看{{name}}做了什么",
       "planHelp": "费用由套餐的所有者支付。套餐所在的电脑不可用时，对话里会说明，并提供使用 API 密钥的选项。",
@@ -17173,6 +17175,8 @@
       "agentNote": "来自 {{from}} 的备注",
       "agentNoteAnon": "来自另一个智能体的备注",
       "waitResult": "{{name}} 等待的结果到了",
+      "runRetry": "{{by}} 请 {{name}} 重试",
+      "runRetryAnon": "{{name}} 正在重试",
       "other": "给 {{name}} 的通知",
       "wakeSkipped": "{{name}} 的提及没有传达给 {{agents}}",
       "wakeSkippedAnon": "{{name}} 的提及没有叫到其他智能体",

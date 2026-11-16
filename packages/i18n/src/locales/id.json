@@ -2678,7 +2678,9 @@
         "teamWatch": "Menjaga tim",
         "teamWatchHelp": "{{name}} memperhatikan apa yang menghambat tim, seperti login AI yang berakhir atau aplikasi yang perlu dihubungkan ulang, lalu memberi tahu orang yang bisa memperbaikinya.",
         "welcome": "Menyambut orang yang bergabung",
-        "welcomeHelp": "{{name}} menyambut setiap orang yang bergabung dan membantunya menyiapkan agen pertamanya."
+        "welcomeHelp": "{{name}} menyambut setiap orang yang bergabung dan membantunya menyiapkan agen pertamanya.",
+        "incidents": "Tangani tugas yang gagal",
+        "incidentsHelp": "Saat tugas agen gagal karena hal yang bisa berlalu, seperti gangguan AI, {{name}} memeriksanya dan bisa meminta agen mencoba lagi, hingga dua kali."
       },
       "audit": "Lihat apa yang dilakukan {{name}}",
       "planHelp": "Yang membayar adalah pemilik paket. Saat komputernya tidak tersedia, percakapan memberi tahu dan menawarkan kunci API.",
@@ -17159,6 +17161,8 @@
       "agentNote": "Catatan dari {{from}}",
       "agentNoteAnon": "Catatan dari agen lain",
       "waitResult": "Yang ditunggu {{name}} sudah masuk",
+      "runRetry": "{{by}} meminta {{name}} mencoba lagi",
+      "runRetryAnon": "{{name}} sedang mencoba lagi",
       "other": "Pemberitahuan untuk {{name}}",
       "wakeSkipped": "Sebutan dari {{name}} tidak sampai ke {{agents}}",
       "wakeSkippedAnon": "Sebutan dari {{name}} tidak sampai ke agen lain",

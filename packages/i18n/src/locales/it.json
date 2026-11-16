@@ -2867,7 +2867,9 @@
         "teamWatch": "Prendersi cura del team",
         "teamWatchHelp": "{{name}} nota ciò che ferma il team, come un accesso IA scaduto o un’app da ricollegare, e avvisa la persona che può risolvere.",
         "welcome": "Dare il benvenuto a chi entra",
-        "welcomeHelp": "{{name}} accoglie ogni persona che entra e la aiuta a creare il suo primo agente."
+        "welcomeHelp": "{{name}} accoglie ogni persona che entra e la aiuta a creare il suo primo agente.",
+        "incidents": "Occuparsi delle attività non riuscite",
+        "incidentsHelp": "Quando l’attività di un agente non riesce per un motivo passeggero, come un’interruzione dell’IA, {{name}} la controlla e può chiedere all’agente di riprovare, fino a due volte."
       },
       "audit": "Vedi cosa ha fatto {{name}}",
       "planHelp": "Paga chi è titolare del piano. Se il suo computer non è disponibile, la conversazione lo dice e propone una chiave API.",
@@ -18275,6 +18277,8 @@
       "agentNote": "Nota di {{from}}",
       "agentNoteAnon": "Nota di un altro agente",
       "waitResult": "È arrivato ciò che {{name}} aspettava",
+      "runRetry": "{{by}} ha chiesto a {{name}} di riprovare",
+      "runRetryAnon": "{{name}} sta riprovando",
       "other": "Avviso per {{name}}",
       "wakeSkipped": "La menzione di {{name}} non ha raggiunto {{agents}}",
       "wakeSkippedAnon": "La menzione di {{name}} non ha raggiunto un altro agente",

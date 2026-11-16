@@ -150,6 +150,8 @@ const ELSEWHERE = new Set([
   "send_feedback",
   // A page anyone on the internet opens (ADR 0211 §4): never what a routine or what it read asks for.
   "publish_page",
+  // The right hand starts another agent's failed task again, in that task's conversation (ADR 0177, 2026-11-15).
+  "retry_run",
 ]);
 
 /** Our own tools that spend money on an outside service with every call, by name (ADR 0213). */

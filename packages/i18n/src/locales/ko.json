@@ -2678,7 +2678,9 @@
         "teamWatch": "팀 돌보기",
         "teamWatchHelp": "{{name}}은(는) 끝난 AI 로그인이나 다시 연결해야 하는 앱처럼 팀을 멈추게 하는 것을 알아채고, 해결할 수 있는 사람에게 알려줘요.",
         "welcome": "들어온 사람 맞이하기",
-        "welcomeHelp": "{{name}}은(는) 들어온 사람마다 인사하고 첫 에이전트를 만들도록 도와줘요."
+        "welcomeHelp": "{{name}}은(는) 들어온 사람마다 인사하고 첫 에이전트를 만들도록 도와줘요.",
+        "incidents": "실패한 작업 맡기",
+        "incidentsHelp": "AI 장애처럼 지나갈 수 있는 이유로 에이전트의 작업이 실패하면 {{name}}이(가) 살펴보고 에이전트에게 최대 두 번까지 다시 시도해 달라고 할 수 있어요."
       },
       "audit": "{{name}}이(가) 한 일 보기",
       "planHelp": "비용은 요금제 주인이 내요. 그 컴퓨터를 쓸 수 없으면 대화에서 알려 주고 API 키를 제안해요.",
@@ -17096,6 +17098,8 @@
       "agentNote": "{{from}}의 메모",
       "agentNoteAnon": "다른 에이전트의 메모",
       "waitResult": "{{name}}이(가) 기다리던 결과가 도착했어요",
+      "runRetry": "{{by}}이(가) {{name}}에게 다시 시도해 달라고 했어요",
+      "runRetryAnon": "{{name}}이(가) 다시 시도하고 있어요",
       "other": "{{name}}에게 온 알림",
       "wakeSkipped": "{{name}}의 멘션이 {{agents}}에게 전달되지 않았어요",
       "wakeSkippedAnon": "{{name}}의 멘션이 다른 에이전트에게 닿지 않았어요",

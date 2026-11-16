@@ -2773,7 +2773,9 @@
         "teamWatch": "Auf das Team achten",
         "teamWatchHelp": "{{name}} bemerkt, was das Team aufhält, etwa eine abgelaufene KI-Anmeldung oder eine App, die neu verbunden werden muss, und sagt es der Person, die es beheben kann.",
         "welcome": "Neue Personen begrüßen",
-        "welcomeHelp": "{{name}} begrüßt jede Person, die dazukommt, und hilft ihr, ihren ersten Agenten einzurichten."
+        "welcomeHelp": "{{name}} begrüßt jede Person, die dazukommt, und hilft ihr, ihren ersten Agenten einzurichten.",
+        "incidents": "Fehlgeschlagene Aufgaben übernehmen",
+        "incidentsHelp": "Wenn die Aufgabe eines Agenten aus einem vorübergehenden Grund scheitert, etwa bei einem KI-Ausfall, schaut sich {{name}} das an und kann den Agenten bis zu zweimal erneut versuchen lassen."
       },
       "audit": "Ansehen, was {{name}} getan hat",
       "planHelp": "Es zahlt, wem das Abo gehört. Ist sein Computer nicht erreichbar, sagt die Unterhaltung das und bietet einen API-Schlüssel an.",
@@ -17700,6 +17702,8 @@
       "agentNote": "Notiz von {{from}}",
       "agentNoteAnon": "Notiz von einem anderen Agenten",
       "waitResult": "Worauf {{name}} gewartet hat, ist da",
+      "runRetry": "{{by}} hat {{name}} gebeten, es erneut zu versuchen",
+      "runRetryAnon": "{{name}} versucht es erneut",
       "other": "Hinweis für {{name}}",
       "wakeSkipped": "Die Erwähnung von {{name}} hat {{agents}} nicht erreicht",
       "wakeSkippedAnon": "Die Erwähnung von {{name}} hat keinen anderen Agenten erreicht",

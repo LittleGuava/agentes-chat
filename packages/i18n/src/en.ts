@@ -2987,6 +2987,9 @@ export const en = {
           "{{name}} notices what stops the team, like an AI sign-in that ended or an app to reconnect, and tells the person who can fix it.",
         welcome: "Welcome people who join",
         welcomeHelp: "{{name}} greets each person who joins and helps them set up their first agent.",
+        incidents: "Take up failed tasks",
+        incidentsHelp:
+          "When an agent's task fails for something that may pass, like an AI outage, {{name}} looks at it and may ask the agent to try again, up to twice.",
       },
       audit: "See what {{name}} did",
       planHelp: "The plan's owner pays. When its computer is away, the conversation says so and offers an API key.",
@@ -18146,6 +18149,9 @@ export const en = {
       agentNote: "Note from {{from}}",
       agentNoteAnon: "Note from another agent",
       waitResult: "What {{name}} was waiting for came in",
+      /** The team's right hand (`by`) asked an agent to try a failed task again. */
+      runRetry: "{{by}} asked {{name}} to try again",
+      runRetryAnon: "{{name}} is trying again",
       other: "Notice for {{name}}",
       wakeSkipped: "{{name}}'s mention didn't reach {{agents}}",
       /** The same, on an older line that didn't keep whom. */

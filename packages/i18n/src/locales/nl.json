@@ -2772,7 +2772,9 @@
         "teamWatch": "Op het team letten",
         "teamWatchHelp": "{{name}} merkt wat het team ophoudt, zoals een verlopen AI-login of een app die opnieuw verbonden moet worden, en zegt het tegen de persoon die het kan oplossen.",
         "welcome": "Nieuwe mensen verwelkomen",
-        "welcomeHelp": "{{name}} begroet iedereen die erbij komt en helpt bij het instellen van de eerste agent."
+        "welcomeHelp": "{{name}} begroet iedereen die erbij komt en helpt bij het instellen van de eerste agent.",
+        "incidents": "Mislukte taken oppakken",
+        "incidentsHelp": "Als de taak van een agent mislukt door iets wat kan overgaan, zoals een AI-storing, bekijkt {{name}} die en kan de agent vragen het opnieuw te proberen, tot twee keer."
       },
       "audit": "Bekijk wat {{name}} deed",
       "planHelp": "De eigenaar van het abonnement betaalt. Is de computer ervan niet bereikbaar, dan zegt het gesprek dat en biedt het een API-sleutel aan.",
@@ -17769,6 +17771,8 @@
       "agentNote": "Notitie van {{from}}",
       "agentNoteAnon": "Notitie van een andere agent",
       "waitResult": "Waar {{name}} op wachtte, is binnen",
+      "runRetry": "{{by}} heeft {{name}} gevraagd het opnieuw te proberen",
+      "runRetryAnon": "{{name}} probeert het opnieuw",
       "other": "Melding voor {{name}}",
       "wakeSkipped": "De vermelding van {{name}} bereikte {{agents}} niet",
       "wakeSkippedAnon": "De vermelding van {{name}} bereikte geen andere agent",

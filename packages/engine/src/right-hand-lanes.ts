@@ -5,6 +5,7 @@ import { lodiLanes } from "./right-hand-lane";
 import { enqueueTeamWeeks } from "./team-week";
 // Each lane adds itself to the list as its file loads.
 import "./approvals-digest";
+import "./incidents";
 import "./right-hand-follow";
 import "./right-hand-welcome";
 import "./team-watch";

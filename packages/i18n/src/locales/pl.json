@@ -2967,7 +2967,9 @@
         "teamWatch": "Dbanie o zespół",
         "teamWatchHelp": "{{name}} zauważa, co zatrzymuje zespół, na przykład wygasłe logowanie do AI albo aplikację do ponownego połączenia, i mówi o tym osobie, która może to naprawić.",
         "welcome": "Witanie nowych osób",
-        "welcomeHelp": "{{name}} wita każdą osobę, która dołącza, i pomaga jej skonfigurować pierwszego agenta."
+        "welcomeHelp": "{{name}} wita każdą osobę, która dołącza, i pomaga jej skonfigurować pierwszego agenta.",
+        "incidents": "Zajmowanie się nieudanymi zadaniami",
+        "incidentsHelp": "Gdy zadanie agenta nie powiedzie się z powodu, który może minąć, na przykład awarii AI, {{name}} sprawdza je i może poprosić agenta o ponowną próbę, maksymalnie dwa razy."
       },
       "audit": "Zobacz, co zrobił {{name}}",
       "planHelp": "Płaci właściciel planu. Gdy jego komputer jest niedostępny, rozmowa o tym mówi i proponuje klucz API.",
@@ -18832,6 +18834,8 @@
       "agentNote": "Notatka od: {{from}}",
       "agentNoteAnon": "Notatka od innego agenta",
       "waitResult": "Dotarło to, na co czeka {{name}}",
+      "runRetry": "Na prośbę {{by}} {{name}} próbuje ponownie",
+      "runRetryAnon": "{{name}} próbuje ponownie",
       "other": "Powiadomienie dla: {{name}}",
       "wakeSkipped": "Wzmianka od {{name}} nie dotarła do: {{agents}}",
       "wakeSkippedAnon": "Wzmianka {{name}} nie dotarła do innego agenta",

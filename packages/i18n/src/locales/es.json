@@ -2867,7 +2867,9 @@
         "teamWatch": "Cuidar del equipo",
         "teamWatchHelp": "{{name}} nota lo que frena al equipo, como un inicio de sesión de IA que terminó o una app por reconectar, y le avisa a quien puede resolverlo.",
         "welcome": "Dar la bienvenida a quien entra",
-        "welcomeHelp": "{{name}} recibe a cada persona que entra y la ayuda a crear su primer agente."
+        "welcomeHelp": "{{name}} recibe a cada persona que entra y la ayuda a crear su primer agente.",
+        "incidents": "Encargarse de las tareas fallidas",
+        "incidentsHelp": "Cuando la tarea de un agente falla por algo que puede pasar, como una caída de la IA, {{name}} la revisa y puede pedirle al agente que lo intente de nuevo, hasta dos veces."
       },
       "audit": "Ver lo que hizo {{name}}",
       "planHelp": "Paga quien es dueño del plan. Si su computadora no está disponible, la conversación lo dice y ofrece una clave de API.",
@@ -18186,6 +18188,8 @@
       "agentNote": "Nota de {{from}}",
       "agentNoteAnon": "Nota de otro agente",
       "waitResult": "Llegó lo que {{name}} estaba esperando",
+      "runRetry": "{{by}} pidió a {{name}} que lo intente de nuevo",
+      "runRetryAnon": "{{name}} lo está intentando de nuevo",
       "other": "Aviso para {{name}}",
       "wakeSkipped": "La mención de {{name}} no llegó a {{agents}}",
       "wakeSkippedAnon": "La mención de {{name}} no llegó a otro agente",

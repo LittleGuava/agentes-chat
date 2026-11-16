@@ -812,7 +812,11 @@ function OwnRows({ name, prefs }: { name: string; prefs: LodiPrefs }) {
         }
       />
     );
-  const everyones = (id: "teamWatch" | "welcomePeople", icon: "eye" | "personAdd", words: "teamWatch" | "welcome") =>
+  const everyones = (
+    id: "teamWatch" | "welcomePeople" | "incidents",
+    icon: "eye" | "personAdd" | "replay",
+    words: "teamWatch" | "welcome" | "incidents",
+  ) =>
     configures &&
     settings &&
     shows(id) && (
@@ -857,6 +861,7 @@ function OwnRows({ name, prefs }: { name: string; prefs: LodiPrefs }) {
       {mine("reminders", "bell", "remindOff")}
       {everyones("teamWatch", "eye", "teamWatch")}
       {everyones("welcomePeople", "personAdd", "welcome")}
+      {everyones("incidents", "replay", "incidents")}
     </div>
   );
 }

@@ -56,6 +56,7 @@ import {
   createGitToolSource,
   createHandOffToolSource,
   createImageToolSource,
+  createIncidentToolSource,
   createIssueToolSource,
   createJevJudge,
   createJevKey,
@@ -459,6 +460,8 @@ export function buildEngine(o: EngineOptions) {
       createFollowUpToolSource({ pubsub: adapters.pubsub }),
       // The right hand sees what the team is doing, with no model call (ADR 0137 §13).
       createTeamStatusToolSource(),
+      // The right hand tries a failed task again, from its incident (ADR 0177 addendum 2026-11-15).
+      createIncidentToolSource({ pubsub: adapters.pubsub }),
       // Background runs (routines) speak only through it, with a GIF where the agent may send one (ADR 0091).
       createHandOffToolSource({
         pubsub: adapters.pubsub,

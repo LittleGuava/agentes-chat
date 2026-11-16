@@ -2611,6 +2611,8 @@ export interface OrgSettings {
   welcomePeople?: boolean;
   /** What agents may think with (ADR 0191); null: nothing restricted. Absent from an older server: none. */
   allowedBrains?: BrainPolicy | null;
+  /** A failed task becomes the right hand's incident, which it may retry. Absent from an older server, which hasn't it. */
+  incidents?: boolean;
   /** Read only: this server has a speech engine. */
   voiceAvailable: boolean;
   /** Read only: this server reads agents' replies aloud for voice calls (ADR 0198). Absent from an older server: no. */

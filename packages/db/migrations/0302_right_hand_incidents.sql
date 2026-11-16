@@ -1,0 +1,1 @@
+ALTER TABLE "organization_settings" ADD COLUMN "incidents" boolean DEFAULT true NOT NULL;

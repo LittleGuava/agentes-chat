@@ -6905,6 +6905,12 @@
   "rightHand.settings.own.welcomeHelp": {
     "value": "{{name}} greets each person who joins and helps them set up their first agent."
   },
+  "rightHand.settings.own.incidents": {
+    "value": "Take up failed tasks"
+  },
+  "rightHand.settings.own.incidentsHelp": {
+    "value": "When an agent's task fails for something that may pass, like an AI outage, {{name}} looks at it and may ask the agent to try again, up to twice."
+  },
   "rightHand.settings.audit": {
     "value": "See what {{name}} did"
   },
@@ -43563,6 +43569,12 @@
   },
   "chat.notice.waitResult": {
     "value": "What {{name}} was waiting for came in"
+  },
+  "chat.notice.runRetry": {
+    "value": "{{by}} asked {{name}} to try again"
+  },
+  "chat.notice.runRetryAnon": {
+    "value": "{{name}} is trying again"
   },
   "chat.notice.other": {
     "value": "Notice for {{name}}"

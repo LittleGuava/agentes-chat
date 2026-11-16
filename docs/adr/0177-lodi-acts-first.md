@@ -421,3 +421,43 @@ Later:
 - The person's reminders (`calendarReminders`) and calendar proposals waiting for them on the row.
 - A calendar screen on the phone for the row's button, and asking the right hand for the day ahead through
   `set_team_week` (an `agenda` field).
+
+## Addendum (2026-11-15): a failed task becomes the right hand's incident
+
+A conversation task that failed for good reached its person only as a `run_failed` notification, and only that
+person could try again, by asking once more. Most such failures pass by themselves (an AI provider's outage that
+outlasted the run's waits, a computer or its coding CLI that stopped, an empty answer), and someone has to notice and
+ask again. Now the right hand does, in the person's own DM with it, as the fifth lane: `incidents`
+(`packages/engine/src/incidents.ts`).
+
+- **When.** `reportRunFailure` (continuation.ts) calls `raiseIncident` for a conversation run that failed for good
+  when all hold: the workspace's switch is on (`organization_settings.incidents`, migration 0302, on by default and
+  on without a row, shown with the other two workspace switches and in `update_workspace`); its cause is one a later
+  try may pass (`incidentCause`, an allowlist read from the stored error: a provider's `gave_up:` that isn't a key's
+  refusal, a computer's failure or timeout, a CLI's, a brain cut off, an empty answer); a person is at the root of its
+  request (`personOfMessage`); it is not the right hand's own, not long work (`workId`: `endWork` and Continuar own
+  it), not in the agents' DM, and not woken by another agent's mention (that agent hears it and decides, as before);
+  and `lodiFor` lets the right hand talk to that person. Once per failed run (`saidOnce`).
+- **What it is told.** A `run_incident` notice, agent-only, in its DM with that person. Its text is the server's own
+  words only (the agent's handle, the place, the cause's code and words, the run's id, the attempt and the retries
+  left), never the stored error or the request, which may carry outside words. `refs.runId` is the failed run, so its
+  turn is that person's through the existing authority walk (`returnsTo`); `authority.ts` is unchanged. At most
+  `INCIDENT_WAKES_AN_HOUR` (3) notices a person an hour start a turn; past it they are written and read with the next
+  one. The notice's guidance: the person was already notified, so retry when the cause may pass and tries are left
+  and say so in a line, explain in a sentence or two when tries are used up, and otherwise pass.
+- **`retry_run`** (`run_id`, `why`, the latter kept only in the audit row, never shown to the other agent): the right hand's, in the core group, offered while the switch is on, refused
+  anywhere but a person's own DM with it (`rightHandReader`). It retries only a run whose incident was told in that
+  DM, still `failed`, whose agent may still answer that person there, with no newer run of that agent in that
+  conversation, asked by that run's own person while still a member. It posts a `run_retry` notice under the failed run's
+  root (its request, or its thread's root: a run reads its root whole, so the request is in the new run's context
+  however much the channel said since, where the main timeline's last messages could have left it out), as that agent, with `refs.runId` the failed run (so the new run is the same person's, with the same
+  request in its context) and a fresh stretch (hop 0, like a person's ask), which starts the new run. People there see
+  a quiet line ("Lodi asked Dev to try again", `chat.notice.runRetry`). Limits: once per failed run, `RUN_RETRIES` (2)
+  per chain (the attempt is read from the trigger's `run_retry` notice), `RETRIES_AN_HOUR` (3) per person. Audited as
+  `run.retried`. The right hand is not woken for the result: a retry that fails again is a new incident, with its
+  attempt counted. In the run policy it speaks elsewhere (`ELSEWHERE`).
+
+Later: failures with nobody at the root (a routine's report woke the run, an agent's own work), told to the
+accountable person; runs a server restart interrupted (`recovery.ts` fails them without `reportRunFailure`); a
+retry that resumes the failed run's transcript instead of starting fresh; incidents shown together on the right
+hand's page.

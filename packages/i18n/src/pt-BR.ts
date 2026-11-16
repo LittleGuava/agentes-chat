@@ -2881,6 +2881,11 @@ export const ptBR = {
         welcome: "Dar boas-vindas a quem entra",
         welcomeHelp: "O {{name}} recebe cada pessoa que entra e ajuda a montar o primeiro agente dela.",
         welcomeHelp_female: "A {{name}} recebe cada pessoa que entra e ajuda a montar o primeiro agente dela.",
+        incidents: "Cuidar das falhas",
+        incidentsHelp:
+          "Quando a tarefa de um agente falha por algo que pode passar, como uma queda da IA, o {{name}} olha e pode pedir para o agente tentar de novo, até duas vezes.",
+        incidentsHelp_female:
+          "Quando a tarefa de um agente falha por algo que pode passar, como uma queda da IA, a {{name}} olha e pode pedir para o agente tentar de novo, até duas vezes.",
       },
       audit: "Ver o que o {{name}} fez",
       audit_female: "Ver o que a {{name}} fez",
@@ -18021,6 +18026,8 @@ export const ptBR = {
       agentNote: "Nota de {{from}}",
       agentNoteAnon: "Nota de outro agente",
       waitResult: "Chegou o resultado que {{name}} esperava",
+      runRetry: "{{by}} pediu para {{name}} tentar de novo",
+      runRetryAnon: "{{name}} está tentando de novo",
       other: "Aviso para {{name}}",
       wakeSkipped: "A menção de {{name}} não chamou {{agents}}",
       wakeSkippedAnon: "A menção de {{name}} não chamou outro agente",

@@ -635,6 +635,7 @@ function OwnRows({ name }: { name: string }) {
           [
             { id: "teamWatch", words: "teamWatch", icon: "eye" },
             { id: "welcomePeople", words: "welcome", icon: "person" },
+            { id: "incidents", words: "incidents", icon: "replay" },
           ] as const
         ).filter((r) => shows(r.id))
       : [];

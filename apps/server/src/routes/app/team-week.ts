@@ -53,7 +53,7 @@ const TeamWeekPrefs = TeamWeekSaved.extend({
   dayTimezone: z.string().openapi({ description: "My own time zone, else the workspace's: `dayHour` is in it." }),
   switches: z.array(z.enum(LODI_SWITCHES)).openapi({
     description:
-      "Read only: the other things the right hand does by itself on this server, each with a switch to show. `digest` and `reminders` are mine (`digestOff`, `remindOff`), `teamWatch` and `welcomePeople` the workspace's (its settings).",
+      "Read only: the other things the right hand does by itself on this server, each with a switch to show. `digest` and `reminders` are mine (`digestOff`, `remindOff`), `teamWatch`, `welcomePeople` and `incidents` the workspace's (its settings).",
   }),
 }).openapi("TeamWeekPrefs");
 
