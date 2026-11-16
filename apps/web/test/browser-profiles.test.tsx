@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
-import type { BrowserProfile } from "@agenteschat/client";
+import type { BrowserProfile, BrowserSite } from "@agenteschat/client";
 import { setupDom } from "@agenteschat/ui/testing/dom";
 
 setupDom();
@@ -50,6 +50,10 @@ function withProfiles(as: "owner" | "member" = "owner") {
       lastUsedAt: now,
     },
   ];
+  const sites: BrowserSite[] = [
+    { site: "google.com", cookies: 2, storage: 1 },
+    { site: "web.whatsapp.com", cookies: 1, storage: 0 },
+  ];
   const calls: { method: string; args: unknown[] }[] = [];
   const log = (method: string, ...args: unknown[]) => calls.push({ method, args });
   api.browserProfiles = {
@@ -96,8 +100,18 @@ function withProfiles(as: "owner" | "member" = "owner") {
     request: async (_o, agentId) => {
       log("request", agentId);
     },
+    sites: async (_o, id) => {
+      log("sites", id);
+      return sites.map((x) => ({ ...x }));
+    },
+    signOutSite: async (_o, id, site) => {
+      log("signOutSite", id, site);
+      const gone = sites.find((x) => x.site === site);
+      sites.splice(sites.indexOf(gone as BrowserSite), 1);
+      return { site, cookies: gone?.cookies ?? 0, storage: gone?.storage ?? 0, sites: sites.map((x) => ({ ...x })) };
+    },
   };
-  return { state, api, machine: m, calls };
+  return { state, api, machine: m, calls, sites };
 }
 
 test("Perfis do navegador: each row says Livre or who uses it, its agents and Fazer login; Assistir only while in use", async () => {
@@ -129,6 +143,7 @@ test("Perfis do navegador: each row says Livre or who uses it, its agents and Fa
   };
   expect(await menuOf(rows[1] as HTMLElement, "Empresa B · WhatsApp vendas")).toEqual([
     "Assistir Ada",
+    "Sites conectados",
     "Renomear",
     "Mudar quem pode usar",
     "Apagar perfil",
@@ -136,6 +151,7 @@ test("Perfis do navegador: each row says Livre or who uses it, its agents and Fa
   await act(async () => fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" }));
   await settle(2);
   expect(await menuOf(rows[0] as HTMLElement, "Empresa A")).toEqual([
+    "Sites conectados",
     "Renomear",
     "Mudar quem pode usar",
     "Apagar perfil",
@@ -145,6 +161,59 @@ test("Perfis do navegador: each row says Livre or who uses it, its agents and Fa
   await settle(2);
   expect(screen().getByRole("dialog", { name: "Apagar o perfil Empresa A?" }).textContent).toContain(
     "1 agente perde o acesso. Não dá para desfazer.",
+  );
+});
+
+test("Sites conectados: asked when opened, each site with what it keeps and Sair; Sair leaves it out", async () => {
+  const s = withProfiles();
+  await renderApp(`/org/${ORG_ID}/settings/computers/${s.machine.id}`, { api: s.api });
+  await settle(8);
+  // The profiles' list never asks for the sites: each ask may start a Chrome.
+  expect(s.calls.some((c) => c.method === "sites")).toBe(false);
+  const card = screen().getByRole("heading", { name: "Perfis do navegador" }).closest(".ac-card") as HTMLElement;
+  const row = card.querySelector(".pf-list > .machine-page__agent-row") as HTMLElement;
+  const trigger = within(row).getByRole("button", { name: "Mais ações de Empresa A" });
+  await act(async () => fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false }));
+  await settle(2);
+  const item = [...document.querySelectorAll(".ac-menu .ac-menu__item")].find(
+    (i) => i.textContent === "Sites conectados",
+  ) as HTMLElement;
+  await click(item);
+  await settle(4);
+  const d = screen().getByRole("dialog", { name: "Sites conectados em Empresa A" });
+  expect(s.calls.filter((c) => c.method === "sites").map((c) => c.args)).toEqual([["p-free"]]);
+  const lines = [...d.querySelectorAll(".machine-page__agent-row")].map((r) => r.textContent);
+  expect(lines).toEqual(["google.com2 cookies · dados salvosSair", "web.whatsapp.com1 cookieSair"]);
+  await click(within(d).getByRole("button", { name: "Sair de google.com" }));
+  await settle(4);
+  expect(s.calls.find((c) => c.method === "signOutSite")?.args).toEqual(["p-free", "google.com"]);
+  expect([...d.querySelectorAll(".machine-page__agent-name")].map((n) => n.textContent)).toEqual(["web.whatsapp.com"]);
+  expect(document.body.textContent).toContain("Você saiu de google.com.");
+  await click(within(d).getByRole("button", { name: "Sair de web.whatsapp.com" }));
+  await settle(4);
+  expect(d.textContent).toContain("Este perfil não está conectado a nenhum site.");
+});
+
+test("Sites conectados on a computer too old for it says to update it", async () => {
+  const s = withProfiles();
+  const profiles = s.api.browserProfiles;
+  if (!profiles) throw new Error("no profiles");
+  profiles.sites = async () => {
+    throw new ApiError(400, "browser_profile.machine", "Update this computer");
+  };
+  await renderApp(`/org/${ORG_ID}/settings/computers/${s.machine.id}`, { api: s.api });
+  await settle(8);
+  const trigger = screen().getByRole("button", { name: "Mais ações de Empresa A" });
+  await act(async () => fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false }));
+  await settle(2);
+  await click(
+    [...document.querySelectorAll(".ac-menu .ac-menu__item")].find(
+      (i) => i.textContent === "Sites conectados",
+    ) as HTMLElement,
+  );
+  await settle(4);
+  expect(screen().getByRole("dialog", { name: "Sites conectados em Empresa A" }).textContent).toContain(
+    "Atualize o computador para ver os sites conectados dos perfis.",
   );
 });
 

@@ -1,6 +1,7 @@
 {
   "app": {
     "pt-BR": [
+      "browser.profiles.sitesCookies",
       "usageViews.logins",
       "chat.wait.said",
       "access.area.skills",
@@ -303,6 +304,7 @@
       "storage.connect.awsRegion.il-central-1"
     ],
     "es": [
+      "browser.profiles.sitesCookies",
       "devices.iphone.path.general",
       "devices.cpus",
       "devices.memory",
@@ -560,6 +562,7 @@
       "storage.connect.awsRegion.il-central-1"
     ],
     "fr": [
+      "browser.profiles.sitesCookies",
       "channel.tooLong.fileName",
       "calendar.moreRuns",
       "devices.cpus",
@@ -1459,6 +1462,7 @@
       "storage.connect.awsRegion.il-central-1"
     ],
     "it": [
+      "browser.profiles.sitesCookies",
       "shell.email.label",
       "calendar.moreRuns",
       "devices.iphone.steps.account",
@@ -1834,6 +1838,7 @@
       "storage.connect.provider.b2"
     ],
     "nl": [
+      "browser.profiles.sitesCookies",
       "calendar.moreRuns",
       "devices.iphone.steps.account",
       "devices.filter.computers",

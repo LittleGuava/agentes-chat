@@ -66,6 +66,8 @@ import type {
   BrainMachine,
   BrowserHandoff,
   BrowserProfile,
+  BrowserSite,
+  BrowserSiteSignOut,
   CalendarEvent,
   CalendarRange,
   Channel,
@@ -512,6 +514,12 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         request<void>(`${org(orgId)}/agents/${enc(agentId)}/browser-profile`, { method: "PUT", json: { profileId } }),
       request: (orgId, agentId) =>
         request<void>(`${org(orgId)}/agents/${enc(agentId)}/browser-profile/request`, { json: {} }),
+      sites: async (orgId, profileId) =>
+        (await request<{ sites: BrowserSite[] }>(`${org(orgId)}/browser-profiles/${enc(profileId)}/sites`)).sites,
+      signOutSite: (orgId, profileId, site) =>
+        request<BrowserSiteSignOut>(`${org(orgId)}/browser-profiles/${enc(profileId)}/sites/sign-out`, {
+          json: { site },
+        }),
     },
     desktop: {
       status: (orgId, agentId, seat) =>
