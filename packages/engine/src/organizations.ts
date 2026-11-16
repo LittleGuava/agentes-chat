@@ -1215,6 +1215,13 @@ export async function removeMember(
     await tx
       .delete(channelMembers)
       .where(and(eq(channelMembers.orgId, orgId), eq(channelMembers.userId, targetUserId)));
+    // And their phone tools here (ADR 0205): invited back later, their phone is off until they turn it on again.
+    await tx
+      .delete(schema.phoneToolGrants)
+      .where(and(eq(schema.phoneToolGrants.orgId, orgId), eq(schema.phoneToolGrants.userId, targetUserId)));
+    await tx
+      .delete(schema.phoneJobs)
+      .where(and(eq(schema.phoneJobs.orgId, orgId), eq(schema.phoneJobs.userId, targetUserId)));
     // And their inbox here, snippets included: invited back later, nothing from before returns.
     await tx
       .delete(schema.notifications)

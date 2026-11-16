@@ -59,6 +59,7 @@ import { missionRoutes } from "./routes/app/missions";
 import { notificationRoutes } from "./routes/app/notifications";
 import { outgoingWebhookRoutes } from "./routes/app/outgoing-webhooks";
 import { personUsageRoutes } from "./routes/app/person-usage";
+import { phoneRoutes } from "./routes/app/phone";
 import { planUsageRoutes } from "./routes/app/plan-usage";
 import { publishedPageRoutes } from "./routes/app/published-pages";
 import { pushRoutes } from "./routes/app/push";
@@ -237,6 +238,7 @@ export function createApp(options: AppOptions) {
     api.route("/app", sandboxRoutes(deps));
     api.route("/app", machineAppRoutes(deps));
     api.route("/app", deviceWaitRoutes(deps));
+    api.route("/app", phoneRoutes(deps));
     api.route("/app", deviceAppRoutes(deps));
     api.route("/app", machineAccountRoutes(deps));
     api.route("/app", planUsageRoutes(deps));

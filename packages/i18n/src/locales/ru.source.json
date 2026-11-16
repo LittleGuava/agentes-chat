@@ -43992,6 +43992,9 @@
   "chat.work.step.findingAgent": {
     "value": "Looked up a teammate"
   },
+  "chat.work.step.searchingContacts": {
+    "value": "Searched your phone's contacts"
+  },
   "chat.work.step.writingWiki": {
     "value": "Wrote in the wiki"
   },
@@ -44345,6 +44348,9 @@
   },
   "chat.activity.findingAgent": {
     "value": "looking up a teammate"
+  },
+  "chat.activity.searchingContacts": {
+    "value": "searching your phone's contacts"
   },
   "chat.activity.writingWiki": {
     "value": "writing in the wiki"

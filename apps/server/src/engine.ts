@@ -72,6 +72,7 @@ import {
   createModelGateway,
   createPassToolSource,
   createPermissionToolSource,
+  createPhoneToolSource,
   createPublishedPageToolSource,
   createReactToolSource,
   createReleaseAsksToolSource,
@@ -455,6 +456,8 @@ export function buildEngine(o: EngineOptions) {
       createMediaToolSource({ pubsub: adapters.pubsub, gifs: adapters.gifs ?? null }),
       // A picture from words, saved in the Drive, while the workspace has an image provider's key (ADR 0213).
       createImageToolSource({ gateway, artifacts }),
+      // The contacts on the phone of the person talking to the agent, in their own DM, once they turn it on (ADR 0205).
+      createPhoneToolSource({ pubsub: adapters.pubsub }),
       // Long work goes to the background and reports back by itself, on every brain (ADR 0121).
       createWorkToolSource({ pubsub: adapters.pubsub }),
       // An agent comes back to a conversation by itself (a CI run, a deploy), instead of promising to.

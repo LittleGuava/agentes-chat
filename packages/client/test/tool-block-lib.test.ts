@@ -897,3 +897,10 @@ describe("a call a rule approved for good", () => {
     expect(hints[1]).toBe('chat.work.autoApprovedReads|{"name":"Ana"}');
   });
 });
+
+describe("the person's phone (ADR 0205)", () => {
+  test("searching their contacts isn't testing on a phone a computer drives", () => {
+    expect(toolActivity("phone_find_contact").kind).toBe("searchingContacts");
+    expect(toolActivity("phone_screenshot").kind).toBe("testingOnPhone");
+  });
+});

@@ -213,6 +213,8 @@ const READS = new Set([
   "list_dashboards",
   "phone_screenshot",
   "phone_logs",
+  // The contacts on the phone of the person behind the run (ADR 0205): the tool itself refuses any other run.
+  "phone_find_contact",
 ]);
 
 /**
