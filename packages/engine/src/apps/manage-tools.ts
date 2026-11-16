@@ -11,12 +11,16 @@ import {
 } from "../agents";
 import { AGENT_LOOK, setAgentAppearance } from "../appearance";
 import { recordAudit } from "../audit";
+import { brainOf, setAgentBrain } from "../brain-settings";
+import { isComputerBrain } from "../brains/types";
 import { createChannel, listChannels } from "../channels";
 import { addContextItemByPerson } from "../context/items";
 import { ConflictError, TooManyError, ValidationError } from "../errors";
+import { publishAgentsChanged } from "../events";
 import { handleFromName } from "../imports";
 import { publishMachineAgentsChanged } from "../machines";
 import { notifyAppCreated } from "../notification-producers";
+import { isRightHand } from "../right-hand";
 import { createRoutine, listRoutines } from "../routines";
 import {
   listSkills,
@@ -50,6 +54,7 @@ export const APP_MANAGE_TOOL_NAMES = [
   "create_routine",
   "add_memory",
   "create_channel",
+  "set_agent_model",
 ] as const;
 
 /** Creations per person and workspace, across their apps. */
@@ -593,6 +598,62 @@ export function registerManageTools(deps: AppsToolDeps, p: AppPrincipal, tool: R
       });
       await made("channel", channel.id, channel.name, args.idempotency_key);
       return { id: channel.id, name: channel.name, existing: false, url: `${base}/c/${channel.id}` };
+    },
+  );
+
+  tool(
+    "set_agent_model",
+    {
+      scope: "manage",
+      title: "Change an agent's AI model",
+      description:
+        "Changes the AI model an existing agentes.chat agent thinks with, as its AI settings do. On the API brain: auto or a model id of the workspace's catalog, like claude-sonnet-5-5. On Claude Code: auto, opus, sonnet, haiku or a Claude model id. On another computer brain: auto or a model name its program takes. An unknown model comes back as an error that lists the choices. Needs to be the agent's owner or to manage agents. The team's right hand is not changed here.",
+      input: z
+        .object({
+          agent: AGENT_REF,
+          model: z.string().trim().min(1).max(120).describe("The model id, or auto"),
+        })
+        .strict(),
+      readOnly: false,
+      destructive: false,
+      idempotent: true,
+      openWorld: false,
+    },
+    async (args) => {
+      const agent = await resolveAgent(args.agent);
+      // Its AI is a workspace setting and each person's own (ADR 0137 §11), chosen on its own screen.
+      if (isRightHand(agent))
+        throw new ValidationError("The team's right hand's AI is chosen in agentes.chat, in its AI settings.");
+      await allow();
+      const brain = brainOf(agent.brain);
+      let model: string | null;
+      if (isComputerBrain(brain)) {
+        model = (
+          await setAgentBrain({ db: deps.db }, p.userId, p.orgId, agent.id, { model: args.model }, { remember: false })
+        ).model;
+        // As the AI settings' save: its computers and the apps hear what it thinks with now.
+        await publishMachineAgentsChanged(deps.pubsub, p.orgId);
+        await publishAgentsChanged(deps.pubsub, p.orgId);
+      } else {
+        model = (
+          await updateAgent(
+            deps.db,
+            p.userId,
+            p.orgId,
+            agent.id,
+            { model: args.model },
+            { remember: false, pubsub: deps.pubsub },
+          )
+        ).model;
+      }
+      await recordAudit(deps.db, {
+        orgId: p.orgId,
+        actor: { type: "person", id: p.userId },
+        action: "apps.updated",
+        target: { type: "agent", id: agent.id },
+        details: { grantId: p.grantId, client: p.app.name, changed: ["model"] },
+      });
+      return { ...agentOut(agent, true), brain, model };
     },
   );
 }
