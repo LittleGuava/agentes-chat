@@ -1,6 +1,5 @@
 import { type ComposioClient, composioFile, FileTooLargeError } from "@agenteschat/adapters";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { FetchLike, Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import type { jsonSchemaValidator } from "@modelcontextprotocol/sdk/validation/types.js";
 import { ARTIFACT_LIMITS, type ArtifactDeps, createFileArtifact, fileReach } from "../artifacts";
@@ -39,6 +38,7 @@ import {
   syncCustomTools,
   type ToolAccess,
 } from "./custom";
+import { openHttpSession } from "./mcp-sse";
 import { applyToolPins } from "./pins";
 import { presetForServer } from "./presets";
 import type { McpServerInfo } from "./server-icon";
@@ -72,7 +72,7 @@ export interface McpSession {
 }
 
 /**
- * Opens a session to a connection's server (or one not stored yet). Default: streamable HTTP; tests: in-process. A
+ * Opens a session to a connection's server (or one not stored yet). Default: over HTTP (`connectOverHttp`); tests: in-process. A
  * service through Composio is opened by its workspace and Composio account (`withComposio`).
  */
 export type McpConnect = (
@@ -136,13 +136,14 @@ export async function mcpSessionOver(transport: Transport): Promise<McpSession> 
   };
 }
 
-export const connectOverHttp: McpConnect = (connection, headers) =>
-  mcpSessionOver(
-    new StreamableHTTPClientTransport(new URL(connection.serverUrl), {
-      requestInit: { headers },
-      fetch: tolerantMcpFetch(outboundFetch({ ownRedirects: true })),
-    }),
-  );
+/** Sessions over HTTP through `fetch`: Streamable HTTP, or the older HTTP+SSE transport for a server that has only it. */
+export function connectOverHttpVia(fetch: FetchLike, options: { sseOpenMs?: number } = {}): McpConnect {
+  const tolerant = tolerantMcpFetch(fetch);
+  return (connection, headers) =>
+    openHttpSession(new URL(connection.serverUrl), headers, tolerant, mcpSessionOver, options.sseOpenMs);
+}
+
+export const connectOverHttp: McpConnect = connectOverHttpVia(outboundFetch({ ownRedirects: true }));
 
 const JSONRPC_MEMBERS = ["jsonrpc", "id", "method", "params", "result", "error"];
 

@@ -95,6 +95,16 @@ export async function probeMcpServer(deps: McpOAuthDeps, serverUrl: string): Pro
   } catch {
     throw new ValidationError("Couldn't connect to the MCP server", "connector.mcp_unreachable");
   }
+  if (res.status === 404 || res.status === 405) {
+    // The older HTTP+SSE transport: the address is its stream's, which takes GET alone (ADR 0016, addendum 2026-11-15).
+    const stream = await openStream(deps, serverUrl);
+    if (stream?.ok && (stream.headers.get("content-type") ?? "").includes("text/event-stream")) {
+      await stream.body?.cancel().catch(() => {});
+      return { kind: "open" };
+    }
+    if (stream?.status === 401 || stream?.status === 403) res = stream;
+    else await stream?.body?.cancel().catch(() => {});
+  }
   if (res.status !== 401 && res.status !== 403) {
     if (res.ok) return { kind: "open" };
     throw new ValidationError(`The MCP server answered ${res.status}`, "connector.mcp_status", { status: res.status });
@@ -130,6 +140,19 @@ export async function probeMcpServer(deps: McpOAuthDeps, serverUrl: string): Pro
     }
   }
   return { kind: "needs_key" };
+}
+
+/** The answer to a GET that opens an event stream at `serverUrl`; null when nothing answered. */
+async function openStream(deps: McpOAuthDeps, serverUrl: string): Promise<Response | null> {
+  try {
+    return await http(deps)(serverUrl, {
+      redirect: "error",
+      signal: waitMs(),
+      headers: { accept: "text/event-stream" },
+    });
+  } catch {
+    return null;
+  }
 }
 
 /** Authorization server metadata: RFC 8414 (with path insertion), then OpenID discovery. */
