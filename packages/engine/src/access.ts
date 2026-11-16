@@ -1,7 +1,14 @@
 import { and, asc, type Database, type Executor, eq, inArray, isNull, schema } from "@agenteschat/db";
 import { getAgent } from "./agents";
 import { recordAudit } from "./audit";
-import { BROWSER_SCOPE, BROWSER_TOOL_INFO, BROWSER_TOOLS, DESKTOP_SCOPE, DESKTOP_TOOL_INFO } from "./browser/types";
+import {
+  BROWSER_SCOPE,
+  BROWSER_TOOL_INFO,
+  BROWSER_TOOLS,
+  DESKTOP_SCOPE,
+  DESKTOP_TOOL_INFO,
+  MY_CHROME_TOOL_INFO,
+} from "./browser/types";
 import { caches } from "./cache";
 import { CONNECTOR_CATALOG } from "./connectors/catalog";
 import { connectorGrantValidator, toolPrefixOfConnection } from "./connectors/connections";
@@ -106,6 +113,8 @@ export const BUILTIN_TOOLS: Record<string, string[]> = {
 const UNLISTED_TOOLS: Record<string, string[]> = {
   "context:read": ["read_conversation"],
   "schedule:write": ["delete_routine", "run_routine_now"],
+  // A person's lent Chrome (ADR 0202): the lending is the person's own, on their computer; the scope only bounds it.
+  [BROWSER_SCOPE]: Object.keys(MY_CHROME_TOOL_INFO),
 };
 
 /**
@@ -312,6 +321,7 @@ export const BUILTIN_TOOL_INFO: Record<string, { label: string; description: str
   },
   ...BROWSER_TOOL_INFO,
   ...DESKTOP_TOOL_INFO,
+  ...MY_CHROME_TOOL_INFO,
 };
 
 const humanize = (name: string) => {

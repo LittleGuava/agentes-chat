@@ -3086,8 +3086,8 @@
       "cursor": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "cursor_female": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "grok": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
-      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "grok_female": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
+      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "copilot_female": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "antigravity": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",
       "antigravity_female": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",
@@ -13807,6 +13807,8 @@
       "desktop_read": "Scherm lezen",
       "desktop_screenshot": "Screenshot maken",
       "desktop_ask_person": "Vragen of iemand de computer overneemt",
+      "my_chrome_open": "Pagina openen in de Chrome van de persoon",
+      "my_chrome_read": "Pagina lezen in de Chrome van de persoon",
       "computer_use": "Computer gebruiken",
       "computer_status": "Computer controleren",
       "left_click": "Klikken",
@@ -18075,6 +18077,14 @@
     "desktop_screenshot": {
       "label": "Screenshot van het bureaublad maken",
       "description": "Bewaart een afbeelding van het bureaublad van de agent in diens map."
+    },
+    "my_chrome_open": {
+      "label": "Pagina openen in de Chrome van de persoon",
+      "description": "Opent een pagina in het eigen tabblad van de agent, in de Chrome die iemand hem leende, ingelogd als die persoon."
+    },
+    "my_chrome_read": {
+      "label": "Pagina lezen in de Chrome van de persoon",
+      "description": "Leest de pagina in het eigen tabblad van de agent, in de Chrome die iemand hem leende."
     }
   },
   "browser": {
@@ -19031,6 +19041,10 @@
     "closeAsk": "{{name}} wacht 2 min tot je terug bent.",
     "closeAsk_female": "{{name}} wacht 2 min tot je terug bent.",
     "openAccess": "Tools en toegang openen",
+    "myChrome": {
+      "title": "Geleende browser",
+      "line": "De browser van {{name}}, met de accounts van die persoon, tot {{time}}"
+    },
     "kept": {
       "title": "Blijft draaien",
       "meta": "{{name}} · sinds {{since}} · {{until}}",

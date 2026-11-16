@@ -491,8 +491,8 @@
     "opencodeName": "OpenCode",
     "opencodeDesc": "Escribe y cambia código en las carpetas permitidas, con los modelos gratuitos de OpenCode o tu clave.",
     "grokName": "Grok Build",
-    "copilotName": "Copilot CLI",
     "grokDesc": "Escribe y cambia código en las carpetas permitidas, con tu cuenta de Grok.",
+    "copilotName": "Copilot CLI",
     "copilotDesc": "Escribe y cambia código en las carpetas permitidas, con tu cuenta de GitHub Copilot.",
     "antigravityName": "Antigravity CLI",
     "antigravityDesc": "Escribe y cambia código en las carpetas permitidas, con tu cuenta de Gemini.",
@@ -525,6 +525,23 @@
     "browserName": "Navegador",
     "browserDesc": "Abre sitios web para los agentes en un navegador propio, sin tus inicios de sesión.",
     "browserLogins": "Los inicios de sesión que hace un agente quedan en esta {{device}}, en su carpeta. Usa solo cuentas de prueba o las del propio agente."
+  },
+  "myChrome": {
+    "title": "Tu Chrome",
+    "lendName": "Prestar tu Chrome a un agente",
+    "lendAbout": "Abre Chrome con depuración remota en un puerto, con una carpeta de perfil tuya que ya tenga la sesión iniciada en los sitios que el agente necesita. El agente abre páginas en una pestaña propia, como tú, y nunca ve tus otras pestañas. Mientras Chrome funcione así, cualquier programa de esta {{device}} puede llegar a él.",
+    "blocked": "Primero apaga Comandos y los programas de código. Con cualquiera de ellos encendido, un agente podría llegar a todo tu Chrome.",
+    "agent": "Agente",
+    "port": "Puerto",
+    "minutes": "Minutos",
+    "lend": "Prestar",
+    "lent": "{{agent}} puede usar tu Chrome hasta {{time}}",
+    "until": "Hasta {{time}} · puerto {{port}}",
+    "disconnect": "Desconectar",
+    "disconnectOf": "Desconectar a {{agent}}",
+    "badPort": "Indica el puerto en el que escucha Chrome, de 1 a 65535.",
+    "badMinutes": "Préstalo de 1 a {{max}} minutos.",
+    "noAnswer": "Chrome no respondió en el puerto {{port}}. Ábrelo con depuración remota en ese puerto y vuelve a intentarlo."
   },
   "notch": {
     "label": "Agentes en el notch",

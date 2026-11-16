@@ -587,6 +587,26 @@ export const desktopEn = {
     browserLogins:
       "Logins an agent makes stay on this {{device}}, in its folder. Use only test accounts or the agent's own.",
   },
+  /** Lending the person's own Chrome to one agent for a while (ADR 0202), in Preferences › Tools. */
+  myChrome: {
+    title: "Your Chrome",
+    lendName: "Lend your Chrome to an agent",
+    lendAbout:
+      "Start Chrome with remote debugging on a port, with a profile folder of yours signed in to the sites the agent needs. The agent opens pages in a tab of its own, as you, and never sees your other tabs. While Chrome runs that way, any program on this {{device}} can reach it.",
+    blocked:
+      "Turn off Commands and the coding programs first. While any of them is on, an agent could reach your whole Chrome.",
+    agent: "Agent",
+    port: "Port",
+    minutes: "Minutes",
+    lend: "Lend",
+    lent: "{{agent}} can use your Chrome until {{time}}",
+    until: "Until {{time}} · port {{port}}",
+    disconnect: "Disconnect",
+    disconnectOf: "Disconnect {{agent}}",
+    badPort: "Give the port Chrome listens on, from 1 to 65535.",
+    badMinutes: "Lend it for 1 to {{max}} minutes.",
+    noAnswer: "Chrome didn't answer on port {{port}}. Start it with remote debugging on that port and try again.",
+  },
   notch: {
     label: "Agents in the notch",
     here: "On this {{device}}",

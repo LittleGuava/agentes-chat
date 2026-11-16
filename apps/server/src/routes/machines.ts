@@ -223,6 +223,13 @@ export const Machine = z
         description:
           "Whether agents can use their own desktops there (protocol 21, ADR 0062): only where each agent works as its own OS user. Null when its runner doesn't report it.",
       }),
+    myChrome: z
+      .array(z.object({ agentId: z.string(), expiresAt: z.string() }))
+      .optional()
+      .openapi({
+        description:
+          "The agents the person who connected it lent their own Chrome to, from the desktop app there, and until when (ADR 0202). Empty while it's offline, in system mode, or nothing is lent; a change comes as `machine.updated`.",
+      }),
     networkTransition: z
       .object({ state: z.enum(["draining", "restart_required"]), deadline: z.string(), agents: z.array(z.string()) })
       .nullable()

@@ -483,8 +483,8 @@
     "opencodeName": "OpenCode",
     "opencodeDesc": "OpenCode의 무료 모델이나 내 키로 허용된 폴더에서 코드를 작성하고 수정해요.",
     "grokName": "Grok Build",
-    "copilotName": "Copilot CLI",
     "grokDesc": "내 Grok 계정으로 허용된 폴더에서 코드를 작성하고 수정해요.",
+    "copilotName": "Copilot CLI",
     "copilotDesc": "내 GitHub Copilot 계정으로 허용된 폴더에서 코드를 작성하고 수정해요.",
     "antigravityName": "Antigravity CLI",
     "antigravityDesc": "내 Gemini 계정으로 허용된 폴더에서 코드를 작성하고 수정해요.",
@@ -517,6 +517,23 @@
     "browserName": "브라우저",
     "browserDesc": "에이전트 전용 브라우저로 웹사이트를 열어요. 내 로그인 정보는 쓰지 않아요.",
     "browserLogins": "에이전트가 한 로그인은 이 {{device}}의 에이전트 폴더에 남아요. 테스트 계정이나 에이전트 전용 계정만 사용하세요."
+  },
+  "myChrome": {
+    "title": "내 Chrome",
+    "lendName": "에이전트에게 Chrome 빌려주기",
+    "lendAbout": "포트에서 원격 디버깅을 켜고 Chrome을 실행하세요. 에이전트에게 필요한 사이트에 로그인된 내 프로필 폴더를 사용해요. 에이전트는 전용 탭에서 나로서 페이지를 열고, 다른 탭은 절대 보지 않아요. Chrome이 이렇게 실행되는 동안에는 이 {{device}}의 어떤 프로그램이든 접근할 수 있어요.",
+    "blocked": "먼저 명령과 코딩 프로그램을 끄세요. 하나라도 켜져 있으면 에이전트가 Chrome 전체에 접근할 수 있어요.",
+    "agent": "에이전트",
+    "port": "포트",
+    "minutes": "분",
+    "lend": "빌려주기",
+    "lent": "{{agent}}이(가) {{time}}까지 Chrome을 사용할 수 있어요",
+    "until": "{{time}}까지 · 포트 {{port}}",
+    "disconnect": "연결 끊기",
+    "disconnectOf": "{{agent}} 연결 끊기",
+    "badPort": "Chrome이 수신하는 포트를 1~65535 사이로 입력하세요.",
+    "badMinutes": "1~{{max}}분 동안 빌려주세요.",
+    "noAnswer": "포트 {{port}}에서 Chrome이 응답하지 않았어요. 그 포트에서 원격 디버깅을 켜고 실행한 뒤 다시 시도하세요."
   },
   "notch": {
     "label": "노치 속 에이전트",

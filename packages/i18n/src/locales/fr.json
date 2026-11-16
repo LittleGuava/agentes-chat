@@ -14211,6 +14211,8 @@
       "desktop_read": "Lire l'écran",
       "desktop_screenshot": "Prendre une capture d'écran",
       "desktop_ask_person": "Demander à quelqu'un de prendre le contrôle de l'ordinateur",
+      "my_chrome_open": "Ouvrir une page dans le Chrome de la personne",
+      "my_chrome_read": "Lire la page dans le Chrome de la personne",
       "computer_use": "Utiliser l'ordinateur",
       "computer_status": "Vérifier l'ordinateur",
       "left_click": "Cliquer",
@@ -18560,6 +18562,14 @@
     "desktop_screenshot": {
       "label": "Prendre une capture du bureau",
       "description": "Enregistre une image du bureau de l'agent dans son dossier."
+    },
+    "my_chrome_open": {
+      "label": "Ouvrir une page dans le Chrome de la personne",
+      "description": "Ouvre une page dans l'onglet propre à l'agent, dans le Chrome qu'une personne lui a prêté, connecté sous son nom."
+    },
+    "my_chrome_read": {
+      "label": "Lire la page dans le Chrome de la personne",
+      "description": "Lit la page dans l'onglet propre à l'agent, dans le Chrome qu'une personne lui a prêté."
     }
   },
   "browser": {
@@ -19525,6 +19535,10 @@
     "closeAsk": "{{name}} vous attend 2 min.",
     "closeAsk_female": "{{name}} vous attend 2 min.",
     "openAccess": "Ouvrir Outils et accès",
+    "myChrome": {
+      "title": "Navigateur prêté",
+      "line": "Le navigateur de {{name}}, avec ses comptes, jusqu'à {{time}}"
+    },
     "kept": {
       "title": "Maintenu en marche",
       "meta": "{{name}} · depuis {{since}} · {{until}}",

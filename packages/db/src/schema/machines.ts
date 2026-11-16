@@ -85,6 +85,11 @@ export interface MachineExecutors {
   authEgressGroup?: true;
   /** `hello.toolchains` (bring your own devices): what it can build and drive phones with, by tool, its version. */
   toolchains?: Record<string, string>;
+  /**
+   * `hello.myChrome` and `mychrome.changed` (protocol 82, ADR 0202): the agents the person who connected it lent their
+   * own Chrome, and until when. Absent or empty: none.
+   */
+  myChrome?: { agentId: string; expiresAt: string }[];
   /** The usage of the computer's own sign-ins (protocol 19), by brain; kept across reconnects. */
   ownUsage?: {
     claude_code?: MachinePlanUsage;

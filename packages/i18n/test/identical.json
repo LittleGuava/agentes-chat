@@ -4480,6 +4480,9 @@
       "tools.opencodeName"
     ],
     "fr": [
+      "myChrome.agent",
+      "myChrome.port",
+      "myChrome.minutes",
       "common.hours",
       "common.minutes",
       "device.mac",
@@ -4503,6 +4506,8 @@
       "tools.opencodeName"
     ],
     "de": [
+      "myChrome.agent",
+      "myChrome.port",
       "device.mac",
       "device.windows",
       "iphone.account",
@@ -4553,6 +4558,7 @@
       "tools.opencodeName"
     ],
     "nl": [
+      "myChrome.agent",
       "common.minutes",
       "device.linux",
       "device.mac",
@@ -4630,6 +4636,7 @@
       "tools.opencodeName"
     ],
     "id": [
+      "myChrome.port",
       "device.mac",
       "device.windows",
       "link.chipTailnet",
@@ -4664,6 +4671,8 @@
       "tools.opencodeName"
     ],
     "pl": [
+      "myChrome.agent",
+      "myChrome.port",
       "common.minutes",
       "device.mac",
       "device.windows",

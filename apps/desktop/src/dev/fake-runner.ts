@@ -4,7 +4,13 @@
  * (two organizations, one with a logo, agents at work, a folder request), so every screen can be seen
  * without the Tauri shell. Never part of the real app's behaviour: the host picks it only outside Tauri.
  */
-import type { RunnerAccess, RunnerAccountInfo, RunnerPause, RunnerPhone } from "@agenteschat/adapters/machine-protocol";
+import type {
+  MyChromeSession,
+  RunnerAccess,
+  RunnerAccountInfo,
+  RunnerPause,
+  RunnerPhone,
+} from "@agenteschat/adapters/machine-protocol";
 import {
   type ActivityEntry,
   CONTROL_PROTOCOL_VERSION,
@@ -278,6 +284,8 @@ export class FakeRunner {
       transport: "usb",
     },
   ];
+  /** Who holds the person's lent Chrome (ADR 0202): any port lends, as a Chrome started there would. */
+  myChrome: MyChromeSession[] = [];
   /** The Mac's side of an iPhone's setup; `iphone.download` fills the platform in about a second. */
   /** How many times the iPhone setup asked to look at the iPhone again (`iphone.look`). */
   looks = 0;
@@ -348,7 +356,7 @@ export class FakeRunner {
     if (!msg) return;
     const reply = (data: unknown) => this.later(() => this.write({ type: "reply", id: msg.id, ok: true, data }), 120);
     const fail = (
-      code: "not_paired" | "already_paired" | "invalid_path" | "not_found" | "bad_request",
+      code: "not_paired" | "already_paired" | "invalid_path" | "not_found" | "bad_request" | "not_allowed",
       message: string,
     ) => this.later(() => this.write({ type: "reply", id: msg.id, ok: false, error: { code, message } }), 120);
     const s = this.seed;
@@ -470,7 +478,33 @@ export class FakeRunner {
       case "tools.set":
         if (!s) return fail("not_paired", "not paired");
         s.access.tools = { ...s.access.tools, [msg.tool]: msg.on };
+        // As the runner does: a switch that lets agents run programs gives the person's Chrome back.
+        if (this.chromeBlocked()) this.myChrome = [];
         return this.accessChanged(reply);
+      case "mychrome.connect": {
+        if (!s) return fail("not_paired", "not paired");
+        const a = s.agents.find((x) => x.id === msg.agentId);
+        if (!a) return fail("not_found", "No agent by that id uses this computer.");
+        if (this.chromeBlocked()) return fail("not_allowed", "Turn off commands and the coding programs first.");
+        const now = Date.now();
+        const session: MyChromeSession = {
+          agentId: a.id,
+          port: msg.port,
+          browser: "Chrome/142.0.7444.60",
+          connectedAt: new Date(now).toISOString(),
+          expiresAt: new Date(now + msg.minutes * 60_000).toISOString(),
+          tabs: [],
+        };
+        this.myChrome = [...this.myChrome.filter((x) => x.agentId !== a.id), session];
+        return reply({ session });
+      }
+      case "mychrome.list":
+        return reply({ sessions: this.myChrome });
+      case "mychrome.disconnect": {
+        const before = this.myChrome.length;
+        this.myChrome = msg.agentId ? this.myChrome.filter((x) => x.agentId !== msg.agentId) : [];
+        return reply({ disconnected: before - this.myChrome.length });
+      }
       case "access.pending":
         return reply({ requests: s?.requests ?? [] });
       case "access.answer": {
@@ -585,6 +619,17 @@ export class FakeRunner {
     };
     this.iphone = { ...this.iphone, platform: { state: "downloading", percent: null } };
     this.later(step, 300);
+  }
+
+  /** ADR 0202: commands or a coding program on here keep the person's Chrome from being lent. */
+  private chromeBlocked() {
+    const tools = this.seed?.access.tools;
+    if (!tools) return false;
+    return (["commands", "claude", "codex", "cursor", "opencode", "grok", "antigravity", "copilot"] as const).some(
+      (tool) =>
+        (tool === "commands" || tool === "claude" || tool === "codex" ? tools[tool] : (tools[tool] ?? tools.codex)) ===
+        true,
+    );
   }
 
   private accessChanged(reply: (data: unknown) => void) {

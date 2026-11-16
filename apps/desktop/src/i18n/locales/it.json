@@ -491,8 +491,8 @@
     "opencodeName": "OpenCode",
     "opencodeDesc": "Scrive e modifica il codice nelle cartelle consentite, con i modelli gratuiti di OpenCode o la tua chiave.",
     "grokName": "Grok Build",
-    "copilotName": "Copilot CLI",
     "grokDesc": "Scrive e modifica il codice nelle cartelle consentite, con il tuo account Grok.",
+    "copilotName": "Copilot CLI",
     "copilotDesc": "Scrive e modifica il codice nelle cartelle consentite, con il tuo account GitHub Copilot.",
     "antigravityName": "Antigravity CLI",
     "antigravityDesc": "Scrive e modifica il codice nelle cartelle consentite, con il tuo account Gemini.",
@@ -525,6 +525,23 @@
     "browserName": "Browser",
     "browserDesc": "Apre siti web per gli agenti in un browser tutto loro, senza i tuoi accessi.",
     "browserLogins": "Gli accessi fatti da un agente restano su questo {{device}}, nella sua cartella. Usa solo account di prova o quelli dell'agente."
+  },
+  "myChrome": {
+    "title": "Il tuo Chrome",
+    "lendName": "Presta il tuo Chrome a un agente",
+    "lendAbout": "Avvia Chrome con il debug remoto su una porta, con una tua cartella del profilo già collegata ai siti che servono all'agente. L'agente apre le pagine in una scheda tutta sua, come te, e non vede mai le tue altre schede. Finché Chrome gira così, qualsiasi programma su questo {{device}} può raggiungerlo.",
+    "blocked": "Prima spegni Comandi e i programmi di codice. Con uno di questi acceso, un agente potrebbe raggiungere tutto il tuo Chrome.",
+    "agent": "Agente",
+    "port": "Porta",
+    "minutes": "Minuti",
+    "lend": "Presta",
+    "lent": "{{agent}} può usare il tuo Chrome fino a {{time}}",
+    "until": "Fino a {{time}} · porta {{port}}",
+    "disconnect": "Disconnetti",
+    "disconnectOf": "Disconnetti {{agent}}",
+    "badPort": "Indica la porta su cui ascolta Chrome, da 1 a 65535.",
+    "badMinutes": "Prestalo da 1 a {{max}} minuti.",
+    "noAnswer": "Chrome non ha risposto sulla porta {{port}}. Avvialo con il debug remoto su quella porta e riprova."
   },
   "notch": {
     "label": "Agenti nel notch",

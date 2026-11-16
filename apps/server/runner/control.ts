@@ -30,7 +30,7 @@ function toControlError(err: unknown): { code: ControlErrorCode; message: string
   if (err instanceof ControlError) return { code: err.code, message: err.message };
   if (err instanceof RunnerError) {
     const code: ControlErrorCode =
-      err.code === "bad_request" || err.code === "not_found"
+      err.code === "bad_request" || err.code === "not_found" || err.code === "not_allowed"
         ? err.code
         : err.code === "outside_workspace"
           ? "invalid_path"

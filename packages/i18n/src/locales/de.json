@@ -3087,8 +3087,8 @@
       "cursor": "Cursor ist auf diesem Computer nicht angemeldet. Verbinde ein Cursor-Konto auf der Seite von {{name}}.",
       "cursor_female": "Cursor ist auf diesem Computer nicht angemeldet. Verbinde ein Cursor-Konto auf der Seite von {{name}}.",
       "grok": "Grok ist auf diesem Computer nicht angemeldet. Verbinde ein Grok-Konto auf der Seite von {{name}}.",
-      "copilot": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "grok_female": "Grok ist auf diesem Computer nicht angemeldet. Verbinde ein Grok-Konto auf der Seite von {{name}}.",
+      "copilot": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "copilot_female": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "antigravity": "Gemini ist auf diesem Computer nicht angemeldet. Verbinde ein Gemini-Konto auf der Seite von {{name}}.",
       "antigravity_female": "Gemini ist auf diesem Computer nicht angemeldet. Verbinde ein Gemini-Konto auf der Seite von {{name}}.",
@@ -13743,6 +13743,8 @@
       "desktop_read": "Bildschirm lesen",
       "desktop_screenshot": "Screenshot aufnehmen",
       "desktop_ask_person": "Jemanden bitten, den Computer zu übernehmen",
+      "my_chrome_open": "Seite im Chrome der Person öffnen",
+      "my_chrome_read": "Seite im Chrome der Person lesen",
       "computer_use": "Computer nutzen",
       "computer_status": "Computer prüfen",
       "left_click": "Klicken",
@@ -18005,6 +18007,14 @@
     "desktop_screenshot": {
       "label": "Screenshot des Desktops machen",
       "description": "Speichert ein Bild des Desktops des Agenten in seinem Ordner."
+    },
+    "my_chrome_open": {
+      "label": "Seite im Chrome der Person öffnen",
+      "description": "Öffnet eine Seite im eigenen Tab des Agenten in dem Chrome, den eine Person ihm geliehen hat, angemeldet als diese Person."
+    },
+    "my_chrome_read": {
+      "label": "Seite im Chrome der Person lesen",
+      "description": "Liest die Seite im eigenen Tab des Agenten in dem Chrome, den eine Person ihm geliehen hat."
     }
   },
   "browser": {
@@ -18852,6 +18862,10 @@
     },
     "closeAsk": "{{name}} wartet 2 Min., bis du zurückkommst.",
     "openAccess": "Tools und Zugriff öffnen",
+    "myChrome": {
+      "title": "Geliehener Browser",
+      "line": "Der Browser von {{name}}, mit den Konten dieser Person, bis {{time}}"
+    },
     "kept": {
       "title": "Läuft weiter",
       "meta": "{{name}} · seit {{since}} · {{until}}",

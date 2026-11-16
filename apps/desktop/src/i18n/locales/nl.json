@@ -487,8 +487,8 @@
     "opencodeName": "OpenCode",
     "opencodeDesc": "Schrijft en wijzigt code in de toegestane mappen, met de gratis modellen van OpenCode of je sleutel.",
     "grokName": "Grok Build",
-    "copilotName": "Copilot CLI",
     "grokDesc": "Schrijft en wijzigt code in de toegestane mappen, met je Grok-account.",
+    "copilotName": "Copilot CLI",
     "copilotDesc": "Schrijft en wijzigt code in de toegestane mappen, met je GitHub Copilot-account.",
     "antigravityName": "Antigravity CLI",
     "antigravityDesc": "Schrijft en wijzigt code in de toegestane mappen, met je Gemini-account.",
@@ -521,6 +521,23 @@
     "browserName": "Browser",
     "browserDesc": "Opent websites voor de agents in een eigen browser, zonder jouw logins.",
     "browserLogins": "Logins van een agent blijven op deze {{device}}, in zijn map. Gebruik alleen testaccounts of het eigen account van de agent."
+  },
+  "myChrome": {
+    "title": "Je Chrome",
+    "lendName": "Je Chrome aan een agent lenen",
+    "lendAbout": "Start Chrome met foutopsporing op afstand op een poort, met een eigen profielmap die al is ingelogd op de sites die de agent nodig heeft. De agent opent pagina's in een eigen tabblad, als jou, en ziet je andere tabbladen nooit. Zolang Chrome zo draait, kan elk programma op deze {{device}} erbij.",
+    "blocked": "Zet eerst Opdrachten en de programmeerprogramma's uit. Zolang er een aan staat, kan een agent bij je hele Chrome.",
+    "agent": "Agent",
+    "port": "Poort",
+    "minutes": "Minuten",
+    "lend": "Lenen",
+    "lent": "{{agent}} kan je Chrome gebruiken tot {{time}}",
+    "until": "Tot {{time}} · poort {{port}}",
+    "disconnect": "Loskoppelen",
+    "disconnectOf": "{{agent}} loskoppelen",
+    "badPort": "Geef de poort op waarop Chrome luistert, van 1 tot 65535.",
+    "badMinutes": "Leen hem uit voor 1 tot {{max}} minuten.",
+    "noAnswer": "Chrome reageerde niet op poort {{port}}. Start hem met foutopsporing op afstand op die poort en probeer het opnieuw."
   },
   "notch": {
     "label": "Agents in de notch",

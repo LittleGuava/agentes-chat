@@ -495,8 +495,8 @@
     "opencodeName": "OpenCode",
     "opencodeDesc": "Pisze i zmienia kod w dozwolonych folderach, z darmowymi modelami OpenCode lub twoim kluczem.",
     "grokName": "Grok Build",
-    "copilotName": "Copilot CLI",
     "grokDesc": "Pisze i zmienia kod w dozwolonych folderach, z twoim kontem Grok.",
+    "copilotName": "Copilot CLI",
     "copilotDesc": "Pisze i zmienia kod w dozwolonych folderach, z twoim kontem GitHub Copilot.",
     "antigravityName": "Antigravity CLI",
     "antigravityDesc": "Pisze i zmienia kod w dozwolonych folderach, z twoim kontem Gemini.",
@@ -529,6 +529,23 @@
     "browserName": "Przeglądarka",
     "browserDesc": "Otwiera strony dla agentów we własnej przeglądarce, bez twoich danych logowania.",
     "browserLogins": "Logowania agenta zostają na tym urządzeniu ({{device}}), w jego folderze. Używaj tylko kont testowych albo własnych kont agenta."
+  },
+  "myChrome": {
+    "title": "Twój Chrome",
+    "lendName": "Pożycz swój Chrome agentowi",
+    "lendAbout": "Uruchom Chrome z debugowaniem zdalnym na porcie, z własnym folderem profilu zalogowanym do stron, których potrzebuje agent. Agent otwiera strony we własnej karcie, jako ty, i nigdy nie widzi twoich innych kart. Dopóki Chrome tak działa, każdy program na tym urządzeniu ({{device}}) może się do niego dostać.",
+    "blocked": "Najpierw wyłącz Polecenia i programy do kodowania. Gdy którykolwiek jest włączony, agent mógłby dostać się do całego twojego Chrome.",
+    "agent": "Agent",
+    "port": "Port",
+    "minutes": "Minuty",
+    "lend": "Pożycz",
+    "lent": "{{agent}} może używać twojego Chrome do {{time}}",
+    "until": "Do {{time}} · port {{port}}",
+    "disconnect": "Rozłącz",
+    "disconnectOf": "Rozłącz: {{agent}}",
+    "badPort": "Podaj port, na którym nasłuchuje Chrome, od 1 do 65535.",
+    "badMinutes": "Pożycz na 1 do {{max}} minut.",
+    "noAnswer": "Chrome nie odpowiedział na porcie {{port}}. Uruchom go z debugowaniem zdalnym na tym porcie i spróbuj ponownie."
   },
   "notch": {
     "label": "Agenci w notchu",

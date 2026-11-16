@@ -244,6 +244,8 @@ const LOOKS_ONLY = new Set([
   "browser_profile",
   "desktop_read",
   "desktop_screenshot",
+  // Reading the agent's own tab of a person's lent Chrome (ADR 0202); opening a page there, signed in as the person, asks.
+  "my_chrome_read",
   "git_clone",
   "team_status",
   "offer_approvals",

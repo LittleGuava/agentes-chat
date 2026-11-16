@@ -4,11 +4,14 @@ import {
   MY_CHROME_MAX_MINUTES,
   MY_CHROME_TEXT_MAX,
   type MyChromeAction,
+  type MyChromeLent,
   type MyChromeSession,
   type MyChromeTab,
 } from "@agenteschat/adapters/machine-protocol";
 import { domainAllowed, isWebPage } from "./browser";
 import { RunnerError } from "./errors";
+
+export { reachesLentChrome } from "./lent-chrome-port";
 
 /**
  * The person's own Chrome (protocol 82, ADR 0202): a Chrome the person started with remote debugging on a loopback
@@ -164,10 +167,17 @@ export interface MyChromesOptions {
   /** Tests: how the browser endpoint is dialed. */
   dial?: (url: string) => WebSocket;
   fetch?: (url: string, init: { signal: AbortSignal }) => Promise<Response>;
+  /**
+   * Why lending is refused now, or null: an agent here may run programs of its own as the person (commands, a coding
+   * CLI), and any such program reaches the debugging port with no tab of its own and no closed vocabulary.
+   */
+  guard?: () => string | null;
+  /** Who holds a lent Chrome changed (lent, replaced, ended): the whole list, for the server. */
+  onChange?: (lent: MyChromeLent[]) => void;
 }
 
 export class MyChromes {
-  private readonly lent = new Map<string, Lent>();
+  private readonly held = new Map<string, Lent>();
   private readonly now: () => number;
 
   constructor(private readonly opts: MyChromesOptions) {
@@ -197,7 +207,7 @@ export class MyChromes {
     if (this.opts.ownPorts().has(port)) {
       throw new RunnerError("not_allowed", "That port is an agent's own browser, not yours.");
     }
-    this.refuseHeld(agent, port);
+    this.refuseNow(agent, port);
     const wsPath = input.wsPath ?? (await this.browserPath(port));
     if (!BROWSER_PATH.test(wsPath)) {
       throw new RunnerError("browser_unavailable", "That port isn't a Chrome's debugging endpoint.");
@@ -225,7 +235,7 @@ export class MyChromes {
     }
     // Checked again: another agent may have been lent this Chrome while this one was dialing.
     try {
-      this.refuseHeld(agent, port);
+      this.refuseNow(agent, port);
     } catch (err) {
       cdp.close();
       throw err;
@@ -247,13 +257,19 @@ export class MyChromes {
       timer,
       queue: Promise.resolve(),
     };
-    this.lent.set(agent.id, lent);
+    this.held.set(agent.id, lent);
     this.opts.record(agent, `Your Chrome: connected on port ${port} for ${minutes} min`);
+    this.changed();
     return this.info(lent);
   }
 
-  /** One agent per Chrome: another agent's session on `port` refuses this one. */
-  private refuseHeld(agent: AgentScope, port: number) {
+  /**
+   * Refused while an agent here may run programs of its own as the person (`guard`), and while another agent holds
+   * the Chrome on `port` (one agent per Chrome).
+   */
+  private refuseNow(agent: AgentScope, port: number) {
+    const why = this.opts.guard?.();
+    if (why) throw new RunnerError("not_allowed", why);
     if ([...this.sessions()].some((s) => s.port === port && s.agent.id !== agent.id)) {
       throw new RunnerError("not_allowed", "Another agent uses this Chrome now. Disconnect it first.");
     }
@@ -276,17 +292,31 @@ export class MyChromes {
     return [...this.sessions()].map((l) => this.info(l));
   }
 
+  /** Who holds a lent Chrome and until when (`hello.myChrome`, `mychrome.changed`). */
+  lent(): MyChromeLent[] {
+    return [...this.sessions()].map((l) => ({ agentId: l.agent.id, expiresAt: new Date(l.expiresAt).toISOString() }));
+  }
+
+  /** The debugging ports of the lent Chromes: off limits to every agent's own browser while lent. */
+  lentPorts(): Set<number> {
+    return new Set([...this.sessions()].map((l) => l.port));
+  }
+
+  private changed() {
+    this.opts.onChange?.(this.lent());
+  }
+
   /** `mychrome.disconnect`: ends one agent's use (or every one); the tabs stay in the person's browser. */
-  disconnect(agentId?: string): number {
-    const ids = agentId === undefined ? [...this.lent.keys()] : [agentId];
+  disconnect(agentId?: string, why = "disconnected"): number {
+    const ids = agentId === undefined ? [...this.held.keys()] : [agentId];
     let ended = 0;
-    for (const id of ids) if (this.end(id, "disconnected")) ended++;
+    for (const id of ids) if (this.end(id, why)) ended++;
     return ended;
   }
 
   /** The live sessions, after ending those whose time ran out. */
   private *sessions(): Generator<Lent> {
-    for (const l of [...this.lent.values()]) {
+    for (const l of [...this.held.values()]) {
       if (this.now() >= l.expiresAt) this.end(l.agent.id, "ended: the time you gave ran out");
       else yield l;
     }
@@ -310,18 +340,19 @@ export class MyChromes {
   }
 
   private end(agentId: string, why: string, only?: Cdp): boolean {
-    const l = this.lent.get(agentId);
+    const l = this.held.get(agentId);
     if (!l || (only && l.cdp !== only)) return false;
-    this.lent.delete(agentId);
+    this.held.delete(agentId);
     clearTimeout(l.timer);
     l.cdp.close();
     this.opts.record(l.agent, `Your Chrome: ${why}`);
+    this.changed();
     return true;
   }
 
   private event(agentId: string, method: string, params: Json) {
     if (method !== "Target.detachedFromTarget") return;
-    const l = this.lent.get(agentId);
+    const l = this.held.get(agentId);
     if (l?.tab && str(params.sessionId) === l.tab.sessionId) l.tab = null;
   }
 

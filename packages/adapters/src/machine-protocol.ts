@@ -2453,6 +2453,8 @@ export interface RunnerInfo {
   authEgressGroup?: true;
   /** `KEEP_RUNNING_PROTOCOL`: the holds that live here, and those that ended lately with why (the server may not know). */
   holds?: RunnerHolds;
+  /** Protocol 82 (ADR 0202): who holds a person's lent Chrome; always sent, empty when nothing is lent. */
+  myChrome?: MyChromeLent[];
 }
 
 export interface RunnerHolds {
@@ -2506,6 +2508,27 @@ export type MyChromeAction = { kind: "open"; url: string } | { kind: "read" };
 export interface MyChromeTab {
   url: string;
   title: string;
+}
+
+/**
+ * Protocol 82: who holds a person's lent Chrome now, as the server keeps it (`hello.myChrome`, `mychrome.changed`):
+ * the agent and when the consent ends. Never the port, the tabs or the pages.
+ */
+export interface MyChromeLent {
+  agentId: string;
+  expiresAt: string;
+}
+
+/** The lent Chromes a runner reports: real agent ids and dates only, at most one per agent. */
+export function parseMyChromeLent(v: unknown[]): MyChromeLent[] {
+  const out: MyChromeLent[] = [];
+  for (const item of v.slice(0, 100)) {
+    if (!isObject(item) || !isUuid(item.agentId) || !isString(item.expiresAt)) continue;
+    const at = Date.parse(item.expiresAt);
+    if (!Number.isFinite(at) || out.some((l) => l.agentId === item.agentId)) continue;
+    out.push({ agentId: item.agentId, expiresAt: new Date(at).toISOString() });
+  }
+  return out;
 }
 
 /** Protocol 82: one agent's use of the person's Chrome. */
@@ -3193,6 +3216,8 @@ export type RunnerFrame =
   | { type: "executors.changed"; executors: NonNullable<RunnerInfo["executors"]> }
   /** What `hello.toolchains` said changed (an Apple team found, Xcode updated), whole. An older server drops it. */
   | { type: "toolchains.changed"; toolchains: RunnerToolchains }
+  /** Protocol 82 (ADR 0202): who holds a person's lent Chrome changed (lent, ended, ran out), whole. */
+  | { type: "mychrome.changed"; lent: MyChromeLent[] }
   /** `PHONES_PROTOCOL`: the phones it reaches changed (one came or went, a state or a holder changed), whole. */
   | { type: "phones.changed"; phones: RunnerPhone[] }
   /**
@@ -3713,6 +3738,7 @@ export function parseRunnerFrame(raw: string): RunnerFrame | null {
         ...(Array.isArray(f.phones) ? { phones: parsePhones(f.phones) } : {}),
         ...(isObject(f.toolchains) ? { toolchains: parseToolchains(f.toolchains) } : {}),
         ...(isObject(f.holds) ? { holds: parseHolds(f.holds) } : {}),
+        ...(Array.isArray(f.myChrome) ? { myChrome: parseMyChromeLent(f.myChrome) } : {}),
       };
     }
     case "keep.ended": {
@@ -3782,6 +3808,8 @@ export function parseRunnerFrame(raw: string): RunnerFrame | null {
       return isObject(f.executors) ? { type: "executors.changed", executors: parseExecutors(f.executors) } : null;
     case "toolchains.changed":
       return isObject(f.toolchains) ? { type: "toolchains.changed", toolchains: parseToolchains(f.toolchains) } : null;
+    case "mychrome.changed":
+      return Array.isArray(f.lent) ? { type: "mychrome.changed", lent: parseMyChromeLent(f.lent) } : null;
     case "access.decided": {
       if (!isString(f.requestId)) return null;
       const decision = (["granted", "denied", "expired"] as const).find((d) => d === f.decision);

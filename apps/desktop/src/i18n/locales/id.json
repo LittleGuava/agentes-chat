@@ -483,8 +483,8 @@
     "opencodeName": "OpenCode",
     "opencodeDesc": "Menulis dan mengubah kode di folder yang diizinkan, dengan model gratis OpenCode atau kuncimu.",
     "grokName": "Grok Build",
-    "copilotName": "Copilot CLI",
     "grokDesc": "Menulis dan mengubah kode di folder yang diizinkan, dengan akun Grok-mu.",
+    "copilotName": "Copilot CLI",
     "copilotDesc": "Menulis dan mengubah kode di folder yang diizinkan, dengan akun GitHub Copilot-mu.",
     "antigravityName": "Antigravity CLI",
     "antigravityDesc": "Menulis dan mengubah kode di folder yang diizinkan, dengan akun Gemini-mu.",
@@ -517,6 +517,23 @@
     "browserName": "Browser",
     "browserDesc": "Membuka situs web untuk agen di browser milik mereka sendiri, tanpa login-mu.",
     "browserLogins": "Login yang dibuat agen tetap di {{device}} ini, di foldernya. Pakai hanya akun uji atau akun milik agen itu sendiri."
+  },
+  "myChrome": {
+    "title": "Chrome kamu",
+    "lendName": "Pinjamkan Chrome kamu ke agen",
+    "lendAbout": "Jalankan Chrome dengan debugging jarak jauh di sebuah port, dengan folder profil milikmu yang sudah masuk ke situs yang dibutuhkan agen. Agen membuka halaman di tab miliknya sendiri, sebagai kamu, dan tidak pernah melihat tab kamu yang lain. Selama Chrome berjalan seperti itu, program apa pun di {{device}} ini bisa menjangkaunya.",
+    "blocked": "Matikan dulu Perintah dan program koding. Selama salah satunya menyala, agen bisa menjangkau seluruh Chrome kamu.",
+    "agent": "Agen",
+    "port": "Port",
+    "minutes": "Menit",
+    "lend": "Pinjamkan",
+    "lent": "{{agent}} bisa memakai Chrome kamu sampai {{time}}",
+    "until": "Sampai {{time}} · port {{port}}",
+    "disconnect": "Putuskan",
+    "disconnectOf": "Putuskan {{agent}}",
+    "badPort": "Isi port tempat Chrome mendengarkan, dari 1 sampai 65535.",
+    "badMinutes": "Pinjamkan selama 1 sampai {{max}} menit.",
+    "noAnswer": "Chrome tidak menjawab di port {{port}}. Jalankan dengan debugging jarak jauh di port itu lalu coba lagi."
   },
   "notch": {
     "label": "Agen di notch",

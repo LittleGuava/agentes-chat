@@ -4099,3 +4099,21 @@ test.if(posix)(
     expect(emulationOn(devtools[2], "tab-3")).toEqual([]);
   },
 );
+
+test("a person's lent Chrome: no agent's own browser opens its debugging port, with a site list or without (ADR 0202)", async () => {
+  const lent = new Set([9222]);
+  const t = setup({ lentPorts: () => lent });
+  for (const url of ["http://127.0.0.1:9222/json/list", "localhost:9222/json", "http://[::1]:9222/json/version"]) {
+    expect(await errorCode(() => t.act("open", [url]))).toBe("not_allowed");
+    expect(await errorCode(() => t.act("tab", ["new", url], { allowedDomains: ["*.example.com"] }))).toBe(
+      "not_allowed",
+    );
+  }
+  expect(t.logged().some((c) => c.args.some((a) => a.includes(":9222")))).toBe(false);
+  // Once it is given back, the port is like any other address.
+  lent.clear();
+  expect(await errorCode(() => t.act("open", ["http://127.0.0.1:9222/json/list"]))).not.toBe("not_allowed");
+  expect(
+    await errorCode(() => t.act("open", ["http://127.0.0.1:9222/json/list"], { allowedDomains: ["example.com"] })),
+  ).toBe("not_allowed");
+});

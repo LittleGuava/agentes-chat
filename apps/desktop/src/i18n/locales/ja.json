@@ -483,8 +483,8 @@
     "opencodeName": "OpenCode",
     "opencodeDesc": "OpenCodeの無料モデルまたはあなたのキーで、許可されたフォルダ内のコードを書いたり変更したりします。",
     "grokName": "Grok Build",
-    "copilotName": "Copilot CLI",
     "grokDesc": "あなたのGrokアカウントで、許可されたフォルダ内のコードを書いたり変更したりします。",
+    "copilotName": "Copilot CLI",
     "copilotDesc": "あなたのGitHub Copilotアカウントで、許可されたフォルダ内のコードを書いたり変更したりします。",
     "antigravityName": "Antigravity CLI",
     "antigravityDesc": "あなたのGeminiアカウントで、許可されたフォルダ内のコードを書いたり変更したりします。",
@@ -517,6 +517,23 @@
     "browserName": "ブラウザ",
     "browserDesc": "エージェント専用のブラウザでウェブサイトを開きます。あなたのログイン情報は使いません。",
     "browserLogins": "エージェントのログイン情報はこの{{device}}のエージェントのフォルダに残ります。テスト用のアカウントか、エージェント自身のアカウントだけを使ってください。"
+  },
+  "myChrome": {
+    "title": "あなたの Chrome",
+    "lendName": "Chrome をエージェントに貸す",
+    "lendAbout": "ポートでリモートデバッグを有効にして Chrome を起動してください。エージェントが必要なサイトにログイン済みの、あなたのプロフィールフォルダを使います。エージェントは専用のタブであなたとしてページを開き、ほかのタブは見ません。Chrome がこの状態で動いている間は、この{{device}}のどのプログラムからもアクセスできます。",
+    "blocked": "先にコマンドとコーディング用プログラムをオフにしてください。どれかがオンの間は、エージェントが Chrome 全体にアクセスできてしまいます。",
+    "agent": "エージェント",
+    "port": "ポート",
+    "minutes": "分",
+    "lend": "貸す",
+    "lent": "{{agent}} は {{time}}まで Chrome を使えます",
+    "until": "{{time}}まで · ポート {{port}}",
+    "disconnect": "切断",
+    "disconnectOf": "{{agent}} を切断",
+    "badPort": "Chrome が待ち受けるポートを 1〜65535 で入力してください。",
+    "badMinutes": "1〜{{max}} 分の範囲で貸してください。",
+    "noAnswer": "ポート {{port}} で Chrome から応答がありません。そのポートでリモートデバッグを有効にして起動し、もう一度お試しください。"
   },
   "notch": {
     "label": "ノッチのエージェント",
