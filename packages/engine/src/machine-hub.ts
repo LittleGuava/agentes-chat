@@ -27,6 +27,7 @@ import {
   type PubSub,
   parseRunnerFrame,
   RELAY_PROTOCOL,
+  type RelayAgent,
   type RunnerAccess,
   type RunnerFrame,
   type RunnerPause,
@@ -533,7 +534,12 @@ export interface MachineRelayHooks {
     frame: Extract<RunnerFrame, { type: "relay.want" }>,
   ): Promise<Extract<ServerFrame, { type: "relay.ready" }>>;
   agents?(orgId: string, machineId: string, agents: MachineAgent[]): Promise<MachineAgent[]>;
+  /** The workspace's agents on other computers, whom this one may lend a site to (empty where lending doesn't apply). */
+  lendable?(orgId: string, machineId: string): Promise<RelayAgent[]>;
 }
+
+/** Whether a computer lends any site (its comings, goings and pauses change other computers' lists). */
+const lendsSites = (access: { relay?: unknown[] } | null | undefined) => (access?.relay?.length ?? 0) > 0;
 
 export function createMachineHub(deps: MachineHubDeps) {
   const { db, pubsub } = deps;
@@ -587,9 +593,11 @@ export function createMachineHub(deps: MachineHubDeps) {
       // Its last sign of life is its last pong (`last_seen_at` is written at most every 40 s while it is up).
       .set({ online: false, connectedReplica: null, lastSeenAt: new Date(conn.lastPong), updatedAt: new Date() })
       .where(and(eq(machines.id, machineId), eq(machines.connectedReplica, replicaId)))
-      .returning({ orgId: machines.orgId });
+      .returning({ orgId: machines.orgId, access: machines.access });
     if (!row) return false;
     await publishMachineStatus(pubsub, row.orgId ?? conn.orgId, machineId, false);
+    // ADR 0203: the sites it lent leave its workspace's agents' lists while it is away.
+    if (lendsSites(row.access)) await publishMachineAgentsChanged(pubsub, row.orgId);
     // Its running tasks become interrupted if it isn't back after the grace (any replica's worker runs it).
     // Our own stop: the runner dials the next server by itself and its tasks run on meanwhile, so only one
     // still away after a long backstop has them interrupted; it shows as an outage after the usual grace.
@@ -847,6 +855,9 @@ export function createMachineHub(deps: MachineHubDeps) {
     }
     // Protocol 9: the agents that use this computer, for the desktop app.
     if (frame.protocol >= PAUSE_PROTOCOL) await sendAgents(conn);
+    // ADR 0203: a computer that lends sites (or lent some before) is back: its workspace's agents' lists change.
+    if (lendsSites(frame.access) || lendsSites(machine.access))
+      await publishMachineAgentsChanged(pubsub, machine.orgId);
     if (frame.protocol >= BROWSER_PROTOCOL) browserHooks.connected?.(machine.id);
     conn.pingTimer = setInterval(() => {
       // The runner redials after two heartbeats without a ping. Checked once a heartbeat, a pong older than
@@ -943,9 +954,14 @@ export function createMachineHub(deps: MachineHubDeps) {
       lend && conn.protocol >= RELAY_PROTOCOL
         ? await lend(conn.orgId, conn.machineId, listed).catch(() => listed)
         : listed;
+    const lendableOf = relayHooks.lendable;
+    const lendable =
+      lendableOf && conn.protocol >= RELAY_PROTOCOL
+        ? await lendableOf(conn.orgId, conn.machineId).catch(() => undefined)
+        : undefined;
     const deleted =
       conn.protocol >= CLAUDE_SHARED_PROTOCOL ? await deletedAgentIds(db, conn.orgId).catch(() => []) : [];
-    send(conn, { type: "agents", agents, ...(deleted.length ? { deleted } : {}) });
+    send(conn, { type: "agents", agents, ...(deleted.length ? { deleted } : {}), ...(lendable ? { lendable } : {}) });
   }
 
   /** `runner.state` (protocol 9): paused, resumed or a new `until`; stored and told to the org. */
@@ -963,11 +979,15 @@ export function createMachineHub(deps: MachineHubDeps) {
         updatedAt: new Date(),
       })
       .where(eq(machines.id, machineId))
-      .returning({ orgId: machines.orgId });
+      .returning({ orgId: machines.orgId, access: machines.access });
     if (!row) return;
     await publishMachineUpdated(pubsub, row.orgId, machineId, {
       paused: await pauseForApps(db, row.orgId, conn.pause),
     });
+    // ADR 0203: paused, it lends nothing; resumed, its sites are back on its workspace's agents' lists.
+    if (wasPaused !== pauseActive(conn.pause) && lendsSites(row.access)) {
+      await publishMachineAgentsChanged(pubsub, row.orgId);
+    }
     // Resumed: what waited for this computer goes on (runs waiting for its brain, missions' queued work).
     if (wasPaused && !pauseActive(conn.pause) && hooks.online) {
       const online = hooks.online;

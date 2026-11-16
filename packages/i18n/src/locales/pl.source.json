@@ -15543,6 +15543,21 @@
   "agentPage.computer.foldersHint": {
     "value": "Allowing another folder happens on the computer itself, by whoever connected it."
   },
+  "agentPage.computer.sites": {
+    "value": "Sites through someone's computer"
+  },
+  "agentPage.computer.sitesHint": {
+    "value": "Sites that block servers open through the connection of a person's computer. That person lends them in agentes.chat on it, under Preferences, Sites."
+  },
+  "agentPage.computer.siteVia": {
+    "value": "through {{machine}}, connected by {{name}}"
+  },
+  "agentPage.computer.siteViaMachine": {
+    "value": "through {{machine}}"
+  },
+  "agentPage.computer.siteAway": {
+    "value": "away now, it opens from this agent's computer until it's back"
+  },
   "agentPage.settings.sections": {
     "value": "Settings sections"
   },
@@ -38604,6 +38619,24 @@
   },
   "machines.access.removedAgent": {
     "value": "{{name}} no longer uses {{folder}}."
+  },
+  "machines.access.sites": {
+    "value": "Sites through this computer"
+  },
+  "machines.access.sitesHint": {
+    "value": "Agents of other computers open these sites through this one's connection. Only whoever connected it lends a site, in agentes.chat on it, under Preferences, Sites."
+  },
+  "machines.access.noSites": {
+    "value": "No site. Agents open every site from the computer they work on."
+  },
+  "machines.access.everyAgent": {
+    "value": "Every agent"
+  },
+  "machines.access.siteUsedBy": {
+    "value": "Who opens {{site}} through it"
+  },
+  "machines.access.formerAgent": {
+    "value": "An agent no longer here"
   },
   "machines.access.tools": {
     "value": "Tools"

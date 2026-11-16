@@ -6484,7 +6484,12 @@
       "foldersMore_female": "Además de su propia carpeta, usa estas:",
       "foldersUnknown": "{{machine}} todavía no informó sus carpetas permitidas.",
       "foldersHidden": "Solo los admins y quien conectó {{machine}} ven sus carpetas permitidas.",
-      "foldersHint": "Para permitir otra carpeta, quien conectó la computadora lo hace en ella misma."
+      "foldersHint": "Para permitir otra carpeta, quien conectó la computadora lo hace en ella misma.",
+      "sites": "Sitios por la computadora de alguien",
+      "sitesHint": "Los sitios que bloquean servidores se abren por la conexión de la computadora de una persona. Esa persona los presta en agentes.chat en esa computadora, en Preferencias, Sitios.",
+      "siteVia": "por {{machine}}, conectada por {{name}}",
+      "siteViaMachine": "por {{machine}}",
+      "siteAway": "fuera de línea ahora, se abre desde la computadora de este agente hasta que vuelva"
     },
     "settings": {
       "sections": "Secciones de la configuración",
@@ -16161,6 +16166,12 @@
       "remove": "Quitar",
       "removed": "Se quitó {{folder}}.",
       "removedAgent": "{{name}} ya no usa {{folder}}.",
+      "sites": "Sitios por esta computadora",
+      "sitesHint": "Agentes de otras computadoras abren estos sitios por la conexión de esta. Solo quien la conectó presta un sitio, en agentes.chat en ella, en Preferencias, Sitios.",
+      "noSites": "Ningún sitio. Los agentes abren todos los sitios desde la computadora en la que trabajan.",
+      "everyAgent": "Todos los agentes",
+      "siteUsedBy": "Quién abre {{site}} por ella",
+      "formerAgent": "Un agente que ya no está",
       "tools": "Herramientas",
       "tool": {
         "claude": "Claude Code",

@@ -4,12 +4,14 @@
  * (two organizations, one with a logo, agents at work, a folder request), so every screen can be seen
  * without the Tauri shell. Never part of the real app's behaviour: the host picks it only outside Tauri.
  */
-import type {
-  MyChromeSession,
-  RunnerAccess,
-  RunnerAccountInfo,
-  RunnerPause,
-  RunnerPhone,
+import {
+  type MyChromeSession,
+  type RelayAgent,
+  type RunnerAccess,
+  type RunnerAccountInfo,
+  type RunnerPause,
+  type RunnerPhone,
+  relaySite,
 } from "@agenteschat/adapters/machine-protocol";
 import {
   type ActivityEntry,
@@ -17,6 +19,7 @@ import {
   type ControlAccessRequest,
   type ControlAgent,
   type ControlConfig,
+  type ControlErrorCode,
   type ControlEvent,
   type ControlIphoneSetup,
   type ControlJob,
@@ -232,6 +235,10 @@ const DEFAULT_CONFIG = { maxConcurrentTasks: 3, taskMaxSeconds: 4 * 3600, brainI
 
 export class FakeRunner {
   private seed: FakeOrgSeed | null;
+  /** The machine protocol it says it speaks (a test raises it to show what a newer one does). */
+  protocol = MACHINE_PROTOCOL;
+  /** Whom the server says this computer may lend a site to (ADR 0203); absent: not heard. */
+  lendable?: RelayAgent[];
   private paused: RunnerPause = { paused: false };
   private connection: ControlStatus["connection"];
   private config: ControlConfig;
@@ -319,7 +326,7 @@ export class FakeRunner {
       type: "hello",
       control: CONTROL_PROTOCOL_VERSION,
       version: VERSION,
-      protocol: MACHINE_PROTOCOL,
+      protocol: this.protocol,
       home: `/Users/voce/.agentes-runner/orgs/${this.homeId}`,
     });
     this.tick = setInterval(() => this.simulate(), 7000);
@@ -380,10 +387,8 @@ export class FakeRunner {
     const msg = parseControlIn(line);
     if (!msg) return;
     const reply = (data: unknown) => this.later(() => this.write({ type: "reply", id: msg.id, ok: true, data }), 120);
-    const fail = (
-      code: "not_paired" | "already_paired" | "invalid_path" | "not_found" | "bad_request" | "not_allowed",
-      message: string,
-    ) => this.later(() => this.write({ type: "reply", id: msg.id, ok: false, error: { code, message } }), 120);
+    const fail = (code: ControlErrorCode, message: string) =>
+      this.later(() => this.write({ type: "reply", id: msg.id, ok: false, error: { code, message } }), 120);
     const s = this.seed;
     switch (msg.type) {
       case "status":
@@ -498,6 +503,34 @@ export class FakeRunner {
         const f = s.access.folders.find((x) => x.path === msg.path);
         if (!f) return fail("not_found", "no such folder");
         f.agents = [...msg.agents];
+        return this.accessChanged(reply);
+      }
+      case "relay.add": {
+        if (!s) return fail("not_paired", "not paired");
+        const site = relaySite(msg.site);
+        if (!site) return fail("invalid_site", "not a public site");
+        const relay = s.access.relay ?? [];
+        const found = relay.find((g) => g.site === site);
+        if (found) found.agents = [...new Set([...found.agents, ...msg.agents])];
+        else relay.push({ site, agents: [...msg.agents] });
+        s.access.relay = relay;
+        return this.accessChanged(reply);
+      }
+      case "relay.remove": {
+        if (!s) return fail("not_paired", "not paired");
+        const relay = s.access.relay ?? [];
+        if (msg.agentId) {
+          const g = relay.find((x) => x.site === msg.site);
+          if (g) g.agents = g.agents.filter((a) => a !== msg.agentId);
+          s.access.relay = relay;
+        } else s.access.relay = relay.filter((g) => g.site !== msg.site);
+        return this.accessChanged(reply);
+      }
+      case "relay.setAgents": {
+        if (!s) return fail("not_paired", "not paired");
+        const g = s.access.relay?.find((x) => x.site === msg.site);
+        if (!g) return fail("not_found", "no such site");
+        g.agents = [...msg.agents];
         return this.accessChanged(reply);
       }
       case "tools.set":
@@ -691,7 +724,7 @@ export class FakeRunner {
       machine: s ? { id: `m_${this.homeId}`, name: this.machineName } : undefined,
       connection: this.connection,
       version: VERSION,
-      protocol: MACHINE_PROTOCOL,
+      protocol: this.protocol,
       paused: this.paused,
       executors: {
         claude: { version: "2.1.4 (Claude Code)", loggedIn: true, authMethod: "claude.ai", plan: "max" },
@@ -700,6 +733,7 @@ export class FakeRunner {
       workspace: this.config.workspace,
       agents: s?.agents ?? [],
       access: s?.access,
+      ...(s && this.lendable ? { lendable: this.lendable } : {}),
       ...(s ? { phones: this.phones, user: "sam" } : {}),
       ...(this.screen ? { screen: this.screen } : {}),
     };

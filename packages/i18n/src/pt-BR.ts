@@ -6695,6 +6695,12 @@ export const ptBR = {
       foldersUnknown: "{{machine}} ainda não informou as pastas liberadas.",
       foldersHidden: "Só admins e quem conectou o {{machine}} veem as pastas liberadas.",
       foldersHint: "Liberar outra pasta é no próprio computador, por quem o conectou.",
+      sites: "Sites pelo computador de alguém",
+      sitesHint:
+        "Sites que bloqueiam servidores abrem pela conexão do computador de uma pessoa. Ela empresta no agentes.chat desse computador, em Preferências, Sites.",
+      siteVia: "por {{machine}}, conectado por {{name}}",
+      siteViaMachine: "por {{machine}}",
+      siteAway: "fora do ar agora, abre pelo computador deste agente até ele voltar",
     },
     settings: {
       sections: "Seções das configurações",
@@ -15979,6 +15985,13 @@ export const ptBR = {
       remove: "Remover",
       removed: "{{folder}} foi removida.",
       removedAgent: "{{name}} não usa mais {{folder}}.",
+      sites: "Sites por este computador",
+      sitesHint:
+        "Agentes de outros computadores abrem estes sites pela conexão deste. Só quem o conectou empresta um site, no agentes.chat dele, em Preferências, Sites.",
+      noSites: "Nenhum site. Os agentes abrem todos os sites pelo computador em que trabalham.",
+      everyAgent: "Todos os agentes",
+      siteUsedBy: "Quem abre {{site}} por ele",
+      formerAgent: "Um agente que não está mais aqui",
       tools: "Ferramentas",
       tool: {
         claude: "Claude Code",

@@ -6266,7 +6266,12 @@
       "foldersMore_female": "Kendi klasörünün yanı sıra şunları da kullanır:",
       "foldersUnknown": "{{machine}} izin verilen klasörlerini henüz bildirmedi.",
       "foldersHidden": "İzin verilen klasörleri yalnızca yöneticiler ve {{machine}} bilgisayarını bağlayan kişi görür.",
-      "foldersHint": "Başka bir klasöre izin vermek, bilgisayarın kendisinde, onu bağlayan kişi tarafından yapılır."
+      "foldersHint": "Başka bir klasöre izin vermek, bilgisayarın kendisinde, onu bağlayan kişi tarafından yapılır.",
+      "sites": "Birinin bilgisayarı üzerinden siteler",
+      "sitesHint": "Sunucuları engelleyen siteler bir kişinin bilgisayarının bağlantısı üzerinden açılır. O kişi bunları o bilgisayardaki agentes.chat içinde, Tercihler, Siteler bölümünde ödünç verir.",
+      "siteVia": "{{machine}} üzerinden, bağlayan: {{name}}",
+      "siteViaMachine": "{{machine}} üzerinden",
+      "siteAway": "şu an çevrimdışı, geri gelene kadar bu ajanın bilgisayarından açılır"
     },
     "settings": {
       "sections": "Ayar bölümleri",
@@ -15653,6 +15658,12 @@
       "remove": "Kaldır",
       "removed": "{{folder}} kaldırıldı.",
       "removedAgent": "{{name}} artık {{folder}} klasörünü kullanmıyor.",
+      "sites": "Bu bilgisayar üzerinden siteler",
+      "sitesHint": "Diğer bilgisayarlardaki ajanlar bu siteleri bu bilgisayarın bağlantısı üzerinden açar. Bir siteyi yalnızca onu bağlayan kişi ödünç verir, bu bilgisayardaki agentes.chat içinde, Tercihler, Siteler bölümünde.",
+      "noSites": "Site yok. Ajanlar her siteyi çalıştıkları bilgisayardan açar.",
+      "everyAgent": "Tüm ajanlar",
+      "siteUsedBy": "{{site}} sitesini bunun üzerinden kim açıyor",
+      "formerAgent": "Artık burada olmayan bir ajan",
       "tools": "Araçlar",
       "tool": {
         "claude": "Claude Code",

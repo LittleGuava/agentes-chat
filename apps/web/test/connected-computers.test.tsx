@@ -717,6 +717,37 @@ describe("the computer page: pause, folders and tools (ADR 0036)", () => {
   const reduceCalls = (state: ReturnType<typeof seedState>) =>
     state.calls.filter((c) => c.method === "machines.reduceAccess").map((c) => c.args);
 
+  test("sites through this computer (ADR 0203): each site and who opens it through it; read only here", async () => {
+    await open({
+      access: {
+        folders: [],
+        tools: { claude: true, codex: false, commands: true },
+        relay: [
+          { site: "jobs.example.com", agents: [ADA_ID] },
+          { site: "banco.example.com", agents: ["*"] },
+          { site: "novo.example.com", agents: [] },
+        ],
+      },
+    });
+    const card = screen().getByRole("region", { name: "Sites por este computador" });
+    const row = (site: string) => card.querySelector(`[data-relay-site="${site}"]`)?.textContent ?? null;
+    expect(row("jobs.example.com")).toContain("Quem abre jobs.example.com por ele: Ada");
+    expect(row("banco.example.com")).toContain("Todos os agentes");
+    expect(row("novo.example.com")).toContain("Nenhum agente usa ainda");
+    // Lending happens only in the app on the computer itself.
+    expect(within(card).queryByRole("button", { name: /Remover|Adicionar/ })).toBeNull();
+  });
+
+  test("sites through this computer: none lent says so; the workspace's own computer has no such card", async () => {
+    await open();
+    expect(screen().getByRole("region", { name: "Sites por este computador" }).textContent).toContain(
+      "Nenhum site. Os agentes abrem todos os sites pelo computador em que trabalham.",
+    );
+    cleanup();
+    await open({ kind: "managed" });
+    expect(screen().queryByRole("region", { name: "Sites por este computador" })).toBeNull();
+  });
+
   test("its facts start at the card's edge, under the portrait, whatever the portrait's width", async () => {
     await open();
     expect(document.querySelector(".ac-card > .dv-facts")?.textContent).toContain("macOS");

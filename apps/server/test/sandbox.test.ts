@@ -28,7 +28,7 @@ test("Run code settings, the agent's computer, and the access tree shows 'Run co
   });
   expect((await api("/sandbox-settings", { method: "PUT", json: { execTimeoutSeconds: 1 } })).status).toBe(400);
   // No computer chosen yet; turning one on, off or deleting it went with the cloud computer.
-  expect(await (await api(`/agents/${agentId}/computer`)).json()).toEqual({ target: { kind: "none" } });
+  expect(await (await api(`/agents/${agentId}/computer`)).json()).toEqual({ target: { kind: "none" }, relay: [] });
   expect((await api(`/agents/${agentId}/computer/start`, { json: {} })).status).toBe(404);
 
   const tree = (await (await api(`/agents/${agentId}/access`)).json()) as {

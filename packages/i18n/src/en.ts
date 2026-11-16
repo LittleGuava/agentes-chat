@@ -6792,6 +6792,12 @@ export const en = {
       foldersUnknown: "{{machine}} hasn't reported its allowed folders yet.",
       foldersHidden: "Only admins and whoever connected {{machine}} see its allowed folders.",
       foldersHint: "Allowing another folder happens on the computer itself, by whoever connected it.",
+      sites: "Sites through someone's computer",
+      sitesHint:
+        "Sites that block servers open through the connection of a person's computer. That person lends them in agentes.chat on it, under Preferences, Sites.",
+      siteVia: "through {{machine}}, connected by {{name}}",
+      siteViaMachine: "through {{machine}}",
+      siteAway: "away now, it opens from this agent's computer until it's back",
     },
     settings: {
       sections: "Settings sections",
@@ -16064,6 +16070,13 @@ export const en = {
       remove: "Remove",
       removed: "{{folder}} was removed.",
       removedAgent: "{{name}} no longer uses {{folder}}.",
+      sites: "Sites through this computer",
+      sitesHint:
+        "Agents of other computers open these sites through this one's connection. Only whoever connected it lends a site, in agentes.chat on it, under Preferences, Sites.",
+      noSites: "No site. Agents open every site from the computer they work on.",
+      everyAgent: "Every agent",
+      siteUsedBy: "Who opens {{site}} through it",
+      formerAgent: "An agent no longer here",
       tools: "Tools",
       tool: {
         claude: "Claude Code",
