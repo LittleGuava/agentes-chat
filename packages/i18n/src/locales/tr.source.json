@@ -8047,11 +8047,11 @@
   "connectAi.plan.grok.title": {
     "value": "Your Grok plan"
   },
-  "connectAi.plan.copilot.title": {
-    "value": "Your GitHub Copilot plan"
-  },
   "connectAi.plan.grok.tiers": {
     "value": "SuperGrok, SuperGrok Heavy or X Premium+"
+  },
+  "connectAi.plan.copilot.title": {
+    "value": "Your GitHub Copilot plan"
   },
   "connectAi.plan.copilot.tiers": {
     "value": "Copilot Pro, Pro+, Business or Enterprise"
@@ -38922,6 +38922,15 @@
   },
   "computers.hostMissing": {
     "value": "This server can be your agents' computer too: <guide>here's how</guide>."
+  },
+  "announcement.region": {
+    "value": "Announcements"
+  },
+  "announcement.dismiss": {
+    "value": "Close announcement"
+  },
+  "announcement.open": {
+    "value": "Learn more"
   },
   "outage.region": {
     "value": "Offline computers"

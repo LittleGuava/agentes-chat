@@ -46,6 +46,7 @@ import type {
   AgentUsage,
   AiAccounts,
   AiStatus,
+  Announcement,
   AppConsent,
   AppNotification,
   Approval,
@@ -764,6 +765,8 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         request<void>(`${org(orgId)}/usage/people/${enc(userId)}/raise`, { json: { limitUsd } }),
       refuseMoreUsage: (orgId, userId) =>
         request<void>(`${org(orgId)}/usage/people/${enc(userId)}/refuse`, { json: {} }),
+      announcements: (orgId) => request<{ announcements: Announcement[] }>(`${org(orgId)}/announcements`),
+      dismissAnnouncement: (orgId, id) => request<void>(`${org(orgId)}/announcements/${enc(id)}/dismiss`, { json: {} }),
       teamWeek: (orgId) => request<LodiPrefs>(`${org(orgId)}/team-week`).then(lodiPrefsOf),
       setTeamWeek: (orgId, patch) =>
         request<LodiPrefs>(`${org(orgId)}/team-week`, { method: "PUT", json: patch }).then(lodiPrefsOf),
