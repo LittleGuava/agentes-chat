@@ -2822,6 +2822,7 @@
     "workedTasks_other": "{{name}} 关闭了 {{count}} 个任务",
     "improve": "可以改进的",
     "needsYou": "需要你处理",
+    "aiWritten": "由 AI 撰写",
     "approvals": {
       "title_other": "{{name}} 的 {{count}} 个请求在等你",
       "line": "从 {{since}} 起在等。",
@@ -2939,7 +2940,9 @@
       "dayLabel": "每日摘要",
       "dayHelp": "{{name}} 每天在你的私信里告诉你有什么在等你、你的智能体完成了什么、什么卡住了，只在有新消息的日子。",
       "agendaLabel": "今天的安排",
-      "agendaHelp": "每日摘要会先列出今天的会议、你的智能体的例行任务和你的到期任务。只要有这些，即使没有其他新消息，每天也会发送。"
+      "agendaHelp": "每日摘要会先列出今天的会议、你的智能体的例行任务和你的到期任务。只要有这些，即使没有其他新消息，每天也会发送。",
+      "aiSummaryLabel": "由 AI 撰写的摘要",
+      "aiSummaryHelp": "每日摘要会以一段简短文字开头，由 {{name}} 的 AI 根据卡片列出的内容撰写，费用计入它的预算。没有 AI 或预算时，卡片不带这段文字。"
     }
   },
   "routing": {

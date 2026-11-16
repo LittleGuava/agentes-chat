@@ -2823,6 +2823,7 @@
     "workedTasks_other": "{{name}} 님이 작업 {{count}}개를 끝냈어요",
     "improve": "개선할 일",
     "needsYou": "확인이 필요해요",
+    "aiWritten": "AI가 작성",
     "approvals": {
       "title_other": "{{name}} 님의 요청 {{count}}개가 기다리고 있어요",
       "line": "{{since}}부터 기다리는 중이에요.",
@@ -2940,7 +2941,9 @@
       "dayLabel": "오늘의 정리",
       "dayHelp": "매일 {{name}}이(가) DM으로 당신을 기다리는 일, 당신의 에이전트가 끝낸 일, 막힌 일을 알려줘요. 새로운 것이 있는 날에만요.",
       "agendaLabel": "오늘의 일정",
-      "agendaHelp": "일일 요약이 오늘의 회의, 에이전트의 루틴, 마감 작업으로 시작하며, 일정이 있는 날에는 다른 새 소식이 없어도 매일 옵니다."
+      "agendaHelp": "일일 요약이 오늘의 회의, 에이전트의 루틴, 마감 작업으로 시작하며, 일정이 있는 날에는 다른 새 소식이 없어도 매일 옵니다.",
+      "aiSummaryLabel": "AI가 쓴 요약",
+      "aiSummaryHelp": "일일 요약이 {{name}}의 AI가 카드 내용으로 쓴 짧은 문단으로 시작합니다. 비용은 {{name}}의 예산에서 나갑니다. AI나 예산이 없으면 문단 없이 옵니다."
     }
   },
   "routing": {

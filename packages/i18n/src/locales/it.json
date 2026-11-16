@@ -3036,6 +3036,7 @@
     "workedTasks_other": "{{name}} ha chiuso {{count}} attività",
     "improve": "Da migliorare",
     "needsYou": "Ha bisogno di te",
+    "aiWritten": "Scritto dall’IA",
     "approvals": {
       "title_one": "{{count}} richiesta di {{name}} ti aspetta",
       "title_many": "{{count}} richieste di {{name}} ti aspettano",
@@ -3177,7 +3178,9 @@
       "dayLabel": "Riepilogo del giorno",
       "dayHelp": "Ogni giorno {{name}} ti racconta nella tua DM cosa ti aspetta, cosa hanno finito i tuoi agenti e cosa è bloccato, solo nei giorni in cui c'è qualcosa di nuovo.",
       "agendaLabel": "La giornata che ti aspetta",
-      "agendaHelp": "Il riepilogo del giorno si apre con le riunioni di oggi, le routine dei tuoi agenti e le tue attività in scadenza, e arriva ogni giorno che ne ha, anche senza altre novità."
+      "agendaHelp": "Il riepilogo del giorno si apre con le riunioni di oggi, le routine dei tuoi agenti e le tue attività in scadenza, e arriva ogni giorno che ne ha, anche senza altre novità.",
+      "aiSummaryLabel": "Riepilogo scritto dall’IA",
+      "aiSummaryHelp": "Il riepilogo del giorno si apre con un breve paragrafo che l’IA di {{name}} scrive da ciò che la scheda elenca, con il suo budget. Senza IA o senza budget, la scheda arriva senza."
     }
   },
   "routing": {

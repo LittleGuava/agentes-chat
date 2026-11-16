@@ -618,6 +618,17 @@ function OwnRows({ name }: { name: string }) {
             onPress={() => save({ agenda: !prefs.agenda })}
           />
         ) : null}
+        {/* "Resumo escrito pela IA": a paragraph on the daily card, on the right hand's budget. */}
+        {dayOn && prefs.aiSummary !== undefined ? (
+          <GroupedRow
+            icon="sparkle"
+            label={t("teamWeek.settings.aiSummaryLabel")}
+            hint={about(t("teamWeek.settings.aiSummaryLabel"), t("teamWeek.settings.aiSummaryHelp", g))}
+            toggle={prefs.aiSummary}
+            disabled={set.isPending}
+            onPress={() => save({ aiSummary: !prefs.aiSummary })}
+          />
+        ) : null}
         {admin ? (
           <GroupedRow
             icon="clock"

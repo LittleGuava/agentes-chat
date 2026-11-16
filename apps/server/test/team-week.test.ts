@@ -272,3 +272,24 @@ test("the day ahead on my daily card is mine to ask for: off until I turn it on,
   expect(await (await nina(base)).json()).toMatchObject({ agenda: false });
   expect(await (await owner(base)).json()).toMatchObject({ agenda: true });
 });
+
+test("a summary written by the AI on my daily card is mine to turn on: off until I do, and only a boolean", async () => {
+  const owner = browser(t);
+  await signUp(owner, "owner@example.com");
+  const { orgId } = await seedOrg(owner);
+  const base = `/api/app/organizations/${orgId}/team-week`;
+
+  expect(await (await owner(base)).json()).toMatchObject({ aiSummary: false });
+  expect(await (await owner(base, { method: "PUT", json: { aiSummary: true } })).json()).toMatchObject({
+    aiSummary: true,
+    dayOff: false,
+  });
+  // Moving the card keeps it.
+  expect(await (await owner(base, { method: "PUT", json: { dayHour: 7 } })).json()).toMatchObject({
+    aiSummary: true,
+    dayHour: 7,
+  });
+  expect((await owner(base, { method: "PUT", json: { aiSummary: "yes" } })).status).toBe(400);
+  const nina = await joinByInvitation(t, owner, orgId, "nina@example.com");
+  expect(await (await nina(base)).json()).toMatchObject({ aiSummary: false });
+});

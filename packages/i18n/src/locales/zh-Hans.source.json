@@ -7313,6 +7313,9 @@
   "teamWeek.needsYou": {
     "value": "Needs you"
   },
+  "teamWeek.aiWritten": {
+    "value": "Written by the AI"
+  },
   "teamWeek.approvals.title": {
     "value": {
       "one": "{{count}} request from {{name}} waits for you",
@@ -7603,6 +7606,12 @@
   },
   "teamWeek.settings.agendaHelp": {
     "value": "The daily summary opens with today's meetings, your agents' routines and your tasks due, and comes every day that has any, even with nothing else new."
+  },
+  "teamWeek.settings.aiSummaryLabel": {
+    "value": "Summary written by the AI"
+  },
+  "teamWeek.settings.aiSummaryHelp": {
+    "value": "The daily summary opens with a short paragraph {{name}}'s AI writes from what the card lists, on its budget. With no AI or budget, the card comes without it."
   },
   "routing.title": {
     "value": "Who picks the agents"

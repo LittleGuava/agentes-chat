@@ -3036,6 +3036,7 @@
     "workedTasks_other": "{{name}} cerró {{count}} tareas",
     "improve": "Para mejorar",
     "needsYou": "Te necesita",
+    "aiWritten": "Escrito por la IA",
     "approvals": {
       "title_one": "{{count}} pedido de {{name}} te espera",
       "title_many": "{{count}} pedidos de {{name}} te esperan",
@@ -3177,7 +3178,9 @@
       "dayLabel": "Resumen del día",
       "dayHelp": "Cada día {{name}} te cuenta en tu DM qué te espera, qué terminaron tus agentes y qué está atascado, solo los días con algo nuevo.",
       "agendaLabel": "El día por delante",
-      "agendaHelp": "El resumen del día empieza con las reuniones de hoy, las rutinas de tus agentes y tus tareas con fecha límite, y llega cada día que tenga alguna, aunque no haya otra novedad."
+      "agendaHelp": "El resumen del día empieza con las reuniones de hoy, las rutinas de tus agentes y tus tareas con fecha límite, y llega cada día que tenga alguna, aunque no haya otra novedad.",
+      "aiSummaryLabel": "Resumen escrito por la IA",
+      "aiSummaryHelp": "El resumen del día empieza con un párrafo corto que la IA de {{name}} escribe a partir de lo que lista la tarjeta, con su presupuesto. Sin IA o sin presupuesto, la tarjeta llega sin él."
     }
   },
   "routing": {

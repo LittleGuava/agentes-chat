@@ -1119,7 +1119,7 @@ export function createJobHandlers(deps: JobDeps): JobHandlers {
       await postTeamWeek({ db: deps.db, pubsub: deps.pubsub }, orgOf(job), job.payload);
     },
     [TEAM_DAY_JOB]: async (job) => {
-      await postTeamWeek({ db: deps.db, pubsub: deps.pubsub }, orgOf(job), job.payload);
+      await postTeamWeek({ db: deps.db, pubsub: deps.pubsub, gateway: deps.gateway }, orgOf(job), job.payload);
     },
     // What else the right hand does by itself: each lane's own jobs (`right-hand-lane.ts`).
     ...lodiLaneHandlers(deps),

@@ -89,6 +89,8 @@ export interface TeamWeekCard {
   stats: { done: number; stuck: number; waiting: number; spentNanoUsd: number; budgetNanoUsd: number };
   worked: TeamWeekHighlight[];
   rows: TeamWeekRow[];
+  /** "Resumo escrito pela IA": a day's card's opening paragraph, for who turned it on. Absent otherwise. */
+  summary?: string;
   proposalIds: string[];
   /** Rows applied on the card, by row id. */
   done: Record<string, { byUserId: string; at: string; routineId?: string }>;
@@ -132,9 +134,10 @@ const knownRows = (rows: unknown): TeamWeekRow[] =>
 export function teamWeekCardOf(meta: Record<string, unknown> | null | undefined): TeamWeekCard | null {
   const c = meta?.actionCard as (Partial<TeamWeekCard> & { moreRows?: unknown }) | undefined;
   if (c?.kind !== "team_week" || typeof c.forUserId !== "string" || !Array.isArray(c.rows) || !c.stats) return null;
-  const { moreRows, ...card } = c;
+  const { moreRows, summary, ...card } = c;
   return {
     ...(card as TeamWeekCard),
+    ...(typeof summary === "string" && summary.trim() ? { summary } : {}),
     rows: [...knownRows(c.rows), ...knownRows(moreRows)].sort((a, b) => rank(a) - rank(b)),
     worked: Array.isArray(c.worked) ? c.worked : [],
     proposalIds: Array.isArray(c.proposalIds) ? c.proposalIds : [],

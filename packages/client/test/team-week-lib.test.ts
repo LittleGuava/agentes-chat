@@ -450,3 +450,17 @@ test("the day ahead is a choice only a server that has it answers", () => {
   // A server without it: no switch to show.
   expect(lodiPrefsOf({ weekOff: false, dayOff: false })).not.toHaveProperty("agenda");
 });
+
+test("a summary written by the AI: read only when it is words, and a choice only a server that has it answers", () => {
+  const day = { ...card, period: "day", summary: "Duas coisas esperam você hoje." };
+  expect((teamWeekCardOf({ actionCard: day }) as TeamWeekCard).summary).toBe("Duas coisas esperam você hoje.");
+  for (const summary of [undefined, "", "   ", 42])
+    expect((teamWeekCardOf({ actionCard: { ...day, summary } }) as TeamWeekCard).summary).toBeUndefined();
+  expect(lodiPrefsOf({ weekOff: false, dayOff: false, aiSummary: true }).aiSummary).toBe(true);
+  expect(lodiPrefsOf({ weekOff: false, dayOff: false })).not.toHaveProperty("aiSummary");
+  for (const lng of LOCALE_CODES) {
+    const t = tOf(lng);
+    for (const key of ["teamWeek.settings.aiSummaryLabel", "teamWeek.settings.aiSummaryHelp", "teamWeek.aiWritten"])
+      expect([lng, key, t(key, { name: "Lodi" }) === key]).toEqual([lng, key, false]);
+  }
+});

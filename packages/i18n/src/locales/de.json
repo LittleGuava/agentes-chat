@@ -2930,6 +2930,7 @@
     "workedTasks_other": "{{name}} hat {{count}} Aufgaben geschlossen",
     "improve": "Zu verbessern",
     "needsYou": "Braucht dich",
+    "aiWritten": "Von der KI geschrieben",
     "approvals": {
       "title_one": "{{count}} Anfrage von {{name}} wartet auf dich",
       "title_other": "{{count}} Anfragen von {{name}} warten auf dich",
@@ -3059,7 +3060,9 @@
       "dayLabel": "Tageszusammenfassung",
       "dayHelp": "Jeden Tag erzählt dir {{name}} in deiner DM, was auf dich wartet, was deine Agenten erledigt haben und was feststeckt, nur an Tagen mit etwas Neuem.",
       "agendaLabel": "Der Tag vor dir",
-      "agendaHelp": "Die Tageszusammenfassung beginnt mit den heutigen Meetings, den Routinen deiner Agenten und deinen fälligen Aufgaben und kommt an jedem Tag, an dem es welche gibt, auch ohne andere Neuigkeiten."
+      "agendaHelp": "Die Tageszusammenfassung beginnt mit den heutigen Meetings, den Routinen deiner Agenten und deinen fälligen Aufgaben und kommt an jedem Tag, an dem es welche gibt, auch ohne andere Neuigkeiten.",
+      "aiSummaryLabel": "Zusammenfassung von der KI",
+      "aiSummaryHelp": "Die Tageszusammenfassung beginnt mit einem kurzen Absatz, den die KI von {{name}} aus dem schreibt, was die Karte auflistet, auf ihr Budget. Ohne KI oder Budget kommt die Karte ohne ihn."
     }
   },
   "routing": {

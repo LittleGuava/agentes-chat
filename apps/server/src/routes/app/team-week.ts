@@ -37,6 +37,10 @@ const TeamWeekSaved = z.object({
     description:
       "The day ahead on my daily card: my meetings, my agents' routines and my tasks due, from its hour to midnight. Off unless I turn it on; on, a day with only that to say still brings the card.",
   }),
+  aiSummary: z.boolean().openapi({
+    description:
+      "A short paragraph opening my daily card, written by a small model from the card's own facts, on the right hand's budget. Off unless I turn it on; with no AI, no budget or an error the card comes without it.",
+  }),
   digestOff: z.boolean().openapi({ description: "The summary of approvals waiting on me, stopped." }),
   remindOff: z.boolean().openapi({ description: "Reminders of what the right hand and I agreed on, stopped." }),
   off: z.boolean().openapi({

@@ -805,6 +805,23 @@ function OwnRows({ name, prefs }: { name: string; prefs: LodiPrefs }) {
           }
         />
       )}
+      {/* "Resumo escrito pela IA": the same, a paragraph on the daily card that costs the right hand's budget. */}
+      {prefs.aiSummary !== undefined && teamWeekOn(prefs, "day", admin) && (
+        <PrefRow
+          id="rh-day-ai-summary"
+          icon="brainAgent"
+          label={t("teamWeek.settings.aiSummaryLabel")}
+          hint={t("teamWeek.settings.aiSummaryHelp", g)}
+          control={
+            <Switch
+              aria-label={t("teamWeek.settings.aiSummaryLabel")}
+              checked={prefs.aiSummary}
+              disabled={set.isPending}
+              onCheckedChange={(on) => save({ aiSummary: on })}
+            />
+          }
+        />
+      )}
       {admin && card("week", "rh-team-week", "calendar", t("teamWeek.settings.label"), t("teamWeek.settings.help", g))}
       {mine("digest", "shield", "digestOff")}
       {mine("reminders", "bell", "remindOff")}

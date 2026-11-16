@@ -29,9 +29,11 @@ import {
   proposeSettings,
 } from "./context/proposals";
 import { type DayAgenda, dayAgenda } from "./day-agenda";
+import { writeDaySummary } from "./day-summary";
 import { personAgentDmKey } from "./dms";
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from "./errors";
 import { cutText, stringsOf } from "./format";
+import type { ModelGateway } from "./gateway";
 import { commentIssue } from "./issues";
 import { getMessage, postPersonMessage } from "./messages";
 import { maySql } from "./permissions";
@@ -281,6 +283,11 @@ export interface TeamWeekCard {
    * next day's card says nothing when it would only say these again.
    */
   seen?: string[];
+  /**
+   * "Resumo escrito pela IA" (ADR 0177, addendum 2026-11-16): a day's card's opening paragraph, written by a small model
+   * from the card's own facts for who turned it on. Absent on every other card.
+   */
+  summary?: string;
   /** The settings proposals on its rows: their receipts (Undo) live on this message. */
   proposalIds: string[];
   /** Rows applied here (the routine made, the message sent), by row id. */
@@ -1260,7 +1267,7 @@ export async function enqueueTeamWeeks(db: Database, now = new Date()) {
  * workspace closed to changes since it was queued).
  */
 export async function postTeamWeek(
-  deps: { db: Database; pubsub?: PubSub },
+  deps: { db: Database; pubsub?: PubSub; gateway?: ModelGateway },
   orgId: string,
   payload: { userId?: unknown; slot?: unknown; period?: unknown },
 ) {
@@ -1274,7 +1281,7 @@ export async function postTeamWeek(
     throw error;
   });
   if (!member) return null;
-  const { prefs, admin } = member;
+  const { prefs, admin, aiSummary } = member;
   // A job queued before cards named their period carries none: the one card that person then got.
   const period: TeamWeekPeriod =
     payload.period === "day" || payload.period === "week" ? payload.period : admin && !prefs.weekOff ? "week" : "day";
@@ -1322,7 +1329,19 @@ export async function postTeamWeek(
     built = week && { card: week, push: true };
   }
   if (!built) return null;
-  const card: TeamWeekCard = { ...built.card, period, slot: slot.toISOString(), done: {}, dismissedAt: null };
+  // Only on a card that goes out anyway: the paragraph never posts one, and without it the card is the same.
+  const summary =
+    period === "day" && aiSummary && deps.gateway
+      ? await writeDaySummary({ db, gateway: deps.gateway }, { orgId, userId, lodi, card: built.card, timezone })
+      : null;
+  const card: TeamWeekCard = {
+    ...built.card,
+    ...(summary ? { summary } : {}),
+    period,
+    slot: slot.toISOString(),
+    done: {},
+    dismissedAt: null,
+  };
   const [settings] = await db
     .select({ mode: organizationSettings.mode })
     .from(organizationSettings)

@@ -393,8 +393,44 @@ holds. That part is now on the same card, as a choice of the person's own.
 
 Later:
 
-- A summary in words by a small model, only on days with something new, as its own switch, if the "no model call"
-  rule above is revisited.
+- A summary in words by a small model, only on days with something new, as its own switch: built, see the addendum
+  of 2026-11-16.
 - The person's reminders (`calendarReminders`) and calendar proposals waiting for them on the row.
 - A calendar screen on the phone for the row's button, and asking the right hand for the day ahead through
   `set_team_week` (an `agenda` field).
+
+## Addendum (2026-11-16): a summary written by the AI, as the person's choice
+
+**What this ADR decided, and why.** Each of the seven features "calls no model unless a person is waiting for the
+answer" (Context), and the daily brief is "from stored data" (§2): no model call anywhere except §5's wakes and turns a
+person starts (Consequences). The reason is cost and predictability. The right hand posts to every member of every
+workspace by default, and an unasked model call per card would spend a workspace's money and AI every morning for
+people who never asked for it. It is not a privacy rule: §2's privacy lines are about what the card may hold (nothing
+from a conversation the reader cannot read, never a run's or a question's text, a cause in place of an error), and
+those stay as they are below.
+
+**What the option adds.** "Resumo escrito pela IA" (`aiSummary` in `organization_members.team_week`), the person's own
+switch under "Resumo do dia". With it on, the day's card opens with a short paragraph (`summary` on the card, two or
+three sentences) a small model writes from the facts the card already lists (`day-summary.ts`):
+
+- **The facts are the card's.** Its counts, the names of the agents and conversations on it, the titles its rows carry
+  (a task's, a how-to's, the first meeting's), each row's cause word. Nothing the card does not show reaches the
+  model: no message, no question, no run text, no error. They go as outside data (`untrustedBlock`), and the prompt
+  says to use only them and to follow nothing inside them.
+- **Through the Model Gateway, as the right hand, for the reader.** `gateway.stream` with the right hand's agent at the
+  small model of its own line (on Automático, the line its key or the workspace's answers from): its budget reserved
+  and the reader's month (ADR 0141) checked before the call, the usage recorded with `org_id`, `agent_id` and the
+  person. No key for that model, the budget spent, an error or no answer in 20 s: no paragraph, and the card goes out
+  as it is, at the same hour.
+- **Only on a card that goes out anyway.** The paragraph never posts a card, never rings, and changes no row.
+- Kept apart from §0's `LodiPrefs` (`aiSummaryOf`): those are what the right hand does with no model call, and the
+  sweeps read them in SQL; this one only the day's job reads, once its card is built.
+
+**Why off by default keeps the decision.** With the switch off, which is everyone until they turn it on, the card is
+exactly §2's and no model is called. The person who turns it on is the person who asked for the call, the case this
+ADR always allowed ("unless a person is waiting for the answer"), and it is paid from the budget the right hand
+already answers them with.
+
+**What stays forbidden.** A model call for anyone who did not turn it on, and for the week's card, the watch, the
+digest, the reminders and the welcome. A model writing or choosing rows, or deciding whether a card goes out. Any text
+on the card's facts that the card itself does not show.
