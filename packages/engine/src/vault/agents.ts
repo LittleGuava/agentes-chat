@@ -4,8 +4,8 @@
  * words for the model, never a hint that an item hidden from the run exists, and never an item's title or anything
  * else written on it (`named`: its kind, id, a login's site, a key's variable name; ADR 0117).
  *
- * Values leave here only through `releaseVaultLogin` and `releaseVaultKeys`, to the tool that seals them for the
- * agent's own computer at once. A contact's fields are not secret: agents read them and type them.
+ * Values leave here only through `releaseVaultLogin`, `releaseVaultCode` and `releaseVaultKeys`, to the tool that
+ * seals them for the agent's own computer at once. A contact's fields are not secret: agents read them and type them.
  */
 import {
   isReservedSecretName,
@@ -37,7 +37,15 @@ import {
 } from "./access";
 import { assertRoom, cleanContact, cleanKeyName, cleanText, cleanWebsite, connectionRow } from "./items";
 import { named, refuse, VaultRefusal, vaultItemName, vaultPlaceName } from "./refusals";
-import { openItemValue, readItemValue, sealItemValue, sourceCall, sourceConnection, sourceOf } from "./seal";
+import {
+  openItemValue,
+  readItemCode,
+  readItemValue,
+  sealItemValue,
+  sourceCall,
+  sourceConnection,
+  sourceOf,
+} from "./seal";
 import {
   VAULT_LIMITS,
   type VaultAgentChange,
@@ -47,6 +55,7 @@ import {
   type VaultItemForAgent,
   type VaultItemKind,
   type VaultPlace,
+  type VaultReleasedCode,
   type VaultReleasedLogin,
   type VaultRun,
   type VaultUnreached,
@@ -334,6 +343,54 @@ export async function releaseVaultLogin(
   pageOrigin: string | null,
   profile: VaultBrowserProfile | null = null,
 ): Promise<VaultReleasedLogin> {
+  const { item, connection, source, rule } = await loginToType(deps, run, itemId, pageOrigin, profile);
+  const password = await valueForRun(deps, item, connection, source);
+  return { item: agentView(item, null, placeOf(deps.sources, connection)), password, rule };
+}
+
+/**
+ * A login's one-time code as its password manager gives it now (ADR 0144, addendum of 2026-11-15), with the same
+ * checks as its password (`releaseVaultLogin`) and the same rule of where it may be typed. Only a connected password
+ * manager that keeps the login's authenticator seed gives one; the seed never leaves it, and the code is kept
+ * nowhere here. A login kept in the Vault has none: the Vault keeps no seed (§1). The use is recorded by the caller
+ * once the computer typed it.
+ */
+export async function releaseVaultCode(
+  deps: VaultDeps,
+  run: VaultRun,
+  itemId: string,
+  pageOrigin: string | null,
+  profile: VaultBrowserProfile | null = null,
+): Promise<VaultReleasedCode> {
+  const { item, connection, source, rule } = await loginToType(deps, run, itemId, pageOrigin, profile);
+  if (!connection) {
+    throw refuse.noCode(
+      item,
+      "is kept in the Vault, which keeps no authenticator seed, so it has no one-time code to type.",
+    );
+  }
+  let code: string | null;
+  try {
+    code = await readItemCode(deps, item, connection);
+  } catch (error) {
+    if (error instanceof VaultSourceError && error.code === "not_found" && !item.missing) {
+      throw refuse.noCode(item, `keeps no one-time code in ${source}.`);
+    }
+    if (error instanceof VaultSourceError) throw refuse.sourceError(source, error.message);
+    throw error;
+  }
+  if (code === null) throw refuse.noCode(item, `is in ${source}, and ${source} doesn't give one-time codes here.`);
+  return { item: agentView(item, null, placeOf(deps.sources, connection)), code, rule };
+}
+
+/** A login the run may type on `pageOrigin` (when given), with the rule of where it may be: the checks both share. */
+async function loginToType(
+  deps: VaultDeps,
+  run: VaultRun,
+  itemId: string,
+  pageOrigin: string | null,
+  profile: VaultBrowserProfile | null,
+) {
   const person = await vaultPersonOfRun(deps.db, run);
   const { item, connection, source } = await itemForRun(deps, run, person, itemId, "login");
   if (item.kind !== "login") throw notALogin(item);
@@ -342,8 +399,7 @@ export async function releaseVaultLogin(
   if (!rule) throw refuse.noWebsite();
   if (pageOrigin && !vaultRuleMatches(rule, pageOrigin))
     throw refuse.wrongSite(vaultRuleLabel(rule), hostOf(pageOrigin));
-  const password = await valueForRun(deps, item, connection, source);
-  return { item: agentView(item, null, placeOf(deps.sources, connection)), password, rule };
+  return { item, connection, source, rule };
 }
 
 /** Prefers the person's own key over the team's, a built-in one over an external one, then the newest. */

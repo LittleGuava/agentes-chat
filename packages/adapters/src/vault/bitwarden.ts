@@ -8,6 +8,8 @@
  * - The master password opens the whole account, so the connect card asks for an account made only for agents.
  * - Only the folder's own logins count: personal (no organization), not in the trash, of the login type.
  * - `list` decrypts names, usernames and websites; a password is decrypted only in `reveal`, from that one login.
+ * - A login's one-time code is made in `currentCode` from the seed Bitwarden keeps on it (`totp`), decrypted for
+ *   that call only; only the code leaves (RFC 6238, `totp.ts`; ADR 0144, addendum of 2026-11-15).
  * - The user key lives in memory, per connection, for 10 minutes at most (then the account is opened again).
  * - JSON from Bitwarden and from Vaultwarden differ in casing (`Name` / `name`): every field is read either way.
  * - Every network call has a 15 s timeout. A 401 on a kept session signs in again once; nothing else retries.
@@ -43,6 +45,7 @@ import {
   type VaultSourceErrorCode,
   type VaultSourceItem,
 } from "./source";
+import { totpNow } from "./totp";
 
 export const BITWARDEN_SOURCE_KIND = "bitwarden";
 
@@ -96,6 +99,8 @@ const MESSAGES = {
   unsupported: "This account uses encryption this connection can't read yet.",
   folderMissing: "There's no folder with this name in the account.",
   notFound: "This login is no longer in the folder.",
+  noCode: "This login keeps no one-time code in Bitwarden.",
+  notTotp: "This login's one-time code isn't one this server can make (only TOTP).",
   notSaved: "Bitwarden didn't accept the new login. The account may not be allowed to keep logins of its own.",
   rateLimited: "Bitwarden asked us to wait before trying again.",
   privateServer:
@@ -794,6 +799,36 @@ export function createBitwardenSource(options: BitwardenSourceOptions = {}): Vau
   }
 
   /** The agents' folder's id: what a sync found, else asked for now. */
+  /**
+   * One field of one login of the agents' folder, decrypted for this call only (read from that login alone);
+   * undefined when the login has none. A login elsewhere, or one we can't decrypt, is `not_found`.
+   */
+  async function loginField(
+    connection: VaultConnection,
+    ref: string,
+    field: "Password" | "Totp",
+    signal?: AbortSignal,
+  ): Promise<string | undefined> {
+    // A cipher id is a UUID (never a path).
+    if (!UUID.test(ref)) throw fail("not_found", MESSAGES.notFound);
+    return withSession(connection, signal, async (session, settings) => {
+      const folderId = await folderIdOf(session, settings, signal);
+      const cipher = await apiGet(http, `${settings.endpoints.apiUrl}/ciphers/${ref}`, session.accessToken, {
+        notFound: fail("not_found", MESSAGES.notFound),
+        signal,
+      });
+      if (!isFolderLogin(cipher, folderId) || !sameId(text(pick(cipher, "Id")), ref)) {
+        throw fail("not_found", MESSAGES.notFound);
+      }
+      try {
+        return decryptOptional(pick(pick(cipher, "Login"), field), cipherKey(cipher, session.userKey)) || undefined;
+      } catch (err) {
+        if (err instanceof BitwardenCryptoError) throw fail("not_found", MESSAGES.notFound);
+        throw err;
+      }
+    });
+  }
+
   async function folderIdOf(session: Session, settings: ConnectionSettings, signal?: AbortSignal) {
     if (session.folderId) return session.folderId;
     const folders = await apiGet(http, `${settings.endpoints.apiUrl}/folders`, session.accessToken, { signal });
@@ -870,27 +905,19 @@ export function createBitwardenSource(options: BitwardenSourceOptions = {}): Vau
     },
 
     async reveal(connection, ref, field: VaultSecretField, signal): Promise<string> {
-      // Bitwarden holds logins only; a cipher id is a UUID (never a path).
-      if (field !== "password" || !UUID.test(ref)) throw fail("not_found", MESSAGES.notFound);
-      return withSession(connection, signal, async (session, settings) => {
-        const folderId = await folderIdOf(session, settings, signal);
-        const cipher = await apiGet(http, `${settings.endpoints.apiUrl}/ciphers/${ref}`, session.accessToken, {
-          notFound: fail("not_found", MESSAGES.notFound),
-          signal,
-        });
-        if (!isFolderLogin(cipher, folderId) || !sameId(text(pick(cipher, "Id")), ref)) {
-          throw fail("not_found", MESSAGES.notFound);
-        }
-        let password: string | undefined;
-        try {
-          password = decryptOptional(pick(pick(cipher, "Login"), "Password"), cipherKey(cipher, session.userKey));
-        } catch (err) {
-          if (err instanceof BitwardenCryptoError) throw fail("not_found", MESSAGES.notFound);
-          throw err;
-        }
-        if (!password) throw fail("not_found", MESSAGES.notFound);
-        return password;
-      });
+      // Bitwarden holds logins only.
+      if (field !== "password") throw fail("not_found", MESSAGES.notFound);
+      const password = await loginField(connection, ref, "Password", signal);
+      if (!password) throw fail("not_found", MESSAGES.notFound);
+      return password;
+    },
+
+    async currentCode(connection, ref, signal): Promise<string> {
+      const seed = await loginField(connection, ref, "Totp", signal);
+      if (!seed) throw fail("not_found", MESSAGES.noCode);
+      const code = totpNow(seed, http.now());
+      if (!code) throw fail("unsupported", MESSAGES.notTotp);
+      return code;
     },
 
     async createLogin(connection, login: VaultNewLogin, signal): Promise<VaultSourceItem> {

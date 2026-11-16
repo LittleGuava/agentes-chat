@@ -11,6 +11,8 @@
  *   ref and its `updatedAt`. Nothing secret is kept: a password is read in `reveal` and returned, never stored.
  * - The SDK takes no abort signal: every call is bounded by a 15 s timeout (we stop waiting; the call ends on its
  *   own). An SDK client is reused for 10 minutes per connection.
+ * - A login's one-time code is the one the SDK computed when it read the item (`details.content.code` of its
+ *   `Totp` field). The field's own value, the seed, is never read (ADR 0144, addendum of 2026-11-15).
  * - The SDK's errors are mapped to our codes by their class and their text. Their text is never passed on: it may
  *   carry the token.
  */
@@ -60,7 +62,15 @@ export interface OnePasswordItem {
   title: string;
   category: string;
   vaultId: string;
-  fields: { id: string; title: string; sectionId?: string; fieldType: string; value: string }[];
+  fields: {
+    id: string;
+    title: string;
+    sectionId?: string;
+    fieldType: string;
+    value: string;
+    /** A one-time password field (`Totp`): the code the SDK computed now (`code`), or why it couldn't. */
+    details?: { type: string; content?: { code?: string; errorMessage?: string } };
+  }[];
   websites?: { url: string; label?: string; autofillBehavior: string }[];
   updatedAt?: Date | string;
 }
@@ -140,6 +150,8 @@ const MESSAGES = {
   notFound: "This item is no longer in the vault.",
   readOnly: "This service account can only read this vault.",
   notALogin: "This item isn't a login.",
+  noCode: "This login keeps no one-time code in 1Password.",
+  badCode: "1Password couldn't make this login's one-time code.",
   rateLimited: "1Password asked us to wait before reading more.",
   unreachable: "Couldn't reach 1Password.",
   timeout: "1Password took too long to answer.",
@@ -562,6 +574,23 @@ export function createOnePasswordSource(options: OnePasswordSourceOptions = {}):
         const value = secretOf(item, field);
         if (!value) throw fail("not_found", MESSAGES.notFound);
         return value;
+      });
+    },
+
+    async currentCode(connection, ref, signal): Promise<string> {
+      if (!ITEM_ID.test(ref)) throw fail("not_found", MESSAGES.notFound);
+      return withClient(connection, signal, async (client, vaultId) => {
+        const item = await bounded(() => client.items.get(vaultId, ref), "reveal", signal);
+        if (!item || item.id !== ref || (item.vaultId && item.vaultId !== vaultId)) {
+          throw fail("not_found", MESSAGES.notFound);
+        }
+        if (item.category !== "Login") throw fail("not_found", MESSAGES.noCode);
+        const field = (item.fields ?? []).find((f) => f.fieldType === "Totp");
+        if (!field) throw fail("not_found", MESSAGES.noCode);
+        const code = field.details?.type === "Otp" ? field.details.content?.code?.trim() : undefined;
+        // Its error message may quote the seed: only our words.
+        if (!code || !/^\d{6,10}$/.test(code)) throw fail("unsupported", MESSAGES.badCode);
+        return code;
       });
     },
 

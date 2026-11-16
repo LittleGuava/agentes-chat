@@ -21,6 +21,7 @@ import {
   sealSecret,
   type VaultUse,
   vaultAad,
+  vaultUseText,
 } from "@agenteschat/adapters/secret-box";
 import { parseVaultRule, type VaultOriginRule } from "@agenteschat/adapters/vault/site";
 import { RunnerError } from "./errors";
@@ -237,7 +238,7 @@ export class VaultOpening {
   ) {}
 
   async open(keyId: string, box: SecretBox, use: VaultUse, label: string): Promise<string> {
-    const purpose = use.kind === "fill" ? `fill:${use.rule}` : `env:${use.name}`;
+    const purpose = vaultUseText(use);
     const id = `${keyId}|${purpose}|${box.epk}|${box.iv}|${box.ct}`;
     const known = this.values.get(id);
     if (known !== undefined) return known;
@@ -376,10 +377,43 @@ export function parseTypeVault(args: unknown[]): {
   box: SecretBox;
 } {
   const bad = (why: string) => new RunnerError("bad_request", `agentes:type_vault ${why}`);
-  const [rawRef, rawRule, rawBox] = args;
   if (args.length !== 3) throw bad("takes a ref (@e3), the login's rule and its sealed box");
-  const ref = typeof rawRef === "string" && /^@?e\d{1,6}$/.test(rawRef) ? `@${rawRef.replace(/^@/, "")}` : null;
+  const ref = refOf(args[0]);
   if (!ref) throw bad("needs a ref from the page's snapshot (@e3)");
+  return { ref, ...parseSealedRule(args[1], args[2], bad) };
+}
+
+/**
+ * `agentes:type_vault_code [ref, rule, boxJson, ...moreRefs]` (protocol 86), checked whole: a login's one-time code
+ * from its password manager, into one field or one character per field (every ref given once, in order).
+ */
+export function parseTypeVaultCode(args: unknown[]): {
+  refs: string[];
+  rule: VaultOriginRule;
+  ruleText: string;
+  keyId: string;
+  box: SecretBox;
+} {
+  const bad = (why: string) => new RunnerError("bad_request", `agentes:type_vault_code ${why}`);
+  if (args.length < 3) throw bad("takes a ref (@e3), the login's rule, its sealed box, then any more boxes' refs");
+  const raw = [args[0], ...args.slice(3)];
+  if (raw.length > MAX_CODE_FIELDS) throw bad(`takes at most ${MAX_CODE_FIELDS} fields`);
+  const refs = raw.map(refOf);
+  if (refs.some((r) => r === null)) throw bad("needs refs from the page's snapshot (@e3)");
+  if (new Set(refs).size !== refs.length) throw bad("names a field twice");
+  return { refs: refs as string[], ...parseSealedRule(args[1], args[2], bad) };
+}
+
+/** A snapshot's ref (`e3` or `@e3`) as `@e3`, or null. */
+const refOf = (raw: unknown): string | null =>
+  typeof raw === "string" && /^@?e\d{1,6}$/.test(raw) ? `@${raw.replace(/^@/, "")}` : null;
+
+/** A login's rule and the box sealed for it (`{ keyId, box }` as JSON), as both typing commands take them. */
+function parseSealedRule(
+  rawRule: unknown,
+  rawBox: unknown,
+  bad: (why: string) => RunnerError,
+): { rule: VaultOriginRule; ruleText: string; keyId: string; box: SecretBox } {
   const ruleText = typeof rawRule === "string" ? rawRule : "";
   const rule = parseVaultRule(ruleText);
   if (!rule) throw bad("needs the login's rule (exact:https://host or site:domain)");
@@ -393,7 +427,7 @@ export function parseTypeVault(args: unknown[]): {
   if (typeof s.keyId !== "string" || !KEY_ID.test(s.keyId)) throw bad("needs the id vault.key answered");
   const box = parseSecretBox(s.box);
   if (!box) throw bad("got a malformed sealed box");
-  return { ref, rule, ruleText, keyId: s.keyId, box };
+  return { rule, ruleText, keyId: s.keyId, box };
 }
 
 /** `agentes:type_secret`'s fields: one ref, or one per character of a code (protocol 45). */

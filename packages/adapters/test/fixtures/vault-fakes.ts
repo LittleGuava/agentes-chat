@@ -46,6 +46,8 @@ export interface FakeLogin {
   ownKey?: boolean;
   /** Encrypted with a key that isn't the account's (what an organization's cipher looks like to us). */
   foreignKey?: boolean;
+  /** The authenticator seed Bitwarden keeps on the login (an `otpauth://` URI or a bare base32 seed). */
+  totp?: string;
 }
 
 export interface FakeBitwardenOptions {
@@ -126,7 +128,7 @@ export async function createFakeBitwarden(options: FakeBitwardenOptions = {}) {
       Login: {
         Username: enc(login.username),
         Password: enc(login.password),
-        Totp: null,
+        Totp: enc(login.totp),
         Uris: (login.uris ?? []).map((u) => ({ Uri: enc(u.uri), Match: u.match ?? null })),
       },
     };
@@ -310,6 +312,11 @@ export interface FakeOpItem {
   credential?: string;
   updatedAt?: string;
   state?: "active" | "archived";
+  /**
+   * A one-time password field: its value is the seed (`otpauth://…`), and the SDK adds the code it computed now, or
+   * the reason it couldn't.
+   */
+  totp?: { uri: string; code?: string; errorMessage?: string };
 }
 
 export type FakeOpMethod =
@@ -389,6 +396,24 @@ export function createFakeOnePassword(
         : []),
       ...(item.credential !== undefined
         ? [{ id: "credential", title: "credential", fieldType: "Concealed", value: item.credential }]
+        : []),
+      ...(item.totp !== undefined
+        ? [
+            {
+              id: "onetimepassword",
+              title: "one-time password",
+              sectionId: "add more",
+              fieldType: "Totp",
+              value: item.totp.uri,
+              details: {
+                type: "Otp",
+                content: {
+                  ...(item.totp.code !== undefined ? { code: item.totp.code } : {}),
+                  ...(item.totp.errorMessage !== undefined ? { errorMessage: item.totp.errorMessage } : {}),
+                },
+              },
+            },
+          ]
         : []),
       { id: "notes", title: "notes", fieldType: "Text", value: "free text" },
     ],

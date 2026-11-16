@@ -150,6 +150,28 @@ export async function readItemValue(
 }
 
 /**
+ * A login's one-time code, as its password manager gives it now (ADR 0144, addendum of 2026-11-15): only a source
+ * that keeps the authenticator seed gives one, and the seed never leaves it. Null when the source can't give codes.
+ * A source's failure throws its `VaultSourceError` (`not_found` when the login keeps no code).
+ */
+export async function readItemCode(
+  deps: Pick<VaultDeps, "keyWrappers" | "sources">,
+  item: ItemRow,
+  connection: ConnectionRow,
+): Promise<string | null> {
+  const source = sourceOf(deps.sources, connection.kind);
+  if (!source || !item.externalRef)
+    throw new VaultSourceError("unsupported", "This source isn't available on this server.");
+  const currentCode = source.currentCode?.bind(source);
+  if (!currentCode) return null;
+  const ref = item.externalRef;
+  const opened = await sourceConnection(deps, connection).catch(() => {
+    throw new VaultSourceError("auth_failed", "Connect this password manager again.");
+  });
+  return sourceCall((signal) => currentCode(opened, ref, signal));
+}
+
+/**
  * The longest one call into a source may take, all its requests and its key derivation included (ADR 0144): past
  * it the signal aborts, the source stops (or never starts) its work, and the call fails as `unreachable`.
  */
