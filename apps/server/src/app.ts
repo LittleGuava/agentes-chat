@@ -51,6 +51,7 @@ import { managementRoutes } from "./routes/app/management";
 import { memoryRoutes } from "./routes/app/memory";
 import { missionRoutes } from "./routes/app/missions";
 import { notificationRoutes } from "./routes/app/notifications";
+import { outgoingWebhookRoutes } from "./routes/app/outgoing-webhooks";
 import { personUsageRoutes } from "./routes/app/person-usage";
 import { planUsageRoutes } from "./routes/app/plan-usage";
 import { pushRoutes } from "./routes/app/push";
@@ -231,6 +232,7 @@ export function createApp(options: AppOptions) {
     api.route("/app", speechKeyRoutes(deps));
     api.route("/app", voiceRoutes(deps));
     api.route("/app", webhookAdminRoutes(deps));
+    api.route("/app", outgoingWebhookRoutes(deps));
     api.route("/app", githubAppRoutes(deps));
     registerOauthRoutes(api, deps, { version, fetchDocument: options.appsFetchDocument });
     registerWebhookReceiver(api, deps);
