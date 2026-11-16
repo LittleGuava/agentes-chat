@@ -197,6 +197,7 @@ function whenText(t: RoutineTrigger) {
   // Never the address itself: it is a secret, shown only in Routines.
   if (t.type === "webhook")
     return `when ${EVENT_WORDS["webhook.received"]} with ${t.methods.join(" or ")}${t.signed ? " (signed calls only)" : ""}`;
+  if (t.type === "meeting") return `${t.leadMinutes} minutes before each meeting on a connected Google Calendar`;
   const from = t.filter.from?.length ? ` from ${t.filter.from.join(", ")}` : "";
   const subject = t.filter.subject ? ` with "${t.filter.subject}" in the subject` : "";
   if (t.type === "connector") return `when an email arrives in a MillionSend inbox${from}${subject}`;
@@ -227,6 +228,8 @@ function whenParams(t: RoutineTrigger): AgentActionParams {
       return { trigger: "connector", event: t.event };
     case "webhook":
       return { trigger: "webhook", methods: [...t.methods] };
+    case "meeting":
+      return { trigger: "meeting", leadMinutes: t.leadMinutes };
   }
 }
 

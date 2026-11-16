@@ -365,6 +365,19 @@ describe("the form", () => {
     });
   });
 
+  test("a meeting routine (ADR 0190) edited in the form keeps what starts it: the form can't set one", () => {
+    const prep = routine({
+      id: "p",
+      trigger: { type: "meeting", connectionId: "c1", leadMinutes: 15, status: "active", lastError: null },
+    });
+    const saved = JSON.stringify(toApiRule(ruleOf(prep, SP, today)));
+    const d = draftOf(prep, SP, today);
+    expect(d.kind).toBe("schedule");
+    expect(draftChanges(prep, d, saved)).toEqual({});
+    expect(draftChanges(prep, { ...d, name: "Preparar reuniões" }, saved)).toEqual({ name: "Preparar reuniões" });
+    expect(isEventDriven(prep)).toBe(true);
+  });
+
   test("a one-off that already ran, saved as it was, sends no time: the server's instant has seconds", () => {
     // Fired at 12:03:27 (made with "em 10 minutos"); the form shows 12:03.
     const fired = routine({ id: "o", active: false, trigger: once("2026-10-20T12:03:27.512Z") });

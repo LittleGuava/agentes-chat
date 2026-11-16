@@ -16,6 +16,7 @@ import {
   listRoutines,
   localDateTimeOf,
   MAX_OWN_ACTIONS,
+  MEETING_LEAD,
   managedWebhookRoutine,
   newRoutineHookAddress,
   newRoutineHookSecret,
@@ -267,6 +268,16 @@ const Routine = z
         }),
         lastError: z.string().nullable(),
       }),
+      z.object({
+        type: z.literal("meeting"),
+        connectionId: z.uuid(),
+        leadMinutes: z.number().int(),
+        status: z.enum(["active", "error"]).openapi({
+          description:
+            "`error`: the last look at the calendar failed, or the agent can no longer read it (`lastError`).",
+        }),
+        lastError: z.string().nullable(),
+      }),
     ]),
     active: z.boolean().openapi({ description: "One-off routines are inactive once they fired." }),
     nextRunAt: z.string().nullable().openapi({
@@ -423,6 +434,16 @@ const TriggerInput = z.union([
     .openapi({
       description:
         "A connector's event (ADR 0130), from a connection the agent may read: the server registers the routine's address at the service.",
+    }),
+  z
+    .object({
+      type: z.literal("meeting"),
+      connectionId: z.uuid(),
+      leadMinutes: z.number().int().min(MEETING_LEAD.min).max(MEETING_LEAD.max).optional(),
+    })
+    .openapi({
+      description:
+        "Before each meeting of a Google Calendar connection the agent may read (ADR 0190): `leadMinutes` before it (default 15).",
     }),
 ]);
 

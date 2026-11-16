@@ -8761,6 +8761,10 @@ export const en = {
     notFound: "This routine no longer exists or you don't have access.",
     copyWebhook: "Copy webhook URL",
     webhookCopied: "Webhook URL copied.",
+    /** A routine that prepares each meeting of a connected calendar (ADR 0190): how long before it runs. */
+    meeting: {
+      when: "{{minutes}} min before each meeting",
+    },
     webhook: {
       when: "When its webhook is called",
       waiting: "Waits for the next call",

@@ -36,8 +36,10 @@ import {
   listenForRunCancels,
   type MachineCaller,
   type MailDeps,
+  type MeetingPollDeps,
   type OutboxJob,
   pollMailWatches,
+  pollMeetingWatches,
   postAutonomyDigests,
   pruneDeletionCodes,
   pruneEmailChanges,
@@ -132,6 +134,8 @@ export interface WorkerDeps {
   approvalDigest?: { publicUrl: string; afterHours: number };
   /** People's mailboxes (ADR 0038): IMAP polling for routines, and Composio account checks. */
   mail?: { deps: MailDeps; pollSeconds: number };
+  /** Routines before each meeting (ADR 0190): calendars looked at by code; absent without Composio. */
+  meetings?: MeetingPollDeps["connectors"];
   /** The agent browser's live view (ADR 0040): expired handoffs are told to its viewers. */
   browserLive?: BrowserLive;
   /** Connected computers: plans stuck at their limit are read again there (`recheckStuckPlans`). */
@@ -186,6 +190,8 @@ export const WORKER_INTERVALS_MS = {
   readAloudExpiry: 3600_000,
   /** How often watched IMAP folders are looked at (each is checked every `MAIL_POLL_SECONDS`). */
   mailPoll: 30_000,
+  /** Meeting routines due a look (ADR 0190): each calendar every 15 minutes, and at each meeting's moment. */
+  meetings: 60_000,
   /** Composio accounts' state: mailboxes (expired → "Reconnect") and connectors marked to reconnect (working again → active). */
   mailReconcile: 15 * 60_000,
   /** Workspaces past their deletion's date that nothing keeps any more (a hold lifted, a job lost): also at boot. */
@@ -476,6 +482,16 @@ export function startWorkers(deps: WorkerDeps) {
         log.info("mail routines fired", r);
         void ticks.get("outbox")?.();
       } else if (r.failed > 0) log.warn("mail polls failed", r);
+    });
+  }
+  const meetings = deps.meetings;
+  if (meetings) {
+    every("meetings", WORKER_INTERVALS_MS.meetings, async () => {
+      const r = await pollMeetingWatches({ db, connectors: meetings });
+      if (r.fired > 0) {
+        log.info("meeting routines fired", r);
+        void ticks.get("outbox")?.();
+      } else if (r.failed > 0) log.warn("meeting looks failed", r);
     });
   }
   const composio = mail?.deps.mail?.composio;

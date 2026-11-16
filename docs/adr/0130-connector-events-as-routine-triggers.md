@@ -52,3 +52,7 @@ Each new one is one entry in `CONNECTOR_EVENTS` (how to register, take back and 
 - **Polling the service through its MCP tools:** its tools answer text for a model, a poll per routine costs calls when nothing happens, and new mail would wait for the next poll.
 - **A mailbox per MillionSend inbox (ADR 0102):** withdrawn; it needed a key of its own beside the connector.
 - **A table per connector event:** one JSON column on the routine's address holds what each event needs, and the address is already the routine's way in.
+
+## Addendum (2026-11-15): Google Calendar's "event starting" is a look ahead by code
+
+ADR 0190 makes "before each meeting" a routine trigger of its own: the worker looks at the calendar through the connection by code and fires a run for each meeting whose chosen moment came, instead of a Composio trigger. In the table above, Google Calendar's "event starting" is now this look ahead; Calendly, and a booked Google Calendar event, still wait for Composio triggers.

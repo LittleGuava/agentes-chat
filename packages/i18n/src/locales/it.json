@@ -8619,6 +8619,9 @@
     "notFound": "Questa routine non esiste più o non hai accesso.",
     "copyWebhook": "Copia URL del webhook",
     "webhookCopied": "URL del webhook copiato.",
+    "meeting": {
+      "when": "{{minutes}} min prima di ogni riunione"
+    },
     "webhook": {
       "when": "Quando viene chiamato il suo webhook",
       "waiting": "Aspetta la prossima chiamata",

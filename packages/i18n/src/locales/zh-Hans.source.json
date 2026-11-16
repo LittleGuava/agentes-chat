@@ -20247,6 +20247,9 @@
   "routines.webhookCopied": {
     "value": "Webhook URL copied."
   },
+  "routines.meeting.when": {
+    "value": "{{minutes}} min before each meeting"
+  },
   "routines.webhook.when": {
     "value": "When its webhook is called"
   },

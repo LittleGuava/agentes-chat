@@ -8042,6 +8042,9 @@
     "notFound": "Rutinitas ini sudah tidak ada atau kamu tidak punya akses.",
     "copyWebhook": "Salin URL webhook",
     "webhookCopied": "URL webhook disalin.",
+    "meeting": {
+      "when": "{{minutes}} menit sebelum setiap rapat"
+    },
     "webhook": {
       "when": "Saat webhook-nya dipanggil",
       "waiting": "Menunggu panggilan berikutnya",

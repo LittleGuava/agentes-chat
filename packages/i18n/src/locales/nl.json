@@ -8358,6 +8358,9 @@
     "notFound": "Deze routine bestaat niet meer of je hebt geen toegang.",
     "copyWebhook": "Webhook-URL kopiëren",
     "webhookCopied": "Webhook-URL gekopieerd.",
+    "meeting": {
+      "when": "{{minutes}} min vóór elke vergadering"
+    },
     "webhook": {
       "when": "Als de webhook wordt aangeroepen",
       "waiting": "Wacht op de volgende aanroep",

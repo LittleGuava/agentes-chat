@@ -8004,6 +8004,9 @@
     "notFound": "このルーティンは存在しないか、アクセス権がありません。",
     "copyWebhook": "Webhook URLをコピー",
     "webhookCopied": "Webhook URLをコピーしました。",
+    "meeting": {
+      "when": "各ミーティングの{{minutes}}分前"
+    },
     "webhook": {
       "when": "Webhookが呼ばれたとき",
       "waiting": "次の呼び出しを待機中",

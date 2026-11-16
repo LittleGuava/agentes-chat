@@ -8001,6 +8001,9 @@
     "notFound": "이 루틴이 더 이상 없거나 접근 권한이 없어요.",
     "copyWebhook": "웹훅 URL 복사",
     "webhookCopied": "웹훅 URL을 복사했어요.",
+    "meeting": {
+      "when": "각 회의 {{minutes}}분 전"
+    },
     "webhook": {
       "when": "웹훅이 호출될 때",
       "waiting": "다음 호출을 기다려요",

@@ -56,6 +56,14 @@ import {
   watchesOf,
 } from "./mail/watches";
 import { getOrgSettings } from "./management";
+import {
+  checkMeetingConnection,
+  MEETING_EVENT,
+  type MeetingWatchRow,
+  meetingLeadOf,
+  meetingWatchesOf,
+  syncMeetingWatch,
+} from "./meeting-prep";
 import { getMessage, insertMessageWithRuns, messageView, replyExcerpt } from "./messages";
 import { resolveRoutinePaused } from "./notification-producers";
 import { can, getMembership, requirePermission } from "./organizations";
@@ -230,6 +238,17 @@ export type RoutineTrigger =
       filter: ConnectorTriggerFilter;
       status: "active" | "error";
       lastError: string | null;
+    }
+  /**
+   * Before each meeting of a connected calendar (ADR 0190), stored as the event `meeting.upcoming` plus a
+   * `meeting_watches` row. `status` `error`: the last look failed or the agent can't read the calendar (`lastError`).
+   */
+  | {
+      type: "meeting";
+      connectionId: string;
+      leadMinutes: number;
+      status: "active" | "error";
+      lastError: string | null;
     };
 
 /**
@@ -392,7 +411,9 @@ export type RoutineTriggerInput =
       event: ConnectorEventId;
       inboxId?: string | null;
       filter?: ConnectorTriggerFilter;
-    };
+    }
+  /** Before each meeting of a calendar the routine's agent can read (ADR 0190); `leadMinutes` default 15. */
+  | { type: "meeting"; connectionId: string; leadMinutes?: number };
 
 export interface RoutineDeps {
   db: Database;
@@ -454,7 +475,17 @@ function triggerOf(
   r: RoutineRow,
   watch?: MailWatchRow,
   hook?: { url: string | null; signed: boolean; methods: HookMethod[]; source?: ConnectorTriggerSource | null },
+  meeting?: MeetingWatchRow,
 ): RoutineTrigger {
+  if (r.triggerType === "event" && r.event === MEETING_EVENT && meeting) {
+    return {
+      type: "meeting",
+      connectionId: meeting.connectionId,
+      leadMinutes: meeting.leadMinutes,
+      status: meeting.status === "error" ? "error" : "active",
+      lastError: meeting.lastError,
+    };
+  }
   if (r.triggerType === "event" && r.event === WEBHOOK_EVENT && hook?.source) {
     const s = hook.source;
     return {
@@ -848,6 +879,11 @@ async function views(
   const inWeek = and(eq(routineRuns.orgId, orgId), inArray(routineRuns.routineId, ids), gte(routineRuns.at, since));
   const webhookOf = (r: RoutineRow) => (r.triggerType === "event" ? EVENT_WEBHOOK[r.event as RoutineEvent] : undefined);
   const wantedHooks = [...new Set(rows.flatMap((r) => webhookOf(r) ?? []))];
+  // A meeting routine's calendar and lead (ADR 0190).
+  const meetings = await meetingWatchesOf(
+    db,
+    rows.filter((r) => r.event === MEETING_EVENT).map((r) => r.id),
+  );
   const [details, rights, watches, hookKeys, weekRows, usageRows, agentRows, hookRows, ahead] = await Promise.all([
     runDetails(db, orgId, recentRows),
     viewerRights(db, orgId, rows, viewerId),
@@ -1039,6 +1075,7 @@ async function views(
           methods: hookKey.methods,
           source: hookKey.source,
         },
+        meetings.get(r.id),
       ),
       active: r.active,
       nextRunAt: r.active && r.nextRunAt && !closed ? r.nextRunAt.toISOString() : null,
@@ -1207,6 +1244,13 @@ async function resolveTrigger(
     normalizeMailFilter(trigger.filter);
     return { ...none, triggerType: "event", event: "email.received" as string | null, nextRunAt: null as Date | null };
   }
+  if (trigger.type === "meeting") {
+    if (!UUID.test(trigger.connectionId)) {
+      throw new ValidationError("Pick a connected calendar", "routine.connector_not_found");
+    }
+    meetingLeadOf(trigger.leadMinutes);
+    return { ...none, triggerType: "event", event: MEETING_EVENT as string | null, nextRunAt: null as Date | null };
+  }
   if (trigger.type === "webhook" || trigger.type === "connector") {
     if (trigger.type === "connector") {
       if (!isConnectorEvent(trigger.event)) throw new ValidationError("Unknown event", "routine.unknown_event");
@@ -1357,6 +1401,11 @@ async function requireActionApprover(db: Database, actorId: string, orgId: strin
   );
 }
 
+const meetingWatch = (t: Extract<RoutineTriggerInput, { type: "meeting" }>) => ({
+  connectionId: t.connectionId,
+  leadMinutes: meetingLeadOf(t.leadMinutes),
+});
+
 const emailWatch = (t: Extract<RoutineTriggerInput, { type: "email" }>) => ({
   accountId: t.accountId,
   folder: t.folder?.trim() || "INBOX",
@@ -1383,6 +1432,7 @@ export async function createRoutine(
   if (!input.paused && startsRuns(trigger.triggerType, input.target)) await checkRoutineCap(db, orgId, agent.id);
   if (input.trigger.type === "email") await checkWatchable(db, orgId, agent.id, input.trigger.accountId, actorId);
   if (input.trigger.type === "connector") await checkConnectorTrigger(db, orgId, agent.id, input.trigger);
+  if (input.trigger.type === "meeting") await checkMeetingConnection(db, orgId, agent.id, input.trigger.connectionId);
   const hooks = input.trigger.type === "webhook" || input.trigger.type === "connector" ? hooksOf(deps) : null;
   const ownActions = ownActionsOf(input.ownActions ?? []);
   if (ownActions.length > 0) await requireActionApprover(db, actorId, orgId, agent.ownerUserId);
@@ -1398,13 +1448,15 @@ export async function createRoutine(
       ...trigger,
       ...(input.paused ? { active: false, nextRunAt: null } : {}),
       access: routineAccessOf(input.access),
-      report: routineReportOf(input.report),
+      // A meeting's prep nobody receives is no prep (ADR 0190 §6): it reports every run unless asked otherwise.
+      report: routineReportOf(input.report ?? (input.trigger.type === "meeting" ? "always" : undefined)),
       ownActions,
       createdByUserId: actorId,
     })
     .returning();
   if (!row) throw new Error("routine insert returned nothing");
   if (input.trigger.type === "email") await syncMailWatch(deps, row, emailWatch(input.trigger));
+  if (input.trigger.type === "meeting") await syncMeetingWatch(db, row, meetingWatch(input.trigger));
   // A connector's provider posts its events: its address answers POST whatever a webhook trigger had chosen.
   if (hooks)
     await ensureRoutineHook(
@@ -1709,6 +1761,17 @@ export async function updateRoutine(
   if (connectorTrigger && (patch.trigger?.type === "connector" || set.agentId)) {
     await checkConnectorTrigger(db, orgId, agentId, connectorTrigger);
   }
+  // A meeting routine's agent must be able to read the calendar it prepares from (ADR 0190 §7).
+  const hadMeetings = (await meetingWatchesOf(db, [current.id])).get(current.id);
+  const meetingTrigger =
+    patch.trigger?.type === "meeting"
+      ? meetingWatch(patch.trigger)
+      : patch.trigger === undefined && hadMeetings
+        ? { connectionId: hadMeetings.connectionId, leadMinutes: hadMeetings.leadMinutes }
+        : null;
+  if (meetingTrigger && (patch.trigger?.type === "meeting" || set.agentId)) {
+    await checkMeetingConnection(db, orgId, agentId, meetingTrigger.connectionId);
+  }
   const active = patch.active ?? current.active;
   if (patch.active !== undefined) set.active = active;
   // A person resumes it: whatever paused it is behind it.
@@ -1762,6 +1825,7 @@ export async function updateRoutine(
       patch.trigger?.type === "webhook" ? patch.trigger.methods : DEFAULT_HOOK_METHODS,
     );
   if (connectorTrigger || hadConnector) await syncConnector(deps, row, connectorTrigger);
+  if (patch.trigger !== undefined && (meetingTrigger || hadMeetings)) await syncMeetingWatch(db, row, meetingTrigger);
   // Pausing also stops its work in progress (§6.7); resuming clears why it paused itself.
   if (patch.active === false && current.active) {
     await haltRoutineRuns(deps, orgId, row.id, { code: "paused", byUserId: actorId });
@@ -1884,6 +1948,11 @@ export async function duplicateRoutine(
   // A connector routine's copy waits on the same event (paused: no webhook at the provider until it's turned on).
   const connector = await connectorOf(db, current.id);
   if (connector) await syncConnector(deps, row, connector);
+  // A meeting routine's copy prepares from the same calendar (paused: no look until it's turned on).
+  const meetings = (await meetingWatchesOf(db, [current.id])).get(current.id);
+  if (meetings) {
+    await syncMeetingWatch(db, row, { connectionId: meetings.connectionId, leadMinutes: meetings.leadMinutes });
+  }
   await recordAudit(db, {
     orgId,
     actor: { type: "person", id: actorId },

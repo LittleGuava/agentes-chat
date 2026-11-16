@@ -216,7 +216,12 @@ export async function connectorTriggerAllowed(
 
 export type ConnectorTriggerDeps = ConnectorDeps & { connect?: McpConnect };
 
-async function withSession<T>(deps: ConnectorTriggerDeps, connectionId: string, run: (s: McpSession) => Promise<T>) {
+/** Opens a connection's session (Composio's or MCP), runs `run` and closes it; a refused sign-in is noted on the connection. */
+export async function withConnectionSession<T>(
+  deps: ConnectorTriggerDeps,
+  connectionId: string,
+  run: (s: McpSession) => Promise<T>,
+) {
   const [connection] = await deps.db
     .select()
     .from(connectorConnections)
@@ -266,15 +271,15 @@ export async function syncConnectorTrigger(
   if (!current && !wanted) return;
   if (connectors && current?.externalId && !keep) {
     const gone = current.externalId;
-    await withSession(connectors, current.connectionId, (s) => EVENTS[current.event].unregister(s, gone)).catch(
-      () => undefined,
-    );
+    await withConnectionSession(connectors, current.connectionId, (s) =>
+      EVENTS[current.event].unregister(s, gone),
+    ).catch(() => undefined);
   }
   let stored: ConnectorTriggerSource | null = null;
   if (wanted && keep && current) stored = { ...current, ...wanted };
   else if (wanted && connectors && routine.active && url) {
     try {
-      const externalId = await withSession(connectors, wanted.connectionId, (s) =>
+      const externalId = await withConnectionSession(connectors, wanted.connectionId, (s) =>
         EVENTS[wanted.event].register(s, url, wanted),
       );
       stored = { ...wanted, externalId, status: "active", lastError: null };

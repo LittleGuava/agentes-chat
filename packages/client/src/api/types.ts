@@ -4252,7 +4252,21 @@ export type RoutineTrigger =
   | { type: "once"; at: string; timezone: string; description: string }
   | RoutineEmailTrigger
   | RoutineWebhookTrigger
-  | RoutineConnectorTrigger;
+  | RoutineConnectorTrigger
+  | RoutineMeetingTrigger;
+
+/**
+ * "Antes de cada reunião" (ADR 0190): `leadMinutes` before each meeting of a Google Calendar connection. Made through
+ * the API for now; the apps only show it.
+ */
+export interface RoutineMeetingTrigger {
+  type: "meeting";
+  connectionId: string;
+  leadMinutes: number;
+  /** `error`: the last look at the calendar failed, or the agent can no longer read it (`lastError`). */
+  status: "active" | "error";
+  lastError: string | null;
+}
 
 /** A connector's event (ADR 0130): "Quando chegar um e-mail no MillionSend", from an inbox or all of them. */
 export interface RoutineConnectorTrigger {

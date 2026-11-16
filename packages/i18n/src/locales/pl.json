@@ -8882,6 +8882,9 @@
     "notFound": "Ta rutyna już nie istnieje albo nie masz do niej dostępu.",
     "copyWebhook": "Kopiuj URL webhooka",
     "webhookCopied": "URL webhooka skopiowany.",
+    "meeting": {
+      "when": "{{minutes}} min przed każdym spotkaniem"
+    },
     "webhook": {
       "when": "Gdy jej webhook zostanie wywołany",
       "waiting": "Czeka na następne wywołanie",

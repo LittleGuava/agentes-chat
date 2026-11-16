@@ -8052,6 +8052,9 @@
     "notFound": "这个例行工作已不存在，或你没有访问权限。",
     "copyWebhook": "复制 Webhook URL",
     "webhookCopied": "Webhook URL 已复制。",
+    "meeting": {
+      "when": "每次会议前 {{minutes}} 分钟"
+    },
     "webhook": {
       "when": "在 Webhook 被调用时",
       "waiting": "等待下一次调用",

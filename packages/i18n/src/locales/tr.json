@@ -8268,6 +8268,9 @@
     "notFound": "Bu rutin artık yok ya da erişiminiz yok.",
     "copyWebhook": "Webhook URL'sini kopyala",
     "webhookCopied": "Webhook URL'si kopyalandı.",
+    "meeting": {
+      "when": "Her toplantıdan {{minutes}} dk önce"
+    },
     "webhook": {
       "when": "Webhook'u çağrıldığında",
       "waiting": "Sonraki çağrıyı bekliyor",

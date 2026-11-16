@@ -505,6 +505,8 @@ async function boot(
     readAloud: engine.readAloud,
     approvalDigest: { publicUrl: config.PUBLIC_URL, afterHours: config.APPROVAL_REMINDER_HOURS },
     mail: { deps: engine.mail, pollSeconds: config.MAIL_POLL_SECONDS },
+    // Calendars go through Composio (ADR 0190): without it no meeting routine can look at one.
+    ...(engine.connectorDeps.composio ? { meetings: engine.connectorDeps } : {}),
     browserLive: engine.browserLive,
     desktops: engine.desktops,
     machines: engine.machineHub,

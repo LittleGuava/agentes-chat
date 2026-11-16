@@ -64,6 +64,7 @@ export function useWhenText() {
       }
       if (r.trigger.type === "event") return t(`routines.event.${r.trigger.event}`);
       if (r.trigger.type === "webhook") return t("routines.webhook.when");
+      if (r.trigger.type === "meeting") return t("routines.meeting.when", { minutes: r.trigger.leadMinutes });
       if (r.trigger.type === "connector") {
         const to = r.trigger.filter.to;
         return to ? t("mail.routine.when", { address: to }) : t("mail.routine.whenMillionSend");
