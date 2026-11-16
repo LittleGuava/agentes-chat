@@ -19,6 +19,7 @@ export * from "./mail";
 export * from "./missions";
 export * from "./notifications";
 export * from "./operator";
+export * from "./outgoing-webhooks";
 export * from "./published-pages";
 export * from "./push";
 export * from "./read-aloud";

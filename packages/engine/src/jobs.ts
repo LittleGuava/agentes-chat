@@ -98,6 +98,7 @@ import { notifyMessage } from "./notification-producers";
 import { ORG_FILES_PURGE_ATTEMPTS, ORG_FILES_PURGE_JOB, USER_FILES_PURGE_JOB } from "./organizations";
 import { outOfOfficeIds } from "./out-of-office";
 import { enqueue, type JobHandlers, type OutboxJob, PermanentJobError } from "./outbox";
+import { type DeliveryDeps, deliverOutgoingWebhook, OUTGOING_WEBHOOK_JOB } from "./outgoing-webhooks";
 import { checkParkedRun, EARLY_CHECK_JOB, scheduleParkedChecks } from "./parked-asks";
 import { PARTNER_WAITLIST_CONTACT_JOB, savePartnerWaitlistContact } from "./partner-waitlist";
 import { notifyPersonLimit, PERSON_LIMIT_JOB } from "./person-usage";
@@ -195,6 +196,8 @@ export interface JobDeps extends RunExecutorDeps {
   voice?: VoiceDeps;
   /** The Vault's sources (job `vault.sync`, ADR 0144); absent: connections aren't read again. */
   vault?: VaultDeps;
+  /** Outgoing webhooks (job `webhooks.deliver`, ADR 0212): the keys their secrets are sealed with. */
+  outgoingWebhooks?: Omit<DeliveryDeps, "db">;
   /** Connectors: job `org.delete` revokes a workspace's GitHub OAuth grants at GitHub before its rows go. */
   connectors?: ConnectorDeps;
   /** The server's GitHub App: job `org.delete` uninstalls it from the workspace's GitHub accounts (ADR 0156). */
@@ -1187,6 +1190,11 @@ export function createJobHandlers(deps: JobDeps): JobHandlers {
     // Yesterday's stall-and-noise report, to the people who run the server (`OPS_REPORT_EMAIL`).
     [AUTONOMY_REPORT_JOB]: async (job) => {
       await queueAutonomyEmail(deps.db, job.payload, { router: deps.router?.enabled ?? false });
+    },
+    // One event to an outgoing webhook (ADR 0212); retried by the outbox until its last attempt.
+    [OUTGOING_WEBHOOK_JOB]: async (job, ctx) => {
+      if (!deps.outgoingWebhooks) throw new PermanentJobError("outgoing webhooks aren't set up on this server");
+      await deliverOutgoingWebhook({ db: deps.db, ...deps.outgoingWebhooks }, String(job.payload.deliveryId), ctx);
     },
     // What happened on GitHub to an item an agent worked on, or naming the app (ADR 0156).
     [GITHUB_EVENT_JOB]: async (job) => {
