@@ -312,6 +312,7 @@ import type {
   ShareDmTarget,
   SidebarItem,
   SidebarItems,
+  SidebarLink,
   SidebarPlace,
   SidebarSection,
   SidebarView,
@@ -616,6 +617,12 @@ export interface ApiClient {
     sidebarView(orgId: string): Promise<SidebarView>;
     /** Replaces my sidebar view here; answers with what the server kept. */
     setSidebarView(orgId: string, view: SidebarView): Promise<SidebarView>;
+    /** My links in the sidebar here, in their order. */
+    sidebarLinks(orgId: string): Promise<SidebarLink[]>;
+    /** Adds a link at the end (`sidebar_link.full` past the limit); answers with every link. */
+    addSidebarLink(orgId: string, link: { title: string; url: string }): Promise<SidebarLink[]>;
+    /** Removes one of my links; answers with the rest. */
+    removeSidebarLink(orgId: string, linkId: string): Promise<SidebarLink[]>;
     /** My profile photo: a square image (JSON only: base64), already cropped. */
     /** `portrait`: the recipe of a portrait drawn in the app; it comes back on the address as a `#px=` fragment. */
     setAvatar(

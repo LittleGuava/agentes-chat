@@ -2110,6 +2110,8 @@ export const en = {
       homePersonal: "Your day: what waits for you and what your agents are doing",
     },
     customizeSidebar: "Customize sidebar",
+    /** Said by screen readers after a link of the person's own in the sidebar, which opens in a new tab. */
+    opensInNewTab: "opens in a new tab",
     /** The sidebar's own menu (right click on its empty space), its headers' + and its rows' hover buttons. */
     sidebarMenu: {
       title: "Sidebar",
@@ -2136,6 +2138,14 @@ export const en = {
       orderHint: "Drag or use the arrows. Agents first, for example.",
       moveSection: "Drag to move the {{name}} section, or click for options",
       moveTool: "Drag to move {{name}}",
+      /** The person's own links under the tools, each opening a page in a new tab. */
+      links: "Links",
+      linksHint: "Pages you keep at hand, under the tools. They open in a new tab.",
+      linkTitle: "Name",
+      linkUrl: "Address",
+      linkUrlExample: "e.g. https://crm.example.com",
+      addLink: "Add link",
+      removeLink: "Remove {{name}}",
     },
     inviteHint: "By email or link",
     profileHint: "Name, photo and @",
@@ -15092,6 +15102,12 @@ export const en = {
     tooLarge: "This is bigger than the server takes.",
     /** The same, from a screen that knows the most it may send. */
     tooLargeMax: "This is bigger than the server takes: up to {{max}} MB.",
+    /** A link of the person's own in the sidebar the server refused (ADR 0083, amendment of 2026-11-15). */
+    sidebarLink: {
+      url: "Use an https address, like https://crm.example.com.",
+      title: "Give the link a name of up to {{max}} characters.",
+      full: "You have {{max}} links. Remove one to add another.",
+    },
     /** A new-password link an owner can't make (ADR 0158). */
     passwordLink: {
       email: "This server sends email: they ask for their own link in Forgot password.",

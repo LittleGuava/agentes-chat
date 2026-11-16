@@ -2022,6 +2022,7 @@
       "homePersonal": "Ta journée : ce qui t'attend et ce que font tes agents"
     },
     "customizeSidebar": "Personnaliser la barre latérale",
+    "opensInNewTab": "s'ouvre dans un nouvel onglet",
     "sidebarMenu": {
       "title": "Barre latérale",
       "newChannel": "Nouveau canal",
@@ -2045,7 +2046,14 @@
       "order": "Ordre des sections",
       "orderHint": "Faites glisser ou utilisez les flèches. Les agents d'abord, par exemple.",
       "moveSection": "Faites glisser pour déplacer la section {{name}} ou cliquez pour voir les options",
-      "moveTool": "Faites glisser pour déplacer {{name}}"
+      "moveTool": "Faites glisser pour déplacer {{name}}",
+      "links": "Liens",
+      "linksHint": "Les pages que vous gardez sous la main, sous les outils. Elles s'ouvrent dans un nouvel onglet.",
+      "linkTitle": "Nom",
+      "linkUrl": "Adresse",
+      "linkUrlExample": "ex. : https://crm.example.com",
+      "addLink": "Ajouter un lien",
+      "removeLink": "Retirer {{name}}"
     },
     "inviteHint": "Par e-mail ou lien",
     "profileHint": "Nom, photo et @",
@@ -15378,6 +15386,11 @@
   "errors": {
     "tooLarge": "C'est plus que ce que le serveur accepte.",
     "tooLargeMax": "C'est plus que ce que le serveur accepte : jusqu'à {{max}} Mo.",
+    "sidebarLink": {
+      "url": "Utilisez une adresse https, comme https://crm.example.com.",
+      "title": "Donnez au lien un nom de {{max}} caractères au plus.",
+      "full": "Vous avez déjà {{max}} liens. Retirez-en un pour en ajouter un autre."
+    },
     "passwordLink": {
       "email": "Ce serveur envoie des e-mails : la personne demande son propre lien dans Mot de passe oublié.",
       "serverOwner": "La personne qui a installé ce serveur se connecte sur l’ordinateur où il tourne, sans lien.",

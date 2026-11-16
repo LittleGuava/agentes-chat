@@ -1970,6 +1970,7 @@
       "homePersonal": "Günün: seni bekleyenler ve ajanlarının şu an yaptıkları"
     },
     "customizeSidebar": "Kenar çubuğunu özelleştir",
+    "opensInNewTab": "yeni sekmede açılır",
     "sidebarMenu": {
       "title": "Kenar çubuğu",
       "newChannel": "Yeni kanal",
@@ -1993,7 +1994,14 @@
       "order": "Bölüm sırası",
       "orderHint": "Sürükleyin ya da okları kullanın. Örneğin önce ajanlar.",
       "moveSection": "{{name}} bölümünü taşımak için sürükleyin veya seçenekler için tıklayın",
-      "moveTool": "{{name}} öğesini taşımak için sürükleyin"
+      "moveTool": "{{name}} öğesini taşımak için sürükleyin",
+      "links": "Bağlantılar",
+      "linksHint": "Araçların altında el altında tutmak istediğiniz sayfalar. Yeni sekmede açılırlar.",
+      "linkTitle": "Ad",
+      "linkUrl": "Adres",
+      "linkUrlExample": "ör. https://crm.example.com",
+      "addLink": "Bağlantı ekle",
+      "removeLink": "{{name}} öğesini kaldır"
     },
     "inviteHint": "E-posta veya bağlantıyla",
     "profileHint": "Ad, fotoğraf ve @",
@@ -14804,6 +14812,11 @@
   "errors": {
     "tooLarge": "Bu, sunucunun kabul ettiğinden büyük.",
     "tooLargeMax": "Bu, sunucunun kabul ettiğinden büyük: en fazla {{max}} MB.",
+    "sidebarLink": {
+      "url": "https adresi kullanın, örneğin https://crm.example.com.",
+      "title": "Bağlantıya en fazla {{max}} karakterlik bir ad verin.",
+      "full": "Zaten {{max}} bağlantınız var. Başka bir tane eklemek için birini kaldırın."
+    },
     "passwordLink": {
       "email": "Bu sunucu e-posta gönderiyor: kişi kendi bağlantısını Şifremi unuttum bölümünden ister.",
       "serverOwner": "Bu sunucuyu kuran kişi, sunucunun çalıştığı bilgisayardan bağlantısız girer.",

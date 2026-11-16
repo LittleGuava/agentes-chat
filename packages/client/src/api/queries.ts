@@ -186,6 +186,7 @@ import type {
   SetupStep,
   SidebarItem,
   SidebarItems,
+  SidebarLink,
   SidebarPlace,
   SidebarSection,
   SidebarView,
@@ -6263,6 +6264,47 @@ export function useSetSidebarView(orgId: string) {
     qc.setQueryData(key, next);
     save.mutate(next);
   };
+}
+
+/** My links in the sidebar of this workspace, in their order (ADR 0083, amendment of 2026-11-15). */
+export const useSidebarLinks = (orgId: string) => {
+  const api = useApi();
+  return useQuery({
+    queryKey: keys.sidebarLinks(orgId),
+    queryFn: () => api.orgs.sidebarLinks(orgId),
+    staleTime: 60_000,
+  });
+};
+
+/** Adds a link at the end of my sidebar's links; the server's answer (every link) is what shows. */
+export function useAddSidebarLink(orgId: string) {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (link: { title: string; url: string }) => api.orgs.addSidebarLink(orgId, link),
+    onSuccess: (links) => qc.setQueryData<SidebarLink[]>(keys.sidebarLinks(orgId), links),
+  });
+}
+
+/** Removes one of my sidebar's links: it leaves at once and comes back if the server refuses. */
+export function useRemoveSidebarLink(orgId: string) {
+  const api = useApi();
+  const qc = useQueryClient();
+  const key = keys.sidebarLinks(orgId);
+  return useMutation({
+    mutationFn: (linkId: string) => api.orgs.removeSidebarLink(orgId, linkId),
+    onMutate: async (linkId) => {
+      await qc.cancelQueries({ queryKey: key });
+      const before = qc.getQueryData<SidebarLink[]>(key);
+      qc.setQueryData<SidebarLink[]>(key, (links) => links?.filter((l) => l.id !== linkId));
+      return { before };
+    },
+    onError: (_error, _linkId, context) => {
+      qc.setQueryData(key, context?.before);
+      void qc.invalidateQueries({ queryKey: key });
+    },
+    onSuccess: (links) => qc.setQueryData<SidebarLink[]>(key, links),
+  });
 }
 
 /** How I look at Tarefas in this workspace (the default until it loads, or when it can't). */

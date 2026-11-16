@@ -2,6 +2,7 @@
   "app": {
     "pt-BR": [
       "settings.import.countSkills",
+      "shell.sidebarSetup.links",
       "usageViews.logins",
       "chat.wait.said",
       "access.area.skills",
@@ -1012,6 +1013,8 @@
     ],
     "de": [
       "members.domains.domain",
+      "shell.sidebarSetup.links",
+      "shell.sidebarSetup.linkTitle",
       "devices.iphone.steps.account",
       "devices.workspace",
       "devices.cpus",
@@ -1862,6 +1865,7 @@
       "settings.import.setorAgents",
       "settings.import.countSkills",
       "settings.import.countRoutines",
+      "shell.sidebarSetup.links",
       "calendar.moreRuns",
       "devices.iphone.steps.account",
       "devices.filter.computers",

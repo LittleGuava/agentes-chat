@@ -13355,6 +13355,56 @@ html:not([data-pointer]) .sidebar__grip:focus-visible {
   font-size: 12px;
   font-weight: 650;
 }
+/* The person's own links (ADR 0083, amendment of 2026-11-15): rows of the tools' group that aren't its tools, the
+   new tab's arrow at the end on hover and focus. */
+.sidebar__links {
+  display: contents;
+}
+.sidebar__link-out {
+  flex: none;
+  color: var(--faint);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.sidebar__item:is(:hover, :focus-visible) > .sidebar__link-out {
+  opacity: 1;
+}
+.sidebar[data-rail="true"] .sidebar__link-out {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar__link-out {
+    transition: none;
+  }
+}
+/* "Links" in the setup: a link's name over its address, which wraps whole rather than cut. The add form: the name and
+   the address side by side where they fit, the button under them at the end. */
+.sidebar-setup.sidebar-setup--links {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+.sidebar-setup__link {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.sidebar-setup__address {
+  overflow-wrap: anywhere;
+}
+.sidebar-links-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: var(--form-gap) var(--space-3);
+  align-items: start;
+}
+.sidebar-links-form > .ac-btn {
+  grid-column: 1 / -1;
+  justify-self: end;
+}
+@media (max-width: 680px) {
+  .sidebar-links-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 /*
  * The bell at the end of the account card: the inbox, 40 wide and as tall as the card's inside on every pointer, its
  * glyph the kit's 20, as the rail's tools have it.

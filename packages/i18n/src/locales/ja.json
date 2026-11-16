@@ -1920,6 +1920,7 @@
       "homePersonal": "あなたの一日：待っていることとエージェントが今していること"
     },
     "customizeSidebar": "サイドバーをカスタマイズ",
+    "opensInNewTab": "新しいタブで開きます",
     "sidebarMenu": {
       "title": "サイドバー",
       "newChannel": "新しいチャンネル",
@@ -1943,7 +1944,14 @@
       "order": "セクションの順序",
       "orderHint": "ドラッグするか矢印を使ってください。たとえばエージェントを先頭にできます。",
       "moveSection": "ドラッグして{{name}}セクションを移動、クリックでオプションを表示",
-      "moveTool": "ドラッグして{{name}}を移動"
+      "moveTool": "ドラッグして{{name}}を移動",
+      "links": "リンク",
+      "linksHint": "ツールの下に置いて、すぐ開きたいページ。新しいタブで開きます。",
+      "linkTitle": "名前",
+      "linkUrl": "アドレス",
+      "linkUrlExample": "例: https://crm.example.com",
+      "addLink": "リンクを追加",
+      "removeLink": "{{name}}を削除"
     },
     "inviteHint": "メールまたはリンクで",
     "profileHint": "名前、写真、@",
@@ -14319,6 +14327,11 @@
   "errors": {
     "tooLarge": "サーバーが受け付けるサイズを超えています。",
     "tooLargeMax": "サーバーが受け付けるサイズを超えています。上限は{{max}} MBです。",
+    "sidebarLink": {
+      "url": "https のアドレスを使ってください(例: https://crm.example.com)。",
+      "title": "リンクの名前は{{max}}文字までにしてください。",
+      "full": "リンクはすでに{{max}}件あります。別のリンクを追加するには1件削除してください。"
+    },
     "passwordLink": {
       "email": "このサーバーはメールを送ります。本人が「パスワードを忘れた」から自分のリンクを依頼します。",
       "serverOwner": "このサーバーをインストールした人は、サーバーが動いているコンピューターからリンクなしで入ります。",

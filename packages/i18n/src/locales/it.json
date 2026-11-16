@@ -2022,6 +2022,7 @@
       "homePersonal": "La tua giornata: cosa ti aspetta e cosa fanno i tuoi agenti"
     },
     "customizeSidebar": "Personalizza la barra laterale",
+    "opensInNewTab": "si apre in una nuova scheda",
     "sidebarMenu": {
       "title": "Barra laterale",
       "newChannel": "Nuovo canale",
@@ -2045,7 +2046,14 @@
       "order": "Ordine delle sezioni",
       "orderHint": "Trascina o usa le frecce. Ad esempio, prima gli agenti.",
       "moveSection": "Trascina per spostare la sezione {{name}} o fai clic per le opzioni",
-      "moveTool": "Trascina per spostare {{name}}"
+      "moveTool": "Trascina per spostare {{name}}",
+      "links": "Link",
+      "linksHint": "Le pagine che vuoi avere a portata di mano, sotto gli strumenti. Si aprono in una nuova scheda.",
+      "linkTitle": "Nome",
+      "linkUrl": "Indirizzo",
+      "linkUrlExample": "es. https://crm.example.com",
+      "addLink": "Aggiungi link",
+      "removeLink": "Rimuovi {{name}}"
     },
     "inviteHint": "Per email o link",
     "profileHint": "Nome, foto e @",
@@ -15391,6 +15399,11 @@
   "errors": {
     "tooLarge": "È più grande di quanto il server accetti.",
     "tooLargeMax": "È più grande di quanto il server accetti: fino a {{max}} MB.",
+    "sidebarLink": {
+      "url": "Usa un indirizzo https, come https://crm.example.com.",
+      "title": "Dai al link un nome di massimo {{max}} caratteri.",
+      "full": "Hai già {{max}} link. Rimuovine uno per aggiungerne un altro."
+    },
     "passwordLink": {
       "email": "Questo server invia email: la persona chiede il proprio link in Password dimenticata.",
       "serverOwner": "Chi ha installato questo server accede dal computer dove gira, senza link.",

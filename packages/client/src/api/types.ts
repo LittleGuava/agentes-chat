@@ -7286,6 +7286,16 @@ export interface SidebarView {
 }
 
 /**
+ * One of my own links in the sidebar of a workspace (`GET …/me/sidebar/links`, ADR 0083 amendment of 2026-11-15): an
+ * https address, opened in a new tab.
+ */
+export interface SidebarLink {
+  id: string;
+  title: string;
+  url: string;
+}
+
+/**
  * How I look at Tarefas in one workspace (`GET …/me/issues-view`), on every device: `ISSUES_VIEW_DEFAULT` in
  * packages/client/src/lib/issues-view.ts until I change it. The search is never kept.
  */

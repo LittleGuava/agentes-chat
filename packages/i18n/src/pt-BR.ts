@@ -2014,6 +2014,8 @@ export const ptBR = {
       homePersonal: "O seu dia: o que espera você e o que os seus agentes estão fazendo",
     },
     customizeSidebar: "Personalizar a barra lateral",
+    /** Said by screen readers after a link of the person's own in the sidebar, which opens in a new tab. */
+    opensInNewTab: "abre numa nova aba",
     /** The sidebar's own menu (right click on its empty space), its headers' + and its rows' hover buttons. */
     sidebarMenu: {
       title: "Barra lateral",
@@ -2039,6 +2041,14 @@ export const ptBR = {
       orderHint: "Arraste ou use as setas. Agentes primeiro, por exemplo.",
       moveSection: "Arraste para mover a seção {{name}} ou clique para ver as opções",
       moveTool: "Arraste para mover {{name}}",
+      /** The person's own links under the tools, each opening a page in a new tab. */
+      links: "Links",
+      linksHint: "Páginas que você quer ter à mão, abaixo das ferramentas. Abrem numa nova aba.",
+      linkTitle: "Nome",
+      linkUrl: "Endereço",
+      linkUrlExample: "ex.: https://crm.exemplo.com",
+      addLink: "Adicionar link",
+      removeLink: "Remover {{name}}",
     },
     inviteHint: "Por email ou link",
     profileHint: "Nome, foto e @",
@@ -15052,6 +15062,12 @@ export const ptBR = {
     tooLarge: "Isto é maior do que o servidor aceita.",
     /** The same, from a screen that knows the most it may send. */
     tooLargeMax: "Isto é maior do que o servidor aceita: até {{max}} MB.",
+    /** A link of the person's own in the sidebar the server refused (ADR 0083, amendment of 2026-11-15). */
+    sidebarLink: {
+      url: "Use um endereço https, como https://crm.exemplo.com.",
+      title: "Dê ao link um nome de até {{max}} caracteres.",
+      full: "Você já tem {{max}} links. Remova um para adicionar outro.",
+    },
     /** A new-password link an owner can't make (ADR 0158). */
     passwordLink: {
       email: "Este servidor manda e-mail: a pessoa pede o link dela mesma em Esqueci a senha.",

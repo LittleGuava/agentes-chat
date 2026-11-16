@@ -2021,6 +2021,7 @@
       "homePersonal": "Tu día: lo que te espera y lo que hacen tus agentes"
     },
     "customizeSidebar": "Personalizar la barra lateral",
+    "opensInNewTab": "se abre en una pestaña nueva",
     "sidebarMenu": {
       "title": "Barra lateral",
       "newChannel": "Nuevo canal",
@@ -2044,7 +2045,14 @@
       "order": "Orden de las secciones",
       "orderHint": "Arrastra o usa las flechas. Agentes primero, por ejemplo.",
       "moveSection": "Arrastra para mover la sección {{name}} o haz clic para ver opciones",
-      "moveTool": "Arrastra para mover {{name}}"
+      "moveTool": "Arrastra para mover {{name}}",
+      "links": "Enlaces",
+      "linksHint": "Páginas que quieres tener a mano, debajo de las herramientas. Se abren en una pestaña nueva.",
+      "linkTitle": "Nombre",
+      "linkUrl": "Dirección",
+      "linkUrlExample": "p. ej., https://crm.example.com",
+      "addLink": "Añadir enlace",
+      "removeLink": "Quitar {{name}}"
     },
     "inviteHint": "Por correo o enlace",
     "profileHint": "Nombre, foto y @",
@@ -15307,6 +15315,11 @@
   "errors": {
     "tooLarge": "Esto es más grande de lo que acepta el servidor.",
     "tooLargeMax": "Esto es más grande de lo que acepta el servidor: hasta {{max}} MB.",
+    "sidebarLink": {
+      "url": "Usa una dirección https, como https://crm.example.com.",
+      "title": "Dale al enlace un nombre de hasta {{max}} caracteres.",
+      "full": "Ya tienes {{max}} enlaces. Quita uno para añadir otro."
+    },
     "passwordLink": {
       "email": "Este servidor envía correos: la persona pide su propio enlace en Olvidé la contraseña.",
       "serverOwner": "Quien instaló este servidor entra desde el ordenador donde funciona, sin enlace.",

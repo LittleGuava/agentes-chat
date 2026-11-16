@@ -1920,6 +1920,7 @@
       "homePersonal": "你的一天：等着你的事和你的智能体正在做的事"
     },
     "customizeSidebar": "自定义侧边栏",
+    "opensInNewTab": "在新标签页中打开",
     "sidebarMenu": {
       "title": "侧边栏",
       "newChannel": "新建频道",
@@ -1943,7 +1944,14 @@
       "order": "分区顺序",
       "orderHint": "拖动或使用箭头调整。比如把智能体放在最前面。",
       "moveSection": "拖动以移动“{{name}}”分区，或点击查看选项",
-      "moveTool": "拖动以移动“{{name}}”"
+      "moveTool": "拖动以移动“{{name}}”",
+      "links": "链接",
+      "linksHint": "放在工具下方、随手可开的网页。它们会在新标签页中打开。",
+      "linkTitle": "名称",
+      "linkUrl": "地址",
+      "linkUrlExample": "例如 https://crm.example.com",
+      "addLink": "添加链接",
+      "removeLink": "移除 {{name}}"
     },
     "inviteHint": "通过邮件或链接",
     "profileHint": "名称、照片和 @",
@@ -14383,6 +14391,11 @@
   "errors": {
     "tooLarge": "超出了服务器接受的大小。",
     "tooLargeMax": "超出了服务器接受的大小：最大 {{max}} MB。",
+    "sidebarLink": {
+      "url": "请使用 https 地址,例如 https://crm.example.com。",
+      "title": "链接名称最多 {{max}} 个字符。",
+      "full": "你已经有 {{max}} 个链接。移除一个才能再添加。"
+    },
     "passwordLink": {
       "email": "这台服务器会发送邮件：对方可以在「忘记密码」中自己申请链接。",
       "serverOwner": "安装这台服务器的人在运行它的电脑上直接登录，不需要链接。",

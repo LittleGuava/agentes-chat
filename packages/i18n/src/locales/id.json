@@ -1920,6 +1920,7 @@
       "homePersonal": "Harimu: apa yang menunggumu dan apa yang sedang dikerjakan agenmu"
     },
     "customizeSidebar": "Sesuaikan sidebar",
+    "opensInNewTab": "terbuka di tab baru",
     "sidebarMenu": {
       "title": "Bilah samping",
       "newChannel": "Kanal baru",
@@ -1943,7 +1944,14 @@
       "order": "Urutan bagian",
       "orderHint": "Seret atau pakai tanda panah. Misalnya, Agen di urutan pertama.",
       "moveSection": "Seret untuk memindahkan bagian {{name}}, atau klik untuk melihat opsi",
-      "moveTool": "Seret untuk memindahkan {{name}}"
+      "moveTool": "Seret untuk memindahkan {{name}}",
+      "links": "Tautan",
+      "linksHint": "Halaman yang ingin Anda simpan dekat, di bawah alat. Terbuka di tab baru.",
+      "linkTitle": "Nama",
+      "linkUrl": "Alamat",
+      "linkUrlExample": "mis. https://crm.example.com",
+      "addLink": "Tambah tautan",
+      "removeLink": "Hapus {{name}}"
     },
     "inviteHint": "Lewat email atau tautan",
     "profileHint": "Nama, foto, dan @",
@@ -14374,6 +14382,11 @@
   "errors": {
     "tooLarge": "Ini lebih besar dari yang diterima server.",
     "tooLargeMax": "Ini lebih besar dari yang diterima server: maksimal {{max}} MB.",
+    "sidebarLink": {
+      "url": "Gunakan alamat https, seperti https://crm.example.com.",
+      "title": "Beri tautan nama hingga {{max}} karakter.",
+      "full": "Anda sudah punya {{max}} tautan. Hapus satu untuk menambah yang lain."
+    },
     "passwordLink": {
       "email": "Server ini mengirim email: orang itu meminta tautannya sendiri di Lupa kata sandi.",
       "serverOwner": "Orang yang memasang server ini masuk dari komputer tempat server berjalan, tanpa tautan.",

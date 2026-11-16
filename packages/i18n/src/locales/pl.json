@@ -2073,6 +2073,7 @@
       "homePersonal": "Twój dzień: co na ciebie czeka i co robią twoi agenci"
     },
     "customizeSidebar": "Dostosuj pasek boczny",
+    "opensInNewTab": "otwiera się w nowej karcie",
     "sidebarMenu": {
       "title": "Pasek boczny",
       "newChannel": "Nowy kanał",
@@ -2096,7 +2097,14 @@
       "order": "Kolejność sekcji",
       "orderHint": "Przeciągnij albo użyj strzałek. Na przykład agenci na początku.",
       "moveSection": "Przeciągnij, aby przenieść sekcję {{name}}, lub kliknij, aby zobaczyć opcje",
-      "moveTool": "Przeciągnij, aby przenieść: {{name}}"
+      "moveTool": "Przeciągnij, aby przenieść: {{name}}",
+      "links": "Linki",
+      "linksHint": "Strony, które chcesz mieć pod ręką, pod narzędziami. Otwierają się w nowej karcie.",
+      "linkTitle": "Nazwa",
+      "linkUrl": "Adres",
+      "linkUrlExample": "np. https://crm.example.com",
+      "addLink": "Dodaj link",
+      "removeLink": "Usuń {{name}}"
     },
     "inviteHint": "Przez e-mail lub link",
     "profileHint": "Imię, zdjęcie i @",
@@ -15900,6 +15908,11 @@
   "errors": {
     "tooLarge": "To więcej, niż przyjmuje serwer.",
     "tooLargeMax": "To więcej, niż przyjmuje serwer: do {{max}} MB.",
+    "sidebarLink": {
+      "url": "Użyj adresu https, na przykład https://crm.example.com.",
+      "title": "Nadaj linkowi nazwę do {{max}} znaków.",
+      "full": "Masz już {{max}} linków. Usuń jeden, aby dodać inny."
+    },
     "passwordLink": {
       "email": "Ten serwer wysyła e-maile: osoba sama prosi o link w Nie pamiętam hasła.",
       "serverOwner": "Osoba, która zainstalowała ten serwer, loguje się na komputerze, na którym działa, bez linku.",

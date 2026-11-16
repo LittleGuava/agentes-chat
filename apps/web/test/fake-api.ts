@@ -97,6 +97,7 @@ import type {
   ServerUpdaterStatus,
   SidebarItem,
   SidebarItems,
+  SidebarLink,
   SidebarSection,
   SidebarView,
   SignInOptions,
@@ -492,6 +493,10 @@ export interface FakeState {
   sidebarItemsError?: ApiError;
   /** The sidebar's sections in my order (`orgs.sidebarOrder`); unset = the default. */
   sidebarOrder?: SidebarSection[];
+  /** My links in the sidebar (`orgs.sidebarLinks`); unset = none. */
+  sidebarLinks?: SidebarLink[];
+  /** Make `orgs.addSidebarLink` fail with this error (`sidebar_link.full`…). */
+  sidebarLinkError?: ApiError;
   /** How I look at Tarefas (`orgs.issuesView`); unset = never changed (the default). */
   issuesView?: IssuesView;
   /** What ids written in texts name (`chat.idRef`); an id not here is a 404. */
@@ -1941,6 +1946,18 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         log("orgs.setSidebarView", orgId, view);
         state.sidebarView = structuredClone(view);
         return structuredClone(view);
+      },
+      sidebarLinks: async () => structuredClone(state.sidebarLinks ?? []),
+      addSidebarLink: async (orgId, link) => {
+        log("orgs.addSidebarLink", orgId, link);
+        if (state.sidebarLinkError) throw state.sidebarLinkError;
+        state.sidebarLinks = [...(state.sidebarLinks ?? []), { id: `link-${state.calls.length}`, ...link }];
+        return structuredClone(state.sidebarLinks);
+      },
+      removeSidebarLink: async (orgId, linkId) => {
+        log("orgs.removeSidebarLink", orgId, linkId);
+        state.sidebarLinks = (state.sidebarLinks ?? []).filter((l) => l.id !== linkId);
+        return structuredClone(state.sidebarLinks);
       },
       setAvatar: async (orgId, input) => {
         log("orgs.setAvatar", orgId, { contentType: input.contentType, bytes: input.imageBase64.length });
