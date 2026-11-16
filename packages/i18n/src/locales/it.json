@@ -3202,8 +3202,8 @@
       "cursor": "Cursor non ha effettuato l'accesso su questo computer. Collega un account Cursor nella pagina di {{name}}.",
       "cursor_female": "Cursor non ha effettuato l'accesso su questo computer. Collega un account Cursor nella pagina di {{name}}.",
       "grok": "Grok non ha effettuato l'accesso su questo computer. Collega un account Grok nella pagina di {{name}}.",
-      "copilot": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "grok_female": "Grok non ha effettuato l'accesso su questo computer. Collega un account Grok nella pagina di {{name}}.",
+      "copilot": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "copilot_female": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "antigravity": "Gemini non ha effettuato l'accesso su questo computer. Collega un account Gemini nella pagina di {{name}}.",
       "antigravity_female": "Gemini non ha effettuato l'accesso su questo computer. Collega un account Gemini nella pagina di {{name}}.",
@@ -5687,6 +5687,19 @@
         "addAccount": "Aggiungi account",
         "signInAgain": "Accedi di nuovo",
         "connectPlan": "Collega un altro piano",
+        "reserves": {
+          "title": "IA di riserva",
+          "none": "Nessuna",
+          "text": "Quando il suo piano raggiunge il limite o è disconnesso, risponde la prima riserva disponibile. Torna al suo piano quando il limite si rinnova.",
+          "list": "IA di riserva, in ordine",
+          "others": "Altri account su questo computer",
+          "add": "Aggiungi",
+          "addName": "Aggiungi {{name}}",
+          "up": "Sposta su {{name}}",
+          "down": "Sposta giù {{name}}",
+          "remove": "Togli {{name}} dalle riserve",
+          "full": "Al massimo 3 riserve."
+        },
         "fallbackTitle": "Se {{computer}} smette di rispondere, rispondi tramite l'API",
         "fallbackHint": "Risponde tramite l'API e rientra nel budget di {{name}}. Altrimenti {{name}} avvisa chi ha chiesto e aspetta che il computer torni disponibile.",
         "fallbackHint_female": "Risponde tramite l'API e rientra nel budget di {{name}}. Altrimenti {{name}} avvisa chi ha chiesto e aspetta che il computer torni disponibile.",
@@ -17613,6 +17626,10 @@
       "text": "{{plan}} ha rifiutato {{from}} con questa chiave. Ho risposto con {{to}}, che funziona con essa.",
       "useAll": "Usa {{model}} per tutti",
       "pick": "Scegli modello"
+    },
+    "brainReserve": {
+      "limit": "{{from}} ha raggiunto il limite, quindi ho risposto con {{to}}. Tornerò a {{from}} quando si rinnova.",
+      "signedOut": "{{from}} non ha effettuato l'accesso, quindi ho risposto con {{to}}."
     },
     "usageWhen": {
       "at": "alle {{time}}",

@@ -171,8 +171,11 @@ export function NoticeLine({ message }: { message: Message }) {
   );
 }
 
-/** Under a reply that came at standard speed because Fast was refused (`meta.speedFallback`), with the way to the agent. */
-export function SpeedFallbackLine({ agent }: { agent: Agent | undefined }) {
+/**
+ * A quiet line under a reply, with the way to the agent: it came at standard speed because Fast was refused
+ * (`meta.speedFallback`), or one of the agent's reserve AIs gave it (`meta.brainReserve`).
+ */
+export function ReplyNoteLine({ agent, text }: { agent: Agent | undefined; text: string }) {
   const { t } = useTranslation();
   const openPanel = useOpenAgentPanel();
   return (
@@ -185,7 +188,7 @@ export function SpeedFallbackLine({ agent }: { agent: Agent | undefined }) {
         ) : undefined
       }
     >
-      {t("chat.speedFallback.text")}
+      {text}
     </EventPill>
   );
 }

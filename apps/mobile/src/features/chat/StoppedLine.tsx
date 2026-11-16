@@ -140,8 +140,11 @@ export function StoppedLine({ message, notice, gap }: { message: Message; notice
   );
 }
 
-/** Under a reply that came at standard speed because Fast was refused (`meta.speedFallback`), with the way to the agent. */
-export function SpeedFallbackLine({ message }: { message: Message }) {
+/**
+ * A quiet line under a reply, with the way to the agent: it came at standard speed because Fast was refused
+ * (`meta.speedFallback`), or one of the agent's reserve AIs gave it (`meta.brainReserve`).
+ */
+export function ReplyNoteLine({ message, text }: { message: Message; text: string }) {
   const { t } = useTranslation();
   const dir = useDirectory();
   const agent = dir.agentById.get(message.author.id ?? "");
@@ -154,7 +157,7 @@ export function SpeedFallbackLine({ message }: { message: Message }) {
         ) : null
       }
     >
-      {t("chat.speedFallback.text")}
+      {text}
     </EventPill>
   );
 }

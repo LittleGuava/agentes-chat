@@ -3086,8 +3086,8 @@
       "cursor": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "cursor_female": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "grok": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
-      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "grok_female": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
+      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "copilot_female": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "antigravity": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",
       "antigravity_female": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",
@@ -5518,6 +5518,19 @@
         "addAccount": "Account toevoegen",
         "signInAgain": "Opnieuw inloggen",
         "connectPlan": "Ander abonnement koppelen",
+        "reserves": {
+          "title": "Reserve-AI's",
+          "none": "Geen",
+          "text": "Als zijn abonnement de limiet bereikt of is afgemeld, antwoordt de eerste reserve die kan. Zodra de limiet weer vrij is, gebruikt hij weer zijn eigen abonnement.",
+          "list": "Reserve-AI's, op volgorde",
+          "others": "Andere accounts op deze computer",
+          "add": "Toevoegen",
+          "addName": "{{name}} toevoegen",
+          "up": "{{name}} omhoog",
+          "down": "{{name}} omlaag",
+          "remove": "{{name}} uit de reserves halen",
+          "full": "Hoogstens 3 reserves."
+        },
         "fallbackTitle": "Als {{computer}} niet meer reageert, antwoord via de API",
         "fallbackHint": "Antwoordt dan via de API en telt mee voor het budget van {{name}}. Anders laat {{name}} het weten aan wie het vroeg en wacht tot de computer terug is.",
         "fallbackHint_female": "Antwoordt dan via de API en telt mee voor het budget van {{name}}. Anders laat {{name}} het weten aan wie het vroeg en wacht tot de computer terug is.",
@@ -17129,6 +17142,10 @@
       "text": "{{plan}} heeft {{from}} met deze sleutel geweigerd. Ik heb geantwoord met {{to}}, dat er wel mee werkt.",
       "useAll": "{{model}} voor iedereen gebruiken",
       "pick": "Model kiezen"
+    },
+    "brainReserve": {
+      "limit": "{{from}} heeft zijn limiet bereikt, dus ik heb geantwoord met {{to}}. Ik ga terug naar {{from}} zodra die vernieuwt.",
+      "signedOut": "{{from}} is niet aangemeld, dus ik heb geantwoord met {{to}}."
     },
     "usageWhen": {
       "at": "om {{time}}",
