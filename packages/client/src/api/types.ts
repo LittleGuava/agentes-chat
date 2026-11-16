@@ -7733,6 +7733,8 @@ export interface MailAccount {
   defaultFrom: string | null;
   /** Who connected it: the only person who gives agents access to it (absent on older servers). */
   ownerUserId?: string | null;
+  /** New mail is sorted (important, needs a reply, ignore) before it wakes a routine (absent on older servers). */
+  triage?: boolean;
   /** Agents with access, and how much. */
   agents: { agentId: string; level: MailLevel; canDelete: boolean }[];
 }
@@ -7763,6 +7765,8 @@ export interface MailAccountUpdate {
   aliases?: string[];
   /** One of `address` or `aliases`; null = `address`. */
   defaultFrom?: string | null;
+  /** Sort new mail before it wakes a routine; ignored mail doesn't. */
+  triage?: boolean;
 }
 
 export interface MailImapInput {

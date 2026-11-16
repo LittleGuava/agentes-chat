@@ -80,6 +80,11 @@ export const mailAccounts = pgTable(
     aliases: text().array().notNull().default(sql`'{}'::text[]`),
     /** What new mail goes out from (`address` or one of `aliases`); null = `address`. */
     defaultFrom: text(),
+    /**
+     * New mail watched by routines is sorted first by a cheap judgment (`important`,
+     * `needs_reply` or `ignore`, `mail_triage`): mail sorted as `ignore` wakes no routine.
+     */
+    triage: boolean().notNull().default(false),
     createdByUserId: text().references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
@@ -203,4 +208,24 @@ export const mailSeen = pgTable(
     seenAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.watchId, t.messageKey] }), index().on(t.orgId), index().on(t.seenAt)],
+);
+
+/**
+ * How new mail was sorted (`mail_accounts.triage`), per mailbox and message:
+ * `important`, `needs_reply` or `ignore`. Read by the routine's run and by the
+ * agent's mail tools; a message is judged once, whichever watch saw it first.
+ */
+export const mailTriage = pgTable(
+  "mail_triage",
+  {
+    orgId: uuid().notNull(),
+    accountId: uuid()
+      .notNull()
+      .references(() => mailAccounts.id, { onDelete: "cascade" }),
+    /** The provider's message id, as in `mail_seen`. */
+    messageKey: text().notNull(),
+    verdict: text().notNull(),
+    judgedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.accountId, t.messageKey] }), index().on(t.orgId), index().on(t.judgedAt)],
 );

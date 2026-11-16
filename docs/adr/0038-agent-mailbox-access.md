@@ -143,3 +143,16 @@ Product decision: a mailbox is personal to whoever connected it, so only that pe
 - `request_permission` and teammate change cards (ADR 0092) never name mailboxes, and `setAgentScopes` and `setAgentAccess` keep mail grants as they are, so `setAgentMail` is the only way a mail grant is made.
 - Grants made before this stay as they are. No data is rewritten.
 - If the owner's account is deleted (`created_by_user_id` becomes null), nobody can give access to that mailbox. It has to be connected again by someone.
+
+## Addendum (2026-11-15): triage of new mail without an agent's turn
+
+Context: a routine watching a mailbox started a full agent run for every new message, newsletters and promotions included. One cheap judgment per message can sort them first, the way the router decides who answers without a turn (ADR 0074) and noise waits for a digest (ADR 0131 §5).
+
+- **Per mailbox, off by default:** `mail_accounts.triage` (migration `0298_mail_triage`), changed with the mailbox's other settings (`PATCH …/mail/accounts/{accountId}` `triage`, `updateMailAccount`, `manage_connectors`). It gives no agent access to anything, so it isn't limited to the mailbox's owner.
+- **When:** in `ingestMail`, after the watch's filter, the agent's policy and the dedup by message id, for a mailbox with triage on and a judge on this server (`MailDeps.judge`: the same `context.judge` as the rest, Jev first, else the workspace's small model, and nothing while the workspace is on hold).
+- **What the judge reads:** the mailbox's address, the sender, the subject (300 characters) and the snippet (600), one `choice` request per message (`kind: mail_triage`, up to 5 at once), with the standing rule to judge only what the text says. Code: `packages/engine/src/mail/triage.ts` (`judgeMail`, `triageMail`, `mailTriageVerdicts`).
+- **Verdicts:** `needs_reply` (someone waits for an answer), `important` (worth attention, no reply expected), `ignore` (nothing to do). `ignore` only when its probability is at least 0.6 (`IGNORE_THRESHOLD`); otherwise the likelier of the other two. A judge that fails, or none, leaves the message unsorted and it goes through as before: losing mail is worse than an extra run.
+- **Stored** in `mail_triage` (org, mailbox, message id, verdict), once per mailbox and message, so two watches on one mailbox judge a message once.
+- **What it changes:** mail sorted as `ignore` wakes no routine (it stays in `mail_seen`, so it never comes back). The rest joins the run as before, each message carrying `triage` in the run's event (`messages[].triage`) and a tag in its summary line (`[needs reply]`, `[important]`). The agent's `mail_<slug>_search` and `mail_<slug>_read` show a `triage:` line for any message that has a verdict, ignored ones included.
+- **Notifying:** a routine's run is how new mail reaches anyone today, so "only the important ones" means only `important` and `needs_reply` start or join a run.
+- **Later:** the switch in Conectores (web and phone): today it is set through the API; a notice to the mailbox's owner for `important` mail without a routine; hearing which senders a person dismissed; a filter by verdict in `search`; a sweep of old `mail_triage` rows (like `mail_seen`, kept for now).

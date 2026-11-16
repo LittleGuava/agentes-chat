@@ -204,6 +204,7 @@ export * from "./mail/preview";
 export * from "./mail/retire-millionsend";
 export * from "./mail/text";
 export * from "./mail/tools";
+export * from "./mail/triage";
 export * from "./mail/watches";
 export * from "./management";
 export * from "./media";

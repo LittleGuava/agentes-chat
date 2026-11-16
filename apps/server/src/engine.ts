@@ -932,6 +932,8 @@ export function buildEngine(o: EngineOptions) {
     mail: adapters.mail,
     publicUrl: config.PUBLIC_URL,
     resolveHost: o.resolveHost,
+    // New mail of mailboxes with triage on is sorted by the same judge (ADR 0038, addendum 2026-11-15).
+    judge: context.judge,
   };
   return {
     gateway,
