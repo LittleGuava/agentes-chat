@@ -1352,11 +1352,11 @@
   "tools.grokName": {
     "value": "Grok Build"
   },
-  "tools.copilotName": {
-    "value": "Copilot CLI"
-  },
   "tools.grokDesc": {
     "value": "Writes and changes code in the allowed folders, with your Grok account."
+  },
+  "tools.copilotName": {
+    "value": "Copilot CLI"
   },
   "tools.copilotDesc": {
     "value": "Writes and changes code in the allowed folders, with your GitHub Copilot account."
@@ -1438,6 +1438,9 @@
   },
   "tools.cantStartChip": {
     "value": "Won't start"
+  },
+  "tools.ownBinary": {
+    "value": "Runs its own program:"
   },
   "tools.installedNotFound": {
     "value": "The installer finished, but {{tool}} still isn't found."

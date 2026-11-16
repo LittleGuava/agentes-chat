@@ -1611,6 +1611,25 @@ kept only in the folder (`provider.json`, mode 600); the server keeps its last 4
 turn's requests go comes from the runner's own list of plans, not from anything a project can set.
 Each person adds them in **Settings → AI and usage**.
 
+**A program of your own for a brain.** The runner finds Claude Code, Codex, Cursor's `agent`, OpenCode, Grok
+Build, `agy` and Copilot on the PATH it sees. To run another one (a pinned version, or a wrapper script that
+sets something up and then starts the real CLI), point that brain at it on the computer:
+`agentes-runner binaries set claude /opt/claude-2.1.300/claude` (also `list` and `unset <cli>`; with
+`--system`, run it with `sudo`), or `"binaries": { "claude": "/opt/…" }` in the runner's `config.json`. It
+applies within 2 seconds to every CLI started after it: turns, sign-ins, usage checks and version checks;
+a brain process already open keeps its program until it closes when idle (`brainIdleMinutes`) or the runner
+restarts. A wrapper must pass `--version` (and `auth status`, `models`) through to the CLI. The computer's
+page in the desktop app shows the path under that CLI, and the version it reported. A path that isn't there
+or can't run makes that CLI "won't start" with the reason, and the one on the PATH is not used in its place.
+Only whoever runs the computer sets it, never the server: pairing again keeps it, and nothing the server
+sends can change it. With every agent running as the runner's own user (the default install) the runner
+keeps agents' commands out of its folder, as it does the account folders, but the OS doesn't; with
+`install.sh --system` the config is root's. There root runs that program too (version checks, sign-ins) and
+each agent runs it as its own user, so the file and every folder above it must be root's and writable by no
+one else, no symlink (point at its target, `readlink -f`), and runnable by others (`chmod 755`): `/opt` or
+`/usr/local`, not a home folder. On Windows, Cursor's `agent`, Grok Build and `agy` start only an `.exe`, as
+they do from the PATH; the others also take a `.cmd` wrapper.
+
 **One sign-in for all of your agents.** An account signed in once on a computer thinks for every agent
 you give it there, with no other sign-in (**Use for…** in **Settings → AI and usage**, or the account
 in an agent's **Who thinks**). With every agent running as the runner's own user, that is any account.

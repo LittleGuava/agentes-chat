@@ -5,12 +5,16 @@ import { delimiter, join, win32 } from "node:path";
 import {
   CLI_ERROR_MAX,
   CLI_GIT_MISSING,
+  CLI_NAMES,
+  type CliName,
   type CursorModelInfo,
   parseExecutors,
   type RunnerExecutorInfo,
   type RunnerInfo,
 } from "@agenteschat/adapters/machine-protocol";
 import { isOpencodeFreeModel, OPENCODE_FREE_MODELS } from "@agenteschat/providers/plans";
+import { binaryFor, CLI_COMMANDS, configuredBinaries } from "./binaries";
+import type { Binaries } from "./config";
 import { readSmallJson, writeJson } from "./json-file";
 import { SHARED_BIN_ENV } from "./shared-folder";
 
@@ -57,15 +61,28 @@ export const isExecutable = (file: string) => {
 };
 
 /**
+ * Where a brain's CLI whose configured binary can't run is started from instead: a folder that isn't there under one
+ * nobody can add to (procfs on Linux, the NUL device on Windows, root's empty `/var/empty` on a Mac), so the start
+ * fails with `ENOENT`, as every brain reads a missing CLI, and the PATH's CLI of that name never runs in its place.
+ */
+export function refusedPath(command: string, platform: NodeJS.Platform = process.platform): string {
+  if (platform === "win32") return win32.join("\\\\.\\NUL\\agentes-refused", command);
+  return `${platform === "linux" ? "/proc/self" : "/var/empty"}/agentes-refused/${command}`;
+}
+
+/**
  * `command`'s full path on the current `process.env.PATH`, or the bare name. The app mode adopts the login
  * shell's PATH after start (`adoptLoginPath`); a compiled runner still looks commands up on the PATH it
- * started with (macOS's bare one from Finder) unless told otherwise, so we resolve it ourselves.
+ * started with (macOS's bare one from Finder) unless told otherwise, so we resolve it ourselves. A brain's CLI
+ * with a binary of the computer's own (ADR 0218) is that binary.
  */
 export function resolveCommand(
   command: string,
   pathList = process.env.PATH ?? "",
   sharedBin = process.env[SHARED_BIN_ENV],
 ): string {
+  const own = binaryFor(command);
+  if (own) return own.refused ? refusedPath(command) : own.file;
   if (process.platform === "win32" || command.includes("/")) return command;
   const dirs = pathList.split(delimiter).filter((dir) => dir && dir !== sharedBin);
   for (const dir of dirs) {
@@ -112,7 +129,8 @@ const RUNNABLE = [".com", ".exe", ".bat", ".cmd"];
  * `codex.cmd`…). Never the current folder, which cmd.exe and a bare name's spawn search before the PATH: a turn's is
  * the agent's own folder, where the agent writes, so a `claude.cmd` there would run in place of the CLI, as the person
  * and outside every policy. Nor a PATH entry that isn't a full path (it reads from the current folder too). A name
- * with a folder is checked as given. Null: not there.
+ * with a folder is checked as given, and a brain's binary of the computer's own (ADR 0218) is taken as it is, never
+ * the PATH's in place of one that can't run. Null: not there.
  */
 export function findOnWindowsPath(
   name: string,
@@ -124,6 +142,8 @@ export function findOnWindowsPath(
   const exts = [...new Set(listed.filter((e) => RUNNABLE.includes(e)))];
   const own = win32.extname(name).toLowerCase();
   const candidates = (base: string) => [...(RUNNABLE.includes(own) ? [base] : []), ...exts.map((e) => base + e)];
+  const pinned = binaryFor(name);
+  if (pinned) return pinned.refused ? null : pinned.file;
   if (/[\\/]/.test(name)) return candidates(name).find((file) => exists(file)) ?? null;
   for (const entry of pathList.split(";")) {
     const dir = entry.trim().replace(/^"(.*)"$/, "$1");
@@ -226,6 +246,9 @@ export function cliSpawn(
 ): CliRun {
   const [file = "", ...pre] = command;
   if (platform === "win32" && command.length === 1) {
+    // A configured binary that can't run fails as a missing CLI, with no shell: cmd.exe would look the bare name up on
+    // the PATH.
+    if (binaryFor(file)?.refused) return { file: refusedPath(file, platform), args: [...args] };
     const found = findOnWindowsPath(
       file,
       pathList ?? envValue(process.env, "PATH", platform) ?? "",
@@ -351,7 +374,7 @@ export async function claudeAuth(
 }
 
 /** Cursor's CLI, named `agent` since it was renamed from `cursor-agent`. */
-export const CURSOR_BIN = "agent";
+export const CURSOR_BIN = CLI_COMMANDS.cursor;
 
 /**
  * `agent models` → the models its sign-in lists. One per line, `<id> - <label>` (or the id alone); a line that says
@@ -389,7 +412,7 @@ function detectCursor(run: Run): Promise<Probe> {
 }
 
 /** OpenCode's CLI (`opencode-ai` on npm). */
-export const OPENCODE_BIN = "opencode";
+export const OPENCODE_BIN = CLI_COMMANDS.opencode;
 
 /**
  * `opencode models` → the models it can run: one `provider/model` per line (its own sort, OpenCode's first). With no
@@ -433,7 +456,7 @@ async function detectOpencode(run: Run): Promise<Probe> {
 }
 
 /** xAI's Grok Build CLI. Always `grok`: its installer also makes `~/.local/bin/agent`, which is Cursor's name. */
-export const GROK_BIN = "grok";
+export const GROK_BIN = CLI_COMMANDS.grok;
 
 /**
  * `grok models` → the models it lists: `  * grok-4.6 (default)` and `  - grok-4.5` under "Available models" (Grok Build
@@ -460,7 +483,7 @@ function detectGrok(run: Run): Promise<Probe> {
 }
 
 /** Google's Antigravity CLI (ADR 0143). */
-export const AGY_BIN = "agy";
+export const AGY_BIN = CLI_COMMANDS.antigravity;
 
 /**
  * `agy models` → its slugs and names, one per line, split by a tab in 1.5.0 (`gemini-4-argon-high\tGemini 4 Argon
@@ -487,7 +510,7 @@ function detectAntigravity(run: Run): Promise<Probe> {
 }
 
 /** GitHub's Copilot CLI (ADR 0189). */
-export const COPILOT_BIN = "copilot";
+export const COPILOT_BIN = CLI_COMMANDS.copilot;
 
 /** The Copilot CLI's version line: `GitHub Copilot CLI 1.0.109.`; a `copilot` that says anything else is skipped. */
 const COPILOT_VERSION = /^GitHub Copilot CLI \d+\.\d+\.\d+/;
@@ -559,36 +582,51 @@ async function detectVersion(run: Run, name: "claude" | "codex"): Promise<Probe>
  * row across looks (the caller keeps it). A CLI whose `--version` fails with no good look to keep, or past its
  * strikes, is `broken` with its error line: it is there and can't start, which is not missing. Claude Code on Windows
  * says why only through `gitMissing`: without Git for Windows it can't start at all.
+ *
+ * A CLI with a binary of the computer's own (`binaries`, ADR 0218) is looked at only there: its entry says which
+ * (`binary`), one that can't run isn't started and is `broken` with why, and one that doesn't answer as its maker's
+ * CLI would is `broken` too, never missing (a wrapper must pass `--version` through). A last good look counts only
+ * when it was of the same binary.
  */
 export async function detectExecutors(
   run: Run = defaultRun,
   prev: Executors = {},
   strikes: Partial<Record<string, number>> = {},
   gitMissing: () => boolean = () => false,
+  binaries: Binaries = configuredBinaries(),
 ): Promise<{ found: Executors; unsure: boolean }> {
   const safe = (p: () => Promise<Probe>) => p().catch((): Probe => ({ unsure: true }));
-  const names = ["claude", "codex", "cursor", "opencode", "grok", "antigravity", "copilot"] as const;
-  const probes = await Promise.all([
-    safe(() => detectVersion(run, "claude")),
-    safe(() => detectVersion(run, "codex")),
-    safe(() => detectCursor(run)),
-    safe(() => detectOpencode(run)),
-    safe(() => detectGrok(run)),
-    safe(() => detectAntigravity(run)),
-    safe(() => detectCopilot(run)),
-  ]);
+  const detect: Record<CliName, () => Promise<Probe>> = {
+    claude: () => detectVersion(run, "claude"),
+    codex: () => detectVersion(run, "codex"),
+    cursor: () => detectCursor(run),
+    opencode: () => detectOpencode(run),
+    grok: () => detectGrok(run),
+    antigravity: () => detectAntigravity(run),
+    copilot: () => detectCopilot(run),
+  };
+  const refused = (name: CliName) => (binaries[name] ? binaryFor(CLI_COMMANDS[name])?.refused : undefined);
+  const probes = await Promise.all(
+    CLI_NAMES.map((name) => (refused(name) ? Promise.resolve<Probe>({}) : safe(detect[name]))),
+  );
   const found: Executors = {};
   const broken: NonNullable<Executors["broken"]> = {};
   let unsure = false;
-  names.forEach((name, i) => {
+  CLI_NAMES.forEach((name, i) => {
     let p = probes[i] ?? {};
+    const binary = binaries[name];
+    const last = prev[name]?.binary === binary ? prev[name] : undefined;
     strikes[name] = p.exited ? (strikes[name] ?? 0) + 1 : 0;
     const struck = (strikes[name] ?? 0) >= EXECUTORS_EXIT_STRIKES;
-    if (p.said && (struck || !prev[name])) broken[name] = name === "claude" && gitMissing() ? CLI_GIT_MISSING : p.said;
+    if (p.said && (struck || !last)) broken[name] = name === "claude" && gitMissing() ? CLI_GIT_MISSING : p.said;
     if (struck) p = {};
-    const entry = p.unsure ? (prev[name] ?? p.entry) : p.entry;
-    if (entry) found[name] = entry;
+    const entry = p.unsure ? (last ?? p.entry) : p.entry;
+    if (entry) found[name] = binary ? { ...entry, binary } : entry;
     if (p.unsure) unsure = true;
+    if (binary && !entry && !broken[name]) {
+      const why = refused(name) ?? `it didn't answer \`--version\` as ${CLI_COMMANDS[name]} does`;
+      broken[name] = `${binary}: ${why}`.slice(0, CLI_ERROR_MAX);
+    }
   });
   if (Object.keys(broken).length) found.broken = broken;
   return { found, unsure };
@@ -677,16 +715,17 @@ export function cachedExecutors(
 }
 
 /**
- * `codex --version` alone, for a Codex turn: a good answer is kept for the TTL; null when it couldn't tell (timed
- * out, failed), never cached.
+ * `codex --version` alone, for a Codex turn: a good answer is kept for the TTL, or until Codex's binary of the
+ * computer's own changes (ADR 0218); null when it couldn't tell (timed out, failed), never cached.
  */
 export function cachedCodexVersion(run: Run = defaultRun, now: () => number = Date.now) {
-  let kept: { version?: string; at: number } | undefined;
+  let kept: { version?: string; at: number; binary: string | undefined } | undefined;
   return async (): Promise<string | undefined | null> => {
-    if (kept && now() - kept.at < EXECUTORS_TTL_MS) return kept.version;
+    const binary = configuredBinaries().codex;
+    if (kept && kept.binary === binary && now() - kept.at < EXECUTORS_TTL_MS) return kept.version;
     const p = await detectVersion(run, "codex").catch((): Probe => ({ unsure: true }));
     if (p.unsure) return null;
-    kept = { ...(p.entry ? { version: p.entry.version } : {}), at: now() };
+    kept = { ...(p.entry ? { version: p.entry.version } : {}), at: now(), binary };
     return kept.version;
   };
 }

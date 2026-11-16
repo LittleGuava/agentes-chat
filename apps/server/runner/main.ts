@@ -13,6 +13,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import {
   type AgentScope,
   browserNeeded,
+  CLI_NAMES,
   MACHINE_PROTOCOL_VERSION,
   type RunnerTools,
 } from "@agenteschat/adapters/machine-protocol";
@@ -29,6 +30,7 @@ import {
   TOOL_NAMES,
 } from "./access";
 import { type AgentUser, AgentUsers, agentGid, denySchedulers, systemLauncher } from "./agent-users";
+import { binaryRefusal, useBinaries } from "./binaries";
 import { findChrome } from "./browser";
 import {
   POLICY_NOT_IN_FORCE_EXIT,
@@ -162,6 +164,10 @@ Usage:
   agentes-runner services [list | allow <tcp|udp>/<port> | remove <tcp|udp>/<port>]
       System mode: what of this computer's own servers agents may reach besides DNS (an Ollama on
       tcp/11434, say). Each agent always reaches its own local ports, never another agent's.
+  agentes-runner binaries [list | set <cli> <path> | unset <cli>]
+      The program a brain runs instead of the one on the PATH (claude, codex, cursor, opencode, grok,
+      antigravity or copilot): a pinned version or a wrapper that passes --version through. In system
+      mode it must be root's alone (no link, nor a folder others can write) and runnable by others.
   agentes-runner desktop-check --agent <handle>
       Checks an agent's desktop and terminal here (Linux): starts its desktop, logs in to it as the
       person in control and as a watcher (who can't move the pointer), reads it and acts on it the
@@ -1198,6 +1204,47 @@ function services(p: Parsed): number {
   return 0;
 }
 
+const BINARIES_USAGE = `Usage: agentes-runner binaries [list | set <cli> <path> | unset <cli>] (cli: ${CLI_NAMES.join(", ")})`;
+
+/**
+ * `agentes-runner binaries …` (ADR 0218): the computer's own binary for a brain's CLI instead of the PATH's. One that
+ * can't run is refused here; the running runner applies a change within 2 s.
+ */
+function binaries(p: Parsed, home = runnerHome()): number {
+  const [, sub = "list", cli, file] = p.positional;
+  const stored = storedOrNull(home);
+  const system = stored?.mode === "system";
+  const set = stored?.binaries ?? {};
+  if (sub === "list") {
+    for (const name of CLI_NAMES) {
+      const own = set[name];
+      const why = own ? binaryRefusal(own, { system }) : null;
+      console.log(`${name.padEnd(12)} ${own ? (why ? `${own} (can't run: ${why})` : own) : "the one on the PATH"}`);
+    }
+    return 0;
+  }
+  const name = CLI_NAMES.find((n) => n === cli);
+  if (!name || (sub !== "set" && sub !== "unset") || (sub === "set" && !file)) {
+    console.error(BINARIES_USAGE);
+    return 1;
+  }
+  const next = { ...set };
+  if (sub === "set" && file) {
+    const abs = expandHome(file);
+    const why = binaryRefusal(abs, { system });
+    if (why) {
+      console.error(`${abs} can't be ${name}'s binary: ${why}`);
+      return 1;
+    }
+    next[name] = abs;
+  } else delete next[name];
+  updateConfig((c) => ({ ...c, binaries: Object.keys(next).length ? next : undefined }), home);
+  console.log(
+    next[name] ? `${name} runs ${next[name]} on this computer.` : `${name} runs the one on the PATH on this computer.`,
+  );
+  return 0;
+}
+
 /**
  * `agentes-runner desktop-check --agent <handle>` (ADR 0058): the agent's
  * desktop and terminal on this computer, through the runner's own code, as
@@ -1485,6 +1532,11 @@ async function main(argv: string[]): Promise<number> {
     console.log(HELP);
     return command || p.flags.has("help") ? 0 : 1;
   }
+  // The computer's own binaries (ADR 0218) for every CLI this command starts; a worker takes root's from `worker.state`.
+  if (command !== "worker") {
+    const stored = storedOrNull();
+    useBinaries(stored?.binaries ?? {}, { system: stored?.mode === "system" });
+  }
   switch (command) {
     case "pair":
       return pair(p);
@@ -1545,6 +1597,8 @@ async function main(argv: string[]): Promise<number> {
       return bindCheck(p.positional.slice(1));
     case "services":
       return services(p);
+    case "binaries":
+      return binaries(p);
     case "desktop-browser":
       if (!sub) {
         console.error("Usage: agentes-runner desktop-browser <socket>");

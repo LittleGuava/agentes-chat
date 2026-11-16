@@ -12,7 +12,13 @@ import {
 import os from "node:os";
 import path from "node:path";
 import { SYSTEM_RUNNER_HOME } from "@agenteschat/adapters/command-policy";
-import { parseAccess, type RunnerAccess, type RunnerPause } from "@agenteschat/adapters/machine-protocol";
+import {
+  CLI_NAMES,
+  type CliName,
+  parseAccess,
+  type RunnerAccess,
+  type RunnerPause,
+} from "@agenteschat/adapters/machine-protocol";
 import { validateNetworkMark } from "./network-mark";
 
 /**
@@ -80,6 +86,11 @@ export interface RunnerConfig {
   /** System mode: absent, a Claude sign-in for all agents is `claude setup-token`'s, as ever. */
   claudeSharedLogin?: ClaudeSharedLogin;
   /**
+   * The computer's own binary for a brain's CLI, an absolute path (`agentes-runner binaries`, ADR 0218), in place of
+   * the one on the PATH. Only whoever runs this computer sets it; the server and agents never do.
+   */
+  binaries?: Binaries;
+  /**
    * System mode: what of this computer's own listeners agents may reach besides DNS, as `tcp/11434` or
    * `udp/8125` (`agentes-runner services allow`). Each agent reaches its own local ports anyway, never another's.
    */
@@ -120,6 +131,30 @@ export function parseService(text: string): string | null {
   const m = /^(tcp|udp)\/(\d{1,5})$/.exec(text.trim().toLowerCase());
   const port = Number(m?.[2]);
   return m && port >= 1 && port <= 65_535 ? `${m[1]}/${port}` : null;
+}
+
+/** A brain's own binary per CLI (ADR 0218). */
+export type Binaries = Partial<Record<CliName, string>>;
+
+/** The longest binary path kept. */
+const BINARY_PATH_MAX = 4096;
+
+/** The config's `binaries`: an absolute path per known brain; anything else dropped. Undefined when none is left. */
+export function parseBinaries(v: unknown): Binaries | undefined {
+  if (typeof v !== "object" || v === null || Array.isArray(v)) return undefined;
+  const out: Binaries = {};
+  for (const name of CLI_NAMES) {
+    const file = (v as Record<string, unknown>)[name];
+    if (
+      typeof file === "string" &&
+      file.length <= BINARY_PATH_MAX &&
+      !file.includes("\0") &&
+      (path.posix.isAbsolute(file) || path.win32.isAbsolute(file))
+    ) {
+      out[name] = file;
+    }
+  }
+  return Object.keys(out).length ? out : undefined;
 }
 
 /** The file as stored: a home that isn't paired (or was unpaired) keeps only some fields. */
@@ -237,6 +272,7 @@ export function normalizeStored(raw: Record<string, unknown>): StoredConfig {
   const range = raw.agentUidRange;
   const uids = Array.isArray(range) && range.length === 2 ? agentUidRange(range[0], range[1]) : null;
   const claudeSharedLogin = parseClaudeSharedLogin(raw.claudeSharedLogin);
+  const binaries = parseBinaries(raw.binaries);
   const services = Array.isArray(raw.services)
     ? [...new Set(raw.services.flatMap((s) => (typeof s === "string" ? (parseService(s) ?? []) : [])))]
     : [];
@@ -275,6 +311,7 @@ export function normalizeStored(raw: Record<string, unknown>): StoredConfig {
       ? { networkDrainSeconds: raw.networkDrainSeconds as number }
       : {}),
     ...(claudeSharedLogin ? { claudeSharedLogin } : {}),
+    ...(binaries ? { binaries } : {}),
     ...(services.length ? { services } : {}),
     ...(raw.agentTmpOnDisk === true ? { agentTmpOnDisk: true as const } : {}),
     ...(text(raw.previousToken, 4000) ? { previousToken: text(raw.previousToken, 4000) } : {}),

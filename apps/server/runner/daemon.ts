@@ -81,6 +81,7 @@ import {
   systemLauncher,
   trustedNetworkLauncher,
 } from "./agent-users";
+import { useBinaries } from "./binaries";
 import { BrainManager } from "./brain";
 import { CodexAppServers } from "./brain-codex-app";
 import { BrowserManager } from "./browser";
@@ -253,6 +254,8 @@ export function configFromGrant(
     ...(prev?.networkAuthRoute ? { networkAuthRoute: prev.networkAuthRoute } : {}),
     ...(prev?.claudeSharedLogin ? { claudeSharedLogin: prev.claudeSharedLogin } : {}),
     ...(prev?.agentTmpOnDisk ? { agentTmpOnDisk: prev.agentTmpOnDisk } : {}),
+    // The computer's own binaries (ADR 0218) are its, whatever server it pairs with; a grant never names any.
+    ...(prev?.binaries ? { binaries: prev.binaries } : {}),
     ...(prev?.maxConcurrentTasks ? { maxConcurrentTasks: prev.maxConcurrentTasks } : {}),
     ...(prev?.taskMaxSeconds ? { taskMaxSeconds: prev.taskMaxSeconds } : {}),
     ...(prev?.brainIdleMinutes ? { brainIdleMinutes: prev.brainIdleMinutes } : {}),
@@ -965,6 +968,11 @@ export class RunnerDaemon implements RequestObserver {
       });
     }
     this.armResume();
+    // Another binary for a brain (ADR 0218): every CLI started from now on runs it, and the CLIs are looked at again.
+    if (initial || JSON.stringify(prev?.binaries) !== JSON.stringify(next?.binaries) || prev?.mode !== next?.mode) {
+      useBinaries(next?.binaries ?? {}, { system: next?.mode === "system" });
+      if (!initial) void this.executorsFresh().catch(() => undefined);
+    }
     // The switch goes with its route, so a CLI left running would go out directly.
     if (!initial && prev?.claudeSharedLogin && !next?.claudeSharedLogin) {
       this.stopHosted("This computer's Claude login for all agents was turned off.");
@@ -1035,6 +1043,7 @@ export class RunnerDaemon implements RequestObserver {
         (this.session?.network ?? c)?.networkLauncher || (this.session?.network ?? c)?.networkMark,
       ),
       ...(c ? { commitHost: new URL(c.server).hostname } : {}),
+      ...(c?.binaries ? { binaries: c.binaries } : {}),
       limits: {
         maxConcurrentTasks: c?.maxConcurrentTasks ?? DEFAULT_LIMITS.maxConcurrentTasks,
         taskMaxSeconds: c?.taskMaxSeconds ?? DEFAULT_LIMITS.taskMaxSeconds,

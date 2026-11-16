@@ -593,6 +593,8 @@ export const desktopEn = {
     getGit: "Download Git for Windows",
     cantStart: "It's here, but it won't start: {{message}}",
     cantStartChip: "Won't start",
+    /** Before the path of the program this CLI runs instead of the one on the PATH, set on this computer. */
+    ownBinary: "Runs its own program:",
     installedNotFound: "The installer finished, but {{tool}} still isn't found.",
     notFoundYet: "{{tool}} still isn't found.",
     browserName: "Browser",

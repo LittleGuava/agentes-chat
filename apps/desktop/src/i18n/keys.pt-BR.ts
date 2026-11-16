@@ -568,6 +568,7 @@ export const desktopPtBR = {
     getGit: "Baixar o Git for Windows",
     cantStart: "Está aqui, mas não abre: {{message}}",
     cantStartChip: "Não abre",
+    ownBinary: "Usa um programa próprio:",
     installedNotFound: "O instalador terminou, mas o {{tool}} ainda não foi encontrado.",
     notFoundYet: "{{tool}} ainda não foi encontrado.",
     browserName: "Navegador",

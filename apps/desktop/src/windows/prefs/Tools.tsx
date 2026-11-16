@@ -175,6 +175,12 @@ export function Tools() {
             ? t("desktop.tools.cantStart", { message: said })
             : null;
     const checkLabel = t("desktop.tools.checkAgain");
+    // A binary of the computer's own instead of the PATH's (`agentes-runner binaries`, ADR 0218).
+    const ownBinary = info?.binary && (
+      <p className="dk-help">
+        {t("desktop.tools.ownBinary")} <span className="dk-path">{info.binary}</span>
+      </p>
+    );
     return (
       <PrefRow
         key={cli}
@@ -209,8 +215,11 @@ export function Tools() {
           />
         }
         under={
-          (!info || cli === "codex") && (
+          info && cli !== "codex" ? (
+            ownBinary
+          ) : (
             <>
+              {ownBinary}
               {!info && command && <CommandCopy command={command} />}
               {note && (
                 <p className="dk-help" role="status">
