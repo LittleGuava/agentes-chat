@@ -209,7 +209,14 @@ export function Tools() {
           />
         }
         under={
-          !info && (
+          info ? (
+            // A binary of the computer's own instead of the PATH's (`agentes-runner binaries`, ADR 0187).
+            info.binary && (
+              <p className="dk-help">
+                {t("desktop.tools.ownBinary")} <span className="dk-path">{info.binary}</span>
+              </p>
+            )
+          ) : (
             <>
               {command && <CommandCopy command={command} />}
               {note && (
