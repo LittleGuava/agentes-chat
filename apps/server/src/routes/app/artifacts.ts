@@ -43,6 +43,7 @@ import {
   type AppDeps,
   body,
   createAppRouter,
+  csv,
   errors,
   json,
   MULTIPART_SLACK_BYTES,
@@ -56,20 +57,6 @@ const tags = ["Drive"];
 const Kind = z.enum(["document", "table", "diff", "html", "diagram", "file", "block", "poll", "choices"]);
 const Author = z.object({ type: z.enum(["agent", "person"]), id: z.string() });
 
-/** A comma-separated list in a query string, each item read by `item` (at most 50). */
-const csv = <T>(description: string, item: z.ZodType<T, string>) =>
-  z
-    .string()
-    .max(4000)
-    .optional()
-    .transform((v) =>
-      v
-        ?.split(",")
-        .map((x) => x.trim())
-        .filter(Boolean),
-    )
-    .pipe(z.array(item).max(50).optional())
-    .openapi({ description, type: "string" });
 const AuthorKey = z
   .string()
   .regex(/^(agent|person):[\w-]{1,100}$/)

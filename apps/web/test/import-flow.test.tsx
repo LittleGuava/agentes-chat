@@ -12,7 +12,7 @@ import { fileSaver } from "@/components/artifacts/fileSaver";
 import { ImportFlow, useImportFlow } from "@/components/ImportFlow";
 import { EXPORT_PROMPT } from "@/lib/import";
 import { zip } from "./archives";
-import { createFakeApi, fakeAppsOf, ORG_ID, seedState } from "./fake-api";
+import { ADA_ID, ATLAS_ID, createFakeApi, fakeAppsOf, ORG_ID, seedState } from "./fake-api";
 import { type FakeApps, SERVER_URL } from "./fakes/apps";
 import { renderApp, renderPage, screen, settle } from "./render";
 
@@ -175,6 +175,79 @@ describe("Configurações → Importar e exportar", () => {
     expect(saved).toHaveLength(1);
     expect(saved[0]?.[0]).toBe(`/api/app/organizations/${ORG_ID}/export`);
     expect(saved[0]?.[1]).toMatch(/^agentes-chat-\d{4}-\d{2}-\d{2}\.json$/);
+  });
+
+  test("a part of it: setores and agents in one field, what goes in shown before the download", async () => {
+    const saved: [string, string][] = [];
+    fileSaver.save = (url, name) => saved.push([url, name]);
+    const state = seedState();
+    const setor = "00000000-0000-4000-8000-0000000000e1";
+    const empty = "00000000-0000-4000-8000-0000000000e2";
+    state.agentGroups = [
+      { id: setor, name: "Pesquisa", agentIds: [ADA_ID] },
+      { id: empty, name: "Vazio", agentIds: [] },
+    ];
+    await go(state);
+    const card = screen().getByRole("region", { name: "Exportar" });
+    const download = () => within(card).getByRole("button", { name: "Baixar o arquivo" }) as HTMLButtonElement;
+    await click(within(card).getByRole("radio", { name: "Setores ou agentes" }));
+    // Nothing picked: nothing to download yet.
+    expect(download().disabled).toBe(true);
+    const field = within(card).getByRole("combobox", { name: "Setores e agentes" });
+    const pick = async (name: string) => {
+      await act(async () => fireEvent.keyDown(field, { key: "ArrowDown" }));
+      await settle(4);
+      const list = screen().getByRole("listbox", { name: "Setores e agentes" });
+      await click(within(list).getByRole("option", { name: new RegExp(`^${name}`) }), 8);
+    };
+    await pick("Vazio");
+    expect(card.textContent).toContain("Nenhum agente no que você escolheu: o arquivo iria vazio.");
+    expect(download().disabled).toBe(true);
+    await pick("Pesquisa");
+    await pick("Atlas");
+    expect(card.textContent).toContain("Vão no arquivo: 2 agentes, Ada e Atlas.");
+    expect(calls(state, "imports.exportBundle").at(-1)?.args[1]).toEqual({
+      agentIds: [ATLAS_ID],
+      groupIds: [empty, setor],
+    });
+    await click(download());
+    expect(saved).toHaveLength(1);
+    expect(saved[0]?.[0]).toBe(`/api/app/organizations/${ORG_ID}/export?agents=${ATLAS_ID}&groups=${empty}%2C${setor}`);
+
+    // A token's ✕ takes it out of the part.
+    await click(within(card).getByRole("button", { name: "Remover Atlas" }), 8);
+    expect(card.textContent).toContain("Vai no arquivo: Ada.");
+
+    // Back to the whole workspace: the plain download, no part.
+    await click(within(card).getByRole("radio", { name: "O workspace todo" }));
+    await click(download());
+    expect(saved[1]?.[0]).toBe(`/api/app/organizations/${ORG_ID}/export`);
+  });
+
+  test("a part whose preview fails says why and never downloads", async () => {
+    const saved: [string, string][] = [];
+    fileSaver.save = (url, name) => saved.push([url, name]);
+    const state = seedState();
+    const api = createFakeApi(state);
+    api.imports = {
+      ...api.imports,
+      exportBundle: async () => {
+        throw new ApiError(400, "validation_error", "Too many");
+      },
+    };
+    await go(state, api);
+    const card = screen().getByRole("region", { name: "Exportar" });
+    await click(within(card).getByRole("radio", { name: "Setores ou agentes" }));
+    const field = within(card).getByRole("combobox", { name: "Setores e agentes" });
+    await act(async () => fireEvent.keyDown(field, { key: "ArrowDown" }));
+    await settle(4);
+    const list = screen().getByRole("listbox", { name: "Setores e agentes" });
+    await click(within(list).getByRole("option", { name: /^Ada/ }), 8);
+    expect(card.querySelector("#imp-export-preview")?.textContent).not.toBe("");
+    const download = within(card).getByRole("button", { name: "Baixar o arquivo" }) as HTMLButtonElement;
+    expect(download.disabled).toBe(true);
+    await click(download);
+    expect(saved).toEqual([]);
   });
 
   test("members don't see it", async () => {

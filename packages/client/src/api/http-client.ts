@@ -4,6 +4,7 @@ import { humanCheckHeaders } from "../lib/human-check";
 import type { OnboardingStepId } from "../lib/onboarding";
 import { type LodiPrefs, lodiPrefsOf } from "../lib/right-hand-prefs";
 import { CLOUD_SERVER } from "../lib/server";
+import { exportQuery } from "../lib/workspace-export";
 import { consultSeeds } from "../realtime/consults";
 import { steerStore } from "../realtime/steer";
 import type {
@@ -162,6 +163,7 @@ import type {
   Message,
   MessageCard,
   MessagePin,
+  MigrationBundle,
   Mission,
   MissionBrain,
   MissionCommand,
@@ -1036,7 +1038,8 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         if (input.note) form.append("note", input.note);
         return files.upload<ImportedFile>(`${org(orgId)}/imports/files`, form);
       },
-      exportUrl: (orgId) => `${base}${org(orgId)}/export`,
+      exportUrl: (orgId, scope) => `${base}${org(orgId)}/export${exportQuery(scope)}`,
+      exportBundle: (orgId, scope) => request<MigrationBundle>(`${org(orgId)}/export${exportQuery(scope)}`),
     },
     voice: {
       allowed: (orgId) => request<{ allowed: boolean }>(`${org(orgId)}/voice/allowed`),

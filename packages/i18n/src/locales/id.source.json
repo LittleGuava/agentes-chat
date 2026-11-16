@@ -41212,6 +41212,75 @@
   "settings.import.whatsIn": {
     "value": "What's in the file"
   },
+  "settings.import.exportWhat": {
+    "value": "What to export"
+  },
+  "settings.import.exportAll": {
+    "value": "The whole workspace"
+  },
+  "settings.import.exportPart": {
+    "value": "Departments or agents"
+  },
+  "settings.import.partLabel": {
+    "value": "Departments and agents"
+  },
+  "settings.import.partPlaceholder": {
+    "value": "Pick departments or agents"
+  },
+  "settings.import.partNoMatch": {
+    "value": "No department or agent matches “{{query}}”"
+  },
+  "settings.import.partNothing": {
+    "value": "No departments or agents yet"
+  },
+  "settings.import.setores": {
+    "value": "Departments"
+  },
+  "settings.import.agents": {
+    "value": "Agents"
+  },
+  "settings.import.setorAgents": {
+    "value": {
+      "one": "{{count}} agent",
+      "other": "{{count}} agents"
+    }
+  },
+  "settings.import.partAgentsLine": {
+    "value": {
+      "one": "Goes in the file: {{names}}.",
+      "other": "Goes in the file: {{count}} agents, {{names}}."
+    }
+  },
+  "settings.import.partRestLine": {
+    "value": "With {{what}}."
+  },
+  "settings.import.partNobody": {
+    "value": "No agent in what you picked: the file would be empty."
+  },
+  "settings.import.countSkills": {
+    "value": {
+      "one": "{{count}} skill",
+      "other": "{{count}} skills"
+    }
+  },
+  "settings.import.countChannels": {
+    "value": {
+      "one": "{{count}} channel",
+      "other": "{{count}} channels"
+    }
+  },
+  "settings.import.countRoutines": {
+    "value": {
+      "one": "{{count}} routine",
+      "other": "{{count}} routines"
+    }
+  },
+  "settings.import.countNotes": {
+    "value": {
+      "one": "{{count}} memory note",
+      "other": "{{count}} memory notes"
+    }
+  },
   "settings.readOnly": {
     "value": "Only admins change settings."
   },

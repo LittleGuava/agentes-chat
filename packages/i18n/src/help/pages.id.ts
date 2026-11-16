@@ -366,6 +366,7 @@ export const helpId: Partial<Record<HelpSlug, HelpDocument>> = {
               "Pemakaian, biaya, dan riwayat aktivitas",
             ],
           },
+          "Untuk membawa hanya sebagian departemen atau agen, pilih **Departemen atau agen** lalu tandai: file berisi agen-agen itu dan yang mereka pakai (skill yang aktif, kanal publik tempat mereka berada, rutinitas dan memori mereka sendiri), dengan pratinjau sebelum diunduh.",
           "Untuk memakai filenya, buka **Pengaturan › Impor dan ekspor** di ruang kerja lain lalu taruh file .json-nya.",
         ],
       },

@@ -58,6 +58,7 @@ import { ClientSteps } from "@/components/AiApps";
 import { HelpLink } from "@/components/HelpLink";
 import { ImportFailureNote } from "@/components/ImportFailure";
 import { useOrg } from "@/components/org-context";
+import { ExportCard } from "@/components/WorkspaceExport";
 import {
   type AgentFile,
   EXPORT_PROMPT,
@@ -103,7 +104,6 @@ import {
 import { hasFiles } from "@/lib/obsidian";
 import { useTheme } from "@/lib/theme";
 import { useToast } from "@/lib/toast";
-import { saveExport } from "@/lib/workspace-export";
 import "./import-flow.css";
 
 const KIND_ICON: Record<ImportItemKind, IconName> = {
@@ -1760,10 +1760,8 @@ export function ImportReport({
 export function ImportExportSection() {
   const { t } = useTranslation();
   const { org } = useOrg();
-  const api = useApi();
   const flow = useImportFlow(org.id);
   if (!can(org, "create_agents")) return null;
-  const download = () => saveExport(api, org.id);
   return (
     <>
       {makesAgents(org) && (
@@ -1772,27 +1770,7 @@ export function ImportExportSection() {
           <ImportFlow flow={flow} orgId={org.id} standalone level={3} />
         </Card>
       )}
-      <Card aria-labelledby="imp-export-title">
-        <CardHeader
-          icon="download"
-          id="imp-export-title"
-          title={t("settings.import.exportTitle")}
-          action={
-            <Button icon="download" onClick={download}>
-              {t("settings.import.download")}
-            </Button>
-          }
-        />
-        <p className="imp-note ac-iconline">
-          <Icon name="lock" size={16} />
-          <span>{t("settings.import.neverLine")}</span>
-        </p>
-        <p className="imp-help">
-          <HelpLink slug="import" section="export">
-            {t("settings.import.whatsIn")}
-          </HelpLink>
-        </p>
-      </Card>
+      <ExportCard />
     </>
   );
 }

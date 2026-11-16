@@ -366,6 +366,7 @@ export const helpEs: Partial<Record<HelpSlug, HelpDocument>> = {
               "Uso, costos e historial de actividad",
             ],
           },
+          "Para llevar solo algunos departamentos o agentes, elige **Departamentos o agentes** y márcalos: el archivo lleva esos agentes y lo que usan (las habilidades que tienen activas, los canales públicos en los que están, sus rutinas y su propia memoria), con una vista previa antes de descargar.",
           "Para usar el archivo, abre **Configuración › Importar y exportar** en el otro espacio de trabajo y suelta el .json.",
         ],
       },

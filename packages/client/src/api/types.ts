@@ -5314,6 +5314,15 @@ export interface WikiImportResult {
 }
 
 /**
+ * A part of the workspace to export (ADR 0055 addendum 2026-11-15): these agents and the agents of these setores,
+ * with what they use. Empty lists name nobody: the file holds nothing, never the whole workspace.
+ */
+export interface ExportScope {
+  agentIds?: string[];
+  groupIds?: string[];
+}
+
+/**
  * Everything an import can create, in one shape for every source (ADR 0055).
  * The app parses another product's files into it where the person is (their
  * browser); `POST …/imports` plans it (`dryRun`) and applies the picked items;

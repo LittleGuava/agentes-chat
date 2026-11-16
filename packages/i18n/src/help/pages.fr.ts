@@ -366,6 +366,7 @@ export const helpFr: Partial<Record<HelpSlug, HelpDocument>> = {
               "L’utilisation, les coûts et l’historique d’activité",
             ],
           },
+          "Pour n'emporter que certains services ou agents, choisissez **Services ou agents** et sélectionnez-les\u00a0: le fichier contient ces agents et ce qu'ils utilisent (leurs compétences actives, les canaux publics où ils sont, leurs routines et leur propre mémoire), avec un aperçu avant le téléchargement.",
           "Pour utiliser le fichier, ouvrez **Paramètres › Importer et exporter** dans l’autre espace de travail et déposez-y le .json.",
         ],
       },

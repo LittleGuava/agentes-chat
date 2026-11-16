@@ -118,6 +118,7 @@ import type { PlanModel } from "@agenteschat/client/lib/plans";
 import { type LodiPrefs, lodiPrefsOf } from "@agenteschat/client/lib/right-hand-prefs";
 import { grants, rowMax, SUMMARY_ORDER, withRowHolders } from "@agenteschat/client/lib/roles";
 import { sidebarItemOrder, sidebarSections } from "@agenteschat/client/lib/sidebar-items";
+import { exportQuery } from "@agenteschat/client/lib/workspace-export";
 import { driveFolder, isSecretFile } from "@agenteschat/ui/names";
 import { createFakeAccess } from "./fakes/access";
 import { createFakeApps, type FakeApps } from "./fakes/apps";
@@ -3118,7 +3119,39 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         }
         return sources;
       },
-      exportUrl: (orgId) => `/api/app/organizations/${orgId}/export`,
+      exportUrl: (orgId, scope) => `/api/app/organizations/${orgId}/export${exportQuery(scope)}`,
+      // Like the backend's part: the agents named and the setores' agents, with their routines; no skills or memory here.
+      exportBundle: async (orgId, scope) => {
+        log("imports.exportBundle", orgId, scope);
+        const inGroups = (state.agentGroups ?? []).filter((g) => scope.groupIds?.includes(g.id));
+        const unknown =
+          inGroups.length !== (scope.groupIds?.length ?? 0) ||
+          (scope.agentIds ?? []).some((id) => !state.agents.some((a) => a.id === id));
+        if (unknown) throw new ApiError(404, "not_found", "Not found");
+        const ids = new Set([...(scope.agentIds ?? []), ...inGroups.flatMap((g) => g.agentIds)]);
+        const chosen = state.agents.filter((a) => ids.has(a.id));
+        return {
+          format: "agenteschat.bundle",
+          version: 1,
+          source: { app: "agenteschat", ref: orgId, name: "Acme", files: [] },
+          agents: chosen.map((a) => ({
+            key: a.id,
+            name: a.name,
+            handle: a.handle,
+            role: a.role,
+            instructions: a.instructions,
+            model: a.model,
+            appearance: {},
+            skills: [],
+          })),
+          skills: [],
+          channels: [],
+          routines: [],
+          notes: [],
+          todo: [],
+          leftOut: [],
+        };
+      },
       // Like the backend: `<agent's name>/<path>` in the Drive, never over a name already there, never a key file.
       copyFile: async (orgId, { file, ...input }) => {
         log("imports.copyFile", orgId, input);

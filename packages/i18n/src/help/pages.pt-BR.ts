@@ -363,6 +363,7 @@ export const helpPtBR: Record<HelpSlug, HelpDocument> = {
               "Uso, custos e histórico de ações",
             ],
           },
+          "Para levar só alguns setores ou agentes, escolha **Setores ou agentes** e marque quais: o arquivo leva esses agentes e o que eles usam (as skills ligadas, os canais públicos em que estão, as rotinas e a memória deles), com uma prévia antes de baixar.",
           "Para usar o arquivo, abra **Configurações\u00a0›\u00a0Importar e exportar** no outro workspace e solte o .json.",
         ],
       },

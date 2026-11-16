@@ -366,6 +366,7 @@ export const helpDe: Partial<Record<HelpSlug, HelpDocument>> = {
               "Nutzung, Kosten und Aktivitätsverlauf",
             ],
           },
+          "Um nur einige Abteilungen oder Agenten mitzunehmen, wähle **Abteilungen oder Agenten** und markiere sie: Die Datei enthält diese Agenten und was sie nutzen (ihre aktiven Skills, die öffentlichen Kanäle, in denen sie sind, ihre Routinen und ihr eigenes Gedächtnis), mit einer Vorschau vor dem Download.",
           "Um die Datei zu nutzen, öffne im anderen Workspace **Einstellungen\u00a0›\u00a0Import und Export** und zieh die .json hinein.",
         ],
       },

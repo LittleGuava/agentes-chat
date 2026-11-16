@@ -364,6 +364,7 @@ export const helpPl: Partial<Record<HelpSlug, HelpDocument>> = {
               "Użycia, kosztów i historii aktywności",
             ],
           },
+          "Aby zabrać tylko niektóre działy lub agentów, wybierz **Działy lub agenci** i zaznacz je: plik zawiera tych agentów i to, czego używają (włączone umiejętności, kanały publiczne, w których są, ich rutyny i ich własną pamięć), z podglądem przed pobraniem.",
           "Żeby użyć pliku, otwórz **Ustawienia › Import i eksport** w drugiej przestrzeni roboczej i upuść plik .json.",
         ],
       },

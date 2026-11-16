@@ -363,6 +363,7 @@ export const helpEn: Record<HelpSlug, HelpDocument> = {
               "Usage, costs and activity history",
             ],
           },
+          "To take only some departments or agents, choose **Departments or agents** and pick them: the file holds those agents and what they use (the skills they have on, the public channels they're in, their routines and their own memory), with a preview before the download.",
           "To use the file, open **Settings\u00a0›\u00a0Import and export** in the other workspace and drop the .json.",
         ],
       },

@@ -366,6 +366,7 @@ export const helpNl: Partial<Record<HelpSlug, HelpDocument>> = {
               "Gebruik, kosten en activiteitengeschiedenis",
             ],
           },
+          "Om alleen bepaalde afdelingen of agents mee te nemen, kies je **Afdelingen of agents** en vink je ze aan: het bestand bevat die agents en wat ze gebruiken (hun ingeschakelde skills, de openbare kanalen waarin ze zitten, hun routines en hun eigen geheugen), met een voorbeeld voor het downloaden.",
           "Om het bestand te gebruiken, open je **Instellingen › Importeren en exporteren** in de andere werkruimte en sleep je de .json erin.",
         ],
       },

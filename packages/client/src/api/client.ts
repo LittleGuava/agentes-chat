@@ -145,6 +145,7 @@ import type {
   EndpointCheck,
   EndpointModel,
   EndpointStyle,
+  ExportScope,
   FeedbackFile,
   FeedbackInput,
   FeedbackOffer,
@@ -214,6 +215,7 @@ import type {
   Message,
   MessageCard,
   MessagePin,
+  MigrationBundle,
   Mission,
   MissionBrain,
   MissionCommand,
@@ -947,8 +949,10 @@ export interface ApiClient {
      * folder is never overwritten (`exists`); a credential store is refused (`import.secret_file`).
      */
     copyFile(orgId: string, input: ImportFileInput): Promise<ImportedFile>;
-    /** Same-origin URL that downloads this workspace as a bundle (`.json`). */
-    exportUrl(orgId: string): string;
+    /** Same-origin URL that downloads this workspace, or the part `scope` names, as a bundle (`.json`). */
+    exportUrl(orgId: string, scope?: ExportScope): string;
+    /** The bundle of the part `scope` names, as the file would hold it: what a preview shows before the download. */
+    exportBundle(orgId: string, scope: ExportScope): Promise<MigrationBundle>;
   };
   chat: {
     channels(orgId: string): Promise<Channel[]>;

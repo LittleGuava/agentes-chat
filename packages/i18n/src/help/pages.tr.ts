@@ -366,6 +366,7 @@ export const helpTr: Partial<Record<HelpSlug, HelpDocument>> = {
               "Kullanım, maliyetler ve etkinlik geçmişi",
             ],
           },
+          "Yalnızca bazı departmanları veya ajanları almak için **Departmanlar veya ajanlar** seçeneğini seçip işaretleyin: dosya bu ajanları ve kullandıklarını (açık becerileri, bulundukları herkese açık kanalları, rutinlerini ve kendi belleklerini) içerir, indirmeden önce bir önizleme gösterilir.",
           "Dosyayı kullanmak için diğer çalışma alanında **Ayarlar › İçe ve dışa aktar** bölümünü açın ve .json dosyasını bırakın.",
         ],
       },

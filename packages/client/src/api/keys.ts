@@ -30,6 +30,8 @@ export const keys = {
   agents: (orgId: string) => ["org", orgId, "agents"] as const,
   /** Set whole by every change; read again on the `agent.groups` org event. */
   agentGroups: (orgId: string) => ["org", orgId, "agent-groups"] as const,
+  exportPreview: (orgId: string, agentIds: readonly string[], groupIds: readonly string[]) =>
+    ["org", orgId, "export-preview", agentIds, groupIds] as const,
   /** Under `agents`: archiving or deleting one refreshes both. */
   formerAgents: (orgId: string) => ["org", orgId, "agents", "former"] as const,
   /** An agent's proposal of a new agent, by its card's message (ADR 0081). */

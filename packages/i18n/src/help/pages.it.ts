@@ -364,6 +364,7 @@ export const helpIt: Partial<Record<HelpSlug, HelpDocument>> = {
               "Utilizzo, costi e cronologia delle attività",
             ],
           },
+          "Per portare solo alcuni reparti o agenti, scegli **Reparti o agenti** e selezionali: il file contiene quegli agenti e ciò che usano (le skill attive, i canali pubblici in cui sono, le loro routine e la loro memoria), con un'anteprima prima del download.",
           "Per usare il file, apri **Impostazioni › Importa ed esporta** nell’altro spazio di lavoro e trascina lì il .json.",
         ],
       },

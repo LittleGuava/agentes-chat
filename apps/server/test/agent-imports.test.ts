@@ -408,6 +408,44 @@ describe("imports and the export", () => {
     });
     expect(names(copy)).toEqual(names(exported));
   });
+
+  test("a part of the workspace, by setor or by agent: only them and what they use", async () => {
+    const { b, orgId } = await owner({});
+    await b(`/api/app/organizations/${orgId}/imports`, { json: { bundle: BUNDLE, dryRun: false } });
+    const exportUrl = `/api/app/organizations/${orgId}/export`;
+    type Exported = typeof BUNDLE & { agents: { key: string; handle: string }[] };
+    const whole = (await (await b(exportUrl)).json()) as Exported;
+    const keyOf = (handle: string) => whole.agents.find((a) => a.handle === handle)?.key ?? "";
+    const created = await b(`/api/app/organizations/${orgId}/agent-groups`, {
+      json: { name: "Comercial", agentIds: [keyOf("scout")] },
+    });
+    const { groups } = (await created.json()) as { groups: { id: string; name: string }[] };
+    const comercial = groups.find((g) => g.name === "Comercial")?.id ?? "";
+    const names = (x: Exported) => ({
+      agents: x.agents.map((a) => a.handle),
+      skills: x.skills.length,
+      channels: x.channels.map((c) => c.name),
+      routines: x.routines.map((r) => r.name),
+      notes: x.notes.map((n) => n.content),
+    });
+
+    const bySetor = await b(`${exportUrl}?groups=${comercial}`);
+    expect(bySetor.status).toBe(200);
+    expect(bySetor.headers.get("content-disposition")).toMatch(/^attachment; filename="agentes-chat-/);
+    expect(names((await bySetor.json()) as Exported)).toEqual({
+      agents: ["scout"],
+      skills: 1,
+      channels: ["vendas"],
+      routines: ["Resumo"],
+      notes: ["O ciclo de venda leva 30 dias."],
+    });
+    const dev = (await (await b(`${exportUrl}?agents=${keyOf("dev")}`)).json()) as Exported;
+    expect(names(dev)).toMatchObject({ agents: ["dev"], skills: 0, routines: [], notes: [] });
+    expect(dev.channels.map((c) => c.name)).not.toContain("vendas");
+
+    expect((await b(`${exportUrl}?agents=nope`)).status).toBe(400);
+    expect((await b(`${exportUrl}?groups=${crypto.randomUUID()}`)).status).toBe(404);
+  });
 });
 
 describe("an imported agent's own files into the Drive", () => {
