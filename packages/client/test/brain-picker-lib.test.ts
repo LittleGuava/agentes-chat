@@ -4,6 +4,7 @@ import { matchesWords } from "@agenteschat/ui/search";
 import i18next, { type TFunction } from "i18next";
 import type { AiAccounts, BrainMachine, BrainOption, Model } from "../src/api/types";
 import {
+  apiPickOptions,
   brainModelLine,
   brainPickInput,
   brainPickOptions,
@@ -508,5 +509,40 @@ describe("the model picker: the agent's AI changed in place", () => {
       brain: null,
       model: "gpt-6",
     });
+  });
+});
+
+describe("a workspace endpoint's models in the pickers (ADR 0146)", () => {
+  const onEndpoint = (id: string, credentialId: string, name: string, mark?: string): Model => ({
+    ...model(id, "custom"),
+    id: `custom:${credentialId}:${id}`,
+    endpoint: { credentialId, name, ...(mark ? { mark } : {}) },
+  });
+  // Named like a maker on purpose: the name is the admin's, never the mark.
+  const models = [onEndpoint("deepseek-chat", "k1", "Claude", "deepseek"), onEndpoint("llama-4", "k2", "Gateway")];
+  const keys = [
+    { id: "k1", provider: "custom" },
+    { id: "k2", provider: "custom" },
+  ];
+  const api = modelChoices(models, keys, false);
+
+  test("each option and key tile shows the mark its endpoint's host names, else the generic endpoint's", () => {
+    expect(apiPickOptions(t, "pt-BR", api).map((o) => [o.group, o.mark])).toEqual([
+      ["Claude", "deepseek"],
+      ["Gateway", "custom"],
+    ]);
+    const view = {
+      brain: "model" as const,
+      model: AUTO,
+      options: [],
+      accounts: [],
+      account: null,
+      ownSignIn: false,
+      ownUsage: {},
+    };
+    expect(modelPickerTiles(t, view, "u1", api, models[0]?.id ?? null, models).map((x) => [x.key, x.mark])).toEqual([
+      ["api:Claude", "deepseek"],
+      ["api:Gateway", "custom"],
+    ]);
   });
 });

@@ -45,3 +45,13 @@ On agentes.chat Cloud the address must be https and every address its host resol
 
 - A workspace with only an endpoint has no model for routing, the judge or summaries: those need a provider that follows a JSON schema.
 - Telemetry counts endpoint models as `other`; their names never leave the server.
+
+## Addendum (2026-11-15): the maker's mark read from the endpoint's host
+
+An endpoint showed the generic server mark everywhere, even when its address is a maker's own API (`https://api.deepseek.com/v1`). It now shows that maker's mark, read from the address's host alone by one pure function shared by the server, the web, the desktop app and the phone: `markForEndpointHost(url)` in `packages/ui/src/brand/marks.ts` (`@agenteschat/ui/brand/marks`), beside the marks themselves (ADR 0059).
+
+- **Hosts.** A fixed table of host patterns (`ENDPOINT_HOSTS`, `*` standing for one DNS label) to marks the kit already draws: Anthropic's, OpenAI's, Gemini's API, DeepSeek, Moonshot and Kimi, Z.ai, MiniMax, OpenRouter, OpenCode, Command Code, xAI, Mistral, Groq, Meta's Llama API and Alibaba's DashScope (Qwen's mark). Only the host counts: the scheme must be http(s), case, a trailing dot and the port are ignored, and the path or a user name never match, so a look-alike host (`api.openai.com.evil.example`) stays generic. A host without a mark of its own in the kit (Azure, Vertex, a gateway, Ollama, LM Studio) keeps the generic endpoint's (`custom`); no new marks are drawn for this.
+- **Keys.** Admins' lists of keys read the mark from the credential's `endpoint.baseURL` (`credentialMark` in `packages/client/src/lib/endpoints.ts`).
+- **Pickers and cards.** `GET /models` goes to every member, who never sees an endpoint's address, so the server reads the mark when it loads the endpoint's models (`ModelInfo.endpointMark`) and the pickers' entry carries only its id: `endpoint: { credentialId, name, mark? }`, `mark` absent for the generic one. The apps draw it with `modelMark` and, for an agent's model, `apiMarkOf` (`packages/client/src/lib/providers.ts`), which leaves `apiProviderOf` (still `custom`, which logic compares) alone. An endpoint group's mark is never read from its name, which is the admin's.
+
+Later: an admin's choice of mark per endpoint (a stored mark winning over the host's), and marks for hosts the kit doesn't draw yet (Azure, Vertex, Bedrock, Cohere), each with its maker's own file.

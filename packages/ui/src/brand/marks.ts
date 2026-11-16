@@ -352,3 +352,53 @@ export function markOf(id: string | null | undefined): MarkId | null {
   if (Object.hasOwn(PROVIDER_MARKS, key)) return key as MarkId;
   return Object.hasOwn(ALIASES, key) ? (ALIASES[key] ?? null) : null;
 }
+
+/**
+ * The hosts whose addresses are a maker's own API, for a workspace's own endpoint (ADR 0146): `*` stands for one
+ * DNS label. Only hosts whose mark the kit already draws; one without (Azure, Vertex, a local server) stays generic.
+ */
+const ENDPOINT_HOSTS: Readonly<Record<string, MarkId>> = {
+  "api.anthropic.com": "claude",
+  "api.openai.com": "openai",
+  "*.api.openai.com": "openai",
+  "generativelanguage.googleapis.com": "gemini",
+  "api.deepseek.com": "deepseek",
+  "api.moonshot.ai": "kimi",
+  "api.moonshot.cn": "kimi",
+  "api.kimi.com": "kimi",
+  "api.z.ai": "zai",
+  "api.minimax.io": "minimax",
+  "openrouter.ai": "openrouter",
+  "*.openrouter.ai": "openrouter",
+  "opencode.ai": "opencode",
+  "api.commandcode.ai": "commandcode",
+  "api.x.ai": "xai",
+  "api.mistral.ai": "mistral",
+  "codestral.mistral.ai": "mistral",
+  "api.groq.com": "groq",
+  "api.llama.com": "meta",
+  "dashscope.aliyuncs.com": "alibaba",
+  "dashscope-*.aliyuncs.com": "alibaba",
+  "*.*.maas.aliyuncs.com": "alibaba",
+};
+
+const ENDPOINT_PATTERNS = Object.entries(ENDPOINT_HOSTS).map(
+  ([host, mark]) => [new RegExp(`^${host.replaceAll(".", "\\.").replaceAll("*", "[a-z0-9-]+")}$`), mark] as const,
+);
+
+/**
+ * The mark a workspace's own endpoint shows, read from the host of its address (`https://api.deepseek.com/v1` is
+ * DeepSeek's): only the host counts, never its path, user name or port, so a look-alike host stays generic. Any other
+ * address, or one that isn't an http(s) address, shows the generic endpoint's (`custom`).
+ */
+export function markForEndpointHost(url: string | null | undefined): MarkId {
+  let host: string;
+  try {
+    const parsed = new URL((url ?? "").trim());
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return "custom";
+    host = parsed.hostname.toLowerCase().replace(/\.$/, "");
+  } catch {
+    return "custom";
+  }
+  return ENDPOINT_PATTERNS.find(([pattern]) => pattern.test(host))?.[1] ?? "custom";
+}

@@ -1,5 +1,6 @@
 import type { Credential, Member } from "@agenteschat/client";
 import { apiPickOptions, type BrainPickOption, brainPickText } from "@agenteschat/client/lib/brain-picker";
+import { credentialMark } from "@agenteschat/client/lib/endpoints";
 import { keyLine, keySource, type ModelChoice } from "@agenteschat/client/lib/providers";
 import { isPersonal } from "@agenteschat/client/lib/workspace-mode";
 import {
@@ -194,7 +195,7 @@ export function keyOptions(
       description: def ? t("newAgent.defaultKeyDesc", { provider: keySource(def), hint: def.keyHint }) : undefined,
       leading:
         def || provider ? (
-          <ProviderLogo id={def?.provider ?? provider ?? ""} size="sm" />
+          <ProviderLogo id={def ? credentialMark(def) : (provider ?? "")} size="sm" />
         ) : (
           <span className="newag__ib">
             <Icon name="key" size={16} />
@@ -207,7 +208,7 @@ export function keyOptions(
         value: c.id,
         label: c.label,
         description: keyLine(t, c),
-        leading: <ProviderLogo id={c.provider} size="sm" />,
+        leading: <ProviderLogo id={credentialMark(c)} size="sm" />,
       })),
   ];
 }

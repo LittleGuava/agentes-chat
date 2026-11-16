@@ -1,4 +1,5 @@
-import type { EndpointCheck, EndpointCheckResult, EndpointModel, EndpointStyle } from "../api/types";
+import { markForEndpointHost } from "@agenteschat/ui/brand/marks";
+import type { EndpointCheck, EndpointCheckResult, EndpointModel, EndpointStyle, Model } from "../api/types";
 
 /**
  * "Outro provedor" (ADR 0146), web and phone: a workspace's own OpenAI- or Anthropic-compatible endpoint (a gateway,
@@ -7,6 +8,17 @@ import type { EndpointCheck, EndpointCheckResult, EndpointModel, EndpointStyle }
 export const CUSTOM_PROVIDER = "custom";
 
 export const ENDPOINT_STYLES: readonly EndpointStyle[] = ["openai", "anthropic"];
+
+/**
+ * A key's mark (`ProviderLogo` id): an endpoint's is the maker its address's host names (`api.deepseek.com`:
+ * DeepSeek's), else the generic endpoint's; any other key's is its provider's.
+ */
+export const credentialMark = (key: { provider: string; endpoint?: { baseURL: string } | null }) =>
+  key.provider === CUSTOM_PROVIDER ? markForEndpointHost(key.endpoint?.baseURL) : key.provider;
+
+/** An API model's mark: an endpoint model's is the one the server read from its host (absent: generic). */
+export const modelMark = (model: Pick<Model, "provider" | "endpoint">) =>
+  model.endpoint ? (model.endpoint.mark ?? CUSTOM_PROVIDER) : model.provider;
 
 /** One model of the form: on or off, with its prices as typed (US dollars per million tokens). */
 export interface EndpointModelDraft {
