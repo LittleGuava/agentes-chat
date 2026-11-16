@@ -1,0 +1,1 @@
+ALTER TABLE "routines" ADD COLUMN "retry_once" boolean DEFAULT false NOT NULL;

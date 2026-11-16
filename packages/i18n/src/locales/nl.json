@@ -8883,6 +8883,8 @@
       "required": "Zeg wat de agent moet doen.",
       "noAgents": "Maak een agent voordat je een routine maakt.",
       "report": "Wanneer hij post",
+      "retryOnce": "Bij mislukken één keer opnieuw proberen",
+      "retryOnceHint": "Als een uitvoering mislukt door een tijdelijke oorzaak (de AI-aanbieder, de computer, een herstart), wordt die 2 minuten later nog één keer uitgevoerd. Je hoort het alleen als dat ook mislukt.",
       "parseError": {
         "schedule_unreadable": "Kon de periode niet lezen. Probeer “om de 2 weken op maandag om 9:00”.",
         "schedule_never": "Dit schema komt nooit voor.",

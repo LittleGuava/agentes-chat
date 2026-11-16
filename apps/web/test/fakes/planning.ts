@@ -871,6 +871,7 @@ export function createMockPlanning(
           createdAt: ctx.now().toISOString(),
           access: "act",
           report: input.report ?? "when_new",
+          retryOnce: input.retryOnce ?? false,
         };
         s.routines.push(r);
         return clone(r);
@@ -884,6 +885,7 @@ export function createMockPlanning(
         if (patch.target !== undefined) r.target = patch.target;
         if (patch.report !== undefined) r.report = patch.report;
         if (patch.ownActions !== undefined) r.ownActions = patch.ownActions;
+        if (patch.retryOnce !== undefined) r.retryOnce = patch.retryOnce;
         if (patch.active !== undefined) setActive(r, patch.active);
         if (patch.trigger?.type === "schedule") r.trigger = scheduleOf(patch.trigger);
         else if (patch.trigger?.type === "once")

@@ -9145,6 +9145,8 @@
       "required": "Dites ce que l'agent doit faire.",
       "noAgents": "Créez un agent avant de créer une routine.",
       "report": "Quand elle publie",
+      "retryOnce": "Réessayer une fois en cas d’échec",
+      "retryOnceHint": "Si une exécution échoue pour une raison passagère (le fournisseur d’IA, l’ordinateur, un redémarrage), elle est relancée une fois 2 minutes plus tard. Vous n’êtes prévenu que si elle échoue encore.",
       "parseError": {
         "schedule_unreadable": "Impossible de lire la période. Essayez « toutes les 2 semaines le lundi à 9 h ».",
         "schedule_never": "Cet horaire n'arrive jamais.",

@@ -114,6 +114,30 @@ describe("Rotinas: editar, duplicar, apagar", () => {
     expect(hintOf("Faz sozinha", fresh).text).toContain("Nos apps conectados, ela faz as mudanças comuns sem pedir");
   });
 
+  test("Tentar de novo uma vez se falhar: off by default, turned on from the routine's page and in a new routine", async () => {
+    const { state } = await open();
+    await menu("Resumo da semana", "Editar");
+    const page = screen().getByRole("dialog", { name: "Resumo da semana" });
+    const retry = within(page).getByRole("switch", { name: "Tentar de novo uma vez se falhar" });
+    expect(retry.getAttribute("aria-checked")).toBe("false");
+    expect(hintOf("Tentar de novo uma vez se falhar", page).text).toContain("2 minutos depois");
+    await click(retry);
+    await settle(4);
+    const update = state.calls.find((c) => c.method === "routines.update");
+    expect(update?.args[1]).toEqual({ retryOnce: true });
+    expect(
+      within(page).getByRole("switch", { name: "Tentar de novo uma vez se falhar" }).getAttribute("aria-checked"),
+    ).toBe("true");
+    await click(within(page).getByRole("button", { name: "Fechar detalhes" }));
+    await settle(3);
+    await click(screen().getByRole("button", { name: "Nova rotina" }));
+    await settle(3);
+    const fresh = screen().getByRole("dialog", { name: "Nova rotina" });
+    expect(
+      within(fresh).getByRole("switch", { name: "Tentar de novo uma vez se falhar" }).getAttribute("aria-checked"),
+    ).toBe("false");
+  });
+
   test("nothing changed: Salvar just closes", async () => {
     const { state } = await open();
     await menu("Resumo da semana", "Editar");

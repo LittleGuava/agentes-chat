@@ -9419,6 +9419,8 @@
       "required": "Napisz, co agent ma zrobić.",
       "noAgents": "Utwórz agenta, zanim utworzysz rutynę.",
       "report": "Kiedy publikuje",
+      "retryOnce": "Spróbuj ponownie raz, jeśli się nie uda",
+      "retryOnceHint": "Jeśli uruchomienie nie powiedzie się z przejściowego powodu (dostawca AI, komputer, restart), zostanie powtórzone raz 2 minuty później. Dowiesz się o tym tylko wtedy, gdy i to się nie uda.",
       "parseError": {
         "schedule_unreadable": "Nie udało się odczytać okresu. Spróbuj „co 2 tygodnie w poniedziałek o 9:00”.",
         "schedule_never": "Ten harmonogram nigdy nie wypada.",

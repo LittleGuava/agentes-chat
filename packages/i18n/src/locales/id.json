@@ -8564,6 +8564,8 @@
       "required": "Sebutkan apa yang harus dikerjakan agen.",
       "noAgents": "Buat agen dulu sebelum membuat rutinitas.",
       "report": "Kapan dia memposting",
+      "retryOnce": "Coba lagi sekali jika gagal",
+      "retryOnceHint": "Jika sebuah eksekusi gagal karena masalah sesaat (penyedia AI, komputer, mulai ulang), eksekusi itu dijalankan sekali lagi 2 menit kemudian. Kamu hanya diberi tahu jika itu juga gagal.",
       "parseError": {
         "schedule_unreadable": "Periodenya tidak terbaca. Coba “setiap 2 minggu hari Senin pukul 9 pagi”.",
         "schedule_never": "Jadwal ini tidak pernah terjadi.",

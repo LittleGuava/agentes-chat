@@ -21453,6 +21453,12 @@
   "routines.form.report": {
     "value": "When it posts"
   },
+  "routines.form.retryOnce": {
+    "value": "Try again once if it fails"
+  },
+  "routines.form.retryOnceHint": {
+    "value": "When a run fails for a passing reason (the AI provider, the computer, a restart), it runs once more 2 minutes later. You hear of it only if that fails too."
+  },
   "routines.form.parseError.schedule_unreadable": {
     "value": "Couldn't read the period. Try “every 2 weeks on Monday at 9am”."
   },

@@ -410,6 +410,8 @@ export interface RoutineDraft {
   rule: RecurrenceRule;
   active: boolean;
   report: RoutineReport;
+  /** "Tentar de novo uma vez se falhar" (off by default). */
+  retryOnce: boolean;
 }
 
 /** The form for a new routine, or starting from one (`zone`: the zone the form shows). */
@@ -430,6 +432,7 @@ export function draftOf(r: Routine | undefined, zone: string, today = new Date()
     rule: ruleOf(r, zone, today),
     active: r?.active ?? true,
     report: r?.report ?? "when_new",
+    retryOnce: r?.retryOnce ?? false,
   };
 }
 
@@ -494,6 +497,7 @@ export function draftInput(d: RoutineDraft): RoutineInput {
     target: draftTarget(d),
     trigger: draftTrigger(d),
     report: d.report,
+    ...(d.retryOnce ? { retryOnce: true } : {}),
   };
 }
 
@@ -550,6 +554,7 @@ export function draftChanges(r: Routine, d: RoutineDraft, savedRule: string, rul
   if (triggerChanged) patch.trigger = draftTrigger(d);
   if (d.active !== r.active) patch.active = d.active;
   if (d.report !== r.report) patch.report = d.report;
+  if (d.retryOnce !== (r.retryOnce ?? false)) patch.retryOnce = d.retryOnce;
   return patch;
 }
 
