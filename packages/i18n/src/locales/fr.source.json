@@ -5378,6 +5378,12 @@
   "sidebarPins.pinned": {
     "value": "Pinned"
   },
+  "sidebarPins.moveUp": {
+    "value": "Move up"
+  },
+  "sidebarPins.moveDown": {
+    "value": "Move down"
+  },
   "sidebarPins.full.agents": {
     "value": "You already pinned 5 agents. Unpin one to pin this one."
   },

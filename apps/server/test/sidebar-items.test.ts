@@ -314,6 +314,43 @@ test("the sidebar view: each person's own, per workspace, beside the tools' plac
   expect(await view(member)).toEqual({ agentSort: "workspace", showAllAgents: false, pins: null });
 });
 
+test("the pinned rows' order is each person's own: saved as moved, on every device, and the workspace's order stays", async () => {
+  t = await createTestServer();
+  const owner = browser(t);
+  await signUp(owner, "owner@example.com");
+  const orgId = await workspace(owner, "Acme");
+  const channelsUrl = `/api/app/organizations/${orgId}/channels`;
+  for (const name of ["alpha", "beta", "gamma"]) await owner(channelsUrl, { json: { name } });
+  type Channels = { channels: { id: string; name: string }[] };
+  const made = ["alpha", "beta", "gamma"];
+  const order = async (b = owner) =>
+    ((await (await b(channelsUrl)).json()) as Channels).channels.map((c) => c.name).filter((n) => made.includes(n));
+  const workspaceOrder = await order();
+  expect(workspaceOrder).toHaveLength(3);
+  const ids = ((await (await owner(channelsUrl)).json()) as Channels).channels
+    .filter((c) => made.includes(c.name))
+    .map((c) => c.id);
+  const sidebar = `/api/app/organizations/${orgId}/me/sidebar/view`;
+  const view = async (b = owner) => ((await (await b(sidebar)).json()) as { view: { pins: unknown } }).view;
+  const pinned = (channels: string[]) => ({
+    agentSort: "workspace",
+    showAllAgents: false,
+    pins: { agents: [], channels, people: [] },
+  });
+  await owner(sidebar, { method: "PUT", json: { view: pinned(ids) } });
+  // Moved: the last one first. Another device (a second session of the same person) reads the same order.
+  const moved = [ids[2] ?? "", ids[0] ?? "", ids[1] ?? ""];
+  expect((await owner(sidebar, { method: "PUT", json: { view: pinned(moved) } })).status).toBe(200);
+  const phone = browser(t);
+  await phone("/api/auth/sign-in/email", { json: { email: "owner@example.com", password: "correct horse battery" } });
+  expect((await view(phone)).pins).toEqual({ agents: [], channels: moved, people: [] });
+  // The channels keep the workspace's order, for the person and for everyone else.
+  expect(await order()).toEqual(workspaceOrder);
+  const member = await joinByInvitation(t, owner, orgId, "member@example.com");
+  expect(await order(member)).toEqual(workspaceOrder);
+  expect((await view(member)).pins).toBeNull();
+});
+
 test("a personal workspace reads its own default orders (ADR 0159); a saved order stays, the team's included", async () => {
   t = await createTestServer();
   const owner = browser(t);

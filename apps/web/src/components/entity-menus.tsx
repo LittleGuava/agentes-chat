@@ -204,7 +204,7 @@ export function useChannelMenu() {
           void navigate({ to: "/org/$orgId/c/$channelId", params: { orgId: org.id, channelId: c.id } });
         },
       },
-      ...(c.isMember ? [pins.entry("channels", c.id)] : []),
+      ...(c.isMember ? pins.entries("channels", c.id) : []),
       ...extra,
       { kind: "separator" },
       {
@@ -300,7 +300,7 @@ export function useAgentMenu() {
           ] satisfies MenuEntry[])
         : []),
       // The right hand has its own row on top of the sidebar.
-      ...(isRightHand(a) ? [] : [pins.entry("agents", a.id)]),
+      ...(isRightHand(a) ? [] : pins.entries("agents", a.id)),
       ...mention(a.handle),
       ...copyHandle(a.handle),
       ...markRead(dm?.channelId, dm?.unread ?? 0),
@@ -382,7 +382,7 @@ export function usePersonMenu() {
             { kind: "item", id: "profile", label: t("profile.viewProfile"), icon: "person", run: openCard },
           ] satisfies MenuEntry[])
         : []),
-      ...(mine ? [] : [pins.entry("people", p.userId)]),
+      ...(mine ? [] : pins.entries("people", p.userId)),
       ...mention(handle),
       ...copyHandle(handle),
       ...markRead(dm?.channelId, dm?.unread ?? 0),

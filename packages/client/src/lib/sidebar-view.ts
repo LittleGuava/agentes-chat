@@ -61,6 +61,39 @@ export function togglePin(pins: SidebarPins, kind: PinKind, id: string): Sidebar
 }
 
 /**
+ * The person's own order of a section's pinned rows (ADR 0083, addendum of 2026-11-15): `id` one place up (-1) or
+ * down (1) among `shown`, the pinned rows shown with it (an agent's setor's; a section's whole pins otherwise). It
+ * trades places with that neighbor, so the pins of other setores stay where they are. Null at that end, or not pinned.
+ */
+export function stepPin(
+  pins: SidebarPins,
+  kind: PinKind,
+  id: string,
+  step: -1 | 1,
+  shown: readonly string[] = pins[kind],
+): SidebarPins | null {
+  const list = pins[kind];
+  const row = shown.filter((x) => list.includes(x));
+  const i = row.indexOf(id);
+  const other = i < 0 ? undefined : row[i + step];
+  if (other === undefined) return null;
+  return { ...pins, [kind]: list.map((x) => (x === id ? other : x === other ? id : x)) };
+}
+
+/**
+ * A dragged pinned row dropped before another pinned row (`before`), or last (null). Null when nothing would move:
+ * dropped where it was, or either one isn't pinned.
+ */
+export function placePin(pins: SidebarPins, kind: PinKind, id: string, before: string | null): SidebarPins | null {
+  const list = pins[kind];
+  if (!list.includes(id) || id === before || (before !== null && !list.includes(before))) return null;
+  const rest = list.filter((x) => x !== id);
+  const at = before === null ? rest.length : rest.indexOf(before);
+  const next = [...rest.slice(0, at), id, ...rest.slice(at)];
+  return next.join() === list.join() ? null : { ...pins, [kind]: next };
+}
+
+/**
  * A section's rows split into its pinned ones (`top`, in the pins' order) and the rest (in theirs). A pin puts an
  * agent on top of its own setor (or of the agents in none), never out of it: a setor holds its agents whoever put
  * them there, and whenever.
