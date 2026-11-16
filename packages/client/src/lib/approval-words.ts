@@ -28,6 +28,7 @@ const OWN_TITLES = new Set([
   "delete_branches",
   BRANCH_PUSH,
   "vault_make_password",
+  "publish_page",
 ]);
 
 /** GitHub's actions whose server title says what they touch (engine `connectors/catalog.ts`), by their own name. */
@@ -87,6 +88,7 @@ function wordedTitle(t: TFunction, approval: TitledApproval): string | null {
       permission: permissionLabel(t, say(p.permission), approval.title),
       repo: say(p.repo),
       branch: say(p.branch),
+      version: say(p.version),
       ...(Array.isArray(p.branches) ? { count: p.branches.length } : {}),
       defaultValue: approval.title,
     });

@@ -133,6 +133,9 @@ export const keys = {
   dmReads: (orgId: string, channelId: string) => ["org", orgId, "dmReads", channelId] as const,
   storage: (orgId: string) => ["org", orgId, "storage"] as const,
   artifacts: (orgId: string) => ["org", orgId, "artifacts"] as const,
+  /** Public pages (ADR 0211), one file's or every one: under `artifacts`, so a file's change refreshes them too. */
+  publishedPages: (orgId: string, artifactId?: string) =>
+    ["org", orgId, "artifacts", "published-pages", artifactId ?? "all"] as const,
   sandbox: (orgId: string) => ["org", orgId, "sandbox"] as const,
   sandboxSettings: (orgId: string) => ["org", orgId, "sandbox", "settings"] as const,
   computer: (orgId: string, agentId: string) => ["org", orgId, "sandbox", "computer", agentId] as const,

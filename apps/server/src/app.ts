@@ -13,6 +13,7 @@ import { authHandler, signInPageUrl } from "./auth";
 import { apiBodyLimit } from "./http/body-limit";
 import { errorPages } from "./http/error-page";
 import { apiError, domainErrorResponse, routeOf, validationHook } from "./http/errors";
+import { publishedPages } from "./http/published-pages";
 import { createLogger, type Logger, loggedPath } from "./logger";
 import { directPushSenders, relayServeSender } from "./push-senders";
 import { registerAgentApi } from "./routes/agent-api";
@@ -56,6 +57,7 @@ import { missionRoutes } from "./routes/app/missions";
 import { notificationRoutes } from "./routes/app/notifications";
 import { personUsageRoutes } from "./routes/app/person-usage";
 import { planUsageRoutes } from "./routes/app/plan-usage";
+import { publishedPageRoutes } from "./routes/app/published-pages";
 import { pushRoutes } from "./routes/app/push";
 import { questionRoutes } from "./routes/app/questions";
 import { readAloudRoutes } from "./routes/app/read-aloud";
@@ -140,6 +142,7 @@ export interface AppOptions {
  * - `/i/<code>`           a new computer's installer with a connect link baked in (`/i/<code>/ps` for Windows)
  * - `/install/docker-compose.yml` the compose file of this release, which the setup downloads
  * - `/sw.js`              the web app's service worker (browser push, ADR 0071)
+ * - `/p/<token>/`         a public page, only on `PUBLISHED_PAGES_URL`'s host, which answers nothing else (ADR 0211)
  * - everything else       web app (single-page app), when built
  */
 const APP_CSP =
@@ -218,6 +221,7 @@ export function createApp(options: AppOptions) {
     api.route("/app", storageRoutes(deps));
     api.route("/app", billingRoutes(deps));
     api.route("/app", artifactRoutes(deps));
+    api.route("/app", publishedPageRoutes(deps));
     api.route("/app", issueRoutes(deps));
     api.route("/app", threadRoutes(deps));
     api.route("/app", missionRoutes(deps));
@@ -332,6 +336,11 @@ export function createApp(options: AppOptions) {
     if (error instanceof MisconfiguredError) return apiError(c, 500, error.code, error.message, error.params);
     return apiError(c, 500, "internal_error", "Something went wrong on our side");
   });
+  // Public pages' own host answers their addresses and nothing else, ahead of every route (ADR 0211 §1).
+  app.use(
+    "*",
+    publishedPages(options.services?.config.PUBLISHED_PAGES_URL, () => options.services?.extras?.artifacts),
+  );
   // Ties a request's failure in the log to its report, and to what the client saw (`X-Request-Id`).
   app.use("/api/*", requestId());
   app.use("/api/*", apiBodyLimit);

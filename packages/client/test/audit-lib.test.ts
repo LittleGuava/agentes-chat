@@ -172,6 +172,13 @@ describe("Auditoria in words (web and phone)", () => {
     expect(auditSentence(t, merged, "en").text).toBe("audit.change.mergedWithoutAsking(acme/app)");
   });
 
+  test("a page put on the internet and taken down says so, with the version it shows (ADR 0211)", () => {
+    const page = (action: string) =>
+      auditSentence(t, row({ action, target: { type: "artifact", id: "f1" }, details: { version: 3 } }), "en").text;
+    expect(page("artifact.page_published")).toBe("audit.change.artifact.page_published(3)");
+    expect(page("artifact.page_unpublished")).toBe("audit.change.artifact.page_unpublished(3)");
+  });
+
   test("a waiting call says what became of its approval or of the secret it asked for", () => {
     expect(auditOutcome(t, row())).toMatchObject({ mood: "done", text: "audit.outcome.done" });
     const waiting = row({ outcome: "pending", approval: { id: "ap", status: "pending", decidedBy: null } });

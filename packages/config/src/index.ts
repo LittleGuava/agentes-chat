@@ -116,6 +116,20 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     throw new ConfigError(["WEB_PUSH_VAPID_PUBLIC_KEY isn't the public half of WEB_PUSH_VAPID_PRIVATE_KEY"]);
   }
   const site = new URL(config.PUBLIC_URL);
+  if (config.PUBLISHED_PAGES_URL) {
+    const pages = new URL(config.PUBLISHED_PAGES_URL);
+    // On the app's host a page would run one `fetch` away from people's sessions (ADR 0211 §1).
+    if (pages.hostname === site.hostname) {
+      throw new ConfigError([
+        "PUBLISHED_PAGES_URL needs a host of its own: a page served on PUBLIC_URL's host would run beside people's sessions",
+      ]);
+    }
+    // Pages live at `/p/<token>/` on that host; a path would never be matched.
+    if (pages.pathname.replace(/\/+$/, "") !== "" || pages.search || pages.hash) {
+      throw new ConfigError(["PUBLISHED_PAGES_URL takes an origin with no path, such as https://pages.example.net"]);
+    }
+    config.PUBLISHED_PAGES_URL = pages.origin;
+  }
   if (OFFICIAL_HOSTS.has(site.hostname)) {
     config.TERMS_URL ??= `${site.origin}/terms`;
     config.PRIVACY_URL ??= `${site.origin}/privacy`;

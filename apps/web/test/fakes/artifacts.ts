@@ -277,6 +277,11 @@ export function createMockArtifacts(
           : { mode: sharing.mode, userIds: [], roleIds: [] };
       return view(orgId, s);
     },
+    // No server pages here: a test that shows one sets its own list (ADR 0211).
+    publishedPages: async () => [],
+    unpublish: async (orgId, pageId) => {
+      record("artifacts.unpublish", orgId, pageId);
+    },
     versions: async (orgId, id) =>
       (await find(orgId, id)).versions.map(({ content: _c, bytes: _b, ...v }) => clone(v)).reverse(),
     fileUrl: (orgId, id, options = {}) => {

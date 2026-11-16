@@ -118,6 +118,12 @@ export function auditPhrase(t: TFunction, row: AuditRow, locale?: string): strin
     const what = VAULT_ACTIONS.find((s) => s === rest);
     if (what) return t(`audit.change.vault.${what}`);
   }
+  // A file's public page (ADR 0211): on or off the internet, at the version it shows.
+  if (row.action === "artifact.page_published" || row.action === "artifact.page_unpublished") {
+    return t(`audit.change.artifact.${rest as "page_published" | "page_unpublished"}`, {
+      version: String(row.details.version ?? ""),
+    });
+  }
   const last = (rest.split("_").at(-1) ?? "").replace("cancelled", "canceled");
   const verb = VERBS.find((v) => v === last) ?? "other";
   const where = AREAS.find((a) => a === area) ?? "other";

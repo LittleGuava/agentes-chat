@@ -235,6 +235,19 @@ describe("loadConfig", () => {
     expect(() => loadConfig({ ...valid, INSTALL_MODE: "kubernetes" })).toThrow(/INSTALL_MODE/);
   });
 
+  test("public pages: off by default, and only on a host that isn't the app's (ADR 0211)", () => {
+    expect(loadConfig(valid).PUBLISHED_PAGES_URL).toBeUndefined();
+    const app = { ...valid, PUBLIC_URL: "https://chat.example.com" };
+    expect(loadConfig({ ...app, PUBLISHED_PAGES_URL: "https://pages.example.net" }).PUBLISHED_PAGES_URL).toBe(
+      "https://pages.example.net",
+    );
+    expect(() => loadConfig({ ...app, PUBLISHED_PAGES_URL: "https://chat.example.com" })).toThrow(/host of its own/);
+    expect(() => loadConfig({ ...app, PUBLISHED_PAGES_URL: "https://CHAT.example.com:8443/pages" })).toThrow(
+      /host of its own/,
+    );
+    expect(() => loadConfig({ ...app, PUBLISHED_PAGES_URL: "https://pages.example.net/p" })).toThrow(/no path/);
+  });
+
   test("the bot check's two keys go together, and unset there is none", () => {
     expect([loadConfig(valid).TURNSTILE_SITE_KEY, loadConfig(valid).TURNSTILE_SECRET_KEY]).toEqual([
       undefined,
