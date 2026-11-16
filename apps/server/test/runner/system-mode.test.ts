@@ -482,6 +482,11 @@ test("a system-mode runner (root) without workers does no agent work; machine-le
     agent: exec.agent,
   } as unknown as MachineRequest;
   expect(await errorCode(() => handleRequest(ctx, stream, scope))).toBe("bad_request");
+  // A browser profile's sites are root's to answer, and root refuses them as it does every profile op here.
+  const sites = { op: "browser.sites", profile: { id: "p1" }, agent: exec.agent } as unknown as MachineRequest;
+  expect(await errorCode(() => handleRequest(ctx, sites, scope))).toBe("not_allowed");
+  const forget = { ...sites, op: "browser.sites.forget", site: "example.com" } as unknown as MachineRequest;
+  expect(await errorCode(() => handleRequest(ctx, forget, scope))).toBe("not_allowed");
   // Every op has its place. The root process keeps a secret's key and sealed box until the server commits its
   // delivery, the computer's accounts and access settings, the desktops and streams, and the browsers' live views:
   // a stream's or a view's data socket needs the machine token, which no worker holds.
@@ -494,6 +499,9 @@ test("a system-mode runner (root) without workers does no agent work; machine-le
     "access.allow",
     // Root refuses it, and every op with a browser profile, until profiles have OS users of their own (ADR 0110).
     "browser.profile.delete",
+    // A profile's signed-in sites and signing it out of one are profile ops like the rest (ADR 0110 addendum 2026-11-15).
+    "browser.sites",
+    "browser.sites.forget",
     "desktop.session.start",
     "desktop.session.stop",
     "desktop.session.status",
