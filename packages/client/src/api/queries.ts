@@ -84,6 +84,7 @@ import type {
   AdminAsk,
   Agent,
   AgentAction,
+  AgentApiKeyInput,
   AgentAudience,
   AgentComputer,
   AgentDatabase,
@@ -7495,6 +7496,53 @@ export const useApps = (orgId: string, all = false, pollMs: number | false = fal
     queryKey: keys.apps(orgId, all),
     queryFn: () => api.apps.list(orgId, all),
     refetchInterval: pollMs,
+  });
+};
+
+/**
+ * An agent's API keys (ADR 0210) and where they send, for its owner or whoever manages agents. Read again back to the
+ * tab: a key is used from a terminal, not from here, so its last use and its room arrive with no event.
+ */
+export const useAgentApiKeys = (orgId: string, agentId: string, enabled = true) => {
+  const api = useApi();
+  return useQuery({
+    queryKey: keys.agentApiKeys(orgId, agentId),
+    queryFn: () => api.agentApiKeys.list(orgId, agentId),
+    enabled,
+    ...BACK_TO_TAB,
+  });
+};
+
+/** Criar chave, Revogar: the agent's list refreshes. Creating is silent: its dialog says what went wrong. */
+export function useAgentApiKeyActions(orgId: string, agentId: string) {
+  const api = useApi();
+  const qc = useQueryClient();
+  const done = () => void qc.invalidateQueries({ queryKey: keys.agentApiKeys(orgId, agentId) });
+  return {
+    create: useMutation({
+      mutationFn: (input: AgentApiKeyInput) => api.agentApiKeys.create(orgId, agentId, input),
+      meta: { silent: true },
+      onSuccess: done,
+    }),
+    revoke: useMutation({
+      mutationFn: (keyId: string) => api.agentApiKeys.revoke(orgId, agentId, keyId),
+      onSuccess: done,
+    }),
+  };
+}
+
+/**
+ * The API key a conversation outside the channel and DM lists belongs to (ADR 0210), asked only for such a one:
+ * a 404 is an answer (not a key's room, or not mine), never retried.
+ */
+export const useAgentKeyRoom = (orgId: string, channelId: string, enabled: boolean) => {
+  const api = useApi();
+  return useQuery({
+    queryKey: keys.agentKeyRoom(orgId, channelId),
+    queryFn: () => api.agentApiKeys.room(orgId, channelId),
+    enabled,
+    retry: false,
+    staleTime: Number.POSITIVE_INFINITY,
   });
 };
 

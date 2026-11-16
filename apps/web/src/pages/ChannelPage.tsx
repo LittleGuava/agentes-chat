@@ -41,6 +41,7 @@ import {
   sendHelpers,
   typingIn,
   useAddChannelMember,
+  useAgentKeyRoom,
   useAgentSkills,
   useAgentStatuses,
   useAiStatus,
@@ -453,6 +454,7 @@ import {
   useStreams,
   useTypingSender,
 } from "@/realtime/context";
+import { DmPage } from "./DmPage";
 import { ThreadPage } from "./ThreadPage";
 
 /** One clock for every "· 12 s" on screen: the block and the card above the box never differ by a second. */
@@ -668,6 +670,13 @@ export function ChannelPage({
   // A DM's link (a message link copied there) names its channel: the DM's own page opens it, at the message.
   const dms = useDms(org.id);
   const dm = channel ? undefined : dms.data?.find((d) => d.channelId === channelId);
+  // Neither a channel nor a DM of the list: one of my agent API keys' rooms (ADR 0210), opened as that agent's
+  // conversation. Only asked once both lists are in, and never for a page that brought its own channel.
+  const keyRoom = useAgentKeyRoom(
+    org.id,
+    channelId,
+    !channel && !dm && !fallback && !thread && !channels.isPending && !dms.isPending,
+  );
   // "#loja · Acme": the window's name in the app (Window menu, Mission Control), the tab's in a browser.
   useDocumentTitle(channel && !fallback && !thread ? `#${channel.name} · ${org.name}` : undefined);
 
@@ -695,6 +704,15 @@ export function ChannelPage({
     );
   }
   if (!channel && dms.isPending) return <ChannelSkeleton />;
+  if (!channel && keyRoom.data)
+    return (
+      <DmPage
+        target={{ agentId: keyRoom.data.agentId }}
+        room={{ channelId, keyName: keyRoom.data.keyName }}
+        focusMessageId={focusMessageId}
+      />
+    );
+  if (!channel && keyRoom.isLoading) return <ChannelSkeleton dm="agent" />;
   if (!channel) {
     return (
       <main className="shell__main">

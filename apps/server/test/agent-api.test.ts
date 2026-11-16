@@ -271,3 +271,55 @@ describe("messages", () => {
     expect(doc.components.securitySchemes.agentKey).toEqual({ type: "http", scheme: "bearer" });
   });
 });
+
+describe("the key's card and its room", () => {
+  type Listed = { keys: { id: string; roomId: string | null }[]; endpoint: string };
+  const listOf = async (b: ReturnType<typeof browser>, orgId: string, agentId: string) =>
+    (await (await b(`/api/app/organizations/${orgId}/agents/${agentId}/api-keys`)).json()) as Listed;
+
+  test("the list says where to send, and the room of each of my keys once it has one", async () => {
+    const { b, orgId, agentId } = await setup();
+    const admin = await joinByInvitation(t, b, orgId, "admin@example.com", { role: "admin" });
+    const mine = (await (await createKey(b, orgId, agentId, { name: "Mine" })).json()) as Created;
+    const theirs = (await (await createKey(admin, orgId, agentId, { name: "Theirs" })).json()) as Created;
+
+    const before = await listOf(b, orgId, agentId);
+    // This server's own address, with the agent's id: a rename of its handle doesn't break a script.
+    expect(before.endpoint).toBe(`${ORIGIN}/api/agents/v1/${agentId}/messages`);
+    expect(before.keys.map((k) => k.roomId)).toEqual([null, null]);
+
+    const sentMine = (await (await send(mine.secret, agentId, { message: "hi", wait_seconds: 0 })).json()) as Result;
+    await send(theirs.secret, agentId, { message: "hi", wait_seconds: 0 });
+    const [message] = await t.db.select().from(schema.messages).where(eq(schema.messages.id, sentMine.message_id));
+    const after = await listOf(b, orgId, agentId);
+    // Only the maker reads a key's room: another manager's key shows none to me.
+    expect(Object.fromEntries(after.keys.map((k) => [k.id, k.roomId]))).toEqual({
+      [mine.key.id]: message?.channelId ?? "",
+      [theirs.key.id]: null,
+    });
+  });
+
+  test("a key's room opens by its channel for its maker only: the agent and the key, nothing for anyone else", async () => {
+    const { b, orgId, agentId, channelId } = await setup();
+    const admin = await joinByInvitation(t, b, orgId, "admin@example.com", { role: "admin" });
+    const { secret, key } = (await (await createKey(b, orgId, agentId, { name: "Deploy bot" })).json()) as Created;
+    const sent = (await (await send(secret, agentId, { message: "hi", wait_seconds: 0 })).json()) as Result;
+    const [message] = await t.db.select().from(schema.messages).where(eq(schema.messages.id, sent.message_id));
+    const room = message?.channelId ?? "";
+    const lookUp = (who: ReturnType<typeof browser>, channel: string) =>
+      who(`/api/app/organizations/${orgId}/agent-key-rooms/${channel}`);
+
+    const found = await lookUp(b, room);
+    expect(found.status).toBe(200);
+    expect(await found.json()).toEqual({ agentId, keyId: key.id, keyName: "Deploy bot" });
+    // An admin reads every channel, never a DM (ADR 0151): nor a key's room.
+    expect((await lookUp(admin, room)).status).toBe(404);
+    // Any other conversation isn't a key's room.
+    expect((await lookUp(b, channelId)).status).toBe(404);
+    expect((await lookUp(b, "00000000-0000-4000-8000-000000000000")).status).toBe(404);
+
+    // Revoked, its room stays readable to its maker, by the name it had.
+    await b(`/api/app/organizations/${orgId}/agents/${agentId}/api-keys/${key.id}`, { method: "DELETE" });
+    expect(await (await lookUp(b, room)).json()).toEqual({ agentId, keyId: key.id, keyName: "Deploy bot" });
+  });
+});

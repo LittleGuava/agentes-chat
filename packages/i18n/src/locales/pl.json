@@ -16034,6 +16034,9 @@
     }
   },
   "errors": {
+    "agentApi": {
+      "keyLimit": "Ten agent ma już 10 kluczy. Unieważnij jeden, aby utworzyć nowy."
+    },
     "tooLarge": "To więcej, niż przyjmuje serwer.",
     "tooLargeMax": "To więcej, niż przyjmuje serwer: do {{max}} MB.",
     "sidebarLink": {
@@ -16480,12 +16483,6 @@
     "feedback": {
       "filesGone": "Dodany plik zniknął. Dodaj go ponownie.",
       "filesPending": "Zbyt wiele plików czeka na wysłanie. Wyślij lub usuń część i spróbuj ponownie."
-    },
-    "agentApi": {
-      "account": "Konta, które utworzyło ten klucz, nie można teraz użyć.",
-      "agentArchived": "Ten agent jest zarchiwizowany. Przywróć go, aby używać jego kluczy API.",
-      "keyLimit": "Ten agent ma już {{limit}} kluczy API, czyli maksimum. Najpierw unieważnij jeden.",
-      "notManager": "Kluczami API zarządza tylko administrator albo właściciel agenta."
     },
     "announcement": {
       "period": "Koniec musi być po początku."
@@ -17514,6 +17511,33 @@
     "deniedTitle": "Nie połączono",
     "denied": "Komputer nie został podłączony. Jeśli to nie ty, nikt nie uzyskał dostępu.",
     "home": "Przejdź do agentes"
+  },
+  "agentApi": {
+    "title": "API agenta",
+    "subtitle": "Skrypty rozmawiają z {{name}} przez HTTP, za pomocą klucza.",
+    "help": "Każdy klucz otwiera tylko {{name}}. To, co wysyła skrypt, idzie w twoim imieniu, we własnej rozmowie klucza, z twoim dostępem. Kto ma klucz, czyta w odpowiedziach to, co agent może przeczytać za ciebie.",
+    "empty": "Brak kluczy.",
+    "create": "Utwórz klucz",
+    "namePlaceholder": "Np. Pipeline wdrożeń",
+    "createdTitle": "Klucz utworzony",
+    "once": "Skopiuj go teraz. Nie zostanie pokazany ponownie.",
+    "copy": "Kopiuj klucz",
+    "copied": "Skopiowano klucz",
+    "leaveText": "Zamknąć bez kopiowania? Klucz nie zostanie pokazany ponownie i aby go użyć, musisz utworzyć nowy.",
+    "example": "Przykład",
+    "copyExample": "Kopiuj polecenie",
+    "exampleCopied": "Skopiowano polecenie",
+    "sampleMessage": "Podsumuj, co się dziś zmieniło",
+    "revokeText": "Przestaje działać od razu. Skrypty z tym kluczem nie mogą już wysyłać wiadomości.",
+    "revoked": "Klucz unieważniony",
+    "created": "Utworzony {{date}} przez {{name}}",
+    "createdByYou": "Utworzony {{date}} przez ciebie",
+    "usedAt": "Użyty {{when}}",
+    "neverUsed": "Nigdy nieużyty",
+    "openRoom": "Otwórz rozmowę",
+    "reauth": "Klucz bez daty ważności wymaga niedawnego logowania. Zaloguj się ponownie i utwórz go albo wybierz datę ważności.",
+    "roomLine": "Rozmowa klucza API {{name}}",
+    "roomLineGone": "Rozmowa klucza API"
   },
   "apps": {
     "connect": "Połącz aplikację",

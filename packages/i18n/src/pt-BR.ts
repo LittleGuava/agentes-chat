@@ -15198,6 +15198,9 @@ export const ptBR = {
     },
   },
   errors: {
+    agentApi: {
+      keyLimit: "Este agente já tem 10 chaves. Revogue uma para criar outra.",
+    },
     /** A request the server, or a proxy in front of it, refused for its size. */
     tooLarge: "Isto é maior do que o servidor aceita.",
     /** The same, from a screen that knows the most it may send. */
@@ -15694,15 +15697,6 @@ export const ptBR = {
     feedback: {
       filesGone: "Um arquivo que você anexou sumiu. Anexe de novo.",
       filesPending: "Há arquivos demais esperando para ser enviados. Envie ou tire alguns e tente de novo.",
-    },
-    /** An agent's own API keys (ADR 0210). */
-    agentApi: {
-      /** `agent_api.account`: the account that made the key is blocked or closed. */
-      account: "A conta que criou esta chave não pode ser usada agora.",
-      agentArchived: "Este agente está arquivado. Restaure para usar as chaves de API dele.",
-      /** `limit`: how many keys one agent holds at most. */
-      keyLimit: "Este agente já tem {{limit}} chaves de API, o máximo. Revogue uma antes.",
-      notManager: "Só um admin ou o dono do agente gerencia as chaves de API dele.",
     },
     /** `announcement.period`: an operator's announcement whose end isn't after its start. */
     announcement: {
@@ -16739,6 +16733,33 @@ export const ptBR = {
     deniedTitle: "Não conectamos",
     denied: "O computador não foi conectado. Se não foi você quem abriu, ninguém ganhou acesso.",
     home: "Ir para o agentes",
+  },
+  agentApi: {
+    title: "API do agente",
+    subtitle: "Scripts falam com {{name}} por HTTP, com uma chave.",
+    help: "Cada chave abre só {{name}}. O que um script manda sai em seu nome, numa conversa só da chave, com o seu acesso. Quem tem a chave lê pelas respostas o que o agente pode ler por você.",
+    empty: "Nenhuma chave criada.",
+    create: "Criar chave",
+    namePlaceholder: "Ex.: Pipeline de deploy",
+    createdTitle: "Chave criada",
+    once: "Copie agora. Ela não aparece de novo.",
+    copy: "Copiar chave",
+    copied: "Chave copiada",
+    leaveText: "Fechar sem copiar? A chave não aparece de novo, e para usar uma você vai precisar criar outra.",
+    example: "Exemplo",
+    copyExample: "Copiar comando",
+    exampleCopied: "Comando copiado",
+    sampleMessage: "Resuma o que mudou hoje",
+    revokeText: "Ela para de funcionar agora. Scripts que usam esta chave deixam de mandar mensagens.",
+    revoked: "Chave revogada",
+    created: "Criada em {{date}} por {{name}}",
+    createdByYou: "Criada em {{date}} por você",
+    usedAt: "Usada {{when}}",
+    neverUsed: "Nunca usada",
+    openRoom: "Abrir conversa",
+    reauth: "Uma chave sem validade pede uma entrada recente. Entre de novo e crie a chave, ou escolha uma validade.",
+    roomLine: "Conversa da chave de API {{name}}",
+    roomLineGone: "Conversa de uma chave de API",
   },
   apps: {
     connect: "Conectar um app",

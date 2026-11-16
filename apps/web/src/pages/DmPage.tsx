@@ -29,8 +29,19 @@ import { useDirectory } from "@/hooks/useDirectory";
 import { rightHandSeen } from "@/lib/storage";
 import { ChannelPage, ChannelSkeleton, type DmSideControl } from "./ChannelPage";
 
-/** A direct message with an agent or a person: the channel layout with its own header and empty state. */
-export function DmPage({ target, focusMessageId }: { target: DmTarget; focusMessageId?: string }) {
+/**
+ * A direct message with an agent or a person: the channel layout with its own header and empty state. `room`: one of
+ * the person's agent API keys' rooms with that agent (ADR 0210), already known, shown as the key's conversation.
+ */
+export function DmPage({
+  target,
+  focusMessageId,
+  room,
+}: {
+  target: DmTarget;
+  focusMessageId?: string;
+  room?: { channelId: string; keyName: string | null };
+}) {
   const { t } = useTranslation();
   const { org, me } = useOrg();
   const api = useApi();
@@ -47,7 +58,9 @@ export function DmPage({ target, focusMessageId }: { target: DmTarget; focusMess
       return res;
     },
     staleTime: Number.POSITIVE_INFINITY,
+    enabled: !room,
   });
+  const channelId = room?.channelId ?? dm.data?.channelId;
 
   const agent = "agentId" in target ? dir.agentById.get(target.agentId) : undefined;
   const person = "userId" in target ? dir.memberById.get(target.userId) : undefined;
@@ -77,18 +90,22 @@ export function DmPage({ target, focusMessageId }: { target: DmTarget; focusMess
       </main>
     );
   }
-  if (!dm.data || dir.loading) return <ChannelSkeleton dm={kind} />;
+  if (!channelId || dir.loading) return <ChannelSkeleton dm={kind} />;
 
   const owner = agent?.ownerUserId ? dir.memberById.get(agent.ownerUserId) : undefined;
   const role = agent ? agent.role || `@${agent.handle}` : "";
   // The right hand (ADR 0137) says what it is and whose permissions it acts with, never an owner, nor a model: each
   // person's DM with it thinks with their own AI, shown with its maker's logo in the side panel's Como pensa.
   const agentLine = agent
-    ? rightHand
-      ? `${t("rightHand.label")} · ${t("rightHand.actsAsYou")}`
-      : owner
-        ? t("dm.subtitle", { role, owner: owner.name })
-        : t("dm.subtitleNoOwner", { role })
+    ? room
+      ? room.keyName
+        ? t("agentApi.roomLine", { name: room.keyName })
+        : t("agentApi.roomLineGone")
+      : rightHand
+        ? `${t("rightHand.label")} · ${t("rightHand.actsAsYou")}`
+        : owner
+          ? t("dm.subtitle", { role, owner: owner.name })
+          : t("dm.subtitleNoOwner", { role })
     : undefined;
   const header = ({
     onSearch,
@@ -127,18 +144,15 @@ export function DmPage({ target, focusMessageId }: { target: DmTarget; focusMess
           {agent && <AgentTasksPill />}
           {/* The sidebar has the computer: only a line of turns waiting for it still shows here. A viewer of its public
               card gets the sidebar's head alone, so the way in stays for one who may still watch the computer. */}
-          {agent && !rightHand && (
-            <ModelPickerButton
-              agent={agent}
-              className="channel__brain"
-              conversation={{ channelId: dm.data.channelId }}
-            />
+          {/* Its model for this conversation: the DM itself, never an API key's room (ADR 0210), which isn't one. */}
+          {agent && !rightHand && !room && (
+            <ModelPickerButton agent={agent} className="channel__brain" conversation={{ channelId }} />
           )}
           {agent && !rightHand && <ComputerButton agent={agent} queueOnly={side?.docked && seesDetails(agent)} />}
           {/* A read-only copy of this talk, for a channel or a colleague (ADR 0151, addendum 2026-11-15). */}
-          {agent && <ShareDmButton channelId={dm.data.channelId} agentName={agent.name} />}
+          {agent && !room && <ShareDmButton channelId={channelId} agentName={agent.name} />}
           {/* The same field as a channel's, held to this DM. */}
-          <HeaderSearch channelId={dm.data.channelId} onOpen={onSearch} searching={searching} dm />
+          <HeaderSearch channelId={channelId} onOpen={onSearch} searching={searching} dm />
           {side && (
             <Button
               size="sm"
@@ -158,10 +172,10 @@ export function DmPage({ target, focusMessageId }: { target: DmTarget; focusMess
   );
   return (
     <ChannelPage
-      channelId={dm.data.channelId}
+      channelId={channelId}
       focusMessageId={focusMessageId}
       fallback={{
-        id: dm.data.channelId,
+        id: channelId,
         name,
         topic: "",
         visibility: "private",
@@ -171,14 +185,16 @@ export function DmPage({ target, focusMessageId }: { target: DmTarget; focusMess
       chrome={{
         header,
         composerTarget: name,
-        ...(rightHand && agent
-          ? {
-              composerLabel: `${t("channel.composerDm", { name })} · ${t("rightHand.composerHint")}`,
-              intro: <RightHandIntro agent={agent} channelId={dm.data.channelId} />,
-            }
-          : setup && agent
-            ? { intro: <AgentSetupIntro agent={agent} /> }
-            : {}),
+        ...(room
+          ? {}
+          : rightHand && agent
+            ? {
+                composerLabel: `${t("channel.composerDm", { name })} · ${t("rightHand.composerHint")}`,
+                intro: <RightHandIntro agent={agent} channelId={channelId} />,
+              }
+            : setup && agent
+              ? { intro: <AgentSetupIntro agent={agent} /> }
+              : {}),
         dmAgentId: agent?.id,
         dmPersonId: person?.userId,
         locked:

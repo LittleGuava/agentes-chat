@@ -129,6 +129,7 @@ import { sidebarItemOrder, sidebarSections } from "@agenteschat/client/lib/sideb
 import { exportQuery } from "@agenteschat/client/lib/workspace-export";
 import { driveFolder, isSecretFile } from "@agenteschat/ui/names";
 import { createFakeAccess } from "./fakes/access";
+import { createFakeAgentApiKeys, type FakeAgentApiKeys } from "./fakes/agent-api-keys";
 import { createFakeApps, type FakeApps } from "./fakes/apps";
 import { createMockArtifacts } from "./fakes/artifacts";
 import { createFakeBrowser, type FakeBrowser } from "./fakes/browser";
@@ -1292,6 +1293,7 @@ const id = (prefix: string) => `${prefix}-${++n}`;
 /** Served by the in-memory fakes in `test/fakes` (same shapes as the server). */
 type FakedParts =
   | "apps"
+  | "agentApiKeys"
   | "wiki"
   | "notifications"
   | "sandbox"
@@ -4310,6 +4312,9 @@ export const fakeBrowserOf = new WeakMap<ApiClient, FakeBrowser>();
 /** The AI apps fake behind each `createFakeApi` client (tests add consents and connect apps with it). */
 export const fakeAppsOf = new WeakMap<ApiClient, FakeApps>();
 
+/** The agent API keys fake behind each `createFakeApi` client (tests add keys and their rooms with it). */
+export const fakeAgentApiKeysOf = new WeakMap<ApiClient, FakeAgentApiKeys>();
+
 /** The boards and widgets fake behind each `createFakeApi` client (tests add boards and finish widgets with it). */
 export const fakeDashboardsOf = new WeakMap<ApiClient, FakeDashboards>();
 
@@ -4362,11 +4367,17 @@ export function createFakeApi(state: FakeState = seedState(), options: { seed?: 
   );
   const browser = createFakeBrowser((method, ...args) => state.calls.push({ method, args }), ctx.now);
   const apps = createFakeApps((method, ...args) => state.calls.push({ method, args }), ctx.now);
+  const agentApiKeys = createFakeAgentApiKeys(
+    (method, ...args) => state.calls.push({ method, args }),
+    ctx.now,
+    () => ({ id: state.me?.user.id ?? "", name: state.me?.user.name ?? "" }),
+  );
   const artifacts = createMockArtifacts(ctx, (method, ...args) => state.calls.push({ method, args }));
   state.drive = artifacts;
   const client: ApiClient = {
     ...http,
     apps: apps.client,
+    agentApiKeys: agentApiKeys.client,
     sandbox: createFakeSandbox(ctx, (method, ...args) => state.calls.push({ method, args }), machines),
     machines: machines.client,
     devices: devices.client,
@@ -4715,6 +4726,7 @@ export function createFakeApi(state: FakeState = seedState(), options: { seed?: 
   fakeDashboardsOf.set(client, dashboards);
   fakeBrowserOf.set(client, browser);
   fakeAppsOf.set(client, apps);
+  fakeAgentApiKeysOf.set(client, agentApiKeys);
   return client;
 }
 

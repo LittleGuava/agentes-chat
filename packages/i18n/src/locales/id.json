@@ -14496,6 +14496,9 @@
     }
   },
   "errors": {
+    "agentApi": {
+      "keyLimit": "Agen ini sudah punya 10 kunci. Cabut satu untuk membuat yang lain."
+    },
     "tooLarge": "Ini lebih besar dari yang diterima server.",
     "tooLargeMax": "Ini lebih besar dari yang diterima server: maksimal {{max}} MB.",
     "sidebarLink": {
@@ -14939,12 +14942,6 @@
     "feedback": {
       "filesGone": "File yang ditambahkan sudah hilang. Tambahkan lagi.",
       "filesPending": "Terlalu banyak file menunggu dikirim. Kirim atau hapus beberapa, lalu coba lagi."
-    },
-    "agentApi": {
-      "account": "Akun yang membuat kunci ini tidak bisa dipakai sekarang.",
-      "agentArchived": "Agen ini diarsipkan. Pulihkan untuk memakai kunci API-nya.",
-      "keyLimit": "Agen ini sudah punya {{limit}} kunci API, jumlah terbanyak. Cabut satu dulu.",
-      "notManager": "Hanya Admin atau pemilik agen yang mengelola kunci API-nya."
     },
     "announcement": {
       "period": "Akhirnya harus setelah awalnya."
@@ -15934,6 +15931,33 @@
     "deniedTitle": "Tidak terhubung",
     "denied": "Komputer tidak dihubungkan. Kalau bukan kamu yang membukanya, tidak ada yang mendapat akses.",
     "home": "Ke agentes"
+  },
+  "agentApi": {
+    "title": "API agen",
+    "subtitle": "Skrip berbicara dengan {{name}} lewat HTTP, dengan sebuah kunci.",
+    "help": "Setiap kunci hanya membuka {{name}}. Yang dikirim skrip berjalan atas namamu, dalam percakapan milik kunci itu sendiri, dengan aksesmu. Siapa pun yang memegang kunci bisa membaca lewat balasan apa yang bisa dibaca agen untukmu.",
+    "empty": "Belum ada kunci.",
+    "create": "Buat kunci",
+    "namePlaceholder": "Mis. Pipeline deploy",
+    "createdTitle": "Kunci dibuat",
+    "once": "Salin sekarang. Kunci ini tidak akan ditampilkan lagi.",
+    "copy": "Salin kunci",
+    "copied": "Kunci disalin",
+    "leaveText": "Tutup tanpa menyalin? Kunci tidak akan ditampilkan lagi, dan kamu harus membuat yang baru untuk memakainya.",
+    "example": "Contoh",
+    "copyExample": "Salin perintah",
+    "exampleCopied": "Perintah disalin",
+    "sampleMessage": "Ringkas apa yang berubah hari ini",
+    "revokeText": "Kunci berhenti bekerja sekarang. Skrip yang memakainya tidak bisa mengirim pesan lagi.",
+    "revoked": "Kunci dicabut",
+    "created": "Dibuat {{date}} oleh {{name}}",
+    "createdByYou": "Dibuat {{date}} olehmu",
+    "usedAt": "Dipakai {{when}}",
+    "neverUsed": "Belum pernah dipakai",
+    "openRoom": "Buka percakapan",
+    "reauth": "Kunci tanpa masa berlaku perlu masuk baru-baru ini. Masuk lagi lalu buat kuncinya, atau pilih masa berlaku.",
+    "roomLine": "Percakapan kunci API {{name}}",
+    "roomLineGone": "Percakapan sebuah kunci API"
   },
   "apps": {
     "connect": "Hubungkan aplikasi",

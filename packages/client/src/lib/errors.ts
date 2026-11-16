@@ -40,6 +40,10 @@ const KNOWN = {
   "agent.handle_taken": "newAgent.errors.handleTaken",
   "agent.right_hand_permanent": "errors.rightHand.permanent",
   "agent.not_owner": "errors.agent.ownerOrAdmin",
+  // An agent's API keys (ADR 0210): its card offers them only to who manages the agent, and only while it is active.
+  "agent_api.not_manager": "errors.agent.ownerOrAdmin",
+  "agent_api.agent_archived": "dashboards.errors.agentArchived",
+  "agent_api.key_limit": "errors.agentApi.keyLimit",
   "usage_queue.cancel_forbidden": "errors.agent.ownerOrAdmin",
   "agent.details_hidden": "errors.agent.detailsHidden",
   "brain.extra_owner_only": "errors.agent.extraOwnerOnly",
@@ -613,10 +617,6 @@ const KNOWN = {
   // An export of chosen agents names one that is gone (ADR 0055).
   "agent.not_found": "errors.said.gone",
   // An agent's own API keys (ADR 0210).
-  "agent_api.account": "errors.agentApi.account",
-  "agent_api.agent_archived": "errors.agentApi.agentArchived",
-  "agent_api.key_limit": "errors.agentApi.keyLimit",
-  "agent_api.not_manager": "errors.agentApi.notManager",
   "announcement.period": "errors.announcement.period",
   // What an agent thinks with: an ACP agent (ADR 0216), its reserves, a model for one conversation.
   "brain.invalid_engine": "errors.agent.acpEngine",

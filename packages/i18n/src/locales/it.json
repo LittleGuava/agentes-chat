@@ -15521,6 +15521,9 @@
     }
   },
   "errors": {
+    "agentApi": {
+      "keyLimit": "Questo agente ha già 10 chiavi. Revocane una per crearne un’altra."
+    },
     "tooLarge": "È più grande di quanto il server accetti.",
     "tooLargeMax": "È più grande di quanto il server accetti: fino a {{max}} MB.",
     "sidebarLink": {
@@ -15966,12 +15969,6 @@
     "feedback": {
       "filesGone": "Un file che hai aggiunto non c'è più. Aggiungilo di nuovo.",
       "filesPending": "Troppi file aspettano di essere inviati. Inviane o togline alcuni e riprova."
-    },
-    "agentApi": {
-      "account": "L'account che ha creato questa chiave non può essere usato ora.",
-      "agentArchived": "Questo agente è archiviato. Ripristinalo per usare le sue chiavi API.",
-      "keyLimit": "Questo agente ha già {{limit}} chiavi API, il massimo. Revocane una prima.",
-      "notManager": "Solo un admin o il responsabile dell'agente gestisce le sue chiavi API."
     },
     "announcement": {
       "period": "La fine deve venire dopo l'inizio."
@@ -16987,6 +16984,33 @@
     "deniedTitle": "Non collegato",
     "denied": "Il computer non è stato collegato. Se non l'hai aperto tu, nessuno ha avuto accesso.",
     "home": "Vai ad agentes"
+  },
+  "agentApi": {
+    "title": "API dell’agente",
+    "subtitle": "Gli script parlano con {{name}} via HTTP, con una chiave.",
+    "help": "Ogni chiave apre solo {{name}}. Quello che uno script invia parte a tuo nome, in una conversazione tutta della chiave, con il tuo accesso. Chi ha la chiave legge dalle risposte quello che l’agente può leggere per te.",
+    "empty": "Nessuna chiave creata.",
+    "create": "Crea chiave",
+    "namePlaceholder": "Es.: Pipeline di deploy",
+    "createdTitle": "Chiave creata",
+    "once": "Copiala ora. Non verrà più mostrata.",
+    "copy": "Copia chiave",
+    "copied": "Chiave copiata",
+    "leaveText": "Chiudere senza copiare? La chiave non verrà più mostrata e per usarne una dovrai crearne un’altra.",
+    "example": "Esempio",
+    "copyExample": "Copia comando",
+    "exampleCopied": "Comando copiato",
+    "sampleMessage": "Riassumi cosa è cambiato oggi",
+    "revokeText": "Smette di funzionare subito. Gli script che usano questa chiave non possono più inviare messaggi.",
+    "revoked": "Chiave revocata",
+    "created": "Creata il {{date}} da {{name}}",
+    "createdByYou": "Creata il {{date}} da te",
+    "usedAt": "Usata {{when}}",
+    "neverUsed": "Mai usata",
+    "openRoom": "Apri conversazione",
+    "reauth": "Una chiave senza scadenza richiede un accesso recente. Accedi di nuovo e creala, oppure scegli una scadenza.",
+    "roomLine": "Conversazione della chiave API {{name}}",
+    "roomLineGone": "Conversazione di una chiave API"
   },
   "apps": {
     "connect": "Collega un'app",

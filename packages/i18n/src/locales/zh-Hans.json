@@ -14505,6 +14505,9 @@
     }
   },
   "errors": {
+    "agentApi": {
+      "keyLimit": "这个智能体已经有 10 个密钥。撤销一个后再创建。"
+    },
     "tooLarge": "超出了服务器接受的大小。",
     "tooLargeMax": "超出了服务器接受的大小：最大 {{max}} MB。",
     "sidebarLink": {
@@ -14948,12 +14951,6 @@
     "feedback": {
       "filesGone": "你添加的文件已经不在了。请重新添加。",
       "filesPending": "等待发送的文件太多。请先发送或移除一些，然后重试。"
-    },
-    "agentApi": {
-      "account": "创建这个密钥的账号目前无法使用。",
-      "agentArchived": "这个智能体已归档。恢复后才能使用它的 API 密钥。",
-      "keyLimit": "这个智能体已有 {{limit}} 个 API 密钥，达到上限。请先撤销一个。",
-      "notManager": "只有管理员或智能体负责人可以管理它的 API 密钥。"
     },
     "announcement": {
       "period": "结束时间必须晚于开始时间。"
@@ -15943,6 +15940,33 @@
     "deniedTitle": "未连接",
     "denied": "电脑没有连接。如果不是你打开的，也没有人获得访问权限。",
     "home": "前往 agentes"
+  },
+  "agentApi": {
+    "title": "智能体 API",
+    "subtitle": "脚本可以用密钥通过 HTTP 与 {{name}} 对话。",
+    "help": "每个密钥只能打开 {{name}}。脚本发送的内容以你的名义、在该密钥专属的对话中、按你的权限发出。持有密钥的人可以通过回复读到智能体能替你读取的内容。",
+    "empty": "还没有密钥。",
+    "create": "创建密钥",
+    "namePlaceholder": "例如：部署流水线",
+    "createdTitle": "密钥已创建",
+    "once": "现在就复制。它不会再次显示。",
+    "copy": "复制密钥",
+    "copied": "已复制密钥",
+    "leaveText": "不复制就关闭？密钥不会再次显示，要使用就得再创建一个。",
+    "example": "示例",
+    "copyExample": "复制命令",
+    "exampleCopied": "已复制命令",
+    "sampleMessage": "总结一下今天的变化",
+    "revokeText": "它会立即失效。使用此密钥的脚本将无法再发送消息。",
+    "revoked": "密钥已撤销",
+    "created": "{{name}} 于 {{date}} 创建",
+    "createdByYou": "你于 {{date}} 创建",
+    "usedAt": "{{when}}使用过",
+    "neverUsed": "从未使用",
+    "openRoom": "打开对话",
+    "reauth": "没有过期时间的密钥需要最近登录过。请重新登录后再创建，或选择一个过期时间。",
+    "roomLine": "API 密钥 {{name}} 的对话",
+    "roomLineGone": "某个 API 密钥的对话"
   },
   "apps": {
     "connect": "连接应用",

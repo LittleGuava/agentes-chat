@@ -15058,6 +15058,9 @@
     }
   },
   "errors": {
+    "agentApi": {
+      "keyLimit": "Deze agent heeft al 10 sleutels. Trek er een in om een nieuwe te maken."
+    },
     "tooLarge": "Dit is groter dan de server aanneemt.",
     "tooLargeMax": "Dit is groter dan de server aanneemt: tot {{max}} MB.",
     "sidebarLink": {
@@ -15502,12 +15505,6 @@
     "feedback": {
       "filesGone": "Een bestand dat je hebt toegevoegd is weg. Voeg het opnieuw toe.",
       "filesPending": "Er wachten te veel bestanden om verstuurd te worden. Verstuur of verwijder er een paar en probeer het opnieuw."
-    },
-    "agentApi": {
-      "account": "Het account dat deze sleutel heeft gemaakt, kan nu niet worden gebruikt.",
-      "agentArchived": "Deze agent is gearchiveerd. Zet hem terug om zijn API-sleutels te gebruiken.",
-      "keyLimit": "Deze agent heeft al {{limit}} API-sleutels, het maximum. Trek er eerst een in.",
-      "notManager": "Alleen een beheerder of de eigenaar van de agent beheert zijn API-sleutels."
     },
     "announcement": {
       "period": "Het einde moet na het begin liggen."
@@ -16510,6 +16507,33 @@
     "deniedTitle": "Niet gekoppeld",
     "denied": "De computer is niet gekoppeld. Als jij hem niet hebt geopend, heeft niemand toegang gekregen.",
     "home": "Naar agentes"
+  },
+  "agentApi": {
+    "title": "Agent-API",
+    "subtitle": "Scripts praten met {{name}} via HTTP, met een sleutel.",
+    "help": "Elke sleutel opent alleen {{name}}. Wat een script stuurt, gaat op jouw naam, in een eigen gesprek van de sleutel, met jouw toegang. Wie de sleutel heeft, leest via de antwoorden wat de agent voor jou kan lezen.",
+    "empty": "Nog geen sleutels.",
+    "create": "Sleutel maken",
+    "namePlaceholder": "Bijv. Deploy-pipeline",
+    "createdTitle": "Sleutel gemaakt",
+    "once": "Kopieer hem nu. Hij wordt niet opnieuw getoond.",
+    "copy": "Sleutel kopiëren",
+    "copied": "Sleutel gekopieerd",
+    "leaveText": "Sluiten zonder kopiëren? De sleutel wordt niet opnieuw getoond, en je moet een nieuwe maken om er een te gebruiken.",
+    "example": "Voorbeeld",
+    "copyExample": "Opdracht kopiëren",
+    "exampleCopied": "Opdracht gekopieerd",
+    "sampleMessage": "Vat samen wat er vandaag veranderd is",
+    "revokeText": "Hij werkt vanaf nu niet meer. Scripts met deze sleutel kunnen geen berichten meer sturen.",
+    "revoked": "Sleutel ingetrokken",
+    "created": "Gemaakt op {{date}} door {{name}}",
+    "createdByYou": "Gemaakt op {{date}} door jou",
+    "usedAt": "Gebruikt {{when}}",
+    "neverUsed": "Nooit gebruikt",
+    "openRoom": "Gesprek openen",
+    "reauth": "Een sleutel zonder vervaldatum vraagt om een recente aanmelding. Meld je opnieuw aan en maak hem, of kies een vervaldatum.",
+    "roomLine": "Gesprek van API-sleutel {{name}}",
+    "roomLineGone": "Gesprek van een API-sleutel"
   },
   "apps": {
     "connect": "App koppelen",

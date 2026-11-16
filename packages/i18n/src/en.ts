@@ -15258,6 +15258,9 @@ export const en = {
     },
   },
   errors: {
+    agentApi: {
+      keyLimit: "This agent has 10 keys. Revoke one to create another.",
+    },
     /** A request the server, or a proxy in front of it, refused for its size. */
     tooLarge: "This is bigger than the server takes.",
     /** The same, from a screen that knows the most it may send. */
@@ -15766,15 +15769,6 @@ export const en = {
     feedback: {
       filesGone: "A file you added is gone. Add it again.",
       filesPending: "Too many files are waiting to be sent. Send or remove some, then try again.",
-    },
-    /** An agent's own API keys (ADR 0210). */
-    agentApi: {
-      /** `agent_api.account`: the account that made the key is blocked or closed. */
-      account: "The account that made this key can't be used right now.",
-      agentArchived: "This agent is archived. Restore it to use its API keys.",
-      /** `limit`: how many keys one agent holds at most. */
-      keyLimit: "This agent already has {{limit}} API keys, the most it can have. Revoke one first.",
-      notManager: "Only an admin or the agent's owner manages its API keys.",
     },
     /** `announcement.period`: an operator's announcement whose end isn't after its start. */
     announcement: {
@@ -16857,6 +16851,33 @@ export const en = {
     deniedTitle: "Not connected",
     denied: "The computer wasn't connected. If it wasn't you who opened it, nobody got access.",
     home: "Go to agentes",
+  },
+  agentApi: {
+    title: "Agent API",
+    subtitle: "Scripts talk to {{name}} over HTTP with a key.",
+    help: "Each key opens only {{name}}. What a script sends goes in your name, in a conversation of the key's own, with your access. Whoever holds the key reads through the replies what the agent can read for you.",
+    empty: "No keys yet.",
+    create: "Create key",
+    namePlaceholder: "E.g. Deploy pipeline",
+    createdTitle: "Key created",
+    once: "Copy it now. It won't be shown again.",
+    copy: "Copy key",
+    copied: "Key copied",
+    leaveText: "Close without copying? The key won't show again, and you'll have to create another one to use it.",
+    example: "Example",
+    copyExample: "Copy command",
+    exampleCopied: "Command copied",
+    sampleMessage: "Summarize what changed today",
+    revokeText: "It stops working now. Scripts using this key can't send messages anymore.",
+    revoked: "Key revoked",
+    created: "Created {{date}} by {{name}}",
+    createdByYou: "Created {{date}} by you",
+    usedAt: "Used {{when}}",
+    neverUsed: "Never used",
+    openRoom: "Open conversation",
+    reauth: "A key with no expiry needs a recent sign-in. Sign in again and create it, or pick an expiry.",
+    roomLine: "Conversation of API key {{name}}",
+    roomLineGone: "Conversation of an API key",
   },
   apps: {
     connect: "Connect an app",

@@ -14930,6 +14930,9 @@
     }
   },
   "errors": {
+    "agentApi": {
+      "keyLimit": "Bu ajanın zaten 10 anahtarı var. Yenisini oluşturmak için birini iptal et."
+    },
     "tooLarge": "Bu, sunucunun kabul ettiğinden büyük.",
     "tooLargeMax": "Bu, sunucunun kabul ettiğinden büyük: en fazla {{max}} MB.",
     "sidebarLink": {
@@ -15374,12 +15377,6 @@
     "feedback": {
       "filesGone": "Eklediğiniz bir dosya artık yok. Yeniden ekleyin.",
       "filesPending": "Gönderilmeyi bekleyen çok fazla dosya var. Bazılarını gönderip ya da kaldırıp tekrar deneyin."
-    },
-    "agentApi": {
-      "account": "Bu anahtarı oluşturan hesap şu anda kullanılamıyor.",
-      "agentArchived": "Bu ajan arşivlenmiş. API anahtarlarını kullanmak için geri yükleyin.",
-      "keyLimit": "Bu ajanın zaten {{limit}} API anahtarı var, en fazlası bu. Önce birini iptal edin.",
-      "notManager": "API anahtarlarını yalnızca bir yönetici veya ajanın sahibi yönetir."
     },
     "announcement": {
       "period": "Bitiş, başlangıçtan sonra olmalı."
@@ -16382,6 +16379,33 @@
     "deniedTitle": "Bağlanmadı",
     "denied": "Bilgisayar bağlanmadı. Onu açan siz değilseniz kimse erişim almadı.",
     "home": "agentes'e git"
+  },
+  "agentApi": {
+    "title": "Ajan API’si",
+    "subtitle": "Betikler bir anahtarla HTTP üzerinden {{name}} ile konuşur.",
+    "help": "Her anahtar yalnızca {{name}} ajanını açar. Bir betiğin gönderdiği senin adına, anahtarın kendi konuşmasında, senin erişiminle gider. Anahtarı elinde tutan, ajanın senin için okuyabildiklerini yanıtlar üzerinden okur.",
+    "empty": "Henüz anahtar yok.",
+    "create": "Anahtar oluştur",
+    "namePlaceholder": "Örn. Dağıtım hattı",
+    "createdTitle": "Anahtar oluşturuldu",
+    "once": "Şimdi kopyala. Bir daha gösterilmeyecek.",
+    "copy": "Anahtarı kopyala",
+    "copied": "Anahtar kopyalandı",
+    "leaveText": "Kopyalamadan kapatılsın mı? Anahtar bir daha gösterilmez ve kullanmak için yeni bir tane oluşturman gerekir.",
+    "example": "Örnek",
+    "copyExample": "Komutu kopyala",
+    "exampleCopied": "Komut kopyalandı",
+    "sampleMessage": "Bugün neyin değiştiğini özetle",
+    "revokeText": "Hemen çalışmayı bırakır. Bu anahtarı kullanan betikler artık mesaj gönderemez.",
+    "revoked": "Anahtar iptal edildi",
+    "created": "{{date}} tarihinde {{name}} oluşturdu",
+    "createdByYou": "{{date}} tarihinde sen oluşturdun",
+    "usedAt": "{{when}} kullanıldı",
+    "neverUsed": "Hiç kullanılmadı",
+    "openRoom": "Konuşmayı aç",
+    "reauth": "Süresi dolmayan bir anahtar yakın zamanda giriş yapılmasını ister. Yeniden giriş yapıp oluştur ya da bir süre seç.",
+    "roomLine": "{{name}} API anahtarının konuşması",
+    "roomLineGone": "Bir API anahtarının konuşması"
   },
   "apps": {
     "connect": "Uygulama bağla",
