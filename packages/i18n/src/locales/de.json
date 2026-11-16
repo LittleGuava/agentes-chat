@@ -6410,7 +6410,7 @@
     "ended": "Abgelaufen am {{date}}",
     "endedTitle": "Abgelaufen: Agenten nutzen es nicht mehr. Gib ein neues Datum an, um es zurückzuholen.",
     "validUntil": "Gilt bis",
-    "validUntilHelp": "Nach diesem Tag nutzen Agenten es nicht mehr; es bleibt hier, markiert. Leer lassen für kein Ende.",
+    "validUntilHelp": "Nach diesem Tag nutzen Agenten es nicht mehr. Es bleibt hier, markiert. Leer lassen für kein Ende.",
     "noEnd": "Kein Ende",
     "clearEnd": "Ende entfernen",
     "confirm": "Bestätigen",

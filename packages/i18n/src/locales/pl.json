@@ -6894,7 +6894,7 @@
     "ended": "Wygasło {{date}}",
     "endedTitle": "Wygasło: agenci już tego nie używają. Ustaw nową datę, aby to przywrócić.",
     "validUntil": "Ważne do",
-    "validUntilHelp": "Po tym dniu agenci przestają tego używać; zostaje tutaj, oznaczone. Zostaw puste, jeśli bez końca.",
+    "validUntilHelp": "Po tym dniu agenci przestają tego używać. Zostaje tutaj, oznaczone. Zostaw puste, jeśli bez końca.",
     "noEnd": "Bez końca",
     "clearEnd": "Usuń datę",
     "confirm": "Potwierdź",

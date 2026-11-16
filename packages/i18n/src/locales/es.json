@@ -6609,7 +6609,7 @@
     "ended": "Venció el {{date}}",
     "endedTitle": "Ya venció: los agentes no lo usan más. Ponle una fecha nueva para recuperarlo.",
     "validUntil": "Vale hasta",
-    "validUntilHelp": "Después de ese día los agentes dejan de usarlo; sigue aquí, marcado. Déjalo vacío para que no venza.",
+    "validUntilHelp": "Después de ese día los agentes dejan de usarlo. Sigue aquí, marcado. Déjalo vacío para que no venza.",
     "noEnd": "Sin fecha",
     "clearEnd": "Quitar la fecha",
     "confirm": "Confirmar",

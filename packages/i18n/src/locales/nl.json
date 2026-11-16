@@ -6458,7 +6458,7 @@
     "ended": "Verlopen op {{date}}",
     "endedTitle": "Verlopen: agents gebruiken het niet meer. Geef een nieuwe datum om het terug te halen.",
     "validUntil": "Geldig tot",
-    "validUntilHelp": "Na deze dag gebruiken agents het niet meer; het blijft hier staan, gemarkeerd. Laat leeg voor geen einde.",
+    "validUntilHelp": "Na deze dag gebruiken agents het niet meer. Het blijft hier staan, gemarkeerd. Laat leeg voor geen einde.",
     "noEnd": "Geen einde",
     "clearEnd": "Einde weghalen",
     "confirm": "Bevestigen",

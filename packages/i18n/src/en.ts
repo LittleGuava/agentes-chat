@@ -6901,7 +6901,7 @@ export const en = {
     ended: "Ended {{date}}",
     endedTitle: "Past its end: agents no longer use it. Give it a new date to bring it back.",
     validUntil: "Valid until",
-    validUntilHelp: "After this day agents stop using it; it stays here, marked. Leave it empty for no end.",
+    validUntilHelp: "After this day agents stop using it. It stays here, marked. Leave it empty for no end.",
     noEnd: "No end",
     clearEnd: "Remove the end",
     confirm: "Confirm",

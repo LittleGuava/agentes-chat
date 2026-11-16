@@ -15835,7 +15835,7 @@
     "value": "Valid until"
   },
   "memory.validUntilHelp": {
-    "value": "After this day agents stop using it; it stays here, marked. Leave it empty for no end."
+    "value": "After this day agents stop using it. It stays here, marked. Leave it empty for no end."
   },
   "memory.noEnd": {
     "value": "No end"

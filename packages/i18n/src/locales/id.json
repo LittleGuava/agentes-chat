@@ -6189,7 +6189,7 @@
     "ended": "Berakhir {{date}}",
     "endedTitle": "Sudah berakhir: agen tidak lagi memakainya. Beri tanggal baru untuk mengaktifkannya lagi.",
     "validUntil": "Berlaku sampai",
-    "validUntilHelp": "Setelah hari ini agen berhenti memakainya; tetap ada di sini, ditandai. Kosongkan jika tanpa batas.",
+    "validUntilHelp": "Setelah hari ini agen berhenti memakainya. Tetap ada di sini, ditandai. Kosongkan jika tanpa batas.",
     "noEnd": "Tanpa batas",
     "clearEnd": "Hapus tanggal",
     "confirm": "Konfirmasi",

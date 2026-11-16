@@ -6389,7 +6389,7 @@
     "ended": "{{date}} tarihinde sona erdi",
     "endedTitle": "Süresi doldu: ajanlar artık bunu kullanmıyor. Geri getirmek için yeni bir tarih verin.",
     "validUntil": "Geçerlilik sonu",
-    "validUntilHelp": "Bu günden sonra ajanlar bunu kullanmaz; burada işaretli olarak kalır. Süresiz için boş bırakın.",
+    "validUntilHelp": "Bu günden sonra ajanlar bunu kullanmaz. Burada işaretli olarak kalır. Süresiz için boş bırakın.",
     "noEnd": "Süresiz",
     "clearEnd": "Tarihi kaldır",
     "confirm": "Onayla",

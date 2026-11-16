@@ -6661,7 +6661,7 @@
     "ended": "Expiré le {{date}}",
     "endedTitle": "Expiré : les agents ne l’utilisent plus. Donnez une nouvelle date pour le rétablir.",
     "validUntil": "Valable jusqu’au",
-    "validUntilHelp": "Après ce jour, les agents ne l’utilisent plus ; il reste ici, signalé. Laissez vide pour aucune fin.",
+    "validUntilHelp": "Après ce jour, les agents ne l’utilisent plus. Il reste ici, signalé. Laissez vide pour aucune fin.",
     "noEnd": "Sans date",
     "clearEnd": "Retirer la date",
     "confirm": "Confirmer",

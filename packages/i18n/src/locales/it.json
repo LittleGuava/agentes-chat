@@ -6667,7 +6667,7 @@
     "ended": "Scaduto il {{date}}",
     "endedTitle": "Scaduto: gli agenti non lo usano più. Dagli una nuova data per riportarlo in uso.",
     "validUntil": "Valido fino al",
-    "validUntilHelp": "Dopo questo giorno gli agenti smettono di usarlo; resta qui, segnalato. Lascia vuoto per nessuna scadenza.",
+    "validUntilHelp": "Dopo questo giorno gli agenti smettono di usarlo. Resta qui, segnalato. Lascia vuoto per nessuna scadenza.",
     "noEnd": "Nessuna scadenza",
     "clearEnd": "Togli la data",
     "confirm": "Conferma",

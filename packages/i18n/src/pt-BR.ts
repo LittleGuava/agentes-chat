@@ -6818,7 +6818,7 @@ export const ptBR = {
     ended: "Venceu em {{date}}",
     endedTitle: "Passou da validade: os agentes não usam mais. Dê uma nova data para trazer de volta.",
     validUntil: "Vale até",
-    validUntilHelp: "Depois desse dia os agentes deixam de usar; continua aqui, marcada. Deixe vazio para não vencer.",
+    validUntilHelp: "Depois desse dia os agentes deixam de usar. Continua aqui, marcada. Deixe vazio para não vencer.",
     noEnd: "Sem data",
     clearEnd: "Tirar a data",
     confirm: "Confirmar",
