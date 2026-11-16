@@ -17547,6 +17547,7 @@
         "shown": "Wyświetlono",
         "copied": "Skopiowano",
         "used": "Użyto",
+        "exported": "Wyeksportowano",
         "other": "Zmieniono"
       },
       "area": {
@@ -17579,6 +17580,7 @@
         "invitation": "zaproszenie",
         "credential": "klucz AI",
         "vault": "Vault",
+        "conversation": "rozmowa",
         "other": "przestrzeń roboczą"
       }
     },
@@ -21579,5 +21581,15 @@
       "alwaysOn": "Od teraz takie zgłoszenia będą wysyłane bez pytania.",
       "askFirst": "Pytaj przed wysłaniem"
     }
+  },
+  "transcript": {
+    "menu": "Eksportuj rozmowę",
+    "menuThread": "Eksportuj wątek",
+    "title": "Eksportuj rozmowę",
+    "titleThread": "Eksportuj wątek",
+    "format": "Format",
+    "files": "Dołącz pliki",
+    "filesHelp": "Plik .zip z rozmową i plikami, które możesz otworzyć, do 50 MB.",
+    "download": "Pobierz"
   }
 }

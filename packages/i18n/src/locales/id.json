@@ -15978,6 +15978,7 @@
         "shown": "Melihat",
         "copied": "Menyalin",
         "used": "Menggunakan",
+        "exported": "Mengekspor",
         "other": "Mengubah"
       },
       "area": {
@@ -16010,6 +16011,7 @@
         "invitation": "undangan",
         "credential": "kunci AI",
         "vault": "Vault",
+        "conversation": "sebuah percakapan",
         "other": "ruang kerja"
       }
     },
@@ -19784,5 +19786,15 @@
       "alwaysOn": "Mulai sekarang, laporan seperti ini dikirim tanpa bertanya.",
       "askFirst": "Tanya dulu sebelum mengirim"
     }
+  },
+  "transcript": {
+    "menu": "Ekspor percakapan",
+    "menuThread": "Ekspor utas",
+    "title": "Ekspor percakapan",
+    "titleThread": "Ekspor utas",
+    "format": "Format",
+    "files": "Sertakan file",
+    "filesHelp": "File .zip berisi percakapan dan file yang bisa kamu buka, hingga 50 MB.",
+    "download": "Unduh"
   }
 }

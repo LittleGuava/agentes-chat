@@ -16550,6 +16550,7 @@
         "shown": "Bekeken",
         "copied": "Gekopieerd",
         "used": "Gebruikt",
+        "exported": "Geëxporteerd",
         "other": "Gewijzigd"
       },
       "area": {
@@ -16582,6 +16583,7 @@
         "invitation": "een uitnodiging",
         "credential": "een AI-sleutel",
         "vault": "de Vault",
+        "conversation": "een gesprek",
         "other": "de werkruimte"
       }
     },
@@ -20490,5 +20492,15 @@
       "alwaysOn": "Vanaf nu gaan zulke meldingen weg zonder te vragen.",
       "askFirst": "Vragen voor het versturen"
     }
+  },
+  "transcript": {
+    "menu": "Gesprek exporteren",
+    "menuThread": "Thread exporteren",
+    "title": "Gesprek exporteren",
+    "titleThread": "Thread exporteren",
+    "format": "Indeling",
+    "files": "Bestanden meenemen",
+    "filesHelp": "Een .zip met het gesprek en de bestanden die je kunt openen, tot 50 MB.",
+    "download": "Downloaden"
   }
 }

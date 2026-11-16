@@ -16422,6 +16422,7 @@
         "shown": "Görüntüledi",
         "copied": "Kopyaladı",
         "used": "Kullandı",
+        "exported": "Dışa aktardı",
         "other": "Değiştirdi"
       },
       "area": {
@@ -16454,6 +16455,7 @@
         "invitation": "bir davet",
         "credential": "bir yapay zeka anahtarı",
         "vault": "Vault",
+        "conversation": "bir konuşma",
         "other": "çalışma alanı"
       }
     },
@@ -20241,5 +20243,15 @@
       "alwaysOn": "Bundan sonra bu tür bildirimler sormadan gider.",
       "askFirst": "Göndermeden önce sor"
     }
+  },
+  "transcript": {
+    "menu": "Konuşmayı dışa aktar",
+    "menuThread": "Konuyu dışa aktar",
+    "title": "Konuşmayı dışa aktar",
+    "titleThread": "Konuyu dışa aktar",
+    "format": "Biçim",
+    "files": "Dosyaları ekle",
+    "filesHelp": "Konuşmayı ve açabildiğin dosyaları içeren bir .zip, en fazla 50 MB.",
+    "download": "İndir"
   }
 }

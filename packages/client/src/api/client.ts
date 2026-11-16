@@ -1949,6 +1949,17 @@ export interface ApiClient {
   viewers?: {
     list(orgId: string, channelId: string): Promise<string[]>;
   };
+  /**
+   * A conversation's transcript (ADR 0055 addendum 2026-11-15): the same-origin URL of a channel, DM or thread as
+   * Markdown or JSON, a zip with its files when `files`, for whoever reads it.
+   */
+  transcripts?: {
+    url(
+      orgId: string,
+      channelId: string,
+      options: { format: "markdown" | "json"; threadId?: string; files?: boolean },
+    ): string;
+  };
   /** Pinned messages of a channel or DM (anyone who can post there pins). */
   pins?: {
     /** Newest pin first. */

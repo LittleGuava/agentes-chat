@@ -15923,6 +15923,7 @@
         "shown": "表示",
         "copied": "コピー",
         "used": "使用",
+        "exported": "エクスポート",
         "other": "変更"
       },
       "area": {
@@ -15955,6 +15956,7 @@
         "invitation": "招待",
         "credential": "AIキー",
         "vault": "Vault",
+        "conversation": "会話",
         "other": "ワークスペース"
       }
     },
@@ -19681,5 +19683,15 @@
       "alwaysOn": "今後、このような報告は確認なしで送信されます。",
       "askFirst": "送信前に確認する"
     }
+  },
+  "transcript": {
+    "menu": "会話をエクスポート",
+    "menuThread": "スレッドをエクスポート",
+    "title": "会話をエクスポート",
+    "titleThread": "スレッドをエクスポート",
+    "format": "形式",
+    "files": "ファイルを含める",
+    "filesHelp": "会話と、あなたが開けるファイルをまとめた .zip(最大 50 MB)。",
+    "download": "ダウンロード"
   }
 }

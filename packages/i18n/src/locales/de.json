@@ -16486,6 +16486,7 @@
         "shown": "Angesehen",
         "copied": "Kopiert",
         "used": "Verwendet",
+        "exported": "Exportiert",
         "other": "Geändert"
       },
       "area": {
@@ -16518,6 +16519,7 @@
         "invitation": "Einladung",
         "credential": "KI-Schlüssel",
         "vault": "den Vault",
+        "conversation": "Unterhaltung",
         "other": "Workspace"
       }
     },
@@ -20311,5 +20313,15 @@
       "alwaysOn": "Ab jetzt gehen solche Berichte ohne Nachfrage raus.",
       "askFirst": "Vor dem Senden fragen"
     }
+  },
+  "transcript": {
+    "menu": "Unterhaltung exportieren",
+    "menuThread": "Thread exportieren",
+    "title": "Unterhaltung exportieren",
+    "titleThread": "Thread exportieren",
+    "format": "Format",
+    "files": "Dateien einschließen",
+    "filesHelp": "Eine .zip mit der Unterhaltung und den Dateien, die du öffnen kannst, bis 50 MB.",
+    "download": "Herunterladen"
   }
 }

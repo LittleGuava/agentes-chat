@@ -15987,6 +15987,7 @@
         "shown": "查看了",
         "copied": "复制了",
         "used": "使用了",
+        "exported": "导出了",
         "other": "更改了"
       },
       "area": {
@@ -16019,6 +16020,7 @@
         "invitation": "一个邀请",
         "credential": "一个 AI 密钥",
         "vault": "Vault",
+        "conversation": "一段对话",
         "other": "工作区"
       }
     },
@@ -19860,5 +19862,15 @@
       "alwaysOn": "从现在起，这类报告会直接发送，不再询问。",
       "askFirst": "发送前先询问"
     }
+  },
+  "transcript": {
+    "menu": "导出对话",
+    "menuThread": "导出话题",
+    "title": "导出对话",
+    "titleThread": "导出话题",
+    "format": "格式",
+    "files": "包含文件",
+    "filesHelp": "一个 .zip,包含对话和你能打开的文件,最多 50 MB。",
+    "download": "下载"
   }
 }

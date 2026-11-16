@@ -17010,6 +17010,7 @@
         "shown": "A consulté",
         "copied": "A copié",
         "used": "A utilisé",
+        "exported": "A exporté",
         "other": "A modifié"
       },
       "area": {
@@ -17042,6 +17043,7 @@
         "invitation": "une invitation",
         "credential": "une clé d'IA",
         "vault": "le Vault",
+        "conversation": "une conversation",
         "other": "l'espace de travail"
       }
     },
@@ -21020,5 +21022,15 @@
       "alwaysOn": "Désormais, les rapports de ce type partent sans demander.",
       "askFirst": "Demander avant d'envoyer"
     }
+  },
+  "transcript": {
+    "menu": "Exporter la conversation",
+    "menuThread": "Exporter le fil",
+    "title": "Exporter la conversation",
+    "titleThread": "Exporter le fil",
+    "format": "Format",
+    "files": "Inclure les fichiers",
+    "filesHelp": "Un .zip avec la conversation et les fichiers que vous pouvez ouvrir, jusqu’à 50 Mo.",
+    "download": "Télécharger"
   }
 }

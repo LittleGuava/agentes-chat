@@ -40561,6 +40561,9 @@
   "audit.change.verb.used": {
     "value": "Used"
   },
+  "audit.change.verb.exported": {
+    "value": "Exported"
+  },
   "audit.change.verb.other": {
     "value": "Changed"
   },
@@ -40650,6 +40653,9 @@
   },
   "audit.change.area.vault": {
     "value": "the Vault"
+  },
+  "audit.change.area.conversation": {
+    "value": "a conversation"
   },
   "audit.change.area.other": {
     "value": "the workspace"
@@ -49615,5 +49621,29 @@
   },
   "feedback.offer.askFirst": {
     "value": "Ask before sending"
+  },
+  "transcript.menu": {
+    "value": "Export conversation"
+  },
+  "transcript.menuThread": {
+    "value": "Export thread"
+  },
+  "transcript.title": {
+    "value": "Export conversation"
+  },
+  "transcript.titleThread": {
+    "value": "Export thread"
+  },
+  "transcript.format": {
+    "value": "Format"
+  },
+  "transcript.files": {
+    "value": "Include files"
+  },
+  "transcript.filesHelp": {
+    "value": "A .zip with the conversation and the files you can open, up to 50 MB."
+  },
+  "transcript.download": {
+    "value": "Download"
   }
 }

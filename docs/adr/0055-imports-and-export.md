@@ -1,6 +1,6 @@
 # 0055. Imports from other apps, and our own export, through one bundle
 
-- Status: Accepted (2026-10-21). Addendum 2026-10-31: an old id handle still reaches its agent. Addendum 2026-11-12: private repositories through the workspace's GitHub. Addendum 2026-11-15: exporting a part, setores or chosen agents (§6)
+- Status: Accepted (2026-10-21). Addendum 2026-10-31: an old id handle still reaches its agent. Addendum 2026-11-12: private repositories through the workspace's GitHub. Addendum 2026-11-15: exporting a part, setores or chosen agents (§6). Addendum 2026-11-15: a conversation's transcript, for whoever reads it
 - Date: 2026-10-21
 - Extends: ADR 0020 (skills), ADR 0016 (connectors), ADR 0017 (context items), ADR 0019 (SSRF guard)
 - Out of scope for now: chat history, a CLI, a scan of `~/.openclaw` / `~/.hermes` on a connected computer, the Manus API, rollback
@@ -155,3 +155,19 @@ A team that shares one department with another workspace, or keeps a copy of a f
 - **The bundle doesn't change.** Same format and version. The setor itself doesn't travel: the importing workspace places the agents in its own setores.
 - **The screen.** Settings › Import and export › Export picks "The whole workspace" or "Departments or agents". The second is one field with the setores and then the agents (the kit's `ChipField`), and, while it names some, a preview read from the same endpoint, the file the download will save: its agents by name and how many skills, channels, routines and memory notes go with them, or that nobody is in it, which keeps the download off. The download goes to the same URL with the part's query (`exportUrl(orgId, scope)`), so the browser and the desktop app save it as before.
 - **Later.** The phone's export stays the whole workspace. Taking the workspace's memory along as an option, and carrying the setor into the importing workspace, are not built.
+
+## Addendum (2026-11-15): a conversation's transcript, for whoever reads it
+
+The bundle (§6) still never carries messages: it moves a workspace's setup to another one, and conversations are their people's. People still asked to keep a conversation outside the app (a record of a decision, a thread to hand to someone without an account). That is a read, not a migration, so it is its own route and never part of the bundle or the import.
+
+- `GET …/channels/{channelId}/export?format=markdown|json[&threadId=][&files=true]` (`exportConversation`, `packages/engine/src/conversation-export.ts`). A channel, a DM or a task's conversation, or one thread of it (the root must be a top-level message of that conversation, else 404).
+- Who: `requireChannelAccess`, the one check for reading a conversation. A member, an administrator in a channel (never someone else's DM, ADR 0151 §5), whoever sees a task for its conversation. Anyone else gets the same 403 or 404 the chat gives.
+- What goes out (`Transcript`, `version: 1`): the conversation's id, kind and name (a DM's is who else is in it), and per message its id, thread root, time (ISO, UTC), edit time, author (`person` or `agent`, id and name; null for an author since deleted), the words `readableBody` gives, a voice message's length, and its files by id and title. Never `meta`, runs, usage, tool calls or reactions. Deleted messages and quiet notices are left out, as is a message with no words, voice or file left. Replies follow their root; a thread's export is its root and replies.
+- Markdown: the conversation as a title, each message as its author in bold and the time, replies quoted under their root, files as 📎 lines. No sentence of ours, so it reads the same in every language.
+- Caps (`TRANSCRIPT_LIMITS`): the latest 5,000 messages (`truncated` says older ones were left out); with files, 200 files and 50 MB in all. The zip is built in memory on the server's thread with the deflate the Word export already uses (`zip` in `docx.ts`), so the cap stays modest; streaming it is for later.
+- Files (`files=true`): a zip with `transcript.md` or `transcript.json` and `files/NNN-<name>`. Each file goes through `fileRefOf` and `artifactFile`, the Drive's own visibility check; its size is read from its current version before its bytes are. What the exporter can't read (or is in the trash) is `leftOut: "unreadable"`, past the caps `too_large` or `too_many`, and live blocks, polls and choices `unsupported`, named in the transcript without failing the export.
+- Audit: one `conversation.exported` row per export (target the channel; `threadId`, `format`, `files`, counts of messages and files). Ids and counts only: the log's readers may not read the conversation. The reader adds the conversation by its id (`channel`), as it does for every row with one, an agent's call in a DM included.
+- No range requests: each request builds the export and its audit row once.
+- Apps: "Exportar conversa" in a channel's menu (members and administrators reading it), in the person's or agent's menu when a DM with them exists, and "Exportar thread" in a thread's "…": one dialog (`ConversationExport.tsx`) with the format and "Incluir anexos", saving what the server sends.
+
+Later: the phone; a date range; streaming the zip from a job for very large conversations.

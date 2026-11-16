@@ -16939,6 +16939,7 @@
         "shown": "Vio",
         "copied": "Copió",
         "used": "Usó",
+        "exported": "Exportó",
         "other": "Cambió"
       },
       "area": {
@@ -16971,6 +16972,7 @@
         "invitation": "una invitación",
         "credential": "una clave de IA",
         "vault": "el Vault",
+        "conversation": "una conversación",
         "other": "el espacio de trabajo"
       }
     },
@@ -20876,5 +20878,15 @@
       "alwaysOn": "De ahora en adelante, informes como este salen sin preguntar.",
       "askFirst": "Preguntar antes de enviar"
     }
+  },
+  "transcript": {
+    "menu": "Exportar conversación",
+    "menuThread": "Exportar hilo",
+    "title": "Exportar conversación",
+    "titleThread": "Exportar hilo",
+    "format": "Formato",
+    "files": "Incluir archivos",
+    "filesHelp": "Un .zip con la conversación y los archivos que puedes abrir, hasta 50 MB.",
+    "download": "Descargar"
   }
 }

@@ -15915,6 +15915,7 @@
         "shown": "보기",
         "copied": "복사",
         "used": "사용",
+        "exported": "내보내기",
         "other": "변경"
       },
       "area": {
@@ -15947,6 +15948,7 @@
         "invitation": "초대",
         "credential": "AI 키",
         "vault": "Vault",
+        "conversation": "대화",
         "other": "워크스페이스"
       }
     },
@@ -19673,5 +19675,15 @@
       "alwaysOn": "이제부터 이런 보고는 묻지 않고 보내요.",
       "askFirst": "보내기 전에 묻기"
     }
+  },
+  "transcript": {
+    "menu": "대화 내보내기",
+    "menuThread": "스레드 내보내기",
+    "title": "대화 내보내기",
+    "titleThread": "스레드 내보내기",
+    "format": "형식",
+    "files": "파일 포함",
+    "filesHelp": "대화와 열 수 있는 파일을 담은 .zip, 최대 50MB.",
+    "download": "다운로드"
   }
 }
