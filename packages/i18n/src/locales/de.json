@@ -3733,7 +3733,8 @@
     "errors": {
       "notAgentDm": "Nur eine Unterhaltung mit einem Agenten kann geteilt werden.",
       "target": "Teile sie in einem Kanal, in dem du bist, oder mit einer Person.",
-      "empty": "Diese Unterhaltung hat noch nichts zum Teilen."
+      "empty": "Diese Unterhaltung hat noch nichts zum Teilen.",
+      "note": "Schreib eine Notiz mit höchstens {{max}} Zeichen."
     }
   },
   "memoryCard": {
@@ -15085,6 +15086,8 @@
       "unfinished": "Die Anmeldung bei Composio wurde nicht abgeschlossen. Versuch es noch einmal.",
       "unavailable": "Dieser Dienst kann hier nicht verbunden werden.",
       "misconfigured": "Die Verbindung zu {{provider}} ist auf dem Server falsch eingerichtet, deshalb kann sie nicht abgeschlossen werden. Die Person, die den Server betreibt, muss den Schlüssel in den Einstellungen der App ersetzen.",
+      "notPerPerson": "Diese Verbindung nutzt nicht das eigene Konto jeder Person.",
+      "perPersonUnsupported": "Dieser Dienst kann noch nicht das eigene Konto jeder Person nutzen.",
       "headerName": "Verwende im Namen eines Headers nur Buchstaben, Ziffern und Bindestriche, wie in X-API-Key.",
       "headerValue": "Gib einen Wert für {{header}} ein: höchstens 2.000 Zeichen in einer Zeile, ohne Umlaute, Akzente oder Emojis.",
       "headerReserved": "{{header}} wird schon mit jeder Anfrage gesendet und lässt sich nicht ändern. Entferne diesen Header.",
@@ -15271,7 +15274,9 @@
       "continueExtraUsedUp": "Das Zeitfenster dieses Abos ist aufgebraucht, und seine bezahlte Zusatznutzung ist aufgebraucht oder nicht verfügbar. Es geht nach dem Zurücksetzen weiter.",
       "actionsNeedApprover": "Nur der Inhaber des Agenten oder wer seine Aktionen genehmigt, kann eine Routine selbstständig handeln lassen.",
       "editorOnly": "Nur wer die Routine erstellt hat, der Inhaber des Agenten oder ein Admin kann sie ändern.",
-      "widgetFixed": "Diese Routine hält ein Widget aktuell. Ändere sie über das Widget."
+      "widgetFixed": "Diese Routine hält ein Widget aktuell. Ändere sie über das Widget.",
+      "connectorChannelInvalid": "Das ist keine ID eines Slack-Kanals. Kopiere sie aus den Kanaldetails in Slack.",
+      "meetingLeadInvalid": "Wähle {{min}} bis {{max}} Minuten vor dem Meeting."
     },
     "run": {
       "notContinuable": "Diese Antwort kann nicht mehr fortgesetzt werden.",
@@ -15369,7 +15374,10 @@
       "brainNotAllowed": "Die Regeln dieses Workspaces erlauben dieses Gehirn oder Modell nicht. Frag einen Admin oder wähle etwas anderes.",
       "brainPolicyInvalid": "Diese Regel lässt sich nicht speichern: Lass in jeder Liste mindestens eine Auswahl und nur Modelle der Anbieter, die sie erlaubt.",
       "undoForbidden": "Nur die Person, für die der Agent gearbeitet hat, sein Inhaber oder ein Admin kann das rückgängig machen.",
-      "undoSkillsAdmins": "Nur ein Admin kann eine Änderung an den Skills eines Agenten rückgängig machen oder wiederholen."
+      "undoSkillsAdmins": "Nur ein Admin kann eine Änderung an den Skills eines Agenten rückgängig machen oder wiederholen.",
+      "acpEngine": "Wähle einen ACP-Agenten, den der Computer dieses Agenten hat.",
+      "reserveInvalid": "Prüfe die Reserve-KIs: Jedes Konto steht nur einmal drin, und nie das, mit dem der Agent schon denkt.",
+      "rightHandModel": "Die rechte Hand denkt mit der KI jeder Person und hat deshalb kein eigenes Modell für eine Unterhaltung."
     },
     "account": {
       "notRestorable": "Dieses Konto kann nicht mehr wiederhergestellt werden.",
@@ -15430,6 +15438,45 @@
     "feedback": {
       "filesGone": "Eine Datei, die du hinzugefügt hast, ist weg. Füg sie noch einmal hinzu.",
       "filesPending": "Zu viele Dateien warten darauf, gesendet zu werden. Sende oder entferne einige und versuch es noch einmal."
+    },
+    "agentApi": {
+      "account": "Das Konto, das diesen Schlüssel erstellt hat, kann gerade nicht genutzt werden.",
+      "agentArchived": "Dieser Agent ist archiviert. Stell ihn wieder her, um seine API-Schlüssel zu nutzen.",
+      "keyLimit": "Dieser Agent hat schon {{limit}} API-Schlüssel, mehr geht nicht. Widerrufe zuerst einen.",
+      "notManager": "Nur ein Admin oder der Inhaber des Agenten verwaltet seine API-Schlüssel."
+    },
+    "announcement": {
+      "period": "Das Ende muss nach dem Beginn liegen."
+    },
+    "images": {
+      "perDay": "Die Agenten des Workspace haben schon alle Bilder erstellt, die in 24 Stunden erlaubt sind. Versuch es morgen noch mal.",
+      "perRun": "Mehr Bilder kann eine Antwort nicht haben."
+    },
+    "memory": {
+      "invalidUntil": "Das ist kein Datum. Wähle den letzten Tag, an dem es gilt.",
+      "pastUntil": "Dieser Tag ist schon vorbei. Wähle einen, der noch kommt."
+    },
+    "outgoingWebhook": {
+      "channel": "Wähle nur Kanäle dieses Workspace, nie eine Direktnachricht.",
+      "disabled": "Schalte den Webhook zuerst ein.",
+      "event": "Dieses Ereignis gibt es nicht. Wähle eines aus der Liste.",
+      "limit": "Dieser Workspace hat schon so viele Webhooks, wie er haben kann. Lösche zuerst einen.",
+      "name": "Gib dem Webhook einen Namen.",
+      "noChannels": "Wähle die Kanäle, deren Nachrichten er sendet.",
+      "noEvents": "Wähle mindestens ein Ereignis."
+    },
+    "publishedPage": {
+      "notAPage": "Nur eine Seite lässt sich veröffentlichen, und diese Datei ist keine.",
+      "personCannotRead": "Wer darum gebeten hat, kann diese Datei nicht öffnen, also wurde sie nicht veröffentlicht. Frag jemanden, der sie sieht.",
+      "tooMany": "Dieser Workspace hat schon so viele öffentliche Seiten, wie er haben kann. Nimm zuerst eine offline."
+    },
+    "readAloud": {
+      "noWords": "In dieser Nachricht gibt es nichts zum Vorlesen.",
+      "notAgent": "Nur die Antwort eines Agenten lässt sich vorlesen."
+    },
+    "voice": {
+      "busy": "Die Aufnahme ließ sich gerade nicht in Text umwandeln. Versuch es gleich noch mal.",
+      "noWords": "Die Worte waren nicht zu verstehen. Nimm es noch mal auf."
     }
   },
   "machines": {

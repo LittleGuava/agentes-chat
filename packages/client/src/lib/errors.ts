@@ -610,6 +610,57 @@ const KNOWN = {
   "github_app.owner_unknown": "githubApp.ownerUnknown",
   "github_app.misconfigured": "githubApp.misconfigured",
   github_app_env: "githubApp.server.line.env",
+  // An export of chosen agents names one that is gone (ADR 0055).
+  "agent.not_found": "errors.said.gone",
+  // An agent's own API keys (ADR 0210).
+  "agent_api.account": "errors.agentApi.account",
+  "agent_api.agent_archived": "errors.agentApi.agentArchived",
+  "agent_api.key_limit": "errors.agentApi.keyLimit",
+  "agent_api.not_manager": "errors.agentApi.notManager",
+  "announcement.period": "errors.announcement.period",
+  // What an agent thinks with: an ACP agent (ADR 0216), its reserves, a model for one conversation.
+  "brain.invalid_engine": "errors.agent.acpEngine",
+  "brain.reserve_invalid": "errors.agent.reserveInvalid",
+  "brain.right_hand": "errors.agent.rightHandModel",
+  // A browser profile's site to sign out of that isn't a host (ADR 0110).
+  "browser_profile.site": "errors.said.checkAddress",
+  "connector.client_id_required": "errors.said.fillIn",
+  // A connection on each person's own account (ADR 0195).
+  "connector.not_per_person": "errors.connector.notPerPerson",
+  "connector.per_person_unsupported": "errors.connector.perPersonUnsupported",
+  "dm_share.note": "dmShare.errors.note",
+  // Pictures agents make (ADR 0213).
+  "images.per_day": "errors.images.perDay",
+  "images.per_run": "errors.images.perRun",
+  "memory.invalid_until": "errors.memory.invalidUntil",
+  "memory.past_until": "errors.memory.pastUntil",
+  // Outgoing webhooks (ADR 0212).
+  "outgoing_webhook.channel": "errors.outgoingWebhook.channel",
+  "outgoing_webhook.disabled": "errors.outgoingWebhook.disabled",
+  "outgoing_webhook.event": "errors.outgoingWebhook.event",
+  "outgoing_webhook.limit": "errors.outgoingWebhook.limit",
+  "outgoing_webhook.name": "errors.outgoingWebhook.name",
+  "outgoing_webhook.no_channels": "errors.outgoingWebhook.noChannels",
+  "outgoing_webhook.no_events": "errors.outgoingWebhook.noEvents",
+  "outgoing_webhook.too_many_channels": "errors.said.tooMany",
+  // An agent's request to the person's phone (ADR 0205), answered or expired meanwhile.
+  "phone.job_closed": "errors.said.alreadyDone",
+  "phone.job_not_found": "errors.said.gone",
+  // Public pages (ADR 0211).
+  "published_page.not_a_page": "errors.publishedPage.notAPage",
+  "published_page.not_found": "errors.said.gone",
+  "published_page.person_cannot_read": "errors.publishedPage.personCannotRead",
+  "published_page.too_many": "errors.publishedPage.tooMany",
+  // Replies read aloud (ADR 0209).
+  "read_aloud.limit": "readAloud.limit",
+  "read_aloud.no_words": "errors.readAloud.noWords",
+  "read_aloud.not_agent": "errors.readAloud.notAgent",
+  "read_aloud.unavailable": "errors.said.offHere",
+  "routine.connector_channel_invalid": "errors.routine.connectorChannelInvalid",
+  "routine.meeting_lead_invalid": "errors.routine.meetingLeadInvalid",
+  // A recording turned into text (ADR 0100).
+  "voice.busy": "errors.voice.busy",
+  "voice.no_words": "errors.voice.noWords",
 } as const;
 
 /** Better Auth's code when a blocked account tries to sign in (the server's `session.create.before` hook). */

@@ -9176,6 +9176,9 @@
   "dmShare.errors.empty": {
     "value": "This conversation has nothing to share yet."
   },
+  "dmShare.errors.note": {
+    "value": "Write a note of up to {{max}} characters."
+  },
   "memoryCard.remembered": {
     "value": "{{name}} remembered"
   },
@@ -37079,6 +37082,12 @@
   "errors.connector.misconfigured": {
     "value": "The connection to {{provider}} is set up wrong on the server, so it can't finish. Whoever runs the server needs to replace the key in the app's settings."
   },
+  "errors.connector.notPerPerson": {
+    "value": "This connection doesn't use each person's own account."
+  },
+  "errors.connector.perPersonUnsupported": {
+    "value": "This service can't use each person's own account yet."
+  },
   "errors.connector.headerName": {
     "value": "Use only letters, digits and hyphens in a header's name, like X-API-Key."
   },
@@ -37526,6 +37535,12 @@
   "errors.routine.widgetFixed": {
     "value": "This routine keeps a widget up to date. Change it from its widget."
   },
+  "errors.routine.connectorChannelInvalid": {
+    "value": "That isn't a Slack channel's ID. Copy it from the channel's details in Slack."
+  },
+  "errors.routine.meetingLeadInvalid": {
+    "value": "Pick from {{min}} to {{max}} minutes before the meeting."
+  },
   "errors.run.notContinuable": {
     "value": "This answer can't be continued anymore."
   },
@@ -37766,6 +37781,15 @@
   "errors.agent.undoSkillsAdmins": {
     "value": "Only an admin can undo or redo a change to an agent's skills."
   },
+  "errors.agent.acpEngine": {
+    "value": "Choose an ACP agent that this agent's computer has."
+  },
+  "errors.agent.reserveInvalid": {
+    "value": "Check the reserve AIs: each account goes in once, and never the one the agent already thinks with."
+  },
+  "errors.agent.rightHandModel": {
+    "value": "The right hand thinks with each person's own AI, so it takes no model for one conversation."
+  },
   "errors.account.notRestorable": {
     "value": "This account can't be restored anymore."
   },
@@ -37909,6 +37933,75 @@
   },
   "errors.feedback.filesPending": {
     "value": "Too many files are waiting to be sent. Send or remove some, then try again."
+  },
+  "errors.agentApi.account": {
+    "value": "The account that made this key can't be used right now."
+  },
+  "errors.agentApi.agentArchived": {
+    "value": "This agent is archived. Restore it to use its API keys."
+  },
+  "errors.agentApi.keyLimit": {
+    "value": "This agent already has {{limit}} API keys, the most it can have. Revoke one first."
+  },
+  "errors.agentApi.notManager": {
+    "value": "Only an admin or the agent's owner manages its API keys."
+  },
+  "errors.announcement.period": {
+    "value": "The end has to come after the start."
+  },
+  "errors.images.perDay": {
+    "value": "The workspace's agents already made all the images allowed in 24 hours. Try again tomorrow."
+  },
+  "errors.images.perRun": {
+    "value": "That's the most images one reply can have."
+  },
+  "errors.memory.invalidUntil": {
+    "value": "That isn't a date. Pick the last day it holds."
+  },
+  "errors.memory.pastUntil": {
+    "value": "That day has already passed. Pick one still ahead."
+  },
+  "errors.outgoingWebhook.channel": {
+    "value": "Choose only channels of this workspace, never a direct message."
+  },
+  "errors.outgoingWebhook.disabled": {
+    "value": "Turn the webhook on first."
+  },
+  "errors.outgoingWebhook.event": {
+    "value": "That event doesn't exist. Choose one from the list."
+  },
+  "errors.outgoingWebhook.limit": {
+    "value": "This workspace already has all the webhooks it can have. Delete one first."
+  },
+  "errors.outgoingWebhook.name": {
+    "value": "Give the webhook a name."
+  },
+  "errors.outgoingWebhook.noChannels": {
+    "value": "Choose the channels whose messages it sends."
+  },
+  "errors.outgoingWebhook.noEvents": {
+    "value": "Choose at least one event."
+  },
+  "errors.publishedPage.notAPage": {
+    "value": "Only a page can be published, and this file isn't one."
+  },
+  "errors.publishedPage.personCannotRead": {
+    "value": "Whoever asked can't open this file, so it wasn't published. Ask someone who sees it."
+  },
+  "errors.publishedPage.tooMany": {
+    "value": "This workspace already has all the public pages it can have. Take one down first."
+  },
+  "errors.readAloud.noWords": {
+    "value": "This message has nothing to read aloud."
+  },
+  "errors.readAloud.notAgent": {
+    "value": "Only an agent's reply can be read aloud."
+  },
+  "errors.voice.busy": {
+    "value": "Nothing could turn the recording into text right now. Try again in a moment."
+  },
+  "errors.voice.noWords": {
+    "value": "The words couldn't be made out. Record it again."
   },
   "machines.local.title": {
     "value": "MCPs and skills on this computer"

@@ -3603,7 +3603,8 @@
     "errors": {
       "notAgentDm": "Hanya percakapan dengan agen yang bisa dibagikan.",
       "target": "Bagikan di kanal tempat kamu bergabung atau dengan seseorang.",
-      "empty": "Percakapan ini belum punya apa pun untuk dibagikan."
+      "empty": "Percakapan ini belum punya apa pun untuk dibagikan.",
+      "note": "Tulis catatan paling banyak {{max}} karakter."
     }
   },
   "memoryCard": {
@@ -14587,6 +14588,8 @@
       "unfinished": "Proses masuk di Composio tidak selesai. Coba lagi.",
       "unavailable": "Layanan ini tidak bisa dihubungkan di sini.",
       "misconfigured": "Koneksi ke {{provider}} di server salah diatur, jadi tidak bisa selesai. Pengelola server perlu mengganti kunci di pengaturan aplikasi.",
+      "notPerPerson": "Koneksi ini tidak memakai akun milik tiap orang.",
+      "perPersonUnsupported": "Layanan ini belum bisa memakai akun milik tiap orang.",
       "headerName": "Pakai hanya huruf, angka, dan tanda hubung pada nama header, seperti X-API-Key.",
       "headerValue": "Ketik nilai untuk {{header}}: maksimal 2.000 karakter dalam satu baris, tanpa huruf beraksen atau emoji.",
       "headerReserved": "{{header}} sudah dikirim bersama setiap permintaan dan tidak bisa diubah. Hapus header ini.",
@@ -14773,7 +14776,9 @@
       "continueExtraUsedUp": "Jatah periode paket ini sudah habis dan pemakaian tambahan berbayarnya juga habis atau tidak tersedia. Agen melanjutkan setelah reset.",
       "actionsNeedApprover": "Hanya pemilik agen atau orang yang menyetujui tindakannya yang bisa membiarkan rutinitas bertindak sendiri.",
       "editorOnly": "Hanya pembuat rutinitas, pemilik agen, atau Admin yang bisa mengubahnya.",
-      "widgetFixed": "Rutinitas ini menjaga widget tetap terbaru. Ubah dari widget-nya."
+      "widgetFixed": "Rutinitas ini menjaga widget tetap terbaru. Ubah dari widget-nya.",
+      "connectorChannelInvalid": "Itu bukan ID kanal Slack. Salin dari detail kanal di Slack.",
+      "meetingLeadInvalid": "Pilih antara {{min}} dan {{max}} menit sebelum rapat."
     },
     "run": {
       "notContinuable": "Jawaban ini sudah tidak bisa dilanjutkan.",
@@ -14870,7 +14875,10 @@
       "brainNotAllowed": "Aturan workspace ini tidak mengizinkan otak atau model itu. Minta ke admin, atau pilih yang lain.",
       "brainPolicyInvalid": "Aturan itu tidak bisa disimpan: sisakan setidaknya satu pilihan di setiap daftar, dan hanya model dari penyedia yang diizinkannya.",
       "undoForbidden": "Hanya orang yang dibantu agen, pemiliknya, atau Admin yang bisa membatalkan ini.",
-      "undoSkillsAdmins": "Hanya Admin yang bisa membatalkan atau mengulang perubahan pada skill agen."
+      "undoSkillsAdmins": "Hanya Admin yang bisa membatalkan atau mengulang perubahan pada skill agen.",
+      "acpEngine": "Pilih agen ACP yang ada di komputer agen ini.",
+      "reserveInvalid": "Periksa AI cadangan: tiap akun hanya masuk sekali, dan bukan akun yang sudah dipakai agen untuk berpikir.",
+      "rightHandModel": "Tangan kanan berpikir dengan AI milik tiap orang, jadi tidak punya model sendiri untuk satu percakapan."
     },
     "account": {
       "notRestorable": "Akun ini sudah tidak bisa dipulihkan.",
@@ -14931,6 +14939,45 @@
     "feedback": {
       "filesGone": "File yang ditambahkan sudah hilang. Tambahkan lagi.",
       "filesPending": "Terlalu banyak file menunggu dikirim. Kirim atau hapus beberapa, lalu coba lagi."
+    },
+    "agentApi": {
+      "account": "Akun yang membuat kunci ini tidak bisa dipakai sekarang.",
+      "agentArchived": "Agen ini diarsipkan. Pulihkan untuk memakai kunci API-nya.",
+      "keyLimit": "Agen ini sudah punya {{limit}} kunci API, jumlah terbanyak. Cabut satu dulu.",
+      "notManager": "Hanya Admin atau pemilik agen yang mengelola kunci API-nya."
+    },
+    "announcement": {
+      "period": "Akhirnya harus setelah awalnya."
+    },
+    "images": {
+      "perDay": "Agen di ruang kerja sudah membuat semua gambar yang diizinkan dalam 24 jam. Coba lagi besok.",
+      "perRun": "Itu jumlah gambar terbanyak untuk satu balasan."
+    },
+    "memory": {
+      "invalidUntil": "Itu bukan tanggal. Pilih hari terakhir berlakunya.",
+      "pastUntil": "Hari itu sudah lewat. Pilih hari yang masih akan datang."
+    },
+    "outgoingWebhook": {
+      "channel": "Pilih hanya kanal di ruang kerja ini, bukan pesan langsung.",
+      "disabled": "Nyalakan webhook dulu.",
+      "event": "Peristiwa itu tidak ada. Pilih satu dari daftar.",
+      "limit": "Ruang kerja ini sudah punya webhook sebanyak yang diizinkan. Hapus satu dulu.",
+      "name": "Beri nama untuk webhook ini.",
+      "noChannels": "Pilih kanal yang pesannya dikirim.",
+      "noEvents": "Pilih setidaknya satu peristiwa."
+    },
+    "publishedPage": {
+      "notAPage": "Hanya halaman yang bisa dipublikasikan, dan berkas ini bukan halaman.",
+      "personCannotRead": "Yang meminta tidak bisa membuka berkas ini, jadi tidak dipublikasikan. Minta ke orang yang bisa melihatnya.",
+      "tooMany": "Ruang kerja ini sudah punya halaman publik sebanyak yang diizinkan. Turunkan satu dulu."
+    },
+    "readAloud": {
+      "noWords": "Pesan ini tidak punya apa pun untuk dibacakan.",
+      "notAgent": "Hanya balasan agen yang bisa dibacakan."
+    },
+    "voice": {
+      "busy": "Rekaman tidak bisa diubah jadi teks sekarang. Coba lagi sebentar lagi.",
+      "noWords": "Kata-katanya tidak bisa dikenali. Rekam lagi."
     }
   },
   "machines": {

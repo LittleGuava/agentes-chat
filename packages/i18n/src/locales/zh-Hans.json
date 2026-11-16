@@ -3595,7 +3595,8 @@
     "errors": {
       "notAgentDm": "只能分享与智能体的对话。",
       "target": "请在你加入的频道中分享，或分享给某个人。",
-      "empty": "这段对话还没有可分享的内容。"
+      "empty": "这段对话还没有可分享的内容。",
+      "note": "请写一条不超过 {{max}} 个字符的备注。"
     }
   },
   "memoryCard": {
@@ -14596,6 +14597,8 @@
       "unfinished": "在 Composio 的登录没有完成，请重试。",
       "unavailable": "这个服务无法在这里连接。",
       "misconfigured": "服务器上与 {{provider}} 的连接配置有误，所以无法完成连接。运行服务器的人需要在应用的设置中更换密钥。",
+      "notPerPerson": "这个连接不使用每个人自己的账号。",
+      "perPersonUnsupported": "这项服务暂时还不能使用每个人自己的账号。",
       "headerName": "标头名称只能使用字母、数字和连字符，例如 X-API-Key。",
       "headerValue": "请为 {{header}} 输入一个值：最多 2,000 个字符，写在一行内，只能用英文字母、数字和符号。",
       "headerReserved": "{{header}} 已随每个请求自动发送，无法更改。请移除这个标头。",
@@ -14782,7 +14785,9 @@
       "continueExtraUsedUp": "这个套餐的时间窗口额度已用完，付费额外用量也已用完或不可用。它会在额度重置后继续。",
       "actionsNeedApprover": "只有智能体负责人或批准其操作的人可以让例行工作自行执行。",
       "editorOnly": "只有例行工作的创建者、智能体负责人或管理员可以修改它。",
-      "widgetFixed": "这项例行工作负责保持小组件最新。请从小组件修改。"
+      "widgetFixed": "这项例行工作负责保持小组件最新。请从小组件修改。",
+      "connectorChannelInvalid": "这不是 Slack 频道的 ID。请从 Slack 的频道详情中复制。",
+      "meetingLeadInvalid": "请选择会议前 {{min}} 到 {{max}} 分钟。"
     },
     "run": {
       "notContinuable": "这个回答已无法继续。",
@@ -14879,7 +14884,10 @@
       "brainNotAllowed": "此工作区的规则不允许使用该大脑或模型。请联系管理员，或选择其他项。",
       "brainPolicyInvalid": "无法保存此规则：每个列表至少保留一项，并且只选择它允许的提供商的模型。",
       "undoForbidden": "只有智能体为其工作的人、智能体负责人或管理员可以撤销此操作。",
-      "undoSkillsAdmins": "只有管理员能撤销或重做对智能体技能的更改。"
+      "undoSkillsAdmins": "只有管理员能撤销或重做对智能体技能的更改。",
+      "acpEngine": "请选择这个智能体的电脑上已有的 ACP 智能体。",
+      "reserveInvalid": "请检查备用 AI：每个账号只能出现一次，且不能是智能体已经在用的那个。",
+      "rightHandModel": "得力助手用每个人自己的 AI 思考，因此不能为单个对话指定模型。"
     },
     "account": {
       "notRestorable": "这个账号已无法恢复。",
@@ -14940,6 +14948,45 @@
     "feedback": {
       "filesGone": "你添加的文件已经不在了。请重新添加。",
       "filesPending": "等待发送的文件太多。请先发送或移除一些，然后重试。"
+    },
+    "agentApi": {
+      "account": "创建这个密钥的账号目前无法使用。",
+      "agentArchived": "这个智能体已归档。恢复后才能使用它的 API 密钥。",
+      "keyLimit": "这个智能体已有 {{limit}} 个 API 密钥，达到上限。请先撤销一个。",
+      "notManager": "只有管理员或智能体负责人可以管理它的 API 密钥。"
+    },
+    "announcement": {
+      "period": "结束时间必须晚于开始时间。"
+    },
+    "images": {
+      "perDay": "工作区的智能体已用完 24 小时内可生成的图片额度。请明天再试。",
+      "perRun": "一条回复最多只能有这么多图片。"
+    },
+    "memory": {
+      "invalidUntil": "这不是一个日期。请选择它有效的最后一天。",
+      "pastUntil": "这一天已经过去了。请选择一个将来的日期。"
+    },
+    "outgoingWebhook": {
+      "channel": "只能选择这个工作区的频道，不能选私信。",
+      "disabled": "请先开启这个 Webhook。",
+      "event": "没有这个事件。请从列表中选择。",
+      "limit": "这个工作区的 Webhook 数量已达上限。请先删除一个。",
+      "name": "请给这个 Webhook 起个名字。",
+      "noChannels": "请选择要发送其消息的频道。",
+      "noEvents": "请至少选择一个事件。"
+    },
+    "publishedPage": {
+      "notAPage": "只有页面可以发布，而这个文件不是页面。",
+      "personCannotRead": "提出请求的人打不开这个文件，所以没有发布。请找能看到它的人。",
+      "tooMany": "这个工作区的公开页面数量已达上限。请先下线一个。"
+    },
+    "readAloud": {
+      "noWords": "这条消息没有可朗读的内容。",
+      "notAgent": "只有智能体的回复可以朗读。"
+    },
+    "voice": {
+      "busy": "暂时无法把录音转成文字。请稍后再试。",
+      "noWords": "没能听清说了什么。请重新录制。"
     }
   },
   "machines": {

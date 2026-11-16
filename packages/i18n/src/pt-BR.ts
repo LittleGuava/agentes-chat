@@ -3944,6 +3944,8 @@ export const ptBR = {
       notAgentDm: "Só dá para compartilhar uma conversa com um agente.",
       target: "Compartilhe num canal em que você está ou com uma pessoa.",
       empty: "Esta conversa ainda não tem nada para compartilhar.",
+      /** `dm_share.note`: no note, or one past `max` characters. */
+      note: "Escreva uma nota de até {{max}} caracteres.",
     },
   },
   memoryCard: {
@@ -15313,6 +15315,10 @@ export const ptBR = {
       headersWithSignIn:
         "Este servidor pede login, e o login ainda não leva cabeçalhos. Remova os cabeçalhos para entrar, ou conecte com uma chave de API.",
       headersUnreadable: "Não deu para ler os cabeçalhos salvos. Digite de novo, ou remova.",
+      /** `connector.not_per_person`: a person's own account asked of a connection that uses one account for everyone (ADR 0195). */
+      notPerPerson: "Esta conexão não usa a conta de cada pessoa.",
+      /** `connector.per_person_unsupported`: each person's own account turned on for a service that can't do it yet (ADR 0195). */
+      perPersonUnsupported: "Este serviço ainda não pode usar a conta de cada pessoa.",
     },
     /** Restricted wiki pages (ADR 0023). */
     wiki: {
@@ -15509,6 +15515,10 @@ export const ptBR = {
       actionsNeedApprover: "Só o dono do agente ou quem aprova as ações dele pode deixar uma rotina agir sozinha.",
       editorOnly: "Só quem criou a rotina, o dono do agente ou um admin pode mudá-la.",
       widgetFixed: "Esta rotina mantém um widget atualizado. Mude pelo widget.",
+      /** `routine.connector_channel_invalid`: a Slack routine's channel that isn't a channel ID (ADR 0196). */
+      connectorChannelInvalid: "Isso não é o ID de um canal do Slack. Copie nos detalhes do canal, no Slack.",
+      /** `routine.meeting_lead_invalid`: how long before each meeting a routine fires, out of range (ADR 0190). */
+      meetingLeadInvalid: "Escolha de {{min}} a {{max}} minutos antes da reunião.",
     },
     run: {
       notContinuable: "Esta resposta não pode mais ser continuada.",
@@ -15618,6 +15628,12 @@ export const ptBR = {
         "Não dá para salvar essa regra: deixe ao menos uma opção em cada lista, e só modelos dos provedores que ela permite.",
       undoForbidden: "Só a pessoa para quem o agente trabalhou, o dono dele ou um admin pode desfazer isso.",
       undoSkillsAdmins: "Só um admin desfaz ou refaz uma mudança nas skills de um agente.",
+      /** `brain.invalid_engine`: the ACP agent chosen isn't one its computer declares (ADR 0216). */
+      acpEngine: "Escolha um agente ACP que o computador deste agente tenha.",
+      /** `brain.reserve_invalid`: a list of reserve AIs that can't be saved (too many, one twice, or its own account). */
+      reserveInvalid: "Confira as IAs de reserva: cada conta entra uma vez, e nunca a que o agente já usa para pensar.",
+      /** `brain.right_hand`: a model for one conversation asked of the right hand, which thinks with each person's own AI. */
+      rightHandModel: "O braço direito pensa com a IA de cada pessoa, então não tem modelo próprio por conversa.",
     },
     account: {
       notRestorable: "Esta conta não pode mais ser restaurada.",
@@ -15678,6 +15694,59 @@ export const ptBR = {
     feedback: {
       filesGone: "Um arquivo que você anexou sumiu. Anexe de novo.",
       filesPending: "Há arquivos demais esperando para ser enviados. Envie ou tire alguns e tente de novo.",
+    },
+    /** An agent's own API keys (ADR 0210). */
+    agentApi: {
+      /** `agent_api.account`: the account that made the key is blocked or closed. */
+      account: "A conta que criou esta chave não pode ser usada agora.",
+      agentArchived: "Este agente está arquivado. Restaure para usar as chaves de API dele.",
+      /** `limit`: how many keys one agent holds at most. */
+      keyLimit: "Este agente já tem {{limit}} chaves de API, o máximo. Revogue uma antes.",
+      notManager: "Só um admin ou o dono do agente gerencia as chaves de API dele.",
+    },
+    /** `announcement.period`: an operator's announcement whose end isn't after its start. */
+    announcement: {
+      period: "O fim precisa vir depois do início.",
+    },
+    /** Pictures agents make (ADR 0213): the workspace's 24 hours and one reply's most. */
+    images: {
+      perDay: "Os agentes do workspace já fizeram todas as imagens permitidas em 24 horas. Tente de novo amanhã.",
+      perRun: "Esse é o máximo de imagens que uma resposta pode ter.",
+    },
+    /** A memory's last day (`valid_until`): not a date, or a day already gone. */
+    memory: {
+      invalidUntil: "Isso não é uma data. Escolha o último dia em que ela vale.",
+      pastUntil: "Esse dia já passou. Escolha um que ainda vai chegar.",
+    },
+    /** Outgoing webhooks (ADR 0212): what a webhook can't be saved or tested with. */
+    outgoingWebhook: {
+      channel: "Escolha só canais deste workspace, nunca uma mensagem direta.",
+      /** `outgoing_webhook.disabled`: Testar on a webhook that is turned off. */
+      disabled: "Ligue o webhook antes.",
+      event: "Esse evento não existe. Escolha um da lista.",
+      limit: "Este workspace já tem todos os webhooks que pode ter. Apague um antes.",
+      name: "Dê um nome ao webhook.",
+      /** `outgoing_webhook.no_channels`: the message event chosen with no channel to send from. */
+      noChannels: "Escolha os canais cujas mensagens ele envia.",
+      noEvents: "Escolha pelo menos um evento.",
+    },
+    /** Publishing a file as a public page (ADR 0211). */
+    publishedPage: {
+      notAPage: "Só uma página pode ser publicada, e este arquivo não é uma.",
+      /** `published_page.person_cannot_read`: the person behind the agent's run can't open the file it would publish. */
+      personCannotRead:
+        "Quem pediu não consegue abrir este arquivo, então ele não foi publicado. Peça a alguém que o veja.",
+      tooMany: "Este workspace já tem todas as páginas públicas que pode ter. Tire uma do ar antes.",
+    },
+    /** Reading a message aloud (ADR 0209): what can't be read. */
+    readAloud: {
+      noWords: "Esta mensagem não tem nada para ler em voz alta.",
+      notAgent: "Só a resposta de um agente pode ser lida em voz alta.",
+    },
+    /** A recording turned into text (ADR 0100): nothing could take it now, or no words came out. */
+    voice: {
+      busy: "Não deu para transformar a gravação em texto agora. Tente de novo daqui a pouco.",
+      noWords: "Não deu para entender as palavras. Grave de novo.",
     },
   },
   machines: {

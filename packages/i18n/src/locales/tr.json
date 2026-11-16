@@ -3721,7 +3721,8 @@
     "errors": {
       "notAgentDm": "Yalnızca bir ajanla yapılan sohbet paylaşılabilir.",
       "target": "Bulunduğun bir kanalda ya da bir kişiyle paylaş.",
-      "empty": "Bu sohbette henüz paylaşılacak bir şey yok."
+      "empty": "Bu sohbette henüz paylaşılacak bir şey yok.",
+      "note": "En fazla {{max}} karakterlik bir not yazın."
     }
   },
   "memoryCard": {
@@ -15021,6 +15022,8 @@
       "unfinished": "Composio'da giriş tamamlanmadı. Tekrar deneyin.",
       "unavailable": "Bu hizmet burada bağlanamaz.",
       "misconfigured": "Sunucuda {{provider}} bağlantısı yanlış ayarlanmış, bu yüzden tamamlanamıyor. Sunucuyu yöneten kişinin anahtarı uygulamanın ayarlarında değiştirmesi gerekiyor.",
+      "notPerPerson": "Bu bağlantı her kişinin kendi hesabını kullanmıyor.",
+      "perPersonUnsupported": "Bu hizmet henüz her kişinin kendi hesabını kullanamıyor.",
       "headerName": "Başlık adında yalnızca harf, rakam ve kısa çizgi kullanın, X-API-Key gibi.",
       "headerValue": "{{header}} için bir değer yazın: tek satırda en çok 2.000 karakter, aksanlı harf ve emoji olmadan.",
       "headerReserved": "{{header}} zaten her istekle gönderiliyor ve değiştirilemez. Bu başlığı kaldırın.",
@@ -15207,7 +15210,9 @@
       "continueExtraUsedUp": "Bu planın kullanım dönemi doldu ve ücretli ek kullanımı da bitti ya da kullanılamıyor. Sıfırlamadan sonra kaldığı yerden sürer.",
       "actionsNeedApprover": "Bir rutinin kendi başına hareket etmesine yalnızca ajanın sahibi veya eylemlerini onaylayan kişi izin verebilir.",
       "editorOnly": "Rutini yalnızca oluşturan kişi, ajanın sahibi veya bir yönetici değiştirebilir.",
-      "widgetFixed": "Bu rutin bir widget'ı güncel tutar. Widget'ından değiştirin."
+      "widgetFixed": "Bu rutin bir widget'ı güncel tutar. Widget'ından değiştirin.",
+      "connectorChannelInvalid": "Bu bir Slack kanalı kimliği değil. Slack'te kanal ayrıntılarından kopyalayın.",
+      "meetingLeadInvalid": "Toplantıdan {{min}} ile {{max}} dakika öncesini seçin."
     },
     "run": {
       "notContinuable": "Bu yanıta artık devam edilemez.",
@@ -15305,7 +15310,10 @@
       "brainNotAllowed": "Bu çalışma alanının kuralları bu beyne veya modele izin vermiyor. Bir yöneticiye sorun ya da başka birini seçin.",
       "brainPolicyInvalid": "Bu kural kaydedilemiyor: her listede en az bir seçim bırakın ve yalnızca izin verdiği sağlayıcıların modellerini seçin.",
       "undoForbidden": "Bunu yalnızca ajanın çalıştığı kişi, sahibi veya bir yönetici geri alabilir.",
-      "undoSkillsAdmins": "Bir ajanın becerilerindeki değişikliği yalnızca bir yönetici geri alabilir veya yineleyebilir."
+      "undoSkillsAdmins": "Bir ajanın becerilerindeki değişikliği yalnızca bir yönetici geri alabilir veya yineleyebilir.",
+      "acpEngine": "Bu ajanın bilgisayarında bulunan bir ACP ajanı seçin.",
+      "reserveInvalid": "Yedek yapay zekâları kontrol edin: her hesap yalnızca bir kez yer alır ve ajanın zaten kullandığı hesap olamaz.",
+      "rightHandModel": "Sağ kol her kişinin kendi yapay zekâsıyla düşünür, bu yüzden tek bir sohbet için modeli olmaz."
     },
     "account": {
       "notRestorable": "Bu hesap artık geri yüklenemez.",
@@ -15366,6 +15374,45 @@
     "feedback": {
       "filesGone": "Eklediğiniz bir dosya artık yok. Yeniden ekleyin.",
       "filesPending": "Gönderilmeyi bekleyen çok fazla dosya var. Bazılarını gönderip ya da kaldırıp tekrar deneyin."
+    },
+    "agentApi": {
+      "account": "Bu anahtarı oluşturan hesap şu anda kullanılamıyor.",
+      "agentArchived": "Bu ajan arşivlenmiş. API anahtarlarını kullanmak için geri yükleyin.",
+      "keyLimit": "Bu ajanın zaten {{limit}} API anahtarı var, en fazlası bu. Önce birini iptal edin.",
+      "notManager": "API anahtarlarını yalnızca bir yönetici veya ajanın sahibi yönetir."
+    },
+    "announcement": {
+      "period": "Bitiş, başlangıçtan sonra olmalı."
+    },
+    "images": {
+      "perDay": "Çalışma alanının ajanları 24 saatte izin verilen tüm görselleri oluşturdu. Yarın tekrar deneyin.",
+      "perRun": "Bir yanıtta en fazla bu kadar görsel olabilir."
+    },
+    "memory": {
+      "invalidUntil": "Bu bir tarih değil. Geçerli olduğu son günü seçin.",
+      "pastUntil": "O gün çoktan geçti. Henüz gelmemiş bir gün seçin."
+    },
+    "outgoingWebhook": {
+      "channel": "Yalnızca bu çalışma alanının kanallarını seçin, doğrudan mesajları değil.",
+      "disabled": "Önce webhook'u açın.",
+      "event": "Böyle bir olay yok. Listeden birini seçin.",
+      "limit": "Bu çalışma alanında olabilecek tüm webhook'lar zaten var. Önce birini silin.",
+      "name": "Webhook'a bir ad verin.",
+      "noChannels": "Mesajlarını göndereceği kanalları seçin.",
+      "noEvents": "En az bir olay seçin."
+    },
+    "publishedPage": {
+      "notAPage": "Yalnızca bir sayfa yayımlanabilir ve bu dosya bir sayfa değil.",
+      "personCannotRead": "İsteyen kişi bu dosyayı açamıyor, bu yüzden yayımlanmadı. Dosyayı görebilen birinden isteyin.",
+      "tooMany": "Bu çalışma alanında olabilecek tüm herkese açık sayfalar zaten var. Önce birini yayından kaldırın."
+    },
+    "readAloud": {
+      "noWords": "Bu mesajda sesli okunacak bir şey yok.",
+      "notAgent": "Yalnızca bir ajanın yanıtı sesli okunabilir."
+    },
+    "voice": {
+      "busy": "Kayıt şu anda metne çevrilemedi. Birazdan tekrar deneyin.",
+      "noWords": "Sözler anlaşılamadı. Yeniden kaydedin."
     }
   },
   "machines": {

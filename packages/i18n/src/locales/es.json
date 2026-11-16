@@ -3861,7 +3861,8 @@
     "errors": {
       "notAgentDm": "Solo se puede compartir una conversación con un agente.",
       "target": "Compártela en un canal en el que estés o con una persona.",
-      "empty": "Esta conversación aún no tiene nada que compartir."
+      "empty": "Esta conversación aún no tiene nada que compartir.",
+      "note": "Escribe una nota de hasta {{max}} caracteres."
     }
   },
   "memoryCard": {
@@ -15528,6 +15529,8 @@
       "unfinished": "El inicio de sesión en Composio no terminó. Intenta de nuevo.",
       "unavailable": "Este servicio no se puede conectar aquí.",
       "misconfigured": "La conexión con {{provider}} está mal configurada en el servidor, así que no puede terminar. Quien administra el servidor tiene que cambiar la clave en la configuración de la app.",
+      "notPerPerson": "Esta conexión no usa la cuenta de cada persona.",
+      "perPersonUnsupported": "Este servicio todavía no puede usar la cuenta de cada persona.",
       "headerName": "Usa solo letras, números y guiones en el nombre del encabezado, como X-API-Key.",
       "headerValue": "Escribe un valor para {{header}}: hasta 2000 caracteres en una sola línea, sin acentos ni emojis.",
       "headerReserved": "{{header}} ya se envía con cada solicitud y no se puede cambiar. Quita este encabezado.",
@@ -15714,7 +15717,9 @@
       "continueExtraUsedUp": "La ventana de este plan se agotó y su uso extra pagado se agotó o no está disponible. Seguirá después del reinicio.",
       "actionsNeedApprover": "Solo el dueño del agente o quien aprueba sus acciones puede dejar que una rutina actúe por su cuenta.",
       "editorOnly": "Solo quien creó la rutina, el dueño del agente o un admin puede cambiarla.",
-      "widgetFixed": "Esta rutina mantiene un widget actualizado. Cámbiala desde su widget."
+      "widgetFixed": "Esta rutina mantiene un widget actualizado. Cámbiala desde su widget.",
+      "connectorChannelInvalid": "Eso no es el ID de un canal de Slack. Cópialo de los detalles del canal en Slack.",
+      "meetingLeadInvalid": "Elige entre {{min}} y {{max}} minutos antes de la reunión."
     },
     "run": {
       "notContinuable": "Esta respuesta ya no se puede continuar.",
@@ -15813,7 +15818,10 @@
       "brainNotAllowed": "Las reglas de este espacio de trabajo no permiten ese cerebro o modelo. Pídeselo a un administrador o elige otro.",
       "brainPolicyInvalid": "No se puede guardar esa regla: deja al menos una opción en cada lista y solo modelos de los proveedores que permite.",
       "undoForbidden": "Solo la persona para quien trabajó el agente, su dueño o un admin puede deshacer esto.",
-      "undoSkillsAdmins": "Solo un admin puede deshacer o rehacer un cambio en las habilidades de un agente."
+      "undoSkillsAdmins": "Solo un admin puede deshacer o rehacer un cambio en las habilidades de un agente.",
+      "acpEngine": "Elige un agente ACP que tenga la computadora de este agente.",
+      "reserveInvalid": "Revisa las IA de reserva: cada cuenta entra una sola vez, y nunca la que el agente ya usa para pensar.",
+      "rightHandModel": "La mano derecha piensa con la IA de cada persona, así que no admite un modelo para una sola conversación."
     },
     "account": {
       "notRestorable": "Esta cuenta ya no se puede restaurar.",
@@ -15874,6 +15882,45 @@
     "feedback": {
       "filesGone": "Un archivo que añadiste ya no está. Añádelo de nuevo.",
       "filesPending": "Hay demasiados archivos esperando para enviarse. Envía o quita algunos e inténtalo de nuevo."
+    },
+    "agentApi": {
+      "account": "La cuenta que creó esta clave no se puede usar ahora.",
+      "agentArchived": "Este agente está archivado. Restáuralo para usar sus claves de API.",
+      "keyLimit": "Este agente ya tiene {{limit}} claves de API, el máximo. Revoca una primero.",
+      "notManager": "Solo un admin o el dueño del agente gestiona sus claves de API."
+    },
+    "announcement": {
+      "period": "El fin tiene que ser posterior al inicio."
+    },
+    "images": {
+      "perDay": "Los agentes del espacio de trabajo ya crearon todas las imágenes permitidas en 24 horas. Inténtalo de nuevo mañana.",
+      "perRun": "Ese es el máximo de imágenes que puede tener una respuesta."
+    },
+    "memory": {
+      "invalidUntil": "Eso no es una fecha. Elige el último día en que es válido.",
+      "pastUntil": "Ese día ya pasó. Elige uno que aún no haya llegado."
+    },
+    "outgoingWebhook": {
+      "channel": "Elige solo canales de este espacio de trabajo, nunca un mensaje directo.",
+      "disabled": "Activa primero el webhook.",
+      "event": "Ese evento no existe. Elige uno de la lista.",
+      "limit": "Este espacio de trabajo ya tiene todos los webhooks que puede tener. Elimina uno primero.",
+      "name": "Ponle un nombre al webhook.",
+      "noChannels": "Elige los canales cuyos mensajes envía.",
+      "noEvents": "Elige al menos un evento."
+    },
+    "publishedPage": {
+      "notAPage": "Solo se puede publicar una página, y este archivo no lo es.",
+      "personCannotRead": "Quien lo pidió no puede abrir este archivo, así que no se publicó. Pídeselo a alguien que lo vea.",
+      "tooMany": "Este espacio de trabajo ya tiene todas las páginas públicas que puede tener. Retira una primero."
+    },
+    "readAloud": {
+      "noWords": "Este mensaje no tiene nada que leer en voz alta.",
+      "notAgent": "Solo se puede leer en voz alta la respuesta de un agente."
+    },
+    "voice": {
+      "busy": "No se pudo convertir la grabación en texto ahora. Inténtalo de nuevo en un momento.",
+      "noWords": "No se pudieron entender las palabras. Graba de nuevo."
     }
   },
   "machines": {

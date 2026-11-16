@@ -3869,7 +3869,8 @@
     "errors": {
       "notAgentDm": "Si può condividere solo una conversazione con un agente.",
       "target": "Condividila in un canale di cui fai parte o con una persona.",
-      "empty": "Questa conversazione non ha ancora nulla da condividere."
+      "empty": "Questa conversazione non ha ancora nulla da condividere.",
+      "note": "Scrivi una nota di massimo {{max}} caratteri."
     }
   },
   "memoryCard": {
@@ -15612,6 +15613,8 @@
       "unfinished": "L'accesso su Composio non è stato completato. Riprova.",
       "unavailable": "Questo servizio non si può collegare qui.",
       "misconfigured": "Il collegamento a {{provider}} è configurato male sul server, quindi non può finire. Chi gestisce il server deve sostituire la chiave nelle impostazioni dell'app.",
+      "notPerPerson": "Questa connessione non usa l'account di ogni persona.",
+      "perPersonUnsupported": "Questo servizio non può ancora usare l'account di ogni persona.",
       "headerName": "Usa solo lettere, numeri e trattini nel nome di un'intestazione, come X-API-Key.",
       "headerValue": "Scrivi un valore per {{header}}: fino a 2.000 caratteri su una sola riga, senza accenti né emoji.",
       "headerReserved": "{{header}} viene già inviata con ogni richiesta e non si può cambiare. Rimuovi questa intestazione.",
@@ -15798,7 +15801,9 @@
       "continueExtraUsedUp": "La finestra di questo piano è esaurita e il suo utilizzo extra a pagamento è esaurito o non disponibile. Riprende dopo il reset.",
       "actionsNeedApprover": "Solo il responsabile dell'agente o chi approva le sue azioni può lasciare che una routine agisca da sola.",
       "editorOnly": "Solo chi ha creato la routine, il responsabile dell'agente o un admin può modificarla.",
-      "widgetFixed": "Questa routine tiene aggiornato un widget. Modificala dal suo widget."
+      "widgetFixed": "Questa routine tiene aggiornato un widget. Modificala dal suo widget.",
+      "connectorChannelInvalid": "Questo non è l'ID di un canale Slack. Copialo dai dettagli del canale in Slack.",
+      "meetingLeadInvalid": "Scegli tra {{min}} e {{max}} minuti prima della riunione."
     },
     "run": {
       "notContinuable": "Questa risposta non può più essere continuata.",
@@ -15897,7 +15902,10 @@
       "brainNotAllowed": "Le regole di questo workspace non consentono quel cervello o modello. Chiedi a un amministratore, o scegline un altro.",
       "brainPolicyInvalid": "Questa regola non si può salvare: lascia almeno una scelta in ogni elenco, e solo modelli dei provider che consente.",
       "undoForbidden": "Solo la persona per cui l'agente ha lavorato, il suo responsabile o un admin può annullarlo.",
-      "undoSkillsAdmins": "Solo un admin può annullare o ripetere una modifica alle skill di un agente."
+      "undoSkillsAdmins": "Solo un admin può annullare o ripetere una modifica alle skill di un agente.",
+      "acpEngine": "Scegli un agente ACP presente sul computer di questo agente.",
+      "reserveInvalid": "Controlla le IA di riserva: ogni account compare una sola volta, e mai quello con cui l'agente pensa già.",
+      "rightHandModel": "Il braccio destro pensa con l'IA di ogni persona, quindi non ha un modello per una singola conversazione."
     },
     "account": {
       "notRestorable": "Questo account non si può più ripristinare.",
@@ -15958,6 +15966,45 @@
     "feedback": {
       "filesGone": "Un file che hai aggiunto non c'è più. Aggiungilo di nuovo.",
       "filesPending": "Troppi file aspettano di essere inviati. Inviane o togline alcuni e riprova."
+    },
+    "agentApi": {
+      "account": "L'account che ha creato questa chiave non può essere usato ora.",
+      "agentArchived": "Questo agente è archiviato. Ripristinalo per usare le sue chiavi API.",
+      "keyLimit": "Questo agente ha già {{limit}} chiavi API, il massimo. Revocane una prima.",
+      "notManager": "Solo un admin o il responsabile dell'agente gestisce le sue chiavi API."
+    },
+    "announcement": {
+      "period": "La fine deve venire dopo l'inizio."
+    },
+    "images": {
+      "perDay": "Gli agenti dello spazio di lavoro hanno già creato tutte le immagini consentite in 24 ore. Riprova domani.",
+      "perRun": "È il massimo di immagini che una risposta può avere."
+    },
+    "memory": {
+      "invalidUntil": "Questa non è una data. Scegli l'ultimo giorno in cui è valido.",
+      "pastUntil": "Quel giorno è già passato. Scegline uno che deve ancora arrivare."
+    },
+    "outgoingWebhook": {
+      "channel": "Scegli solo canali di questo spazio di lavoro, mai un messaggio diretto.",
+      "disabled": "Attiva prima il webhook.",
+      "event": "Questo evento non esiste. Scegline uno dall'elenco.",
+      "limit": "Questo spazio di lavoro ha già tutti i webhook che può avere. Eliminane uno prima.",
+      "name": "Dai un nome al webhook.",
+      "noChannels": "Scegli i canali di cui invia i messaggi.",
+      "noEvents": "Scegli almeno un evento."
+    },
+    "publishedPage": {
+      "notAPage": "Si può pubblicare solo una pagina, e questo file non lo è.",
+      "personCannotRead": "Chi l'ha chiesto non può aprire questo file, quindi non è stato pubblicato. Chiedi a qualcuno che lo vede.",
+      "tooMany": "Questo spazio di lavoro ha già tutte le pagine pubbliche che può avere. Rimuovine una prima."
+    },
+    "readAloud": {
+      "noWords": "Questo messaggio non ha niente da leggere ad alta voce.",
+      "notAgent": "Solo la risposta di un agente può essere letta ad alta voce."
+    },
+    "voice": {
+      "busy": "Impossibile trasformare la registrazione in testo ora. Riprova tra poco.",
+      "noWords": "Non è stato possibile capire le parole. Registra di nuovo."
     }
   },
   "machines": {
