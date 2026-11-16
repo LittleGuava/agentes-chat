@@ -838,6 +838,8 @@ export interface Agent {
    * workspace allows. Absent: on (the default).
    */
   mediaReplies?: boolean;
+  /** The voice its replies are read aloud in (ADR 0187); null = the server's default. Absent from an older server. */
+  readAloudVoice?: string | null;
   /** Its autonomy brakes (ADR 0131); absent from an older server (the defaults). */
   brakes?: AgentBrakes;
   /** How much it asks before acting (ADR 0173); absent from an older server (`risky`). */
@@ -1031,6 +1033,8 @@ export interface AgentInput {
   proposal?: string;
   /** Its stickers and GIFs after a light reply (ADR 0091); same permission as editing the agent. */
   mediaReplies?: boolean;
+  /** The voice its replies are read aloud in (ADR 0187); null = the server's default. */
+  readAloudVoice?: string | null;
   /** The Autonomia it starts with (the last setup's, ADR 0094): only an admin or its own owner sends it. */
   autonomy?: CommandApproval;
   /** Editing only: its autonomy brakes (ADR 0131); the fields given change. */

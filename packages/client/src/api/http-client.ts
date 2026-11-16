@@ -1018,6 +1018,14 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       },
       exportUrl: (orgId) => `${base}${org(orgId)}/export`,
     },
+    readAloud: {
+      available: (orgId) => request<{ available: boolean }>(`${org(orgId)}/read-aloud`),
+      make: (orgId, messageId) =>
+        request<{ clipId: string }>(`${org(orgId)}/messages/${enc(messageId)}/read-aloud`, {
+          method: "POST",
+          json: {},
+        }),
+    },
     voice: {
       allowed: (orgId) => request<{ allowed: boolean }>(`${org(orgId)}/voice/allowed`),
       send: (orgId, channelId, input) => {

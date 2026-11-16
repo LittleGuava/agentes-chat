@@ -2558,6 +2558,19 @@
     "endOfReply": "Einde van het antwoord",
     "mentionSuggestions": "Suggesties voor vermeldingen"
   },
+  "readAloud": {
+    "listen": "Luisteren",
+    "stop": "Stoppen",
+    "failed": "Kon het nu niet voorlezen.",
+    "limit": "Je hebt de limiet van vandaag voor het beluisteren van antwoorden bereikt.",
+    "auto": "Antwoorden voorlezen",
+    "autoHint": "Elk antwoord van een agent dat in het open gesprek binnenkomt, wordt op dit apparaat voorgelezen.",
+    "voice": "Stem",
+    "voiceHint": "De stem waarin zijn antwoorden worden voorgelezen: een stem-ID van ElevenLabs, of de naam van een stem die je spraakserver kent.",
+    "voiceDefault": "Standaardstem",
+    "voiceInvalid": "Gebruik alleen letters, cijfers, punten, koppeltekens en underscores.",
+    "voiceSaved": "Stem opgeslagen"
+  },
   "receipts": {
     "picked_one": "{{names}} gaat antwoorden",
     "picked_other": "{{names}} gaan antwoorden",
@@ -3086,8 +3099,8 @@
       "cursor": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "cursor_female": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "grok": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
-      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "grok_female": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
+      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "copilot_female": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "antigravity": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",
       "antigravity_female": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",
