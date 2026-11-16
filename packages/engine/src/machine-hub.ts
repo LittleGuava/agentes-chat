@@ -338,6 +338,8 @@ export function requestTimeoutMs(request: MachineRequest) {
   if (request.op === "pull") return 630_000;
   // A clone of a big repository on a slow link: its own deadline plus slack.
   if (request.op === "git.sync") return (Math.max(1, request.timeoutSeconds) + 30) * 1000;
+  // ADR 0215: the program's own deadline (at most 300 s, as the runner holds it), plus its stop and the trip.
+  if (request.op === "mcp.stdio") return (Math.min(Math.max(1, request.timeoutSeconds), 300) + 30) * 1000;
   // A brain turn may wait on a person (a command approval) for up to 30 minutes, more than once.
   if (request.op === "brain.turn") return 3 * 3600_000;
   // A Maestro flow (with its recording) runs to its own deadline, at most 10 minutes; a recording to its length; an

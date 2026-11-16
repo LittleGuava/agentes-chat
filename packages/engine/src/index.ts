@@ -77,6 +77,7 @@ export * from "./connector-usage";
 export * from "./connectors/catalog";
 export * from "./connectors/classify";
 export * from "./connectors/composio";
+export * from "./connectors/computer-mcp";
 export * from "./connectors/connections";
 export * from "./connectors/custom";
 export * from "./connectors/listing";
