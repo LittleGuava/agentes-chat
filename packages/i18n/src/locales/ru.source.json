@@ -25556,6 +25556,9 @@
   "composer.pcInsert": {
     "value": "run this on your PC: "
   },
+  "composer.skillInsert": {
+    "value": "use the skill {{name}}: "
+  },
   "composer.format.toolbar": {
     "value": "Formatting"
   },

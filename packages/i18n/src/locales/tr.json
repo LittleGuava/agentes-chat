@@ -10441,6 +10441,7 @@
     "pc": "/pc",
     "pcText": "{{name}} bilgisayarında çalıştır",
     "pcInsert": "bunu bilgisayarında çalıştır: ",
+    "skillInsert": "{{name}} becerisini kullan: ",
     "format": {
       "toolbar": "Biçimlendirme",
       "bold": "Kalın",
