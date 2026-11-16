@@ -729,6 +729,7 @@ export function createMachineHub(deps: MachineHubDeps) {
         frame.desktop ||
         frame.terminal ||
         frame.desktopUse ||
+        frame.hostDesktop ||
         frame.claudeLoginMethods ||
         frame.toolchains
           ? {
@@ -741,6 +742,8 @@ export function createMachineHub(deps: MachineHubDeps) {
                 ...(frame.desktop ? { desktop: frame.desktop } : {}),
                 ...(frame.terminal ? { terminal: frame.terminal } : {}),
                 ...(frame.desktopUse ? { desktopUse: frame.desktopUse } : {}),
+                // Protocol 81: whether agents can use the person's own desktop there (ADR 0201).
+                ...(frame.hostDesktop ? { hostDesktop: frame.hostDesktop } : {}),
                 ...(system ? { mode: "system" as const } : {}),
                 ...(frame.claudeLoginMethods ? { claudeLoginMethods: frame.claudeLoginMethods } : {}),
                 ...(loginBlocked ? { claudeLoginBlocked: loginBlocked } : {}),

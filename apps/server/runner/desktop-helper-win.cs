@@ -27,6 +27,10 @@ namespace AgentesDesktop
     internal static class Native
     {
         public delegate bool EnumProc(IntPtr hwnd, IntPtr lparam);
+        public delegate IntPtr HookProc(int code, IntPtr wparam, IntPtr lparam);
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MSG { public IntPtr hwnd; public uint message; public IntPtr wParam; public IntPtr lParam; public uint time; public int x; public int y; }
 
         [StructLayout(LayoutKind.Sequential)]
         public struct RECT { public int Left, Top, Right, Bottom; }
@@ -64,6 +68,10 @@ namespace AgentesDesktop
         [DllImport("user32.dll")] public static extern IntPtr OpenInputDesktop(uint flags, bool inherit, uint access);
         [DllImport("user32.dll")] public static extern bool CloseDesktop(IntPtr desktop);
         [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern bool GetUserObjectInformationW(IntPtr obj, int index, StringBuilder info, int length, out int needed);
+        [DllImport("user32.dll", SetLastError = true)] public static extern IntPtr SetWindowsHookExW(int kind, HookProc proc, IntPtr module, uint thread);
+        [DllImport("user32.dll")] public static extern IntPtr CallNextHookEx(IntPtr hook, int code, IntPtr wparam, IntPtr lparam);
+        [DllImport("user32.dll")] public static extern int GetMessageW(out MSG msg, IntPtr hwnd, uint min, uint max);
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] public static extern IntPtr GetModuleHandleW(string name);
         [DllImport("dwmapi.dll")] public static extern int DwmGetWindowAttribute(IntPtr hwnd, int attribute, out RECT value, int size);
         [DllImport("dwmapi.dll")] public static extern int DwmGetWindowAttribute(IntPtr hwnd, int attribute, out int value, int size);
     }
@@ -89,6 +97,13 @@ namespace AgentesDesktop
         const int TEXT_READS = 20;
         // Marks the helper's own input, so a hook can tell the person's input from the agent's (ADR 0201 section 3).
         static readonly IntPtr MARK = new IntPtr(0x41474E54);
+        // The person's own input stops the agent's (ADR 0201 section 3): input within this long before a request refuses it.
+        const int PERSON_MS = 1500;
+        static readonly Stopwatch clock = Stopwatch.StartNew();
+        // When the person last moved the mouse or pressed a key (clock ms; 0: not since the helper started).
+        static long personAt;
+        // Kept here so the collector never takes the hooks' delegates while Windows still calls them.
+        static Native.HookProc mouseHook, keyHook;
 
         static JavaScriptSerializer json;
         static bool dry;
@@ -107,6 +122,7 @@ namespace AgentesDesktop
             var output = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false));
             output.NewLine = "\n";
             output.AutoFlush = true;
+            if (!dry) WatchPerson();
             string line;
             while ((line = input.ReadLine()) != null)
             {
@@ -137,6 +153,17 @@ namespace AgentesDesktop
                     case "input": data = Input(request); break;
                     case "capture": data = Capture(request); break;
                     case "apps": data = Apps(); break;
+                    case "forget":
+                        // The person's yes (their click on Allow) is their own input: what came before it stops nothing.
+                        Interlocked.Exchange(ref personAt, 0);
+                        data = new Dictionary<string, object>();
+                        break;
+                    case "person":
+                        // Dry mode only: as if the person just used the mouse, so tests reach the stop without a real hook.
+                        if (!dry) throw new HelperError("bad_request", "unknown op");
+                        Interlocked.Exchange(ref personAt, Math.Max(1, clock.ElapsedMilliseconds));
+                        data = new Dictionary<string, object>();
+                        break;
                     default: throw new HelperError("bad_request", "unknown op");
                 }
                 var reply = new Dictionary<string, object>();
@@ -250,6 +277,7 @@ namespace AgentesDesktop
             hello["dpiAware"] = dpiAware;
             hello["locked"] = locked;
             hello["dry"] = dry;
+            hello["watching"] = dry || mouseHook != null;
             hello["missing"] = new string[0];
             if (!a11y) hello["problem"] = "UI Automation didn't answer";
             else if (locked) hello["problem"] = "the screen is locked";
@@ -695,10 +723,16 @@ namespace AgentesDesktop
                 windowMs = Int(st, "windowMs", 0, 0, 15000);
             }
             if (!dry && Locked()) throw new HelperError("unavailable", "the screen is locked");
+            long since = clock.ElapsedMilliseconds;
+            if (PersonSince(since - PERSON_MS)) throw PersonStopped();
             var started = Stopwatch.StartNew();
             var sent = new List<string>();
             IntPtr before = Native.GetForegroundWindow();
-            foreach (Step s in steps) Do(s, sent);
+            foreach (Step s in steps)
+            {
+                if (PersonSince(since)) throw PersonStopped();
+                Do(s, sent, since);
+            }
             var reply = new Dictionary<string, object>();
             if (settle)
             {
@@ -711,6 +745,65 @@ namespace AgentesDesktop
             reply["ms"] = (int)started.ElapsedMilliseconds;
             if (dry) reply["sent"] = sent;
             return reply;
+        }
+
+        // ---- the person: low-level hooks note their own mouse and keys, never input this or another program injects
+
+        static void WatchPerson()
+        {
+            var ready = new ManualResetEvent(false);
+            var thread = new Thread(() =>
+            {
+                // MSLLHOOKSTRUCT.flags is at 12 (LLMHF_INJECTED, LLMHF_LOWER_IL_INJECTED); KBDLLHOOKSTRUCT.flags at 8 (LLKHF_INJECTED, LLKHF_LOWER_IL_INJECTED).
+                Native.HookProc mouse = (code, w, l) =>
+                {
+                    if (code >= 0 && (Marshal.ReadInt32(l, 12) & 0x3) == 0) Interlocked.Exchange(ref personAt, Math.Max(1, clock.ElapsedMilliseconds));
+                    return Native.CallNextHookEx(IntPtr.Zero, code, w, l);
+                };
+                Native.HookProc keys = (code, w, l) =>
+                {
+                    if (code >= 0 && (Marshal.ReadInt32(l, 8) & 0x12) == 0) Interlocked.Exchange(ref personAt, Math.Max(1, clock.ElapsedMilliseconds));
+                    return Native.CallNextHookEx(IntPtr.Zero, code, w, l);
+                };
+                IntPtr module = Native.GetModuleHandleW(null);
+                bool on = Native.SetWindowsHookExW(14, mouse, module, 0) != IntPtr.Zero && Native.SetWindowsHookExW(13, keys, module, 0) != IntPtr.Zero;
+                if (on) { mouseHook = mouse; keyHook = keys; }
+                ready.Set();
+                if (!on) return;
+                // Windows calls low-level hooks on this thread's message loop, which lives as long as the helper.
+                Native.MSG msg;
+                while (Native.GetMessageW(out msg, IntPtr.Zero, 0, 0) > 0) { }
+            });
+            thread.IsBackground = true;
+            thread.Start();
+            ready.WaitOne(2000);
+        }
+
+        static bool PersonSince(long since)
+        {
+            long at = Interlocked.Read(ref personAt);
+            return at > 0 && at > since;
+        }
+
+        static HelperError PersonStopped()
+        {
+            return new HelperError("stopped", "the person used the mouse or keyboard");
+        }
+
+        // A password field has the focus: nothing is typed into it (ADR 0201 section 3).
+        static bool SecretFocused()
+        {
+            try
+            {
+                var focused = AutomationElement.FocusedElement;
+                return focused != null && focused.Current.IsPassword;
+            }
+            catch (Exception) { return false; }
+        }
+
+        static HelperError SecretRefused()
+        {
+            return new HelperError("failed", "that is a password field, and nothing is typed into one on a person's screen");
         }
 
         static Native.INPUT Mouse(uint flags, int dx, int dy, uint data)
@@ -763,7 +856,7 @@ namespace AgentesDesktop
             inputs.Add(Key((ushort)vk, 0, (Extended(vk) ? 1u : 0u) | 0x2));
         }
 
-        static void Do(Step s, List<string> sent)
+        static void Do(Step s, List<string> sent, long since)
         {
             var inputs = new List<Native.INPUT>();
             int[] n = s.Numbers;
@@ -792,6 +885,7 @@ namespace AgentesDesktop
                     for (int k = 1; k <= 10; k++)
                     {
                         Thread.Sleep(15);
+                        if (PersonSince(since)) { Send(new List<Native.INPUT> { Mouse(0x0004, 0, 0, 0) }); throw PersonStopped(); }
                         Send(new List<Native.INPUT> { MoveTo(n[0] + (n[2] - n[0]) * k / 10, n[1] + (n[3] - n[1]) * k / 10) });
                     }
                     inputs.Add(Mouse(0x0004, 0, 0, 0));
@@ -802,6 +896,7 @@ namespace AgentesDesktop
                     for (int k = n.Length - 1; k >= 0; k--) inputs.Add(Key((ushort)n[k], 0, (Extended(n[k]) ? 1u : 0u) | 0x2));
                     break;
                 case "type":
+                    if (SecretFocused()) throw SecretRefused();
                     int letters = 0, returns = 0, tabs = 0;
                     for (int c = 0; c < s.Text.Length; c++)
                     {
@@ -819,7 +914,13 @@ namespace AgentesDesktop
                                 inputs.Add(Key(0, ch, 0x0004 | 0x0002));
                             }
                         }
-                        if (!dry && inputs.Count >= 64) { Send(inputs); inputs.Clear(); Thread.Sleep(5); }
+                        if (!dry && inputs.Count >= 64)
+                        {
+                            Send(inputs);
+                            inputs.Clear();
+                            Thread.Sleep(5);
+                            if (PersonSince(since)) throw PersonStopped();
+                        }
                     }
                     if (dry)
                     {
@@ -833,6 +934,8 @@ namespace AgentesDesktop
                 case "fill":
                     AutomationElement e;
                     if (!known.TryGetValue(s.Key, out e)) throw new HelperError("stale", "the element is gone");
+                    try { if (e.Current.IsPassword) throw SecretRefused(); }
+                    catch (ElementNotAvailableException) { throw new HelperError("stale", "the element is gone"); }
                     if (dry) { sent.Add("fill 1"); return; }
                     try
                     {

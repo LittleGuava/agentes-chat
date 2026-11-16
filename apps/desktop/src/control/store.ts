@@ -12,6 +12,8 @@ import {
   type ControlJob,
   type ControlReplies,
   type ControlRequest,
+  type ControlScreen,
+  type ControlScreenRequest,
   type ControlStatus,
 } from "@agenteschat/adapters/runner-control";
 import type { Host, RunnerInfo } from "../host/types";
@@ -30,6 +32,8 @@ export interface Home {
   logo: string | null;
   /** A tool its owner turned on from the apps (`access.allowed`), shown with Undo until dismissed. */
   allowed?: { tool: keyof RunnerTools; byName: string } | null;
+  /** Protocol 81 (ADR 0201): who holds the person's screen and who asks; null where the runner doesn't serve it. */
+  screen?: ControlScreen | null;
 }
 
 export interface Snapshot {
@@ -63,6 +67,8 @@ export interface StoreOptions {
   onAccessRequested?: (home: Home, request: ControlAccessRequest) => void;
   /** Its owner turned a tool on from the apps (the popover window raises the macOS notification). */
   onToolAllowed?: (home: Home, allowed: { tool: keyof RunnerTools; byName: string }) => void;
+  /** An agent asks for the person's screen (the popover window raises the notification). */
+  onScreenRequested?: (home: Home, request: ControlScreenRequest) => void;
   idPrefix?: string;
 }
 
@@ -179,7 +185,11 @@ export class DesktopStore {
     try {
       const reply = await this.client.request(homeId, { type: "status" });
       if (this.acceptStatus(homeId, reply)) {
-        this.patch(homeId, { status: reply, access: reply.access ?? this.home(homeId)?.access ?? null });
+        this.patch(homeId, {
+          status: reply,
+          access: reply.access ?? this.home(homeId)?.access ?? null,
+          screen: reply.screen ?? null,
+        });
         void this.syncLogo(homeId, reply);
       }
       // A newer status may have arrived meanwhile: go on with whichever is current.
@@ -259,7 +269,11 @@ export class DesktopStore {
     switch (event.kind) {
       case "status":
         if (!this.acceptStatus(homeId, event.status)) return; // older than what is on screen
-        this.patch(homeId, { status: event.status, ...(event.status.access ? { access: event.status.access } : {}) });
+        this.patch(homeId, {
+          status: event.status,
+          ...(event.status.access ? { access: event.status.access } : {}),
+          screen: event.status.screen ?? null,
+        });
         void this.syncLogo(homeId, event.status);
         if (!event.status.paired) this.patch(homeId, { jobs: [], requests: [] });
         break;
@@ -289,6 +303,24 @@ export class DesktopStore {
         if (fresh) this.options.onToolAllowed?.(fresh, allowed);
         break;
       }
+      case "screen.requested": {
+        const screen = home?.screen ?? { session: null, requests: [] };
+        if (home && !screen.requests.some((r) => r.requestId === event.request.requestId)) {
+          this.patch(homeId, { screen: { ...screen, requests: [...screen.requests, event.request] } });
+          const fresh = this.home(homeId);
+          if (fresh) this.options.onScreenRequested?.(fresh, event.request);
+        }
+        break;
+      }
+      case "screen.resolved":
+        if (home?.screen) {
+          const requests = home.screen.requests.filter((r) => r.requestId !== event.requestId);
+          this.patch(homeId, { screen: { ...home.screen, requests } });
+        }
+        break;
+      case "screen.changed":
+        this.patch(homeId, { screen: event.screen });
+        break;
       case "pair.done":
         void this.refresh(homeId);
         break;

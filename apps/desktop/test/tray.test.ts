@@ -18,6 +18,7 @@ const home = (over: Partial<ControlStatus> = {}, jobs: ControlJob[] = [], runnin
   running,
   status: status(over),
   jobs,
+  ...(over.screen ? { screen: over.screen } : {}),
 });
 
 describe("trayStateOf", () => {
@@ -41,6 +42,16 @@ describe("trayStateOf", () => {
   });
   test("unpaired homes (a sign-in in progress) don't count", () => {
     expect(trayStateOf([home({ paired: false, connection: "unpaired" })], false)).toBe("idle");
+  });
+  test("an agent on the person's own screen, or asking for it, shows the dot while it lasts, even paused (ADR 0201)", () => {
+    const agent = { id: "ag_dev", name: "Dev" };
+    const session = { agent, since: "2026-11-16T15:00:00Z", until: "2026-11-16T15:30:00Z" };
+    const ask = { requestId: "r1", agent, at: "2026-11-16T15:00:00Z", expiresAt: "2026-11-16T15:01:30Z" };
+    expect(trayStateOf([home({ screen: { session: null, requests: [] } })], false)).toBe("idle");
+    expect(trayStateOf([home(), home({ screen: { session, requests: [] } })], false)).toBe("needs");
+    expect(trayStateOf([home({ screen: { session: null, requests: [ask] } }, [job])], false)).toBe("needs");
+    const paused = { paused: true, until: null };
+    expect(trayStateOf([home({ paused, screen: { session, requests: [] } })], false)).toBe("needs");
   });
 });
 

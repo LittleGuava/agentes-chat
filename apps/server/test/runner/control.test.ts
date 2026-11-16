@@ -9,6 +9,7 @@ import type { Dial, Socket, SocketHandlers } from "../../runner/connection";
 import { EXIT_LOCKED, type RunControlOptions, runControl } from "../../runner/control";
 import { DEFAULT_LIMITS, RunnerDaemon } from "../../runner/daemon";
 import { RUNNER_VERSION } from "../../runner/errors";
+import { type HostDialect, windowsHost } from "../../runner/host-desktop";
 import { ORG_LOGO_MAX_BYTES, orgLogoPath } from "../../runner/org-logo";
 import type { FetchFn } from "../../runner/pairing";
 import { askStandby, standbyAcked } from "../../runner/standby";
@@ -1119,3 +1120,220 @@ test.if(process.platform !== "win32")(
   },
   20_000,
 );
+
+// ADR 0201: the person's own screen, through a fake Windows helper (UI Automation's facts) and the app's channel.
+function fakeHost() {
+  const root = tempDir("host-");
+  dirs.push(root);
+  const log = path.join(root, "log.jsonl");
+  const state = path.join(root, "state.json");
+  const node = (n: Record<string, unknown>) => ({
+    index: -1,
+    children: 0,
+    name: "",
+    box: null,
+    offscreen: false,
+    enabled: true,
+    focused: false,
+    password: false,
+    patterns: [],
+    ...n,
+  });
+  const window = {
+    hwnd: 20,
+    stack: 1,
+    active: true,
+    topmost: false,
+    tool: false,
+    className: "AppWindow",
+    process: "App",
+    title: "Entrar - App",
+    pid: 4100,
+    box: [100, 100, 600, 400],
+  };
+  const boxes = {
+    "uia:4100 7.1.1": [200, 200, 300, 24],
+    "uia:4100 7.1.2": [200, 240, 300, 24],
+    "uia:4100 7.1.3": [200, 280, 100, 30],
+  };
+  const desktop = {
+    hello: { dry: true, locked: false, watching: true },
+    windows: [window],
+    boxes,
+    snapshot: {
+      screen: [1920, 1080],
+      windows: [window],
+      apps: [
+        {
+          pid: 4100,
+          name: "App",
+          nodes: [
+            node({ id: "7.1", parent: null, type: "Window", name: "Entrar - App", box: [100, 100, 600, 400] }),
+            node({
+              id: "7.1.1",
+              parent: "7.1",
+              type: "Edit",
+              name: "Usuário",
+              box: boxes["uia:4100 7.1.1"],
+              patterns: ["Value"],
+              value: "",
+              readOnly: false,
+            }),
+            node({
+              id: "7.1.2",
+              parent: "7.1",
+              type: "Edit",
+              name: "Senha",
+              box: boxes["uia:4100 7.1.2"],
+              password: true,
+              patterns: ["Value"],
+              readOnly: false,
+            }),
+            node({
+              id: "7.1.3",
+              parent: "7.1",
+              type: "Button",
+              name: "Entrar",
+              box: boxes["uia:4100 7.1.3"],
+              patterns: ["Invoke"],
+            }),
+          ],
+        },
+      ],
+      ms: 4,
+    },
+  };
+  const set = (over: Record<string, unknown> = {}) => writeFileSync(state, JSON.stringify({ ...desktop, ...over }));
+  set();
+  const fake = path.join(import.meta.dir, "fake-desktop-helper.mjs");
+  const dialect: HostDialect = {
+    ...windowsHost({ platform: "win32", dry: true, home: root }),
+    command: () => [process.execPath, fake, log, state],
+    // The fake reads no source line.
+    preamble: () => "",
+  };
+  const requests = () =>
+    existsSync(log)
+      ? readFileSync(log, "utf8")
+          .trim()
+          .split("\n")
+          .map((l) => JSON.parse(l) as { request?: { op: string } })
+          .flatMap((e) => (e.request ? [e.request] : []))
+      : [];
+  return { dialect, set, requests };
+}
+
+type HostReply = { ok: boolean; data?: Record<string, unknown>; error?: { code: string; message: string } };
+const screenAsk = (c: ReturnType<typeof control>, i: number) =>
+  (c.events("screen.requested")[i] as Extract<ControlEvent, { kind: "screen.requested" }>).request;
+
+test("the person's own screen: off until the app turns it on, never by the server, and each session is the person's yes here", async () => {
+  const { home } = pairedHome({
+    access: { folders: [], tools: { claude: false, codex: false, commands: true } },
+  });
+  const host = fakeHost();
+  const c = control(home, { hostDesktop: host.dialect });
+  const s = await c.connect();
+  // The runner says it can; the agents' own desktops stay as they were.
+  expect(s.of("hello")[0]).toMatchObject({ hostDesktop: { available: true } });
+  let n = 0;
+  const ask = async (op: string, body: Record<string, unknown> = {}): Promise<HostReply> => {
+    const id = `h${++n}`;
+    s.frame({ type: "request", id, op, agent: AGENT, ...body } as unknown as ServerFrame);
+    await waitFor(() => s.sent.some((f) => f.id === id), 10_000);
+    return s.sent.find((f) => f.id === id) as HostReply;
+  };
+
+  // Off by default: refused before anything is asked or started.
+  expect(await ask("desktop.look")).toMatchObject({ ok: false, error: { code: "not_allowed" } });
+  expect(c.events("screen.requested")).toHaveLength(0);
+  expect(host.requests()).toHaveLength(0);
+
+  // The server can't turn it on.
+  s.frame({ type: "request", id: "a1", op: "access.allow", tool: "hostDesktop", by: "u-bia", byName: "Bia Rocha" });
+  await waitFor(() => s.sent.some((f) => f.id === "a1"));
+  expect(s.sent.find((f) => f.id === "a1")).toMatchObject({ ok: false, error: { code: "not_allowed" } });
+  expect((stored(home).access as { tools: { hostDesktop?: boolean } }).tools.hostDesktop).toBeUndefined();
+
+  // The person turns it on in the app; the agent's look waits for their yes.
+  await c.data({ type: "tools.set", tool: "hostDesktop", on: true });
+  const looking = ask("desktop.look");
+  await waitFor(() => c.events("screen.requested").length === 1);
+  const request = screenAsk(c, 0);
+  expect(request.agent).toEqual({ id: AGENT.id, name: "Dev" });
+  expect(host.requests()).toHaveLength(0);
+  const yes = await c.data<{ session: { agent: { id: string } } | null }>({
+    type: "screen.answer",
+    requestId: request.requestId,
+    decision: "granted",
+  });
+  expect(yes.session?.agent.id).toBe(AGENT.id);
+  const look = await looking;
+  expect(look).toMatchObject({ ok: true, data: { title: "Entrar - App" } });
+  const refs = look.data?.refs as Record<string, { name: string }>;
+  const ref = (name: string) => Object.entries(refs).find(([, r]) => r.name === name)?.[0];
+  expect(await c.data({ type: "status" })).toMatchObject({ screen: { session: { agent: { id: AGENT.id } } } });
+
+  // An action: the person's click on Allow is forgotten first, then the click goes.
+  expect(await ask("desktop.act", { action: { kind: "click", at: { ref: ref("Entrar") } } })).toMatchObject({
+    ok: true,
+  });
+  const ops = host.requests().map((r) => r.op);
+  expect(ops.filter((o) => o === "forget")).toHaveLength(1);
+  expect(ops.indexOf("forget")).toBeLessThan(ops.lastIndexOf("input"));
+  const inputs = () => host.requests().filter((r) => r.op === "input").length;
+  const sent = inputs();
+
+  // A password field is never typed into, by its ref or by a point on it; Windows' lock key is refused.
+  const secret = await ask("desktop.act", { action: { kind: "fill", at: { ref: ref("Senha") }, text: "hunter2" } });
+  expect(secret).toMatchObject({
+    ok: false,
+    error: { code: "bad_request", message: expect.stringMatching(/password/) },
+  });
+  const onPoint = await ask("desktop.act", { action: { kind: "type", at: { x: 250, y: 250 }, text: "hunter2" } });
+  expect(onPoint).toMatchObject({ ok: false, error: { message: expect.stringMatching(/password/) } });
+  expect(await ask("desktop.act", { action: { kind: "press", key: "win+l" } })).toMatchObject({ ok: false });
+  expect(inputs()).toBe(sent);
+  expect(JSON.stringify(host.requests())).not.toContain("hunter2");
+
+  // The person moves the mouse: this action stops, in words about them; the session stays until they end it.
+  host.set({ fail: { input: { code: "stopped", error: "the person used the mouse or keyboard" } } });
+  const moved = await ask("desktop.act", { action: { kind: "click", at: { ref: ref("Entrar") } } });
+  expect(moved).toMatchObject({
+    ok: false,
+    error: { message: expect.stringMatching(/The person is using their mouse/) },
+  });
+  expect((await c.data<{ session: unknown }>({ type: "screen.get" })).session).not.toBeNull();
+  host.set();
+
+  // Reading the screen's text for screening is never done on the person's screen.
+  expect(await ask("desktop.text")).toMatchObject({ ok: false, error: { code: "desktop_unavailable" } });
+
+  // Stop in the app: the session ends now and the next use asks again; no is no.
+  await c.data({ type: "screen.stop" });
+  expect(c.events("screen.changed").at(-1)).toMatchObject({ screen: { session: null } });
+  const again = ask("desktop.look");
+  await waitFor(() => c.events("screen.requested").length === 2);
+  await c.data({ type: "screen.answer", requestId: screenAsk(c, 1).requestId, decision: "denied" });
+  expect(await again).toMatchObject({ ok: false, error: { code: "not_allowed" } });
+
+  // The computer's own log says who held the screen and who stopped it (newest first).
+  const log = await c.data<{ entries: { kind: string; said?: { key: string } }[] }>({ type: "activity" });
+  expect(log.entries.filter((e) => e.kind === "screen").map((e) => e.said?.key)).toEqual([
+    "screenNotNow",
+    "screenAsked",
+    "screenStopped",
+    "screenOn",
+    "screenAsked",
+  ]);
+
+  // The switch off ends a session at once.
+  const third = ask("desktop.look");
+  await waitFor(() => c.events("screen.requested").length === 3);
+  await c.data({ type: "screen.answer", requestId: screenAsk(c, 2).requestId, decision: "granted" });
+  expect(await third).toMatchObject({ ok: true });
+  await c.data({ type: "tools.set", tool: "hostDesktop", on: false });
+  expect((await c.data<{ session: unknown }>({ type: "screen.get" })).session).toBeNull();
+  c.input.end();
+  await c.done;
+});

@@ -78,6 +78,15 @@ const store = new DesktopStore(host, {
     const org = home.status?.org?.name;
     void host.notify(title, org ? `${org} · ${request.reason}` : request.reason).catch(() => {});
   },
+  // Always told, whatever the notification preference: the person has 90 seconds to answer (ADR 0201).
+  onScreenRequested: (home, request) => {
+    if (host.window !== "popover") return;
+    const org = home.status?.org?.name;
+    const body = i18n.t("desktop.tray.screenNotifBody");
+    void host
+      .notify(i18n.t("desktop.tray.screenNotifTitle", { agent: request.agent.name }), org ? `${org} · ${body}` : body)
+      .catch(() => {});
+  },
   // Always told, whatever the notification preference: a tool turned on from elsewhere must never go unseen.
   onToolAllowed: (home, allowed) => {
     if (host.window !== "popover") return;

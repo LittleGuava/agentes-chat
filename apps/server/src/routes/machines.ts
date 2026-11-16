@@ -130,6 +130,10 @@ export const MachineAccess = z
         .boolean()
         .optional()
         .openapi({ description: "Terminals people open as an agent (protocol 18, ADR 0058); absent = off." }),
+      hostDesktop: z.boolean().optional().openapi({
+        description:
+          "Agents may ask to use the person's own screen (protocol 81, ADR 0201); set only on the computer, absent = off.",
+      }),
     }),
   })
   .openapi("MachineAccess");

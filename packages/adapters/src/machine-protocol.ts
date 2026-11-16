@@ -7,7 +7,7 @@ import type { MergeDone } from "./command-policy";
  */
 
 /** Bumped on breaking changes; the server refuses runners older than `MIN_RUNNER_PROTOCOL`. */
-export const MACHINE_PROTOCOL_VERSION = 67;
+export const MACHINE_PROTOCOL_VERSION = 81;
 export const MIN_RUNNER_PROTOCOL = 1;
 /** From this protocol on, requests carry `agent` and each agent works in its own folder. */
 export const AGENT_FOLDERS_PROTOCOL = 2;
@@ -705,6 +705,16 @@ export interface CliInstall {
  * The server never sends any of these to an older runner.
  */
 export const COPILOT_PROTOCOL = 67;
+/**
+ * From this protocol on (ADR 0201): an agent uses the person's own desktop on their own Windows computer.
+ * `hello.hostDesktop` says whether the runner can serve it (Windows, the runner's single-user mode, its helper
+ * there), and `access.tools.hostDesktop` is the person's switch, set only on that computer: `access.allow` never
+ * turns it on. `desktop.look`, `desktop.act`, `desktop.capture` and `desktop.apps` then reach the person's screen,
+ * each one only while the person said yes on that computer for that agent. `hello.desktopUse` stays unavailable
+ * there, so a server or app that knows nothing of this never offers it. The server never sends these to an older
+ * runner.
+ */
+export const HOST_DESKTOP_PROTOCOL = 81;
 
 export type PhonePlatform = "android" | "ios";
 export type PhoneKind = "device" | "emulator" | "simulator";
@@ -2351,6 +2361,11 @@ export interface RunnerTools {
   desktop?: boolean;
   /** Protocol 18: terminals people open as an agent (ADR 0058). Absent = off. */
   terminal?: boolean;
+  /**
+   * Protocol 81: agents may ask to use the person's own screen on this computer (ADR 0201). Set only on the
+   * computer, never by `access.allow`. Absent = off.
+   */
+  hostDesktop?: boolean;
 }
 
 /** A folder allowed on the machine beyond the agents' own folders, and which agents use it (protocol 10). */
@@ -2430,6 +2445,8 @@ export interface RunnerInfo {
   terminal?: RunnerTerminalInfo;
   /** Protocol 21: whether agents can use their own desktops here (ADR 0062). */
   desktopUse?: RunnerDesktopUseInfo;
+  /** Protocol 81: whether agents can use the person's own desktop here (ADR 0201); absent: not here. */
+  hostDesktop?: RunnerDesktopUseInfo;
   /**
    * Protocol 18: `system` when each agent works as its own OS user (ADR 0058 §10); absent, every agent
    * works as the runner's own user. Who may control a desktop or open a terminal follows it (§4).
@@ -3654,6 +3671,7 @@ export function parseRunnerFrame(raw: string): RunnerFrame | null {
         ...(isObject(f.desktop) ? { desktop: parseDesktopInfo(f.desktop) } : {}),
         ...(isObject(f.terminal) ? { terminal: parseAvailability(f.terminal) } : {}),
         ...(isObject(f.desktopUse) ? { desktopUse: parseAvailability(f.desktopUse) } : {}),
+        ...(isObject(f.hostDesktop) ? { hostDesktop: parseAvailability(f.hostDesktop) } : {}),
         ...(f.mode === "system" ? { mode: "system" as const } : {}),
         ...(isObject(f.ownUsage) ? { ownUsage: parseOwnUsage(f.ownUsage) } : {}),
         ...(size ? { size } : {}),
@@ -4326,6 +4344,7 @@ export function parseAccess(v: unknown): RunnerAccess | undefined {
       ...(t.browser === true ? { browser: true } : {}),
       ...(t.desktop === true ? { desktop: true } : {}),
       ...(t.terminal === true ? { terminal: true } : {}),
+      ...(t.hostDesktop === true ? { hostDesktop: true } : {}),
     },
   };
 }
