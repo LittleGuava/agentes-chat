@@ -1,11 +1,13 @@
 import {
   archiveChannel,
+  attachmentDisposition,
   CHANNEL_KEYS,
   channelMembersDetail,
   channelViewers,
   createChannelCategory,
   deleteChannel,
   deleteChannelCategory,
+  exportConversation,
   listArchivedChannels,
   listChannelCategories,
   listChannelOverrides,
@@ -18,9 +20,11 @@ import {
   requireChannelAccess,
   setChannelAgentAutoReply,
   setChannelOverride,
+  TRANSCRIPT_FORMATS,
   unarchiveChannel,
   unpinMessage,
   updateChannel,
+  ValidationError,
 } from "@agenteschat/engine";
 import { createRoute, z } from "@hono/zod-openapi";
 import {
@@ -40,6 +44,12 @@ const tags = ["Channels"];
 const ChannelParams = OrgParams.extend({ channelId: z.uuid() });
 const PinParams = ChannelParams.extend({ messageId: z.uuid() });
 const CategoryParams = OrgParams.extend({ categoryId: z.uuid() });
+const ExportParams = OrgParams.extend({ channelId: z.uuid() });
+const ExportQuery = z.object({
+  format: z.enum(TRANSCRIPT_FORMATS),
+  threadId: z.uuid().optional(),
+  files: z.enum(["true", "false"]).optional(),
+});
 const categoryJson = (r: { id: string; name: string; position: number }) => ({
   id: r.id,
   name: r.name,
@@ -593,6 +603,34 @@ export function channelRoutes(deps: AppDeps) {
       return c.body(null, 204);
     },
   );
+
+  // A conversation's transcript (ADR 0055 addendum 2026-11-15): Markdown or JSON, zipped with its files when asked.
+  // Whole, never in parts: a ranged request would build the export and its audit row again.
+  app.get("/organizations/:orgId/channels/:channelId/export", async (c) => {
+    const params = ExportParams.safeParse(c.req.param());
+    const query = ExportQuery.safeParse(c.req.query());
+    if (!params.success || !query.success)
+      throw new ValidationError("format is markdown or json, threadId a message id, files true or false");
+    const { orgId, channelId } = params.data;
+    const file = await exportConversation(
+      { db, artifacts: deps.extras?.artifacts },
+      c.get("user").id,
+      orgId,
+      channelId,
+      {
+        format: query.data.format,
+        threadId: query.data.threadId,
+        files: query.data.files === "true",
+      },
+    );
+    return c.body(file.body as Uint8Array<ArrayBuffer>, 200, {
+      "content-type": file.contentType,
+      "content-disposition": attachmentDisposition(file.filename),
+      "x-content-type-options": "nosniff",
+      "content-security-policy": "sandbox",
+      "cache-control": "private, no-store, no-transform",
+    });
+  });
 
   return app;
 }

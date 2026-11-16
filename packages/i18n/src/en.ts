@@ -16679,6 +16679,7 @@ export const en = {
         shown: "Viewed",
         copied: "Copied",
         used: "Used",
+        exported: "Exported",
         other: "Changed",
       },
       area: {
@@ -16711,6 +16712,7 @@ export const en = {
         invitation: "an invitation",
         credential: "an AI key",
         vault: "the Vault",
+        conversation: "a conversation",
         other: "the workspace",
       },
     },
@@ -20741,6 +20743,17 @@ export const en = {
       alwaysOn: "From now on, reports like this go without asking.",
       askFirst: "Ask before sending",
     },
+  },
+  /** "Export conversation" (a channel's or a DM's menu) and "Export thread" (a thread's "…"): one dialog. */
+  transcript: {
+    menu: "Export conversation",
+    menuThread: "Export thread",
+    title: "Export conversation",
+    titleThread: "Export thread",
+    format: "Format",
+    files: "Include files",
+    filesHelp: "A .zip with the conversation and the files you can open, up to 50 MB.",
+    download: "Download",
   },
 };
 

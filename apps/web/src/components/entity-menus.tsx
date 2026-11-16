@@ -25,6 +25,7 @@ import { copyText, type MenuEntry } from "@/lib/context-menu";
 import { useToast } from "@/lib/toast";
 import { useLiveStore } from "@/realtime/context";
 import { useOpenAgentPanel } from "./agent-panel-context";
+import { useExportConversation } from "./ConversationExport";
 import { useChannelActions } from "./channel-actions";
 import { useLeaveChannelWithUndo } from "./LeaveChannelDialog";
 import { useOrg } from "./org-context";
@@ -160,6 +161,26 @@ function useMention() {
       : [];
 }
 
+/** "Exportar conversa" for a conversation the viewer reads (the server checks it again). */
+function useExportEntry() {
+  const { t } = useTranslation();
+  const open = useExportConversation();
+  // A client that can't name the export's address (an older or test one) offers nothing.
+  const offered = useApi().transcripts !== undefined;
+  return (channelId: string | undefined): MenuEntry[] =>
+    open && offered && channelId
+      ? [
+          {
+            kind: "item",
+            id: "export",
+            label: t("transcript.menu"),
+            icon: "download",
+            run: () => open({ channelId }),
+          },
+        ]
+      : [];
+}
+
 /**
  * A channel (sidebar row, channel header): mark read, its details (edit for who manages it), `extra` (the sidebar's
  * Mover para… and Nova categoria), copy link, archive.
@@ -174,6 +195,7 @@ export function useChannelMenu() {
   const archive = useArchiveChannelWithUndo();
   const leave = useLeaveChannelWithUndo();
   const pins = useSidebarPins();
+  const exportEntry = useExportEntry();
   return (c: Channel, extra: MenuEntry[] = []): MenuEntry[] => {
     const manages = managesChannel(c, me.user.id, org);
     return [
@@ -215,6 +237,8 @@ export function useChannelMenu() {
         icon: "link",
         run: () => void copyText(linkTo(`/org/${org.id}/c/${c.id}`), () => toast.show(t("contextMenu.linkCopied"))),
       },
+      // Who reads it: a member, or an administrator reading without joining (ADR 0151).
+      ...(c.isMember || c.seenAsAdmin ? exportEntry(c.id) : []),
       ...(leavesChannel(c) || (manages && c.name !== "general") ? ([{ kind: "separator" }] satisfies MenuEntry[]) : []),
       ...(leavesChannel(c)
         ? ([
@@ -257,6 +281,7 @@ export function useAgentMenu() {
   const mention = useMention();
   const pins = useSidebarPins();
   const duplicate = useDuplicateAgent(org.id);
+  const exportEntry = useExportEntry();
   /** `extra`: the sidebar row's own items (Mudar de grupo), after Fixar no topo. */
   return (
     a: Pick<Agent, "id" | "name" | "handle" | "ownerUserId" | "builtin">,
@@ -339,6 +364,7 @@ export function useAgentMenu() {
         run: () =>
           void copyText(linkTo(`/org/${org.id}/dm/agent/${a.id}`), () => toast.show(t("contextMenu.linkCopied"))),
       },
+      ...exportEntry(dm?.channelId),
       ...(working.length
         ? ([
             { kind: "separator" },
@@ -376,6 +402,7 @@ export function usePersonMenu() {
   const copyId = useCopyId();
   const mention = useMention();
   const pins = useSidebarPins();
+  const exportEntry = useExportEntry();
   const viewer = { role: org.role, rank: org.rank, userId: me.user.id, permissions: org.permissions };
   return (p: { userId: string; name: string; handle?: string | null }, openCard?: () => void): MenuEntry[] => {
     const dm = dms?.find((d) => d.with.id === p.userId);
@@ -406,6 +433,7 @@ export function usePersonMenu() {
       ...mention(handle),
       ...copyHandle(handle),
       ...markRead(dm?.channelId, dm?.unread ?? 0),
+      ...exportEntry(dm?.channelId),
       ...(out
         ? ([
             { kind: "separator" },
