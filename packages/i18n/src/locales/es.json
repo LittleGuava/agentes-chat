@@ -2501,6 +2501,7 @@
     "membersButton_one": "Miembros del canal ({{count}})",
     "membersButton_many": "Miembros del canal ({{count}})",
     "membersButton_other": "Miembros del canal ({{count}})",
+    "viewers": "Aquí ahora: {{names}}",
     "membersAgents": "Agentes",
     "you": "tú",
     "agentState": {

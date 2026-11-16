@@ -2424,6 +2424,7 @@
     },
     "membersButton_one": "Mitglieder des Kanals ({{count}})",
     "membersButton_other": "Mitglieder des Kanals ({{count}})",
+    "viewers": "Gerade hier: {{names}}",
     "membersAgents": "Agenten",
     "you": "du",
     "agentState": {

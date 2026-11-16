@@ -513,6 +513,8 @@ export function applyWorkspaceEvent(qc: QueryClient, orgId: string, event: { typ
   // Someone changed their availability or line, or an agent its line (ADR 0084): the lists follow.
   if (event.type === "member.status") {
     void qc.invalidateQueries({ queryKey: keys.people(orgId) });
+    // Hidden now, or shown again: who has a conversation open says so (ADR 0084 addendum 2026-11-15).
+    void qc.invalidateQueries({ queryKey: keys.anyViewers(orgId) });
     return true;
   }
   // An agent's run started, parked, came back or ended: its face and line follow, and so does "Trabalhando agora"

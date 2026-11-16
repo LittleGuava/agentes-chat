@@ -6450,7 +6450,8 @@ function part<
     | "actions"
     | "actionCards"
     | "agentForYou"
-    | "gifs",
+    | "gifs"
+    | "viewers",
 >(api: ApiClient, name: K): NonNullable<ApiClient[K]> {
   const value = api[name];
   if (!value) throw new Error(`This API client has no ${name}`);
@@ -6755,6 +6756,24 @@ export function useCancelFollowUp(orgId: string) {
       void qc.invalidateQueries({ queryKey: keys.taskManager(orgId) });
       void qc.invalidateQueries({ queryKey: keys.agentStatus(orgId) });
     },
+  });
+}
+
+/**
+ * Who else has a conversation open (ADR 0084 addendum 2026-11-15), live: the channel's `channel.viewers` and the
+ * workspace's `member.status` (someone went hidden) read it again. Never kept from an earlier visit: while the
+ * conversation was closed no event reached it.
+ */
+export function useChannelViewers(orgId: string, channelId: string, enabled = true) {
+  const api = useApi();
+  return useQuery({
+    queryKey: keys.viewers(orgId, channelId),
+    queryFn: () => part(api, "viewers").list(orgId, channelId),
+    enabled: enabled && Boolean(api.viewers),
+    staleTime: 0,
+    // Dropped as the header goes: a visit later never shows who was there before.
+    gcTime: 0,
+    refetchOnMount: "always",
   });
 }
 

@@ -1954,6 +1954,8 @@ export type ChannelEvent =
       waitKind: string;
       outcome: WaitMessageOutcome;
     }
+  /** `userId` opened the conversation or closed it (ids only, never about me): read `viewers.list` again. */
+  | { type: "channel.viewers"; channelId: string; userId: string }
   /** A person is typing, or recording a voice message (`kind: "voice"`); drop it after `ttlMs`. */
   | {
       type: "user.typing";

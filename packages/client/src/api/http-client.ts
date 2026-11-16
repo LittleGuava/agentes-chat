@@ -367,6 +367,10 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       get: (orgId, agentId, limit) =>
         request<AgentForYou>(`${org(orgId)}/agents/${enc(agentId)}/for-you`, { query: { limit } }),
     },
+    viewers: {
+      list: async (orgId, channelId) =>
+        (await request<{ viewers: string[] }>(`${org(orgId)}/channels/${enc(channelId)}/viewers`)).viewers,
+    },
     pins: {
       list: async (orgId, channelId) =>
         (await request<{ pins: MessagePin[] }>(`${org(orgId)}/channels/${enc(channelId)}/pins`)).pins,

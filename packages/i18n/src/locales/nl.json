@@ -2424,6 +2424,7 @@
     },
     "membersButton_one": "Kanaalleden ({{count}})",
     "membersButton_other": "Kanaalleden ({{count}})",
+    "viewers": "Nu hier: {{names}}",
     "membersAgents": "Agents",
     "you": "jij",
     "agentState": {

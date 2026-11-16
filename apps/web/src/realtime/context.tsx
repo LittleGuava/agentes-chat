@@ -926,6 +926,29 @@ export function useChannelEvents(channelId: string, enabled: boolean, onEvent: (
   }, [connection, enabled, channelId]);
 }
 
+/**
+ * Keeps who else has the conversation open fresh while `enabled` (ADR 0084 addendum 2026-11-15): its `channel.viewers`
+ * and every (re)subscription read it again, since what changed while the socket was down never came.
+ */
+export function useViewersLive(orgId: string, channelId: string, enabled: boolean) {
+  const { connection } = useRealtime();
+  const qc = useQueryClient();
+  useEffect(() => {
+    if (!connection || !enabled) return;
+    const again = () => void qc.invalidateQueries({ queryKey: keys.viewers(orgId, channelId) });
+    const off = connection.subscribe(channelId, (event) => {
+      if (event.type === "channel.viewers") again();
+    });
+    const offSubscribed = connection.onSubscribed((id) => {
+      if (id === channelId) again();
+    });
+    return () => {
+      off();
+      offSubscribed();
+    };
+  }, [connection, enabled, orgId, channelId, qc]);
+}
+
 /** Same items in the same order (lists), or the same keys with the same values (plain objects). */
 function shallowEqual(a: unknown, b: unknown): boolean {
   if (Object.is(a, b)) return true;

@@ -434,6 +434,12 @@ export type ChannelEvent =
    * are made out). Clients drop it after `ttlMs`.
    */
   | { type: "user.typing"; channelId: string; threadId: string | null; userId: string; ttlMs: number; kind?: "voice" }
+  /**
+   * Who has the conversation open changed (ADR 0084 addendum 2026-11-15): `userId` opened it on their first connection
+   * or closed it on their last. Ids only: its apps read `GET …/channels/{channelId}/viewers` again. Never sent for a
+   * hidden person, nor to that person's own sockets.
+   */
+  | { type: "channel.viewers"; channelId: string; userId: string }
   /** Who saw a message and who will answer (receipts). No router scores here. */
   | {
       type: "message.routed";

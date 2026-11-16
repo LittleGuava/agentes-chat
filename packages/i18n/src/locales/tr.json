@@ -2424,6 +2424,7 @@
     },
     "membersButton_one": "Kanal üyeleri ({{count}})",
     "membersButton_other": "Kanal üyeleri ({{count}})",
+    "viewers": "Şu an burada: {{names}}",
     "membersAgents": "Ajanlar",
     "you": "siz",
     "agentState": {

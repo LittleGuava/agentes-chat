@@ -2348,6 +2348,7 @@
       "hideMembers": "メンバーを隠す"
     },
     "membersButton_other": "チャンネルのメンバー（{{count}}）",
+    "viewers": "今ここにいる人: {{names}}",
     "membersAgents": "エージェント",
     "you": "あなた",
     "agentState": {

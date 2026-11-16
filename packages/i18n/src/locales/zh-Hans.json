@@ -2348,6 +2348,7 @@
       "hideMembers": "隐藏成员"
     },
     "membersButton_other": "频道成员（{{count}}）",
+    "viewers": "正在查看：{{names}}",
     "membersAgents": "智能体",
     "you": "你",
     "agentState": {

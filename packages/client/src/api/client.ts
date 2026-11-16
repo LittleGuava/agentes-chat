@@ -1945,6 +1945,10 @@ export interface ApiClient {
    * Phone app additions. Optional so older fakes and clients still type-check;
    * `createHttpApi` has them all (hooks throw when a client lacks one).
    */
+  /** Who else has a conversation open now (ADR 0084 addendum 2026-11-15): user ids, never yours nor a hidden one's. */
+  viewers?: {
+    list(orgId: string, channelId: string): Promise<string[]>;
+  };
   /** Pinned messages of a channel or DM (anyone who can post there pins). */
   pins?: {
     /** Newest pin first. */
