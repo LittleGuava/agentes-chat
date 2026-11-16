@@ -4609,7 +4609,13 @@
     "skip": "건너뛰기",
     "skipFailed": "질문을 건너뛸 수 없습니다. 다시 시도해 주세요.",
     "dismissed": "{{name}}님이 이 질문을 건너뛰었습니다.",
-    "dismissedByYou": "이 질문을 건너뛰었습니다."
+    "dismissedByYou": "이 질문을 건너뛰었습니다.",
+    "several_other": "질문 {{count}}개",
+    "pickSeveral": "하나 이상 선택하세요",
+    "sendAll": "답변 보내기",
+    "left_other": "{{count}}개 남음",
+    "answeredCard": "{{name}} 님이 답변함",
+    "answeredCardByYou": "내가 답변함"
   },
   "ask": {
     "kindOther": {

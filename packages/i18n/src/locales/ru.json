@@ -5093,7 +5093,19 @@
     "skip": "Пропустить",
     "skipFailed": "Не удалось пропустить вопрос. Попробуйте ещё раз.",
     "dismissed": "Вопрос пропущен: {{name}}.",
-    "dismissedByYou": "Вы пропустили этот вопрос."
+    "dismissedByYou": "Вы пропустили этот вопрос.",
+    "several_one": "{{count}} вопрос",
+    "several_few": "{{count}} вопроса",
+    "several_many": "{{count}} вопросов",
+    "several_other": "{{count}} вопроса",
+    "pickSeveral": "Выберите один или несколько",
+    "sendAll": "Отправить ответы",
+    "left_one": "Остался {{count}}",
+    "left_few": "Осталось {{count}}",
+    "left_many": "Осталось {{count}}",
+    "left_other": "Осталось {{count}}",
+    "answeredCard": "Ответил(а) {{name}}",
+    "answeredCardByYou": "Вы ответили"
   },
   "ask": {
     "kindOther": {

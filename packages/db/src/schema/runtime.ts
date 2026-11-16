@@ -859,6 +859,11 @@ export const agentQuestionStatusEnum = pgEnum("agent_question_status", [
   "dismissed",
 ]);
 
+/** One of a question card's questions (ADR 0008 addendum 2026-11-15): its choices, and whether several may be picked. */
+export type QuestionItem = { question: string; choices: string[] | null; multiSelect?: true };
+/** What a person said to one of a card's questions, in its place: the choices picked, and what was written. */
+export type QuestionItemAnswer = { choices: string[]; text: string | null };
+
 /**
  * A question an agent asked a person (`ask_user`). The run waits
  * (`waiting_input`) until someone answers in the thread or through the API,
@@ -884,6 +889,10 @@ export const agentQuestions = pgTable(
     toolUseId: text().notNull(),
     text: text().notNull(),
     choices: text().array(),
+    /** Several questions, or one where several may be picked; null: the one question in `text` and `choices`. */
+    items: jsonb().$type<QuestionItem[]>(),
+    /** The answer to each of `items`, in order, when it came from the card; a reply in words leaves it null. */
+    answers: jsonb().$type<QuestionItemAnswer[]>(),
     /** The one person it is for: only they answer it, and it waits on nobody else. Null: anyone in the conversation. */
     requestedForUserId: text(),
     status: agentQuestionStatusEnum().notNull().default("open"),

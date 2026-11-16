@@ -5093,7 +5093,19 @@
     "skip": "Pomiń",
     "skipFailed": "Nie udało się pominąć pytania. Spróbuj ponownie.",
     "dismissed": "Pytanie pominięte przez: {{name}}.",
-    "dismissedByYou": "Pominięto to pytanie."
+    "dismissedByYou": "Pominięto to pytanie.",
+    "several_one": "{{count}} pytanie",
+    "several_few": "{{count}} pytania",
+    "several_many": "{{count}} pytań",
+    "several_other": "{{count}} pytania",
+    "pickSeveral": "Wybierz jedną lub więcej",
+    "sendAll": "Wyślij odpowiedzi",
+    "left_one": "Zostało {{count}}",
+    "left_few": "Zostały {{count}}",
+    "left_many": "Zostało {{count}}",
+    "left_other": "Zostało {{count}}",
+    "answeredCard": "Odpowiedź od {{name}}",
+    "answeredCardByYou": "Odpowiedziałeś"
   },
   "ask": {
     "kindOther": {

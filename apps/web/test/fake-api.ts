@@ -3919,6 +3919,24 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         if (input.choice && q.choices && !q.choices.includes(input.choice)) {
           throw new ApiError(400, "invalid_choice", "Pick one of the options");
         }
+        if (input.answers && q.items) {
+          // A card of several questions: one answer per question, in order, each with a pick or words.
+          if (input.answers.length !== q.items.length || input.answers.some((a) => !a.choices?.length && !a.text))
+            throw new ApiError(400, "validation", "Answer every question on the card, in order");
+          const answers = input.answers.map((a) => ({ choices: a.choices ?? [], text: a.text ?? null }));
+          const lines = q.items.map((item, i) => {
+            const a = answers[i];
+            const picked = a?.choices.join(", ") ?? "";
+            return `${item.question} ${picked && a?.text ? `${picked} (${a.text})` : picked || a?.text || ""}`;
+          });
+          Object.assign(q, {
+            status: "answered",
+            answer: lines.join("\n"),
+            answers,
+            answeredByUserId: state.me?.user.id ?? null,
+          });
+          return structuredClone(q);
+        }
         const answer =
           input.choice && input.text ? `${input.choice} (${input.text})` : (input.choice ?? input.text ?? null);
         Object.assign(q, { status: "answered", answer, answeredByUserId: state.me?.user.id ?? null });

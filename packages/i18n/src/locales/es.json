@@ -4916,7 +4916,17 @@
     "skip": "Omitir",
     "skipFailed": "No se pudo omitir la pregunta. Inténtalo de nuevo.",
     "dismissed": "{{name}} omitió esta pregunta.",
-    "dismissedByYou": "Omitiste esta pregunta."
+    "dismissedByYou": "Omitiste esta pregunta.",
+    "several_one": "{{count}} pregunta",
+    "several_many": "{{count}} preguntas",
+    "several_other": "{{count}} preguntas",
+    "pickSeveral": "Elige una o más",
+    "sendAll": "Enviar respuestas",
+    "left_one": "Falta {{count}}",
+    "left_many": "Faltan {{count}}",
+    "left_other": "Faltan {{count}}",
+    "answeredCard": "Respondida por {{name}}",
+    "answeredCardByYou": "Respondiste"
   },
   "ask": {
     "kindOther": {

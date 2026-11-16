@@ -4780,7 +4780,15 @@
     "skip": "Überspringen",
     "skipFailed": "Die Frage konnte nicht übersprungen werden. Versuch es noch einmal.",
     "dismissed": "{{name}} hat diese Frage übersprungen.",
-    "dismissedByYou": "Du hast diese Frage übersprungen."
+    "dismissedByYou": "Du hast diese Frage übersprungen.",
+    "several_one": "{{count}} Frage",
+    "several_other": "{{count}} Fragen",
+    "pickSeveral": "Eine oder mehrere wählen",
+    "sendAll": "Antworten senden",
+    "left_one": "Noch {{count}} offen",
+    "left_other": "Noch {{count}} offen",
+    "answeredCard": "Beantwortet von {{name}}",
+    "answeredCardByYou": "Du hast geantwortet"
   },
   "ask": {
     "kindOther": {

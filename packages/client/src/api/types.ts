@@ -3610,6 +3610,13 @@ export interface AgentQuestion {
   choices: string[] | null;
   /** The one person who may answer it; null or absent (an older server): anyone in the conversation. */
   requestedForUserId?: string | null;
+  /**
+   * Several questions, or one where several may be picked (ADR 0008 addendum 2026-11-15): the card asks each and
+   * answers them together. Absent: the one question in `text` and `choices`.
+   */
+  items?: QuestionItem[];
+  /** The answer to each of `items`, in order, when it came from the card (a reply in words leaves it out). */
+  answers?: QuestionItemAnswer[];
   status: "open" | "answered";
   answer: string | null;
   answeredByUserId: string | null;
@@ -3619,6 +3626,26 @@ export interface AgentQuestion {
   withdrawn?: true;
   /** A person (`answeredByUserId`) skipped it: the agent went on without an answer. */
   dismissed?: true;
+}
+
+/** One of a question card's questions: its choices (none: answered in words), and whether several may be picked. */
+export interface QuestionItem {
+  question: string;
+  choices: string[] | null;
+  multiSelect?: true;
+}
+
+/** What was said to one of a card's questions: the choices picked, and what was written. */
+export interface QuestionItemAnswer {
+  choices: string[];
+  text: string | null;
+}
+
+/** An answer to an agent's question: one question's `choice` and/or `text`, or `answers`, one per question in order. */
+export interface QuestionAnswerInput {
+  choice?: string;
+  text?: string;
+  answers?: { choices?: string[]; text?: string }[];
 }
 
 /**

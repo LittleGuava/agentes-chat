@@ -5037,6 +5037,14 @@ export const ptBR = {
     skipFailed: "Não foi possível pular a pergunta. Tente de novo.",
     dismissed: "{{name}} pulou esta pergunta.",
     dismissedByYou: "Você pulou esta pergunta.",
+    several_one: "{{count}} pergunta",
+    several_other: "{{count}} perguntas",
+    pickSeveral: "Escolha uma ou mais",
+    sendAll: "Enviar respostas",
+    left_one: "Falta {{count}}",
+    left_other: "Faltam {{count}}",
+    answeredCard: "Respondida por {{name}}",
+    answeredCardByYou: "Você respondeu",
   },
   /** A request in the conversation (approval, secret, question, help in the agent's screen, proposal): one card for all. */
   ask: {

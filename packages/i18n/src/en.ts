@@ -5181,6 +5181,19 @@ export const en = {
     skipFailed: "Couldn't skip the question. Try again.",
     dismissed: "{{name}} skipped this question.",
     dismissedByYou: "You skipped this question.",
+    /** A card of several questions, where the bar names what waits. */
+    several_one: "{{count}} question",
+    several_other: "{{count}} questions",
+    /** Beside a question where more than one choice may be picked. */
+    pickSeveral: "Pick one or more",
+    /** Sends every answer of a card of several questions at once. */
+    sendAll: "Send answers",
+    /** Beside Send answers while some questions have no answer yet. */
+    left_one: "{{count}} left to answer",
+    left_other: "{{count}} left to answer",
+    /** A card of several questions, answered: each question's answer is listed above. */
+    answeredCard: "Answered by {{name}}",
+    answeredCardByYou: "You answered",
   },
   /** A request in the conversation (approval, secret, question, help in the agent's screen, proposal): one card for all. */
   ask: {

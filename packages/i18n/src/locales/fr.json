@@ -4921,7 +4921,17 @@
     "skip": "Passer",
     "skipFailed": "Impossible de passer la question. Réessayez.",
     "dismissed": "{{name}} a passé cette question.",
-    "dismissedByYou": "Vous avez passé cette question."
+    "dismissedByYou": "Vous avez passé cette question.",
+    "several_one": "{{count}} question posée",
+    "several_many": "{{count}} questions posées",
+    "several_other": "{{count}} questions posées",
+    "pickSeveral": "Choisissez-en une ou plusieurs",
+    "sendAll": "Envoyer les réponses",
+    "left_one": "Encore {{count}} à répondre",
+    "left_many": "Encore {{count}} à répondre",
+    "left_other": "Encore {{count}} à répondre",
+    "answeredCard": "Répondu par {{name}}",
+    "answeredCardByYou": "Vous avez répondu"
   },
   "ask": {
     "kindOther": {

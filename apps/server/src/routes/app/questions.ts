@@ -1,8 +1,28 @@
-import { answerQuestion, dismissQuestion, getQuestion, MAX_MESSAGE_LENGTH } from "@agenteschat/engine";
+import {
+  answerQuestion,
+  dismissQuestion,
+  getQuestion,
+  MAX_MESSAGE_LENGTH,
+  QUESTION_CHOICE_MAX_CHARS,
+  QUESTION_MAX_CHOICES,
+  QUESTION_MAX_ITEMS,
+} from "@agenteschat/engine";
 import { createRoute, z } from "@hono/zod-openapi";
 import { type AppDeps, body, createAppRouter, errors, json, OrgParams, requireSession, security } from "./context";
 
 const tags = ["Chat"];
+
+const QuestionItem = z
+  .object({
+    question: z.string(),
+    choices: z.array(z.string()).nullable(),
+    multiSelect: z.literal(true).optional(),
+  })
+  .openapi("QuestionItem");
+
+const QuestionItemAnswer = z
+  .object({ choices: z.array(z.string()), text: z.string().nullable() })
+  .openapi("QuestionItemAnswer");
 
 const AgentQuestion = z
   .object({
@@ -17,6 +37,13 @@ const AgentQuestion = z
       .string()
       .nullable()
       .openapi({ description: "The one person who may answer it; null: anyone in the conversation." }),
+    items: z.array(QuestionItem).optional().openapi({
+      description: "Several questions, or one where several may be picked; absent: the one question in `text`.",
+    }),
+    answers: z
+      .array(QuestionItemAnswer)
+      .optional()
+      .openapi({ description: "The answer to each of `items`, in order, when it came from the card." }),
     status: z.enum(["open", "answered"]),
     answer: z.string().nullable(),
     answeredByUserId: z.string().nullable(),
@@ -59,11 +86,27 @@ export function questionRoutes(deps: AppDeps) {
       path: "/organizations/{orgId}/questions/{questionId}/answer",
       tags,
       security,
-      summary: "Answer an agent's question (a choice, text, or both); the agent continues",
+      summary:
+        "Answer an agent's question (a choice, text, or both; or every question of its card); the agent continues",
       request: {
         params: QuestionParams,
         body: body(
-          z.object({ choice: z.string().max(200).optional(), text: z.string().max(MAX_MESSAGE_LENGTH).optional() }),
+          z.object({
+            choice: z.string().max(QUESTION_CHOICE_MAX_CHARS).optional(),
+            text: z.string().max(MAX_MESSAGE_LENGTH).optional(),
+            answers: z
+              .array(
+                z.object({
+                  choices: z.array(z.string().max(QUESTION_CHOICE_MAX_CHARS)).max(QUESTION_MAX_CHOICES).optional(),
+                  text: z.string().max(MAX_MESSAGE_LENGTH).optional(),
+                }),
+              )
+              .max(QUESTION_MAX_ITEMS)
+              .optional()
+              .openapi({
+                description: "One per question of the card, in order: the choices picked and what was written.",
+              }),
+          }),
         ),
       },
       responses: { 200: json(AgentQuestion), ...errors },

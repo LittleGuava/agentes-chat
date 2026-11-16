@@ -4780,7 +4780,15 @@
     "skip": "Overslaan",
     "skipFailed": "De vraag kon niet worden overgeslagen. Probeer het opnieuw.",
     "dismissed": "{{name}} heeft deze vraag overgeslagen.",
-    "dismissedByYou": "Je hebt deze vraag overgeslagen."
+    "dismissedByYou": "Je hebt deze vraag overgeslagen.",
+    "several_one": "{{count}} vraag",
+    "several_other": "{{count}} vragen",
+    "pickSeveral": "Kies er een of meer",
+    "sendAll": "Antwoorden versturen",
+    "left_one": "Nog {{count}} te beantwoorden",
+    "left_other": "Nog {{count}} te beantwoorden",
+    "answeredCard": "Beantwoord door {{name}}",
+    "answeredCardByYou": "Je hebt geantwoord"
   },
   "ask": {
     "kindOther": {

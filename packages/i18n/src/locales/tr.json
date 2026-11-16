@@ -4764,7 +4764,15 @@
     "skip": "Atla",
     "skipFailed": "Soru atlanamadı. Tekrar deneyin.",
     "dismissed": "{{name}} bu soruyu atladı.",
-    "dismissedByYou": "Bu soruyu atladınız."
+    "dismissedByYou": "Bu soruyu atladınız.",
+    "several_one": "{{count}} soru",
+    "several_other": "{{count}} soru",
+    "pickSeveral": "Bir veya daha fazlasını seç",
+    "sendAll": "Yanıtları gönder",
+    "left_one": "{{count}} soru kaldı",
+    "left_other": "{{count}} soru kaldı",
+    "answeredCard": "{{name}} yanıtladı",
+    "answeredCardByYou": "Sen yanıtladın"
   },
   "ask": {
     "kindOther": {

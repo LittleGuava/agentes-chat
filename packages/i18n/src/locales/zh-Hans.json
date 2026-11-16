@@ -4611,7 +4611,13 @@
     "skip": "跳过",
     "skipFailed": "无法跳过此问题，请重试。",
     "dismissed": "{{name}}跳过了此问题。",
-    "dismissedByYou": "你跳过了此问题。"
+    "dismissedByYou": "你跳过了此问题。",
+    "several_other": "{{count}} 个问题",
+    "pickSeveral": "选择一项或多项",
+    "sendAll": "发送回答",
+    "left_other": "还剩 {{count}} 个",
+    "answeredCard": "{{name}} 已回答",
+    "answeredCardByYou": "你已回答"
   },
   "ask": {
     "kindOther": {

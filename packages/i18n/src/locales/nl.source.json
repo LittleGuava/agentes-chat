@@ -11730,6 +11730,30 @@
   "question.dismissedByYou": {
     "value": "You skipped this question."
   },
+  "question.several": {
+    "value": {
+      "one": "{{count}} question",
+      "other": "{{count}} questions"
+    }
+  },
+  "question.pickSeveral": {
+    "value": "Pick one or more"
+  },
+  "question.sendAll": {
+    "value": "Send answers"
+  },
+  "question.left": {
+    "value": {
+      "one": "{{count}} left to answer",
+      "other": "{{count}} left to answer"
+    }
+  },
+  "question.answeredCard": {
+    "value": "Answered by {{name}}"
+  },
+  "question.answeredCardByYou": {
+    "value": "You answered"
+  },
   "ask.kindOther.approval": {
     "value": "Asks for approval"
   },

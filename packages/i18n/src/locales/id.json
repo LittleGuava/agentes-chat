@@ -4623,7 +4623,13 @@
     "skip": "Lewati",
     "skipFailed": "Tidak dapat melewati pertanyaan. Coba lagi.",
     "dismissed": "{{name}} melewati pertanyaan ini.",
-    "dismissedByYou": "Kamu melewati pertanyaan ini."
+    "dismissedByYou": "Kamu melewati pertanyaan ini.",
+    "several_other": "{{count}} pertanyaan",
+    "pickSeveral": "Pilih satu atau lebih",
+    "sendAll": "Kirim jawaban",
+    "left_other": "{{count}} lagi belum dijawab",
+    "answeredCard": "Dijawab oleh {{name}}",
+    "answeredCardByYou": "Kamu menjawab"
   },
   "ask": {
     "kindOther": {

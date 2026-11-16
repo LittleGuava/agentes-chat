@@ -4611,7 +4611,13 @@
     "skip": "スキップ",
     "skipFailed": "質問をスキップできませんでした。もう一度お試しください。",
     "dismissed": "{{name}}がこの質問をスキップしました。",
-    "dismissedByYou": "この質問をスキップしました。"
+    "dismissedByYou": "この質問をスキップしました。",
+    "several_other": "{{count}} 件の質問",
+    "pickSeveral": "1つ以上選んでください",
+    "sendAll": "回答を送信",
+    "left_other": "残り {{count}} 件",
+    "answeredCard": "{{name}} さんが回答しました",
+    "answeredCardByYou": "あなたが回答しました"
   },
   "ask": {
     "kindOther": {
