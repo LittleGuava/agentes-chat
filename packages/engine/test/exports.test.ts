@@ -3,6 +3,8 @@ import {
   addChannelMember,
   addContextItemByPerson,
   applyImport,
+  createAgent,
+  createAgentGroup,
   createChannel,
   createOrganization,
   createRoutine,
@@ -10,6 +12,7 @@ import {
   ForbiddenError,
   insertContextItem,
   type MigrationBundle,
+  NotFoundError,
   parseSkillMarkdown,
   saveSkill,
   setAgentAppearance,
@@ -170,4 +173,144 @@ test("export: what everyone may see, never keys; imported into another workspace
   expect(shape(copy)).toEqual(shape(bundle));
   expect(copy.channels[0]?.key).not.toBe(general.id);
   expect((await into()).items.every((i) => i.action === "unchanged")).toBe(true);
+});
+
+test("export of a setor or chosen agents: them and what they use, nothing of the rest", async () => {
+  f = await setup();
+  const { db, owner, org, agent: dev, general } = f;
+  const deps = { db, pubsub: f.pubsub };
+  const model = { model: "claude-sonnet-5-5" };
+  const sales = await createAgent(db, owner.id, org.id, { name: "Vendedora", handle: "vendas" }, model);
+  const solo = await createAgent(db, owner.id, org.id, { name: "Avulso", handle: "avulso" }, model);
+  await addChannelMember(db, owner.id, org.id, general.id, { agentId: sales.id });
+  /** A new setor's id (the call answers with every setor). */
+  const setor = async (orgId: string, by: string, name: string, agentIds: string[] = []) =>
+    (await createAgentGroup(deps, by, orgId, { name, agentIds })).find((g) => g.name === name)?.id ?? "";
+  const eng = await setor(org.id, owner.id, "Engenharia", [dev.id]);
+  const comercial = await setor(org.id, owner.id, "Comercial", [sales.id]);
+  const empty = await setor(org.id, owner.id, "Vazio");
+  const skill = async (name: string, files: { path: string; data: Uint8Array }[] = []) =>
+    saveSkill({ db, blobs: f.artifactDeps.blobs }, owner.id, org.id, {
+      ...parseSkillMarkdown(`---\nname: ${name}\ndescription: ${name}.\n---\n# ${name}`),
+      source: "manual",
+      files,
+    });
+  const review = await skill("revisar-codigo");
+  const pitch = await skill("proposta-comercial", [
+    { path: "modelo-proposta.md", data: new TextEncoder().encode("# Proposta") },
+  ]);
+  await skill("ninguem-usa");
+  await setAgentSkills(db, owner.id, org.id, dev.id, [{ skillId: review.id, enabled: true }]);
+  await setAgentSkills(db, owner.id, org.id, sales.id, [{ skillId: pitch.id, enabled: true }]);
+  const deploys = await createChannel(db, owner.id, org.id, { name: "deploys" });
+  await addChannelMember(db, owner.id, org.id, deploys.id, { agentId: dev.id });
+  const leads = await createChannel(db, owner.id, org.id, { name: "leads" });
+  await addChannelMember(db, owner.id, org.id, leads.id, { agentId: sales.id });
+  // No chosen agent is in it: it stays.
+  await createChannel(db, owner.id, org.id, { name: "cafezinho" });
+  const weekly = { freq: "weekly" as const, byWeekday: ["MO"], times: ["09:00"], timezone: "America/Sao_Paulo" };
+  const routine = (agentId: string, name: string, channelId: string) =>
+    createRoutine(deps, owner.id, org.id, {
+      name,
+      agentId,
+      prompt: `${name}.`,
+      target: { type: "channel", channelId },
+      trigger: { type: "schedule", rule: weekly },
+    });
+  await routine(dev.id, "Changelog semanal", deploys.id);
+  await routine(sales.id, "Funil da semana", leads.id);
+  await createRoutine(deps, owner.id, org.id, {
+    name: "Lead novo",
+    agentId: sales.id,
+    prompt: "Olhe o lead.",
+    target: { type: "dm" },
+    trigger: { type: "event", event: "issue.created" },
+  });
+  await addContextItemByPerson(db, owner.id, org.id, { kind: "fact", content: "A Acme fecha o mês no dia 25." });
+  await db.transaction(async (tx) => {
+    for (const [agentId, content] of [
+      [dev.id, "O deploy sai às terças."],
+      [sales.id, "O cliente Beta pede desconto."],
+    ] as const) {
+      await insertContextItem(tx, { orgId: org.id, kind: "note", scopeType: "agent", agentId, content });
+    }
+  });
+
+  const member = await addMember(db, org.id, "member");
+  await expect(exportBundle(db, member.id, org.id, { groupIds: [eng] })).rejects.toThrow(ForbiddenError);
+
+  const summary = (b: MigrationBundle) => ({
+    agents: b.agents.map((a) => a.handle),
+    skills: b.skills.map((s) => parseSkillMarkdown(s.markdown).name),
+    channels: b.channels.map((c) => [c.name, c.agents.map((m) => m.key)]),
+    routines: b.routines.map((r) => r.name),
+    notes: b.notes.map((n) => n.content),
+    leftOut: b.leftOut.map((l) => l.label),
+  });
+
+  const engineering = await exportBundle(db, owner.id, org.id, { groupIds: [eng] });
+  expect(summary(engineering)).toEqual({
+    agents: ["dev"],
+    skills: ["revisar-codigo"],
+    channels: [
+      ["general", [dev.id]],
+      ["deploys", [dev.id]],
+    ],
+    routines: ["Changelog semanal"],
+    // The workspace's own memory isn't any agent's: a part carries only its agents' notes.
+    notes: ["O deploy sai às terças."],
+    leftOut: [],
+  });
+  const text = JSON.stringify(engineering);
+  for (const other of [sales.id, solo.id, "Vendedora", "proposta-comercial", "ninguem-usa", "leads", "cafezinho"]) {
+    expect(text.includes(other)).toBe(false);
+  }
+  for (const other of ["Funil", "Lead novo", "Beta", "fecha o mês", "sk-ant-test-key-1234", f.credential.id]) {
+    expect(text.includes(other)).toBe(false);
+  }
+
+  expect(summary(await exportBundle(db, owner.id, org.id, { agentIds: [sales.id] }))).toEqual({
+    agents: ["vendas"],
+    skills: ["proposta-comercial"],
+    channels: [
+      ["general", [sales.id]],
+      ["leads", [sales.id]],
+    ],
+    routines: ["Funil da semana"],
+    notes: ["O cliente Beta pede desconto."],
+    leftOut: ["Lead novo", "proposta-comercial/modelo-proposta.md"],
+  });
+
+  // Setores and agents add up; an agent named twice comes once.
+  const both = await exportBundle(db, owner.id, org.id, { groupIds: [comercial], agentIds: [solo.id, sales.id] });
+  expect(both.agents.map((a) => a.handle)).toEqual(["vendas", "avulso"]);
+
+  // A setor with nobody in it brings nothing, never the whole workspace.
+  expect(summary(await exportBundle(db, owner.id, org.id, { groupIds: [empty] }))).toEqual({
+    agents: [],
+    skills: [],
+    channels: [],
+    routines: [],
+    notes: [],
+    leftOut: [],
+  });
+
+  // Another workspace's agent or setor isn't here.
+  const other = await addUser(db, "bia");
+  const { organization: orgB } = await createOrganization(db, other.id, { name: "Acme Cloud" });
+  const theirs = await setor(orgB.id, other.id, "Deles");
+  await expect(exportBundle(db, owner.id, org.id, { groupIds: [theirs] })).rejects.toThrow(NotFoundError);
+  await expect(exportBundle(db, owner.id, org.id, { agentIds: [crypto.randomUUID()] })).rejects.toThrow(NotFoundError);
+
+  // The part imports whole into another workspace: nothing points outside it.
+  const applied = await applyImport(
+    { db, blobs: f.artifactDeps.blobs, pubsub: f.pubsub },
+    other.id,
+    orgB.id,
+    { bundle: engineering, dryRun: false },
+    { model: "claude-haiku-5-5" },
+  );
+  expect(applied.items.filter((i) => i.action !== "create").map((i) => [i.kind, i.label, i.reason])).toEqual([
+    ["channel", "general", "exists"],
+  ]);
 });

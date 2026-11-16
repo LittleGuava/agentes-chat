@@ -476,3 +476,9 @@ html:not([data-pointer]) .imp-link:focus-visible {
   align-items: center;
   gap: 4px 8px;
 }
+
+/* The part's preview: its lines as close as the card's notes. */
+.imp-export-preview {
+  display: grid;
+  gap: var(--space-1);
+}

@@ -1,6 +1,6 @@
 # 0055. Imports from other apps, and our own export, through one bundle
 
-- Status: Accepted (2026-10-21). Addendum 2026-10-31: an old id handle still reaches its agent. Addendum 2026-11-12: private repositories through the workspace's GitHub
+- Status: Accepted (2026-10-21). Addendum 2026-10-31: an old id handle still reaches its agent. Addendum 2026-11-12: private repositories through the workspace's GitHub. Addendum 2026-11-15: exporting a part, setores or chosen agents (§6)
 - Date: 2026-10-21
 - Extends: ADR 0020 (skills), ADR 0016 (connectors), ADR 0017 (context items), ADR 0019 (SSRF guard)
 - Out of scope for now: chat history, a CLI, a scan of `~/.openclaw` / `~/.hermes` on a connected computer, the Manus API, rollback
@@ -144,3 +144,14 @@ Two things people hit bringing agents from another app with `EXPORT_PROMPT`: the
 ## Addendum (2026-11-10): the onboarding's team step brings the agents (§3, §4)
 
 The onboarding no longer sends a person who has agents elsewhere to Settings › Import after it ends: its team step asks first whether they have agents in another app, and brings them there (ADR 0162, amended 2026-11-10). The step uses the same flow as the import page: an app that answers `EXPORT_PROMPT` is asked from the step, a file or a folder goes through the picker, the preview shows what was found and applying it makes the team. Agents brought there arrive with no model (`model: null`), so they take the new agent's default and think with the AI connected in the next step: a model kept from the other app (§4) could be one the workspace never connects. A step that brought no agent goes on as if the person had none.
+
+## Addendum (2026-11-15): exporting a part, setores or chosen agents (§6)
+
+A team that shares one department with another workspace, or keeps a copy of a few agents, had to take the whole workspace and clean the file by hand. The export now takes a part.
+
+- **What names the part.** `GET …/export?agents=<ids>&groups=<ids>`: these agents and every agent of these setores (`agent_groups`, ADR 0148), together, an agent named twice coming once. Each list is comma-separated uuids, at most 200 (the import's own limit of agents, `IMPORT_LIMITS.agents`). An id that isn't an exportable agent here (another workspace's, archived, the right hand) or a setor of another workspace is a 404. With neither parameter it is the whole workspace, as before. A part that names nobody (a setor with no agent, empty lists) exports an empty bundle, never the whole workspace.
+- **What goes with them, and nothing else.** The skills they have on (and the left-out files of those skills only), the public channels at least one of them is in, with only them as its agents, their routines, and their own memory (`context_items` whose `agent_id` is one of them) under §6's rules. The workspace's memory, the notes no agent owns, stays: it is everyone's, not the part's. Private channels, DMs and personal skills stay as in §6, and what may come from memory is still checked against every public channel, so a note learned in a public channel none of them is in still goes. `leftOut` lists only their routines and their skills' files, so no name of the rest reaches the file. A routine on a channel none of them is in any more is left out, like one on a private channel.
+- **Closed.** Every reference in a part's file points inside it (an agent's skills, a channel's agents, a routine's agent and channel, a note's agent), so it imports whole, with no `agent_not_picked` or `channel_not_picked`.
+- **The bundle doesn't change.** Same format and version. The setor itself doesn't travel: the importing workspace places the agents in its own setores.
+- **The screen.** Settings › Import and export › Export picks "The whole workspace" or "Departments or agents". The second is one field with the setores and then the agents (the kit's `ChipField`), and, while it names some, a preview read from the same endpoint, the file the download will save: its agents by name and how many skills, channels, routines and memory notes go with them, or that nobody is in it, which keeps the download off. The download goes to the same URL with the part's query (`exportUrl(orgId, scope)`), so the browser and the desktop app save it as before.
+- **Later.** The phone's export stays the whole workspace. Taking the workspace's memory along as an option, and carrying the setor into the importing workspace, are not built.

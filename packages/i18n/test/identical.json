@@ -1,6 +1,7 @@
 {
   "app": {
     "pt-BR": [
+      "settings.import.countSkills",
       "usageViews.logins",
       "chat.wait.said",
       "access.area.skills",
@@ -560,6 +561,9 @@
       "storage.connect.awsRegion.il-central-1"
     ],
     "fr": [
+      "settings.import.agents",
+      "settings.import.setorAgents",
+      "settings.import.countRoutines",
       "channel.tooLong.fileName",
       "calendar.moreRuns",
       "devices.cpus",
@@ -1459,6 +1463,8 @@
       "storage.connect.awsRegion.il-central-1"
     ],
     "it": [
+      "settings.import.countSkills",
+      "settings.import.countRoutines",
       "shell.email.label",
       "calendar.moreRuns",
       "devices.iphone.steps.account",
@@ -1834,6 +1840,10 @@
       "storage.connect.provider.b2"
     ],
     "nl": [
+      "settings.import.agents",
+      "settings.import.setorAgents",
+      "settings.import.countSkills",
+      "settings.import.countRoutines",
       "calendar.moreRuns",
       "devices.iphone.steps.account",
       "devices.filter.computers",
@@ -3453,6 +3463,7 @@
       "storage.connect.provider.b2"
     ],
     "pl": [
+      "settings.import.setorAgents",
       "devices.cpus",
       "devices.memory",
       "devices.system.android",

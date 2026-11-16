@@ -1,6 +1,7 @@
 import {
   hashKey,
   type InfiniteData,
+  keepPreviousData,
   mutationOptions,
   notifyManager,
   type QueryCache,
@@ -68,6 +69,7 @@ import { upsertMessage, withLocalCopies } from "../lib/timeline";
 import { voiceOf } from "../lib/voice";
 import type { AudienceChoice } from "../lib/who-sees";
 import type { WikiAccess } from "../lib/wiki";
+import { scopeNamesSome } from "../lib/workspace-export";
 import type { RealtimeConnection } from "../realtime/connection";
 import { readUnknownMembers, setOrgDeletion } from "../realtime/machines";
 import type { ApiClient } from "./client";
@@ -122,6 +124,7 @@ import type {
   DmRead,
   DmTarget,
   EndpointModel,
+  ExportScope,
   ForeignMailbox,
   GifCategory,
   GifKey,
@@ -1172,6 +1175,19 @@ export function useSetAgentLines(orgId: string) {
 export const useAgentGroups = (orgId: string) => {
   const api = useApi();
   return useQuery({ queryKey: keys.agentGroups(orgId), queryFn: () => api.agentGroups.list(orgId), staleTime: 30_000 });
+};
+
+/** The file a part of the workspace would download as (ADR 0055 addendum 2026-11-15), while the part names some. */
+export const useExportPreview = (orgId: string, scope: ExportScope) => {
+  const api = useApi();
+  const agentIds = scope.agentIds ?? [];
+  const groupIds = scope.groupIds ?? [];
+  return useQuery({
+    queryKey: keys.exportPreview(orgId, agentIds, groupIds),
+    queryFn: () => api.imports.exportBundle(orgId, { agentIds, groupIds }),
+    enabled: scopeNamesSome(scope),
+    placeholderData: keepPreviousData,
+  });
 };
 
 export type AgentGroupAction =
