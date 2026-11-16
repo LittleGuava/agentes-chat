@@ -53,7 +53,14 @@ import {
 } from "./oauth-mcp";
 import { oauthReturnTo } from "./oauth-return";
 import { seedToolPins } from "./pins";
-import { composioToolkitOf, composioToolName, type McpPreset, presetForServer, serverUrlShown } from "./presets";
+import {
+  composioToolkitOf,
+  composioToolName,
+  type McpPreset,
+  presetForServer,
+  serverUrlShown,
+  takesKey,
+} from "./presets";
 import { type McpServerInfo, refreshServerIcon } from "./server-icon";
 
 const { connectorConnections, customTools, oauthStates, agentScopes, agents } = schema;
@@ -671,6 +678,7 @@ export async function syncCustomTools(deps: CustomDeps, c: ConnectorConnection) 
     judge: deps.judge,
     readTools: preset?.readTools,
     writeTools,
+    askTools: preset?.askTools,
     cached,
   });
   const seen = new Set<string>();
@@ -678,7 +686,8 @@ export async function syncCustomTools(deps: CustomDeps, c: ConnectorConnection) 
     seen.add(tool.name);
     const old = byName.get(tool.name);
     const description = (tool.description ?? "").slice(0, 2000);
-    const cls = classes.get(tool.name) ?? classifyByRules(tool, preset?.readTools, writeTools) ?? UNKNOWN_CLASS;
+    const cls =
+      classes.get(tool.name) ?? classifyByRules(tool, preset?.readTools, writeTools, preset?.askTools) ?? UNKNOWN_CLASS;
     const suggestion = {
       suggestedAccess: cls.level,
       suggestionSource: cls.source,
@@ -778,8 +787,8 @@ export async function connectCustomServer(
   };
   if (apiKey) {
     if (apiKey.length < 8) throw new ValidationError("The key looks too short", "connector.key_too_short");
-    // The vendor's terms forbid asking for a token: on the Cloud it signs in only (ADR 0107).
-    if (presetForServer(serverUrl)?.cloudOAuthOnly && isAgentesCloud(deps.publicUrl)) {
+    // Its server takes no key, or on the Cloud the vendor's terms forbid asking for one (ADR 0016).
+    if (!takesKey(presetForServer(serverUrl), isAgentesCloud(deps.publicUrl))) {
       throw new ValidationError("This service connects by signing in", "connector.oauth_only");
     }
     return stored("api_key", { apiKey });
