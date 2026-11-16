@@ -3,6 +3,7 @@ import {
   dmReads,
   listDms,
   markChannelRead,
+  markChannelUnread,
   openDm,
   setChannelMuted,
   shareDm,
@@ -49,7 +50,8 @@ const Dm = z
           "The latest message (an agent's sticker or GIF after its own reply is part of that reply, so the reply shows).",
       }),
     unread: z.number().openapi({
-      description: "Messages since you last read it, not yours; an agent's sticker or GIF after its reply never.",
+      description:
+        "Messages since you last read it, not yours; an agent's sticker or GIF after its reply never. At least 1 while you marked it unread.",
     }),
     lastReadAt: z.string().nullable().openapi({
       description: "Where the unread starts: when you last read it; null when you never did.",
@@ -129,6 +131,25 @@ export function dmRoutes(deps: AppDeps) {
     async (c) => {
       const { orgId, channelId } = c.req.valid("param");
       await markChannelRead(db, c.get("user").id, orgId, channelId, new Date(), adapters.pubsub);
+      return c.body(null, 204);
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "post",
+      path: "/organizations/{orgId}/channels/{channelId}/unread",
+      tags,
+      security,
+      summary: "Mark a channel or DM unread for you, until you read it again",
+      description:
+        "Members only. It counts as one unread at least (`unreadCount`, `unread`) for you alone; your other devices hear `channel.unread` on your own topic, and `POST …/read` clears it. Where you stopped reading stays, so a DM's \"Visto\" doesn't move. A DM you never read has nothing to mark.",
+      request: { params: OrgParams.extend({ channelId: z.uuid() }), body: body(z.object({})) },
+      responses: { 204: noContent[204], ...errors },
+    }),
+    async (c) => {
+      const { orgId, channelId } = c.req.valid("param");
+      await markChannelUnread(db, c.get("user").id, orgId, channelId, adapters.pubsub);
       return c.body(null, 204);
     },
   );

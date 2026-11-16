@@ -5,6 +5,7 @@ import {
   useDms,
   useDuplicateAgent,
   useMarkChannelRead,
+  useMarkChannelUnread,
   useMuteChannel,
   usePeople,
   useRoles,
@@ -14,6 +15,7 @@ import { agentGrammar } from "@agenteschat/client/lib/grammar";
 import { can, leavesChannel, managesChannel } from "@agenteschat/client/lib/permissions";
 import { isRightHand } from "@agenteschat/client/lib/right-hand";
 import { leaves, removes } from "@agenteschat/client/lib/roles";
+import { readToggleOf } from "@agenteschat/client/lib/unread";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
@@ -90,23 +92,34 @@ export function useArchiveChannelWithUndo() {
   return { run, pending: archive.isPending };
 }
 
-/** "Marcar como lida" for a channel or DM with unread messages (nothing otherwise). */
+/** "Marcar como lida" or "Marcar como não lida", as `readToggleOf` says for this conversation. */
 function useMarkRead() {
   const { t } = useTranslation();
   const { org } = useOrg();
-  const mark = useMarkChannelRead(org.id);
-  return (channelId: string | undefined, unread: number): MenuEntry[] =>
-    channelId && unread > 0
-      ? [
-          {
-            kind: "item",
-            id: "mark-read",
-            label: t("contextMenu.markRead"),
-            icon: "check",
-            run: () => mark.mutate(channelId),
-          },
-        ]
-      : [];
+  const read = useMarkChannelRead(org.id);
+  const unread = useMarkChannelUnread(org.id);
+  return (channelId: string | undefined, toggle: ReturnType<typeof readToggleOf>): MenuEntry[] =>
+    !channelId || !toggle
+      ? []
+      : toggle === "read"
+        ? [
+            {
+              kind: "item",
+              id: "mark-read",
+              label: t("contextMenu.markRead"),
+              icon: "check",
+              run: () => read.mutate(channelId),
+            },
+          ]
+        : [
+            {
+              kind: "item",
+              id: "mark-unread",
+              label: t("contextMenu.markUnread"),
+              icon: "mail",
+              run: () => unread.mutate(channelId),
+            },
+          ];
 }
 
 /** "Copiar @handle". */
@@ -200,7 +213,7 @@ export function useChannelMenu() {
     const manages = managesChannel(c, me.user.id, org);
     return [
       { kind: "header", label: `#${c.name}` },
-      ...markRead(c.id, c.unreadCount ?? 0),
+      ...markRead(c.id, readToggleOf({ channel: c })),
       // Muted, it never looks unread to me (a mention of me still counts).
       ...(c.isMember
         ? [
@@ -343,7 +356,7 @@ export function useAgentMenu() {
       ...(isRightHand(a) ? [] : pins.entries("agents", a.id)),
       ...mention(a.handle),
       ...copyHandle(a.handle),
-      ...markRead(dm?.channelId, dm?.unread ?? 0),
+      ...markRead(dm?.channelId, readToggleOf({ dm })),
       ...extra,
       { kind: "separator" },
       ...(edits
@@ -432,7 +445,7 @@ export function usePersonMenu() {
       ...(mine ? [] : pins.entries("people", p.userId)),
       ...mention(handle),
       ...copyHandle(handle),
-      ...markRead(dm?.channelId, dm?.unread ?? 0),
+      ...markRead(dm?.channelId, readToggleOf({ dm })),
       ...exportEntry(dm?.channelId),
       ...(out
         ? ([

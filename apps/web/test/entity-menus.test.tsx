@@ -121,6 +121,65 @@ describe("a channel", () => {
   });
 });
 
+describe("marking a conversation unread", () => {
+  /** A channel with something said in it, as the server lists it. */
+  const spoken = (state: State, id: string) => {
+    const c = state.channels.find((x) => x.id === id);
+    if (c)
+      c.lastMessage = {
+        id: `m-${id}`,
+        authorType: "person",
+        authorId: "u-joao",
+        authorName: "João",
+        preview: "Oi",
+        createdAt: new Date().toISOString(),
+      };
+  };
+
+  test("a read channel's row marks it unread: bold at once, and the server is told", async () => {
+    const state = seedState();
+    const general = state.channels.find((c) => c.name === "general");
+    if (general) spoken(state, general.id);
+    await go(undefined, state);
+    await rightClick(sidebarLink("general"));
+    expect(items()[0]).toBe("Marcar como não lida");
+    await pick("Marcar como não lida");
+    expect(state.calls.some((c) => c.method === "dms.markUnread" && c.args[1] === general?.id)).toBe(true);
+    await rightClick(sidebarLink("general"));
+    expect(items()[0]).toBe("Marcar como lida");
+  });
+
+  test("a muted channel never looks unread, so it isn't offered", async () => {
+    const state = seedState();
+    const eng = state.channels.find((c) => c.id === ENG_ID);
+    if (eng) eng.muted = true;
+    spoken(state, ENG_ID);
+    await go("", state);
+    await rightClick(sidebarLink("eng"));
+    expect(items()).not.toContain("Marcar como não lida");
+  });
+
+  test("a DM I've read is offered it, one I never opened isn't", async () => {
+    const state = seedState();
+    seedDm(state, { type: "agent", id: ADA_ID });
+    seedDm(state, { type: "agent", id: ATLAS_ID });
+    const ada = state.dms.find((d) => d.with.id === ADA_ID);
+    if (ada) ada.everRead = true;
+    await go(undefined, state);
+    await rightClick(within(nav()).getByRole("link", { name: /^Ada/ }));
+    await pick("Marcar como não lida");
+    expect(state.calls.some((c) => c.method === "dms.markUnread" && c.args[1] === ada?.channelId)).toBe(true);
+    await rightClick(within(nav()).getByRole("link", { name: /^Atlas/ }));
+    expect(items()).not.toContain("Marcar como não lida");
+  });
+
+  test("an empty channel isn't offered it: opening it would leave the mark on", async () => {
+    await go();
+    await rightClick(sidebarLink("general"));
+    expect(items()).not.toContain("Marcar como não lida");
+  });
+});
+
 /** DMs with Ada, Atlas and João, so each has a row under "Mensagens diretas". */
 const withDms = () => {
   const state = seedState();

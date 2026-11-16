@@ -1749,6 +1749,7 @@
     "lookOurs": "agentes.chat",
     "lookSystem": "Системное",
     "markRead": "Отметить как прочитанное",
+    "markUnread": "Отметить как непрочитанное",
     "muteChannel": "Отключить звук канала",
     "unmuteChannel": "Включить звук канала",
     "mention": "Упомянуть",

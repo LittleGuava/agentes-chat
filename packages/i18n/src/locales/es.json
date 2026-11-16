@@ -1697,6 +1697,7 @@
     "lookOurs": "agentes.chat",
     "lookSystem": "Del sistema",
     "markRead": "Marcar como leído",
+    "markUnread": "Marcar como no leído",
     "muteChannel": "Silenciar canal",
     "unmuteChannel": "Reactivar canal",
     "mention": "Mencionar",

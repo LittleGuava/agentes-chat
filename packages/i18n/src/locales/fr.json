@@ -1698,6 +1698,7 @@
     "lookOurs": "agentes.chat",
     "lookSystem": "Système",
     "markRead": "Marquer comme lu",
+    "markUnread": "Marquer comme non lu",
     "muteChannel": "Mettre le salon en sourdine",
     "unmuteChannel": "Réactiver le salon",
     "mention": "Mentionner",

@@ -103,6 +103,11 @@ export const channelReads = pgTable(
     lastReadAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     /** Muted by this person: never looks unread to them; mentions of them still count. */
     muted: boolean().notNull().default(false),
+    /**
+     * Marked unread by this person ("Marcar como não lida"): counts as at least one unread for them alone until they
+     * read it again. Apart from `lastReadAt`, which the other people of a DM read as "Visto".
+     */
+    markedUnread: boolean().notNull().default(false),
   },
   (t) => [
     primaryKey({ columns: [t.channelId, t.userId] }),
