@@ -80,7 +80,9 @@ export function actionRoutes(deps: AppDeps) {
   const { db } = deps;
   const app = createAppRouter(deps);
   app.use("/organizations/*", requireSession(deps.auth));
-  const undoDeps = { db, pubsub: deps.adapters.pubsub };
+  // A computer turn's files are undone on that computer (ADR 0193).
+  const hub = deps.extras?.sandbox?.machines?.hub;
+  const undoDeps = { db, pubsub: deps.adapters.pubsub, ...(hub ? { hub } : {}) };
   const ActionParams = OrgParams.extend({ actionId: z.uuid() });
 
   app.openapi(

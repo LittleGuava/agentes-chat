@@ -175,6 +175,23 @@ describe("receipt sentence values", () => {
     expect(actionTextValues(away, keyOnly).what).toBe("presence.lower.online");
   });
 
+  test("a computer turn's files: one by name, several by count with the first three, long paths cut", () => {
+    const files = (paths: string[], count = paths.length) =>
+      actionTextValues(
+        action({ kind: "files.changed", target: { type: "files", id: "c1" }, params: { count, paths } }),
+        t,
+      );
+    expect(files(["src/a.ts"])).toEqual({ file: "src/a.ts", context: "single" });
+    expect(files(["a.ts", "b.ts"])).toEqual({ count: "2", files: "a.ts, b.ts" });
+    expect(files(["a.ts", "b.ts", "c.ts", "d.ts"], 31)).toEqual({ count: "31", files: "a.ts, b.ts, c.ts, …" });
+    // A path as long as the computer may send (400) keeps its end: the file's name and its folder.
+    const deep = `${"very-long-folder/".repeat(22)}src/components/Button.tsx`;
+    const one = files([deep]).file ?? "";
+    expect(one.length).toBeLessThanOrEqual(48);
+    expect(one).toBe("…/components/Button.tsx");
+    expect(files(["x/".repeat(30) + "a.ts", "b.ts"]).files).toBe("…/x/a.ts, b.ts");
+  });
+
   test("every kind the app knows has its own case (the default gives no values)", () => {
     const missing = AGENT_ACTION_KINDS.filter((kind) => !Object.keys(actionTextValues(action({ kind }), t)).length);
     expect(missing).toEqual([]);
@@ -389,7 +406,7 @@ describe("receipts in rows, one line each", () => {
     );
   });
 
-  test("two of a kind blend for every kind but a workspace change and a renamed conversation, with their real targets", () => {
+  test("two of a kind blend for every kind but a workspace change, a renamed conversation and a turn's files (each its own Desfazer), with their real targets", () => {
     // Each kind's target as the server writes it: a merge's is its repository, the same for every pull request there.
     const targetOf = (kind: AgentAction["kind"], n: number): AgentAction["target"] => {
       const [group] = kind.split(".");
@@ -429,6 +446,7 @@ describe("receipts in rows, one line each", () => {
     expect(AGENT_ACTION_KINDS.filter((kind) => !blended.includes(kind))).toEqual([
       "thread.renamed",
       "workspace.changed",
+      "files.changed",
     ]);
     expect(words(receiptRows(two("pr.merged"), pt)[0])).toBe("Fiz o merge em [acme/app] dos PRs [#1] e [#2]");
     for (const t of [pt, en])
