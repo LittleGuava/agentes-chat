@@ -3,8 +3,11 @@
  * words (and on images), check conditions, run plans. The agent browser is
  * its first surface; desktop computer use reuses it as is.
  */
+
+export * from "./apng";
 export * from "./checks";
 export * from "./observation";
 export * from "./plan";
+export * from "./recording";
 export * from "./report";
 export * from "./targets";
