@@ -552,8 +552,8 @@ export class AntigravityBrain extends CodexBrain {
 }
 
 /**
- * The Copilot brain (ADR 0186): GitHub's Copilot CLI on the agent's computer with a person's GitHub Copilot plan,
- * through the same `brain.turn` as Codex (`kind: "copilot"`, runner protocol 67, `brain-copilot.ts` there). A person's
+ * The Copilot brain (ADR 0189): GitHub's Copilot CLI on the agent's computer with a person's GitHub Copilot plan,
+ * through the same `brain.turn` as Codex (`kind: "copilot"`, runner protocol 68, `brain-copilot.ts` there). A person's
  * messages wait for the turn's end: the runner answers `brain.steer` with `unsupported`.
  */
 export class CopilotBrain extends CodexBrain {

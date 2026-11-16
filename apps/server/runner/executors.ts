@@ -486,14 +486,14 @@ function detectAntigravity(run: Run): Promise<Probe> {
   return detectWithModels(run, AGY_BIN, AGY_VERSION, parseAgyModels);
 }
 
-/** GitHub's Copilot CLI (ADR 0186). */
+/** GitHub's Copilot CLI (ADR 0189). */
 export const COPILOT_BIN = "copilot";
 
 /** The Copilot CLI's version line: `GitHub Copilot CLI 1.0.109.`; a `copilot` that says anything else is skipped. */
 const COPILOT_VERSION = /^GitHub Copilot CLI \d+\.\d+\.\d+/;
 
 /**
- * Protocol 67 (ADR 0186): the Copilot CLI. No models: it has no `models` command, and listing them takes a session of
+ * Protocol 68 (ADR 0189): the Copilot CLI. No models: it has no `models` command, and listing them takes a session of
  * the computer's own sign-in, which no agent thinks with.
  */
 async function detectCopilot(run: Run): Promise<Probe> {

@@ -55,7 +55,7 @@ export interface MachineExecutors {
   grok?: { version: string; models?: { id: string; label?: string }[] };
   /** Google's Antigravity CLI (protocol 44, ADR 0143), and the models it lists. */
   antigravity?: { version: string; models?: { id: string; label?: string }[] };
-  /** GitHub's Copilot CLI (protocol 67, ADR 0186). */
+  /** GitHub's Copilot CLI (protocol 68, ADR 0189). */
   copilot?: { version: string; models?: { id: string; label?: string }[] };
   /** A CLI that is there and can't start (`--version` keeps failing), with its own error line; `git_missing`: see `CLI_GIT_MISSING`. */
   broken?: Partial<Record<"claude" | "codex" | "cursor" | "opencode" | "grok" | "antigravity" | "copilot", string>>;
