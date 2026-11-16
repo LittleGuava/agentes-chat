@@ -200,6 +200,21 @@ export function modelStandInText(t: TFunction, meta: Record<string, unknown> | n
 }
 
 /**
+ * The line under a reply one of the agent's reserve AIs gave (`meta.brainReserve`, ADR 0118 addendum 2026-11-15):
+ * which one, and whether its own plan was at its limit or signed out; null on any other reply.
+ */
+export function brainReserveText(t: TFunction, meta: Record<string, unknown> | null | undefined): string | null {
+  const r = meta?.brainReserve as
+    | { from?: { brain?: unknown; account?: unknown }; to?: { brain?: unknown; account?: unknown }; code?: unknown }
+    | undefined;
+  if (!r?.from || !r.to || typeof r.from.brain !== "string" || typeof r.to.brain !== "string") return null;
+  const named = (brain: string, account: unknown) =>
+    typeof account === "string" && account ? `${account} (${brainName(brain)})` : brainName(brain);
+  const words = { from: named(r.from.brain, r.from.account), to: named(r.to.brain, r.to.account) };
+  return t(r.code === "not_logged_in" ? "chat.brainReserve.signedOut" : "chat.brainReserve.limit", words);
+}
+
+/**
  * The key a stand-in reply ran on and the model that answered (`meta.modelStandIn`), for its "Usar o <modelo> em
  * todos"; null on any other reply, or one too old to say.
  */

@@ -1,4 +1,11 @@
-import type { AgentBrain, AgentBrainInput, AgentSetup, BrainKind, MachineAccount } from "@agenteschat/client";
+import type {
+  AgentBrain,
+  AgentBrainInput,
+  AgentSetup,
+  BrainKind,
+  BrainReserve,
+  MachineAccount,
+} from "@agenteschat/client";
 import { keys, useAgents, useApi, useSetComputerTarget, useUpdateAgent } from "@agenteschat/client";
 import { acpModelInput, acpThinksNow } from "@agenteschat/client/lib/acp";
 import type { BrainScreen } from "@agenteschat/client/lib/agent-edit";
@@ -16,6 +23,7 @@ import {
   isAdvancedDefault,
 } from "@agenteschat/client/lib/brain-advanced";
 import { brainModelLine, brainPickText } from "@agenteschat/client/lib/brain-picker";
+import { offersReserves, reservesOf, sameReserves } from "@agenteschat/client/lib/brain-reserves";
 import { contextSize } from "@agenteschat/client/lib/context-limits";
 import { keyRefusal } from "@agenteschat/client/lib/errors";
 import { namesText, rosterText } from "@agenteschat/client/lib/format";
@@ -71,6 +79,8 @@ import {
   PickList,
   type PickOption,
   PlanWindows,
+  ReserveField,
+  reservesValue,
   SpeedField,
   SwitchLine,
   useGlide,
@@ -118,6 +128,8 @@ interface Switched {
 
 interface MoreDraft extends Advanced {
   extraUsage: boolean;
+  /** Its reserve AIs, in order (ADR 0118 addendum 2026-11-15). */
+  reserves: BrainReserve[];
 }
 
 /**
@@ -181,7 +193,7 @@ function BrainFlow({ view, onClose, at }: { view: AgentBrain; onClose: () => voi
   const [arrived, setArrived] = useState<MachineAccount | null>(null);
   const [modelPick, setModelPick] = useState<string>();
   const [more, setMore] = useState<MoreDraft | null>(null);
-  const [fold, setFold] = useState<"effort" | "speed" | "context" | null>(null);
+  const [fold, setFold] = useState<"effort" | "speed" | "context" | "reserves" | null>(null);
   const [machinePick, setMachinePick] = useState<string>();
   const [copying, setCopying] = useState(false);
   const [withAutonomy, setWithAutonomy] = useState(true);
@@ -505,6 +517,7 @@ function BrainFlow({ view, onClose, at }: { view: AgentBrain; onClose: () => voi
     onlyOwner: view.onlyOwner,
     fallback: view.fallback,
     extraUsage: view.extraUsage,
+    reserves: reservesOf(view),
   };
   const m = more ?? moreNow;
   const openMore = () => {
@@ -523,6 +536,8 @@ function BrainFlow({ view, onClose, at }: { view: AgentBrain; onClose: () => voi
       if (m.fallback !== view.fallback) input.fallback = m.fallback;
       if (m.onlyOwner !== view.onlyOwner) input.onlyOwner = m.onlyOwner;
       if (m.extraUsage !== view.extraUsage) input.extraUsage = m.extraUsage;
+      if (offersReserves(view, agent.ownerUserId) && !sameReserves(m.reserves, reservesOf(view)))
+        input.fallbackChain = m.reserves;
     }
     if (m.contextTokens !== s.savedContext) input.contextTokens = m.contextTokens;
     if (Object.keys(input).length === 0) return home();
@@ -965,7 +980,12 @@ function BrainFlow({ view, onClose, at }: { view: AgentBrain; onClose: () => voi
       const autoModel = isAuto(s.modelNow);
       const shownContext =
         m.contextTokens !== null && s.contextOptions.includes(m.contextTokens) ? m.contextTokens : null;
-      const line = (key: "effort" | "speed" | "context", label: string, value: string, content: ReactNode) => (
+      const line = (
+        key: "effort" | "speed" | "context" | "reserves",
+        label: string,
+        value: string,
+        content: ReactNode,
+      ) => (
         <>
           <BrainLine
             label={label}
@@ -1019,6 +1039,19 @@ function BrainFlow({ view, onClose, at }: { view: AgentBrain; onClose: () => voi
               onChange={(n) => setMore({ ...m, contextTokens: n })}
             />,
           )}
+          {s.kind !== "model" &&
+            offersReserves(view, agent.ownerUserId) &&
+            line(
+              "reserves",
+              t("agentPage.work.brain.reserves.title"),
+              reservesValue(view, m.reserves, t("agentPage.work.brain.reserves.none")),
+              <ReserveField
+                view={view}
+                owner={agent.ownerUserId}
+                value={m.reserves}
+                onChange={(reserves) => setMore({ ...m, reserves })}
+              />,
+            )}
           {s.kind !== "model" && s.apiKey && (
             <SwitchLine
               label={t("agentPage.work.brain.v2.fallback")}

@@ -276,6 +276,70 @@ html:not([data-pointer]) .bd-line:focus-visible {
   line-height: 18px;
   text-wrap: pretty;
 }
+/* "IAs de reserva": the chosen accounts in order, then the others to add; a 40 px row, its buttons at its end. */
+.bd-reserves {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.bd-reserve {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding-block: 4px;
+}
+.bd-reserve + .bd-reserve {
+  border-top: 1px solid var(--line);
+}
+/* Its place on the name's line. */
+.bd-reserve__n {
+  align-self: flex-start;
+  width: 16px;
+  color: var(--ink-muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  line-height: 20px;
+  text-align: center;
+}
+/* The maker's logo and the name, then its AI under them: a phone's width goes to the name. */
+.bd-reserve__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+.bd-reserve__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.bd-reserve__head > .ac-brand {
+  flex: none;
+}
+.bd-reserve__name,
+.bd-reserve__sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bd-reserve__name {
+  font-size: 14.5px;
+  line-height: 20px;
+}
+.bd-reserve__sub {
+  color: var(--ink-muted);
+  font-size: 13px;
+  line-height: 16px;
+}
+.bd-reserve__acts {
+  display: flex;
+  flex: none;
+  gap: 8px;
+}
 @media (prefers-reduced-motion: reduce) {
   .bd-fold,
   .bd-line__chev {

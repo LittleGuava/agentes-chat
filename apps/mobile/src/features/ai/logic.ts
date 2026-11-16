@@ -3,6 +3,7 @@ import type {
   AgentBrainInput,
   AiAccounts,
   BrainKind,
+  BrainReserve,
   Credential,
   Edition,
   MachineAccount,
@@ -31,6 +32,14 @@ import {
   modelRows,
   needsOwnSignIn,
 } from "@agenteschat/client/lib/brain-picker";
+import {
+  addReserve,
+  MAX_RESERVES,
+  moveReserve,
+  removeReserve,
+  reserveCandidates,
+  reserveRows,
+} from "@agenteschat/client/lib/brain-reserves";
 import { agentGrammar } from "@agenteschat/client/lib/grammar";
 import {
   aiChoiceOf,
@@ -40,6 +49,7 @@ import {
   planOfAccount,
   planOfKind,
 } from "@agenteschat/client/lib/no-ai";
+import { brainName } from "@agenteschat/client/lib/outages";
 import { planWord } from "@agenteschat/client/lib/plan-usage";
 import { brainPlan } from "@agenteschat/client/lib/plans";
 import { AUTO, isAuto, keyLine } from "@agenteschat/client/lib/providers";
@@ -351,5 +361,59 @@ export function pickedAi(
     model: AUTO,
     plan: { machineId: pick.machineId, input: brainPickInput(pick) },
     connect: needsOwnSignIn(computers, pick) ? planOfKind(pick.kind) : null,
+  };
+}
+
+/** A tap in "IAs de reserva": what it reads aloud and the list it saves (null: it can't, its button off). */
+export interface ReserveTap {
+  label: string;
+  chain: BrainReserve[] | null;
+}
+
+/**
+ * "IAs de reserva" on the phone (ADR 0118 addendum 2026-11-15), the web's list in rows: each reserve in order with
+ * ▲ ▼ and ×, then the computer's other accounts it may use (`owner`: the agent's) with +, and why none can be added
+ * once there are `MAX_RESERVES`.
+ */
+export function reserveSection(
+  t: TFunction,
+  view: Pick<AgentBrain, "accounts" | "account">,
+  chain: BrainReserve[],
+  owner: string | null | undefined,
+) {
+  const face = (account: MachineAccount) => ({
+    id: account.id,
+    logo: account.provider ?? account.kind,
+    label: accountTitle(account),
+    sub: brainName(account.kind),
+  });
+  const rows = reserveRows(view, chain);
+  return {
+    chosen: rows.map(({ account }, i) => {
+      const name = accountTitle(account);
+      return {
+        ...face(account),
+        up: {
+          label: t("agentPage.work.brain.reserves.up", { name }),
+          chain: i > 0 ? moveReserve(chain, account.id, -1) : null,
+        } satisfies ReserveTap,
+        down: {
+          label: t("agentPage.work.brain.reserves.down", { name }),
+          chain: i < rows.length - 1 ? moveReserve(chain, account.id, 1) : null,
+        } satisfies ReserveTap,
+        remove: {
+          label: t("agentPage.work.brain.reserves.remove", { name }),
+          chain: removeReserve(chain, account.id),
+        },
+      };
+    }),
+    others: reserveCandidates(view, chain, owner).map((account) => ({
+      ...face(account),
+      add: {
+        label: t("agentPage.work.brain.reserves.addName", { name: accountTitle(account) }),
+        chain: addReserve(chain, account.id),
+      },
+    })),
+    full: chain.length >= MAX_RESERVES ? t("agentPage.work.brain.reserves.full") : null,
   };
 }

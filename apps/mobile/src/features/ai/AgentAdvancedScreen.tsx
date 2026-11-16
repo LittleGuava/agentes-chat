@@ -1,4 +1,4 @@
-import type { AgentBrain, AgentBrainInput, BrainSpeed } from "@agenteschat/client";
+import type { AgentBrain, AgentBrainInput, BrainReserve, BrainSpeed } from "@agenteschat/client";
 import { keys, useAgentBrain, useAiAccounts, useAiStatus, useApi, useModels } from "@agenteschat/client";
 import { signInPlan } from "@agenteschat/client/lib/ai-accounts";
 import { EVERYONE_AUDIENCE } from "@agenteschat/client/lib/audience";
@@ -10,6 +10,7 @@ import {
   SPEEDS,
   viewSpeedFits,
 } from "@agenteschat/client/lib/brain-advanced";
+import { offersReserves, reservesOf } from "@agenteschat/client/lib/brain-reserves";
 import { computerNameOf } from "@agenteschat/client/lib/computer";
 import {
   autoContextLine,
@@ -28,14 +29,14 @@ import { useTranslation } from "react-i18next";
 import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useOrg } from "@/providers/org";
-import { GroupedHeader, GroupedList, GroupedRow, useToast } from "@/ui";
+import { GroupedHeader, GroupedList, GroupedRow, ProviderLogo, useToast } from "@/ui";
 import { router } from "@/ui/navigation";
 import { useWidenAsk } from "../chat/ReachLines";
 import { useColors, useDirectory } from "../shared/hooks";
 import { agentLook } from "../shared/logic";
 import { PushedHeader } from "../shared/parts";
 import { EffortRamp, useBrainChoice, useEffortChoice } from "./EffortRamp";
-import { accountKindOf, advancedResetInput, agentAccounts } from "./logic";
+import { accountKindOf, advancedResetInput, agentAccounts, reserveSection } from "./logic";
 import { Note, PlanReplies } from "./parts";
 
 /*
@@ -44,7 +45,7 @@ import { Note, PlanReplies } from "./parts";
  * model and a row that says "Automático" picks it otherwise; Velocidade where it applies; the context window, any
  * brain) and who it answers
  * ("Atende outras pessoas", answering through the API while its
- * computer is away). Each choice saves at once, like the rest of "Pensa com"; "Voltar ao padrão" puts them all back.
+ * computer is away), and its reserve AIs (ADR 0118 addendum 2026-11-15). Each choice saves at once, like the rest of "Pensa com"; "Voltar ao padrão" puts them all back.
  */
 
 /** Opens an agent's advanced settings. */
@@ -127,6 +128,13 @@ export function AgentAdvancedScreen({ agentId }: { agentId: string }) {
         void qc.invalidateQueries({ queryKey: key });
       setBusy(false);
     }
+  };
+  const reserves =
+    view && offersReserves(view, agent?.ownerUserId)
+      ? reserveSection(t, view, reservesOf(view), agent?.ownerUserId)
+      : null;
+  const saveReserves = (chain: BrainReserve[] | null) => {
+    if (chain && may) void save({ fallbackChain: chain }, t("common.saved"));
   };
   const putBack = () => {
     if (!view || !now) return;
@@ -262,6 +270,60 @@ export function AgentAdvancedScreen({ agentId }: { agentId: string }) {
                     </GroupedList>
                   </View>
                 ) : null}
+              </>
+            ) : null}
+            {reserves ? (
+              <>
+                <GroupedHeader
+                  hint={{
+                    name: t("common.about", { label: t("agentPage.work.brain.reserves.title") }),
+                    text: t("agentPage.work.brain.reserves.text"),
+                  }}
+                >
+                  {t("agentPage.work.brain.reserves.title")}
+                </GroupedHeader>
+                <GroupedList>
+                  {reserves.chosen.map((r) => (
+                    <GroupedRow
+                      key={r.id}
+                      leading={<ProviderLogo id={r.logo} size="sm" />}
+                      label={r.label}
+                      sub={r.sub}
+                      buttons={[
+                        {
+                          icon: "up",
+                          label: r.up.label,
+                          disabled: !may || !r.up.chain,
+                          onPress: () => saveReserves(r.up.chain),
+                        },
+                        {
+                          icon: "down",
+                          label: r.down.label,
+                          disabled: !may || !r.down.chain,
+                          onPress: () => saveReserves(r.down.chain),
+                        },
+                        {
+                          icon: "x",
+                          label: r.remove.label,
+                          disabled: !may,
+                          onPress: () => saveReserves(r.remove.chain),
+                        },
+                      ]}
+                    />
+                  ))}
+                  {reserves.others.map((r) => (
+                    <GroupedRow
+                      key={r.id}
+                      leading={<ProviderLogo id={r.logo} size="sm" />}
+                      label={r.label}
+                      sub={r.sub}
+                      buttons={[
+                        { icon: "plus", label: r.add.label, disabled: !may, onPress: () => saveReserves(r.add.chain) },
+                      ]}
+                    />
+                  ))}
+                  {reserves.full ? <GroupedRow label={reserves.full} faint /> : null}
+                </GroupedList>
               </>
             ) : null}
             <View style={styles.gap}>

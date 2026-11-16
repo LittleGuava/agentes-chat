@@ -1,11 +1,23 @@
-import type { BrainSpeed, PlanUsage } from "@agenteschat/client";
+import type { AgentBrain, BrainReserve, BrainSpeed, MachineAccount, PlanUsage } from "@agenteschat/client";
+import { accountTitle } from "@agenteschat/client/lib/ai-accounts";
 import { SPEEDS } from "@agenteschat/client/lib/brain-advanced";
+import {
+  addReserve,
+  MAX_RESERVES,
+  moveReserve,
+  removeReserve,
+  reserveCandidates,
+  reserveRows,
+} from "@agenteschat/client/lib/brain-reserves";
 import { autoContextLine, type ContextLimit, contextSize } from "@agenteschat/client/lib/context-limits";
+import { brainName } from "@agenteschat/client/lib/outages";
 import { planMeterText } from "@agenteschat/client/lib/plan-usage";
 import { AUTO } from "@agenteschat/client/lib/providers";
 import {
+  Button,
   Icon,
   InfoHint,
+  ProviderLogo,
   planLevel,
   planLine,
   planWindows,
@@ -372,4 +384,118 @@ export function useGlide<T extends HTMLElement>(key: unknown) {
     return () => watch.disconnect();
   }, []);
   return ref;
+}
+
+/** The value of "IAs de reserva" on its line: the chosen accounts in order, or none. */
+export function reservesValue(view: Pick<AgentBrain, "accounts">, value: BrainReserve[], none: string) {
+  const rows = reserveRows(view, value);
+  return rows.length > 0 ? rows.map((r) => accountTitle(r.account)).join(", ") : none;
+}
+
+/** An account in the reserves' lists: its maker's logo, its name, the AI it runs. */
+function ReserveFace({ account, place }: { account: MachineAccount; place?: number }) {
+  return (
+    <>
+      {place !== undefined && (
+        <span className="bd-reserve__n" aria-hidden="true">
+          {place}
+        </span>
+      )}
+      <span className="bd-reserve__text">
+        <span className="bd-reserve__head">
+          <ProviderLogo id={account.provider ?? account.kind} size="xs" />
+          <span className="bd-reserve__name">{accountTitle(account)}</span>
+        </span>
+        <span className="bd-reserve__sub">{brainName(account.kind)}</span>
+      </span>
+    </>
+  );
+}
+
+/**
+ * "IAs de reserva" (ADR 0118 addendum 2026-11-15): the chosen accounts in the order they stand in, each moved up or
+ * down or taken out where it is, then the computer's other accounts, each with Adicionar while there are fewer than
+ * `MAX_RESERVES`. Saved with the rest of "Mais opções".
+ */
+export function ReserveField({
+  view,
+  owner,
+  value,
+  onChange,
+}: {
+  view: Pick<AgentBrain, "accounts" | "account">;
+  /** The agent's owner: whose accounts it may use (`mayBeReserve`). */
+  owner: string | null;
+  value: BrainReserve[];
+  onChange: (value: BrainReserve[]) => void;
+}) {
+  const { t } = useTranslation();
+  const rows = reserveRows(view, value);
+  const candidates = reserveCandidates(view, value, owner);
+  return (
+    <>
+      <p className="bd-fold__hint">{t("agentPage.work.brain.reserves.text")}</p>
+      {rows.length > 0 && (
+        <ol className="bd-reserves" aria-label={t("agentPage.work.brain.reserves.list")}>
+          {rows.map(({ account }, i) => {
+            const name = accountTitle(account);
+            return (
+              <li key={account.id} className="bd-reserve">
+                <ReserveFace account={account} place={i + 1} />
+                <span className="bd-reserve__acts">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    iconOnly
+                    icon="chevronUp"
+                    aria-label={t("agentPage.work.brain.reserves.up", { name })}
+                    disabled={i === 0}
+                    onClick={() => onChange(moveReserve(value, account.id, -1))}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    iconOnly
+                    icon="chevronDown"
+                    aria-label={t("agentPage.work.brain.reserves.down", { name })}
+                    disabled={i === rows.length - 1}
+                    onClick={() => onChange(moveReserve(value, account.id, 1))}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    iconOnly
+                    icon="close"
+                    aria-label={t("agentPage.work.brain.reserves.remove", { name })}
+                    onClick={() => onChange(removeReserve(value, account.id))}
+                  />
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+      {candidates.length > 0 && (
+        <ul className="bd-reserves" aria-label={t("agentPage.work.brain.reserves.others")}>
+          {candidates.map((account) => (
+            <li key={account.id} className="bd-reserve">
+              <ReserveFace account={account} />
+              <span className="bd-reserve__acts">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon="plus"
+                  aria-label={t("agentPage.work.brain.reserves.addName", { name: accountTitle(account) })}
+                  onClick={() => onChange(addReserve(value, account.id))}
+                >
+                  {t("agentPage.work.brain.reserves.add")}
+                </Button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {value.length >= MAX_RESERVES && <p className="bd-fold__hint">{t("agentPage.work.brain.reserves.full")}</p>}
+    </>
+  );
 }
