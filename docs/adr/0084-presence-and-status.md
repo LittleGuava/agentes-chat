@@ -95,3 +95,28 @@ work; "Ausente" told people an agent due back later was gone.
     whichever run spoke last (`set_status` included), so it could carry someone else's private conversation. Out of
     office still says so to everyone.
 
+## Addendum (2026-11-15): who an agent's queue waits for
+
+An agent at work in a conversation said what it did, but not what waited behind it: a person whose message went into
+its run, or whose request sat in line for its computer, had only the receipt under their own message ("lê na próxima
+pausa"), and nobody else knew the agent had anything waiting.
+
+22. **A queue, per viewer** (`agentQueueFor` in `agent-work.ts`). A request is a message waiting in an active run's
+    inbox (`pending_message_ids`, `run-inbox.ts`), or the message behind a run in line (§18's `queued`: never started,
+    or waiting for room on its computer). Its asker is who wrote that message, a person or an agent, as the task
+    manager says who asked; the chain behind it (`authority.ts`) decides permissions, not this line. Not a request: a
+    notice (`meta.notice`), a deleted message, a routine's background run.
+23. **Only what the viewer reads counts, the count included.** The conversation must pass `agentWorkFor`'s rule (not
+    archived, not only agents in it, `channelReaderSql`), so a DM with an agent never shows to anyone else, and a
+    private channel only to who reads it. A count of hidden requests would itself say that someone wrote to the agent,
+    so there is none. An agent hidden from the viewer (the agents list's rule) has no queue for them, like its line.
+24. **Where it reads.** `GET …/agent-status` gains `queue` (`count` and `askers`: `{ type, id }` each once, oldest
+    request first, at most 10; null when nothing waits), in one more SQL statement whatever the number of agents. The
+    apps name the askers from their directory (`queueLine`): "Na fila: pedido de Tom", "Na fila: 3 pedidos de Tom e
+    Bia", "Na fila: seu pedido". The web's conversation bar says it after the one agent at work there (its time, who
+    types), and, while that agent's row is in view and the pill is gone, rests in the bar's box on its own; with
+    several agents at work there it says nothing, since it can't say whose. The list reads again when the open
+    conversation hears a message go into a run, be read there or get a run of its own (`agent.run.steered`, `read`,
+    `redispatched`); queues elsewhere follow its 30 s poll, no workspace-wide event per message.
+25. **Later.** The phone's chat (the shared `queueLine` is ready for it), the order the agent will take them in, and
+    a person's way to move or drop a request from the line.

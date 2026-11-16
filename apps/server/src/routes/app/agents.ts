@@ -885,6 +885,18 @@ export function agentRoutes(deps: AppDeps) {
                     description:
                       "Its most important work for you (waiting on you, working, waiting on someone else, in line, a return to come; then the oldest), with where it shows if you read that conversation (ADR 0084). Null: none.",
                   }),
+                queue: z
+                  .object({
+                    count: z.number().int().openapi({ description: "How many requests wait." }),
+                    askers: z.array(z.object({ type: z.enum(["person", "agent"]), id: z.string() })).openapi({
+                      description: "Who asked them, each once, oldest request first (at most 10).",
+                    }),
+                  })
+                  .nullable()
+                  .openapi({
+                    description:
+                      "The requests waiting for it that you read (ADR 0084 addendum of 2026-11-15): messages in its run's inbox and runs in line, by who wrote them. A DM or a channel you don't read never counts. Null: none, or an agent hidden from you.",
+                  }),
               }),
             ),
           }),

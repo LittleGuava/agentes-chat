@@ -1,6 +1,6 @@
 import type { PubSub } from "@agenteschat/adapters";
 import { and, type Database, eq, inArray, isNull, schema, sql } from "@agenteschat/db";
-import { type AgentWork, agentWorkFor, bareWork } from "./agent-work";
+import { type AgentQueue, type AgentWork, agentQueueFor, agentWorkFor, bareWork } from "./agent-work";
 import { publishOrgEvent } from "./events";
 import { type PendingReturn, pendingReturns } from "./follow-through";
 import { cutText } from "./format";
@@ -91,6 +91,8 @@ export interface AgentStatusView {
   working: boolean;
   /** For one viewer (`agentStatuses`): its most important work and where it shows (`agent-work.ts`); null: none. */
   work?: AgentWork | null;
+  /** For one viewer (`agentStatuses`): the requests waiting for it that they read, by who asked; null: none. */
+  queue?: AgentQueue | null;
 }
 
 /** A run going this long is heavy work: the agent reads as busy. */
@@ -128,22 +130,24 @@ export async function agentStatuses(
   orgId: string,
   now = new Date(),
   options: Pick<OutOfOfficeOptions, "hasModel"> = {},
-): Promise<(AgentStatusView & { work: AgentWork | null })[]> {
+): Promise<(AgentStatusView & { work: AgentWork | null; queue: AgentQueue | null })[]> {
   await requirePermission(db, actorId, orgId, "read");
-  const [list, sees, work, rightHand, returns] = await Promise.all([
+  const [list, sees, work, rightHand, returns, queues] = await Promise.all([
     loadAgentStatuses(db, orgId, now, undefined, options),
     routineSeer(db, orgId, actorId),
     agentWorkFor(db, actorId, orgId, new Date(now.getTime() - AGENT_HEARTBEAT_FRESH_MS)),
     rightHandId(db, orgId),
     pendingReturns(db, actorId, orgId),
+    agentQueueFor(db, actorId, orgId),
   ]);
   const later = laterWork(returns);
   return list.map((s) => {
     const w = work.get(s.agentId) ?? later.get(s.agentId) ?? null;
     const seen = s.agentId === rightHand ? rightHandFor(s, w) : s;
+    // Who asked it is said only about an agent the viewer sees, like its line.
     return sees({ agentId: s.agentId, createdByUserId: null })
-      ? { ...seen, work: w }
-      : { ...seen, status: null, work: w && bareWork(w) };
+      ? { ...seen, work: w, queue: queues.get(s.agentId) ?? null }
+      : { ...seen, status: null, work: w && bareWork(w), queue: null };
   });
 }
 
