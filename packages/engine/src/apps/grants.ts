@@ -17,7 +17,8 @@ import {
   randomBase62,
 } from "./urls";
 
-const { appGrants, appTokens, appSends, oauthAppRequests, oauthAppClients, users, organizations } = schema;
+const { agentApiKeys, appGrants, appTokens, appSends, oauthAppRequests, oauthAppClients, users, organizations } =
+  schema;
 
 /** Who an MCP request acts as, once its bearer token checked out (ADR 0119 §1.9). */
 export interface AppPrincipal {
@@ -292,14 +293,16 @@ export async function createPersonalToken(
 }
 
 /**
- * Hourly cleanup (ADR 0119 §2): requests a day after they ran out, tokens 30 days after they expired or were
- * revoked, registrations with no connection unused for 90 days, sends after 90 days, and grants unused for 90 days
+ * Hourly cleanup (ADR 0119 §2): requests a day after they ran out, tokens and agent API keys 30 days after they
+ * expired or were revoked, registrations with no connection unused for 90 days, sends after 90 days, and grants unused for 90 days
  * (revoked, then their rows go with the tokens).
  */
 export async function purgeApps(db: Database, now = new Date()) {
   const ago = (days: number) => new Date(now.getTime() - days * 86_400_000);
   await db.delete(oauthAppRequests).where(lt(oauthAppRequests.expiresAt, ago(1)));
   await db.delete(appTokens).where(or(lt(appTokens.expiresAt, ago(30)), lt(appTokens.revokedAt, ago(30))));
+  // Agent API keys (ADR 0210) the same way.
+  await db.delete(agentApiKeys).where(or(lt(agentApiKeys.expiresAt, ago(30)), lt(agentApiKeys.revokedAt, ago(30))));
   await revokeAppGrants(
     db,
     and(eq(appGrants.kind, "oauth"), lt(sql`coalesce(${appGrants.lastUsedAt}, ${appGrants.consentedAt})`, ago(90))),

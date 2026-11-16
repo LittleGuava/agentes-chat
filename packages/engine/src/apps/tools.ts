@@ -171,7 +171,12 @@ function errorResult(error: unknown, deps: AppsToolDeps, context: Record<string,
 
 // ── Links and lists ──────────────────────────────────────────────────────────
 
-const linkTo = (deps: AppsToolDeps, orgId: string, channelId: string, messageId?: string | null) =>
+/** What reading a task needs: the `/mcp` tools' deps, or the agent API's (ADR 0210). */
+export type AppTaskDeps = Pick<AppsToolDeps, "db" | "pubsub" | "publicUrl">;
+/** Who waits: the person a task's waits count against, in their workspace. */
+export type AppTaskAsker = Pick<AppPrincipal, "userId" | "orgId">;
+
+export const appsLinkTo = (deps: AppTaskDeps, orgId: string, channelId: string, messageId?: string | null) =>
   `${appsUrls(deps.publicUrl).issuer}/org/${orgId}/c/${channelId}${messageId ? `?m=${messageId}` : ""}`;
 
 const LIMIT = z.number().int().min(1).max(50).optional().describe("Results per page, 1 to 50 (default 25)");
@@ -245,7 +250,14 @@ async function runFor(db: Database, message: Message, agentId: string | null): P
   return joined ?? null;
 }
 
-type TaskStatus = "done" | "waiting_approval" | "waiting_input" | "failed" | "canceled" | "still_running" | "no_run";
+export type AppTaskStatus =
+  | "done"
+  | "waiting_approval"
+  | "waiting_input"
+  | "failed"
+  | "canceled"
+  | "still_running"
+  | "no_run";
 
 async function agentMessage(db: Database, orgId: string, run: RunRow) {
   if (run.replyMessageId) return getMessage(db, orgId, run.replyMessageId);
@@ -258,22 +270,22 @@ async function agentMessage(db: Database, orgId: string, run: RunRow) {
   return last ?? null;
 }
 
-function replyOf(deps: AppsToolDeps, orgId: string, m: Message) {
+function replyOf(deps: AppTaskDeps, orgId: string, m: Message) {
   const { text, truncated } = cleanUntrusted(m.body, REPLY_CHARS);
   return {
     id: m.id,
     untrusted_text: text,
     truncated,
     attachments: attachmentsOf(deps, orgId, m),
-    url: linkTo(deps, orgId, m.channelId, m.id),
+    url: appsLinkTo(deps, orgId, m.channelId, m.id),
   };
 }
 
-function attachmentsOf(deps: AppsToolDeps, orgId: string, m: Pick<Message, "meta" | "channelId" | "id">) {
+function attachmentsOf(deps: AppTaskDeps, orgId: string, m: Pick<Message, "meta" | "channelId" | "id">) {
   const files = Array.isArray(m.meta?.artifacts) ? (m.meta.artifacts as { title?: unknown }[]) : [];
   return files.map((f) => ({
     name: cleanUntrusted(typeof f.title === "string" ? f.title : "file", 200).text,
-    url: linkTo(deps, orgId, m.channelId, m.id),
+    url: appsLinkTo(deps, orgId, m.channelId, m.id),
   }));
 }
 
@@ -281,7 +293,7 @@ function attachmentsOf(deps: AppsToolDeps, orgId: string, m: Pick<Message, "meta
  * Where a run's approval card is: the card's own conversation (a run answering another agent puts it where the
  * person behind the chain asked, never in the agents' DM), else the task's message.
  */
-async function approvalUrl(deps: AppsToolDeps, p: AppPrincipal, run: RunRow, message: Message) {
+async function approvalUrl(deps: AppTaskDeps, p: AppTaskAsker, run: RunRow, message: Message) {
   const [card] = await deps.db
     .select({ messageId: approvals.messageId, channelId: messages.channelId })
     .from(approvals)
@@ -290,27 +302,27 @@ async function approvalUrl(deps: AppsToolDeps, p: AppPrincipal, run: RunRow, mes
     .orderBy(desc(approvals.createdAt))
     .limit(1);
   return card
-    ? linkTo(deps, p.orgId, card.channelId, card.messageId)
-    : linkTo(deps, p.orgId, message.channelId, message.id);
+    ? appsLinkTo(deps, p.orgId, card.channelId, card.messageId)
+    : appsLinkTo(deps, p.orgId, message.channelId, message.id);
 }
 
 /** Where a run stands, as the app reads it. An unknown status is `failed`, never a reason to keep polling. */
-async function taskState(deps: AppsToolDeps, p: AppPrincipal, message: Message, run: RunRow | null) {
+async function taskState(deps: AppTaskDeps, p: AppTaskAsker, message: Message, run: RunRow | null) {
   if (!run) {
     return Date.now() - message.createdAt.getTime() > NO_RUN_AFTER_MS
       ? {
-          status: "no_run" as TaskStatus,
+          status: "no_run" as AppTaskStatus,
           detail: "No agent run started for this message. The agent may not reply to it.",
         }
-      : { status: "still_running" as TaskStatus };
+      : { status: "still_running" as AppTaskStatus };
   }
   switch (run.status) {
     case "queued":
     case "running":
-      return { status: "still_running" as TaskStatus, run };
+      return { status: "still_running" as AppTaskStatus, run };
     case "done": {
       const reply = await agentMessage(deps.db, p.orgId, run);
-      return { status: "done" as TaskStatus, run, ...(reply ? { reply: replyOf(deps, p.orgId, reply) } : {}) };
+      return { status: "done" as AppTaskStatus, run, ...(reply ? { reply: replyOf(deps, p.orgId, reply) } : {}) };
     }
     case "waiting_input": {
       // Also held, with nobody to answer, while its computer is away or its AI provider is down: it carries on
@@ -318,7 +330,7 @@ async function taskState(deps: AppsToolDeps, p: AppPrincipal, message: Message, 
       const wait = consultationWait({ ...run, outage: outageParkedOf(run) });
       if (wait === "computer" || wait === "outage")
         return {
-          status: "still_running" as TaskStatus,
+          status: "still_running" as AppTaskStatus,
           run,
           detail:
             wait === "computer"
@@ -327,23 +339,23 @@ async function taskState(deps: AppsToolDeps, p: AppPrincipal, message: Message, 
         };
       const question = await agentMessage(deps.db, p.orgId, run);
       return {
-        status: "waiting_input" as TaskStatus,
+        status: "waiting_input" as AppTaskStatus,
         run,
         ...(question ? { reply: replyOf(deps, p.orgId, question) } : {}),
       };
     }
     case "waiting_approval":
       return {
-        status: "waiting_approval" as TaskStatus,
+        status: "waiting_approval" as AppTaskStatus,
         run,
         approval_url: await approvalUrl(deps, p, run, message),
         detail: "A person decides this approval inside agentes.chat.",
       };
     case "canceled":
-      return { status: "canceled" as TaskStatus, run };
+      return { status: "canceled" as AppTaskStatus, run };
     default:
       return {
-        status: "failed" as TaskStatus,
+        status: "failed" as AppTaskStatus,
         run,
         ...(run.error ? { error: cleanUntrusted(run.error, 500).text } : {}),
       };
@@ -366,8 +378,8 @@ const WAKES = new Set(["run.finished", "message.created", "agent.consulted"]);
  * per workspace and 200 per server: past that, one read at once (`full`).
  */
 async function waitUntil<T>(
-  deps: AppsToolDeps,
-  p: AppPrincipal,
+  deps: AppTaskDeps,
+  p: AppTaskAsker,
   seconds: number,
   signal: AbortSignal | undefined,
   channelIds: string[],
@@ -434,9 +446,9 @@ const stillRunning = (full: boolean | undefined) =>
   full ? { retry_after_seconds: 5 } : { poll_after_seconds: 5, activity: null };
 
 /** Waits for the run of a message to reach a state the app can act on (`waitUntil`). */
-async function waitForTask(
-  deps: AppsToolDeps,
-  p: AppPrincipal,
+export async function waitForTask(
+  deps: AppTaskDeps,
+  p: AppTaskAsker,
   message: Message,
   agentId: string | null,
   seconds: number,
@@ -542,7 +554,7 @@ async function waitForTree(
       ...shape,
     };
   }
-  return { status: "still_running" as TaskStatus, ...stillRunning(full), ...shape };
+  return { status: "still_running" as AppTaskStatus, ...stillRunning(full), ...shape };
 }
 
 async function taskOutput(
@@ -562,7 +574,7 @@ async function taskOutput(
     ...rest,
     agent: agent ? { id: agent.id, name: agent.name, handle: agent.handle } : null,
     channel: channel ? { id: channel.id, name: channel.kind === "dm" ? null : channel.name, kind: channel.kind } : null,
-    message_url: linkTo(deps, p.orgId, message.channelId, message.id),
+    message_url: appsLinkTo(deps, p.orgId, message.channelId, message.id),
   };
 }
 
@@ -942,7 +954,7 @@ export function buildAppsMcpServer(deps: AppsToolDeps, p: AppPrincipal, version:
         run_id: run.id,
         ...(taskId ? { task_id: taskId } : {}),
         agent: (await agentNamesOf(deps.db, p.orgId, [run.agentId])).get(run.agentId) ?? null,
-        url: linkTo(deps, p.orgId, run.channelId, taskId ?? run.triggerMessageId),
+        url: appsLinkTo(deps, p.orgId, run.channelId, taskId ?? run.triggerMessageId),
       };
       let previous: string;
       try {
@@ -1023,7 +1035,7 @@ export function buildAppsMcpServer(deps: AppsToolDeps, p: AppPrincipal, version:
           name: c.name,
           visibility: c.visibility,
           is_member: c.isMember,
-          url: linkTo(deps, p.orgId, c.id),
+          url: appsLinkTo(deps, p.orgId, c.id),
         })),
         next_cursor,
       };
@@ -1142,7 +1154,7 @@ export function buildAppsMcpServer(deps: AppsToolDeps, p: AppPrincipal, version:
             author: h.author ? { kind: h.author.type, name: h.author.name } : null,
             sent_at: h.createdAt,
             untrusted_text: cleanUntrusted(h.snippet, SNIPPET_CHARS).text,
-            url: room ? linkTo(deps, p.orgId, room.id, messageId) : null,
+            url: room ? appsLinkTo(deps, p.orgId, room.id, messageId) : null,
           };
         }),
       };
@@ -1182,7 +1194,7 @@ export function buildAppsMcpServer(deps: AppsToolDeps, p: AppPrincipal, version:
             status: r.status === "queued" || r.status === "running" ? "still_running" : r.status,
             label: r.label ? cleanUntrusted(r.label, 200).text : null,
             started_at: r.startedAt ?? r.createdAt,
-            url: linkTo(deps, p.orgId, r.channelId, r.threadId),
+            url: appsLinkTo(deps, p.orgId, r.channelId, r.threadId),
           })),
           next_cursor,
         };
@@ -1229,7 +1241,7 @@ export function buildAppsMcpServer(deps: AppsToolDeps, p: AppPrincipal, version:
           status: !r.status ? "no_run" : r.status === "queued" || r.status === "running" ? "still_running" : r.status,
           sent_at: r.sentAt.toISOString(),
           finished_at: r.finishedAt?.toISOString() ?? null,
-          message_url: linkTo(deps, p.orgId, r.channelId, r.messageId),
+          message_url: appsLinkTo(deps, p.orgId, r.channelId, r.messageId),
         })),
         next_cursor: rows.length > size ? encodeCursor(offset + size, key) : null,
       };

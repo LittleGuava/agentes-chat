@@ -72,6 +72,15 @@ describe("Auditoria in words (web and phone)", () => {
     expect(said("join_domain.removed")).toBe("audit.change.joinDomain.removed(acme.com)");
   });
 
+  test("an agent's API key is named in its rows, as it was then", () => {
+    const person = { type: "person" as const, id: "u1", name: "Bia" };
+    const said = (action: string, details: Record<string, unknown>) =>
+      auditSentence(t, row({ actor: person, action, details }), "pt-BR").text;
+    expect(said("agent_api.key_created", { app: "CI bot" })).toBe("audit.change.agent_api.key_created(CI bot)");
+    expect(said("agent_api.key_revoked", { app: "CI bot" })).toBe("audit.change.agent_api.key_revoked(CI bot)");
+    expect(said("agent_api.message_sent", { app: "CI bot" })).toBe("audit.change.agent_api.message_sent(CI bot)");
+  });
+
   test("a billing hold's reason is said in words, never as its code; any other reason as written", () => {
     expect(auditReason(t, standing({ from: "active", to: "hold", reason: "unpaid" }))).toBe(
       "standing.notification.billing.unpaid",
