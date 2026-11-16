@@ -6038,6 +6038,33 @@
   "channel.jumpMissing": {
     "value": "Couldn't reach that message here. It may be deleted or too far back."
   },
+  "channel.find.label": {
+    "value": "Find in this conversation"
+  },
+  "channel.find.searching": {
+    "value": "Searching…"
+  },
+  "channel.find.none": {
+    "value": "No results"
+  },
+  "channel.find.failed": {
+    "value": "Couldn't search"
+  },
+  "channel.find.position": {
+    "value": "{{at}} of {{total}}"
+  },
+  "channel.find.positionMore": {
+    "value": "{{at}} of {{total}}+"
+  },
+  "channel.find.older": {
+    "value": "Older result"
+  },
+  "channel.find.newer": {
+    "value": "Newer result"
+  },
+  "channel.find.close": {
+    "value": "Close find"
+  },
   "channel.emoji": {
     "value": "Emoji"
   },

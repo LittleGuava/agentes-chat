@@ -2367,6 +2367,17 @@
     "replyingTo": "{{name}} に返信中",
     "cancelReply": "返信をキャンセル",
     "jumpMissing": "ここではそのメッセージまで移動できません。削除されたか、古すぎる可能性があります。",
+    "find": {
+      "label": "この会話内を検索",
+      "searching": "検索中…",
+      "none": "結果なし",
+      "failed": "検索できませんでした",
+      "position": "{{at}} / {{total}}",
+      "positionMore": "{{at}} / {{total}}+",
+      "older": "古い結果",
+      "newer": "新しい結果",
+      "close": "検索を閉じる"
+    },
     "emoji": "絵文字",
     "uploading": "アップロード中…",
     "uploadFailed": "アップロードされませんでした",

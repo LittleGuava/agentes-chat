@@ -353,3 +353,35 @@ html:not([data-pointer]) .search-box__x:focus-visible {
     padding: 12px 12px 24px;
   }
 }
+
+/* Find in the conversation (FindBar.tsx): one toolbar row on top of the conversation, the field taking the room; where
+   the count and buttons don't fit beside it (a phone, the thread panel, a long word), they go together on a row under
+   it, at its end. */
+.find-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--page-x);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+.find-bar__field {
+  flex: 1 1 160px;
+  min-width: 160px;
+}
+.find-bar__acts {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-inline-start: auto;
+}
+.find-bar__status {
+  font-size: 13px;
+  color: var(--ink2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.find-bar__status:empty {
+  display: none;
+}

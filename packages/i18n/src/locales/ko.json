@@ -2367,6 +2367,17 @@
     "replyingTo": "{{name}}님에게 답장 중",
     "cancelReply": "답장 취소",
     "jumpMissing": "여기서는 그 메시지로 이동할 수 없습니다. 삭제되었거나 너무 오래된 메시지일 수 있습니다.",
+    "find": {
+      "label": "이 대화에서 찾기",
+      "searching": "검색 중…",
+      "none": "결과 없음",
+      "failed": "검색할 수 없음",
+      "position": "{{at}} / {{total}}",
+      "positionMore": "{{at}} / {{total}}+",
+      "older": "이전 결과",
+      "newer": "최근 결과",
+      "close": "찾기 닫기"
+    },
     "emoji": "이모지",
     "uploading": "업로드 중…",
     "uploadFailed": "업로드되지 않았어요",

@@ -2443,6 +2443,17 @@
     "replyingTo": "Antwort an {{name}}",
     "cancelReply": "Antwort abbrechen",
     "jumpMissing": "Diese Nachricht ist hier nicht erreichbar. Sie wurde vielleicht gelöscht oder liegt zu weit zurück.",
+    "find": {
+      "label": "In dieser Unterhaltung suchen",
+      "searching": "Suche läuft…",
+      "none": "Keine Ergebnisse",
+      "failed": "Suche fehlgeschlagen",
+      "position": "{{at}} von {{total}}",
+      "positionMore": "{{at}} von {{total}}+",
+      "older": "Älteres Ergebnis",
+      "newer": "Neueres Ergebnis",
+      "close": "Suche schließen"
+    },
     "emoji": "Emoji",
     "uploading": "wird hochgeladen…",
     "uploadFailed": "wurde nicht hochgeladen",

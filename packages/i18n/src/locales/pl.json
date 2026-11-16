@@ -2600,6 +2600,17 @@
     "replyingTo": "Odpowiadasz: {{name}}",
     "cancelReply": "Anuluj odpowiedź",
     "jumpMissing": "Nie udało się dotrzeć do tej wiadomości. Mogła zostać usunięta lub jest zbyt stara.",
+    "find": {
+      "label": "Szukaj w tej rozmowie",
+      "searching": "Wyszukiwanie…",
+      "none": "Brak wyników",
+      "failed": "Nie udało się wyszukać",
+      "position": "{{at}} z {{total}}",
+      "positionMore": "{{at}} z {{total}}+",
+      "older": "Starszy wynik",
+      "newer": "Nowszy wynik",
+      "close": "Zamknij wyszukiwanie"
+    },
     "emoji": "Emoji",
     "uploading": "przesyłanie…",
     "uploadFailed": "nie został przesłany",

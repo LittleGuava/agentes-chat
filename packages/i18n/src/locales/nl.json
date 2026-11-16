@@ -2443,6 +2443,17 @@
     "replyingTo": "Antwoord aan {{name}}",
     "cancelReply": "Antwoord annuleren",
     "jumpMissing": "Dat bericht is hier niet te bereiken. Het is misschien verwijderd of te oud.",
+    "find": {
+      "label": "Zoeken in dit gesprek",
+      "searching": "Zoeken…",
+      "none": "Geen resultaten",
+      "failed": "Zoeken mislukt",
+      "position": "{{at}} van {{total}}",
+      "positionMore": "{{at}} van {{total}}+",
+      "older": "Ouder resultaat",
+      "newer": "Nieuwer resultaat",
+      "close": "Zoeken sluiten"
+    },
     "emoji": "Emoji",
     "uploading": "uploaden…",
     "uploadFailed": "is niet geüpload",

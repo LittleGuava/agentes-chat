@@ -2606,6 +2606,20 @@ export const en = {
     replyingTo: "Replying to {{name}}",
     cancelReply: "Cancel reply",
     jumpMissing: "Couldn't reach that message here. It may be deleted or too far back.",
+    /** Find in the conversation (Ctrl/⌘F): the bar on top of it. */
+    find: {
+      label: "Find in this conversation",
+      searching: "Searching…",
+      none: "No results",
+      failed: "Couldn't search",
+      /** Which result is shown, counted from the newest. */
+      position: "{{at}} of {{total}}",
+      /** The server sent its most: there may be older ones. */
+      positionMore: "{{at}} of {{total}}+",
+      older: "Older result",
+      newer: "Newer result",
+      close: "Close find",
+    },
     emoji: "Emoji",
     uploading: "uploading…",
     uploadFailed: "was not uploaded",
