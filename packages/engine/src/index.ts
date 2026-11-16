@@ -116,6 +116,7 @@ export * from "./devices";
 export * from "./dispatch";
 export * from "./dms";
 export * from "./docx";
+export * from "./drive-sync";
 export * from "./early-access";
 export * from "./email";
 export * from "./email-change";

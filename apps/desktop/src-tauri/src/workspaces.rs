@@ -563,8 +563,9 @@ pub fn workspaces_get(app: AppHandle, window: tauri::Window) -> Result<Vec<Serve
 }
 
 /// What the app's own windows may ask a server with its session (`site_fetch`): this computer's devices and who can
-/// use them, a phone's Stop, the workspace's people and roles for the rule's picker, and confirming the code of this
-/// computer's own runner (the person allowed it in the app's card or the system's dialog). Nothing else.
+/// use them, a phone's Stop, the workspace's people and roles for the rule's picker, its channels and direct
+/// conversations for the conversations whose files come down (ADR 0204), and confirming the code of this computer's
+/// own runner (the person allowed it in the app's card or the system's dialog). Nothing else.
 pub fn site_path_allowed(method: &str, path: &str) -> bool {
     if path.len() > 512 || path.contains(['?', '#', '%', '\\']) {
         return false;
@@ -577,7 +578,7 @@ pub fn site_path_allowed(method: &str, path: &str) -> bool {
     let ["", "api", "app", "organizations", org, rest @ ..] = parts.as_slice() else { return false };
     good_id(org)
         && match (method, rest) {
-            ("GET", ["devices" | "members" | "roles"]) => true,
+            ("GET", ["devices" | "members" | "roles" | "channels" | "dms"]) => true,
             ("PATCH", ["devices", "computers" | "phones", id]) => good_id(id),
             ("POST", ["devices", "phones", id, "stop"]) => good_id(id),
             ("POST", ["machines", "device", code, "confirm"]) => {
@@ -596,6 +597,22 @@ pub struct SiteAnswer {
     pub body: String,
 }
 
+/// The address of `path` on `server` (a server of the app's list) and the main window's session cookies for it. Each
+/// caller checks `path` first. Blocking, like `with_session`.
+pub fn session_cookie(app: &AppHandle, server: &str, path: &str) -> Result<(Url, String), String> {
+    if !servers::get(app).servers.iter().any(|s| s == server) {
+        return Err("not a server of this app".into());
+    }
+    let url: Url = format!("{server}{path}").parse().map_err(|_| "bad address")?;
+    let page = app.get_webview(main_window::LABEL).ok_or("signed_out")?;
+    let cookies: Vec<_> = crate::cookies::read(&page).into_iter().filter(|c| sent_to(c, &url)).collect();
+    let cookie = cookie_header(cookies.iter().map(|c| (c.name(), c.value())));
+    if cookie.is_empty() {
+        return Err("signed_out".into());
+    }
+    Ok((url, cookie))
+}
+
 /// One request to `server` (a server of the app's list) with the main window's session for it, the way the phone
 /// app asks. Blocking: reading the cookies waits for the web view, so never from a command's or an event's own thread.
 pub fn with_session(
@@ -605,19 +622,10 @@ pub fn with_session(
     path: &str,
     body: Option<&str>,
 ) -> Result<SiteAnswer, String> {
-    if !servers::get(app).servers.iter().any(|s| s == server) {
-        return Err("not a server of this app".into());
-    }
     if !site_path_allowed(method, path) || body.is_some_and(|b| b.len() > SITE_BODY_MAX) {
         return Err("not allowed".into());
     }
-    let url: Url = format!("{server}{path}").parse().map_err(|_| "bad address")?;
-    let page = app.get_webview(main_window::LABEL).ok_or("signed_out")?;
-    let cookies: Vec<_> = crate::cookies::read(&page).into_iter().filter(|c| sent_to(c, &url)).collect();
-    let cookie = cookie_header(cookies.iter().map(|c| (c.name(), c.value())));
-    if cookie.is_empty() {
-        return Err("signed_out".into());
-    }
+    let (url, cookie) = session_cookie(app, server, path)?;
     let agent = ureq::AgentBuilder::new().timeout(TIMEOUT).redirects(0).build();
     let request = agent
         .request(method, url.as_str())
@@ -799,6 +807,8 @@ mod tests {
         assert!(!site_path_allowed("PATCH", "/api/app/me"));
         assert!(site_path_allowed("GET", &format!("{org}/members")));
         assert!(site_path_allowed("GET", &format!("{org}/roles")));
+        assert!(site_path_allowed("GET", &format!("{org}/channels")));
+        assert!(site_path_allowed("GET", &format!("{org}/dms")));
         assert!(site_path_allowed("PATCH", &format!("{org}/devices/computers/m-1")));
         assert!(site_path_allowed("PATCH", &format!("{org}/devices/phones/p-1")));
         assert!(site_path_allowed("POST", &format!("{org}/devices/phones/p-1/stop")));
@@ -813,7 +823,9 @@ mod tests {
             ("GET", format!("{org}/devices/")),
             ("PATCH", format!("{org}/devices/phones/../stop")),
             ("GET", "/api/app/organizations/../x/devices".into()),
-            ("GET", format!("{org}/channels")),
+            ("POST", format!("{org}/channels")),
+            ("GET", format!("{org}/channels/c-1/messages")),
+            ("POST", format!("{org}/dms")),
             ("POST", format!("{org}/devices/phones/p%2F1/stop")),
         ] {
             assert!(!site_path_allowed(method, &path), "{method} {path}");

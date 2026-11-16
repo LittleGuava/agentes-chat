@@ -4500,7 +4500,8 @@
       "tools.cursorName",
       "tools.grokName",
       "tools.copilotName",
-      "tools.opencodeName"
+      "tools.opencodeName",
+      "folderSync.conversations"
     ],
     "de": [
       "device.mac",
@@ -4647,7 +4648,8 @@
       "tools.cursorName",
       "tools.grokName",
       "tools.copilotName",
-      "tools.opencodeName"
+      "tools.opencodeName",
+      "folderSync.folder"
     ],
     "tr": [
       "device.mac",
@@ -4678,7 +4680,8 @@
       "tools.cursorName",
       "tools.grokName",
       "tools.copilotName",
-      "tools.opencodeName"
+      "tools.opencodeName",
+      "folderSync.folder"
     ],
     "ru": [
       "connect.placeholder",

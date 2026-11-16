@@ -483,8 +483,8 @@
     "opencodeName": "OpenCode",
     "opencodeDesc": "OpenCodeの無料モデルまたはあなたのキーで、許可されたフォルダ内のコードを書いたり変更したりします。",
     "grokName": "Grok Build",
-    "copilotName": "Copilot CLI",
     "grokDesc": "あなたのGrokアカウントで、許可されたフォルダ内のコードを書いたり変更したりします。",
+    "copilotName": "Copilot CLI",
     "copilotDesc": "あなたのGitHub Copilotアカウントで、許可されたフォルダ内のコードを書いたり変更したりします。",
     "antigravityName": "Antigravity CLI",
     "antigravityDesc": "あなたのGeminiアカウントで、許可されたフォルダ内のコードを書いたり変更したりします。",
@@ -541,7 +541,8 @@
       "tools": "ツール",
       "updates": "アップデート",
       "activity": "アクティビティ",
-      "advanced": "詳細設定"
+      "advanced": "詳細設定",
+      "sync": "エージェントのファイル"
     },
     "general": {
       "title": "一般",
@@ -872,5 +873,22 @@
     "bringAllToFront": "すべてを手前に移動",
     "help": "ヘルプ",
     "downloaded": "ダウンロード完了"
+  },
+  "folderSync": {
+    "dmFolder": "ダイレクトメッセージ",
+    "title": "エージェントのファイル",
+    "lead": "選んだ会話でエージェントが作ったものを、この{{device}}のフォルダにダウンロードします。",
+    "on": "エージェントのファイルをダウンロード",
+    "onHint": "エージェントが保存すると新しいバージョンがダウンロードされます。あなたが変更したファイルはそのまま残り、新しいバージョンはその隣に置かれます。何も削除されません。",
+    "folder": "フォルダ",
+    "last": "最後のダウンロード",
+    "notYet": "まだありません",
+    "someFailed": "一部のファイルをダウンロードできませんでした。数分後にもう一度試します。",
+    "unreachable": "サーバーに接続できませんでした。数分後にもう一度試します。",
+    "conversations": "会話",
+    "loading": "会話を読み込み中",
+    "loadFailed": "会話を読み込めませんでした。",
+    "none": "ここにはまだ会話がありません。",
+    "noWorkspace": "まずワークスペースにサインインしてください。"
   }
 }
