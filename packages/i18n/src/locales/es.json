@@ -2230,6 +2230,8 @@
     "pin": "Fijar arriba",
     "unpin": "Quitar de arriba",
     "pinned": "Fijado arriba",
+    "moveUp": "Subir",
+    "moveDown": "Bajar",
     "full": {
       "agents": "Ya fijaste 5 agentes. Quita uno para fijar este.",
       "channels": "Ya fijaste 5 canales. Quita uno para fijar este.",

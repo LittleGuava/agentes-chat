@@ -120,6 +120,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { useApi } from "@/api/context";
 import { useDirectory } from "@/hooks/useDirectory";
+import { usePinDrag } from "@/hooks/usePinDrag";
 import { agentLine, availabilityOf, personLine, useAgentPresence, usePersonPresence } from "@/hooks/usePresence";
 import { useServerPlace } from "@/hooks/useServerPlace";
 import { useSidebarPins } from "@/hooks/useSidebarPins";
@@ -397,8 +398,8 @@ export function Sidebar() {
   const newAgent = () =>
     newAgentDialog ? newAgentDialog.open() : void navigate({ to: "/org/$orgId/agents/new", params: { orgId } });
   const sections = useSidebarSections(me.user.id, orgId);
-  // "Fixar no topo": pinned rows sit on top of their own section, above a thin line.
-  const { view, setView, pins } = useSidebarPins();
+  // "Fixar no topo": pinned rows sit on top of their own section, above a thin line, in the person's own order.
+  const { view, setView, pins, place: placePin } = useSidebarPins();
   // "Mensagens diretas": the people I talked to or just opened a DM with, latest first (an agent's row in AGENTES is its DM), pinned ones on top.
   const pinnedPeople = pins.people.flatMap((id) => {
     const m = id === me.user.id ? undefined : dir.memberById.get(id);
@@ -408,6 +409,10 @@ export function Sidebar() {
     const member = d.with.type === "person" ? dir.memberById.get(d.with.id) : undefined;
     return member && !pins.people.includes(member.userId) ? [{ dm: d, member }] : [];
   });
+  const peopleDrag = usePinDrag(
+    pinnedPeople.map((m) => m.userId),
+    (id, before) => placePin("people", id, before),
+  );
   const directsUnread = [...pinnedPeople.map((m) => dmOf.get(m.userId)), ...directs.map((x) => x.dm)].reduce(
     (n, d) => n + (d?.unread ?? 0),
     0,
@@ -680,6 +685,7 @@ export function Sidebar() {
         headProps={sectionMenu("channels")}
         addEntries={[...newChannelItem, ...newCategoryItem, ...archivedItem]}
         pinned={pins.channels}
+        onPlacePin={(id, before) => placePin("channels", id, before)}
       />
     ),
     agents: (dir.loading ||
@@ -864,6 +870,7 @@ export function Sidebar() {
                 member={m}
                 unread={dm?.unread ?? 0}
                 pinned
+                drag={rail ? undefined : peopleDrag(m.userId)}
                 onPrefetch={() => dm && prefetch(dm.channelId)}
                 onOpen={() => markOpen(dm?.channelId ?? m.userId)}
               />
@@ -1236,6 +1243,7 @@ function SidebarChannels({
   headProps,
   addEntries,
   pinned,
+  onPlacePin,
 }: {
   channels: Channel[];
   loading: boolean;
@@ -1251,6 +1259,8 @@ function SidebarChannels({
   addEntries: MenuEntry[];
   /** The channels pinned on top of "Canais" ("Fixar no topo"), in order. */
   pinned: readonly string[];
+  /** A pinned channel dragged before another pinned one, or last (null): the person's own order. */
+  onPlacePin: (channelId: string, before: string | null) => void;
 }) {
   const { t } = useTranslation();
   const { org, me } = useOrg();
@@ -1282,6 +1292,10 @@ function SidebarChannels({
   const categoryOf = (c: Channel) => (c.categoryId && known.has(c.categoryId) ? c.categoryId : null);
   const pinnedChannels = pinned.flatMap((id) => channels.filter((c) => c.id === id && c.isMember));
   const unpinned = channels.filter((c) => !pinnedChannels.includes(c));
+  const pinDrag = usePinDrag(
+    pinnedChannels.map((c) => c.id),
+    onPlacePin,
+  );
   const loose = unpinned.filter((c) => categoryOf(c) === null);
   const inCategory = (id: string) => unpinned.filter((c) => categoryOf(c) === id);
   // A category shows while it holds a channel I can see; who manages channels keeps the empty ones to drop channels in.
@@ -1470,7 +1484,8 @@ function SidebarChannels({
     return actions;
   };
 
-  // A pinned row stays put: it doesn't drag, and nothing drops on it.
+  // A pinned row drags only among the pinned ones (the person's own order, `usePinDrag`); the workspace's drag of a
+  // channel passes over it.
   const row = (c: Channel, top = false) => {
     // Discord's marks: something new lights the row (a pill on its left edge, the name in full ink) with how many
     // messages wait, in a quiet count; only a mention of me gets the red one. Muted, it rests dim whatever comes, but a
@@ -1488,7 +1503,7 @@ function SidebarChannels({
         data-unread={unread}
         data-muted={c.muted || undefined}
         {...(top
-          ? {}
+          ? pinDrag(c.id)
           : {
               "data-drop": dropMark(`channel:${c.id}`),
               draggable: categories.data !== undefined && mayChange(c),
@@ -2043,12 +2058,15 @@ function PersonRow({
   member: m,
   unread,
   pinned,
+  drag,
   onPrefetch,
   onOpen,
 }: {
   member: Member;
   unread: number;
   pinned?: boolean;
+  /** A pinned person drags among the pinned ones (`usePinDrag`). */
+  drag?: ReturnType<ReturnType<typeof usePinDrag>>;
   onPrefetch: () => void;
   onOpen: () => void;
 }) {
@@ -2070,6 +2088,7 @@ function PersonRow({
       onMouseEnter={onPrefetch}
       onFocus={onPrefetch}
       onClick={onOpen}
+      {...drag}
     >
       <Avatar
         name={m.name}

@@ -1,8 +1,8 @@
 # 0083. Groups of agents
 
-- Status: Accepted. Amended 2026-10-30: §4 and §5 (a person's lists show only the agents that answer them, unless they manage agents). Amended 2026-11-03: §4 and §5 (the sidebar's AGENTES part comes back with the groups, "Fixar no topo" in every section, §7). Amended 2026-11-04: groups are shown as setores with a color, an icon, a lead and a substitute, managed on Equipe › Setores (ADR 0148). Amended 2026-11-10: §5 and §7 (a pin keeps an agent in its setor, a setor's menu on its header, stale pins hold no place)
+- Status: Accepted. Amended 2026-10-30: §4 and §5 (a person's lists show only the agents that answer them, unless they manage agents). Amended 2026-11-03: §4 and §5 (the sidebar's AGENTES part comes back with the groups, "Fixar no topo" in every section, §7). Amended 2026-11-04: groups are shown as setores with a color, an icon, a lead and a substitute, managed on Equipe › Setores (ADR 0148). Amended 2026-11-10: §5 and §7 (a pin keeps an agent in its setor, a setor's menu on its header, stale pins hold no place). Amended 2026-11-15: §7 (each person orders their own pinned rows)
 - Date: 2026-10-30
-- Code: `packages/db/src/schema/agents.ts` (`agent_groups`, `agents.group_id`, `agents.group_position`), `packages/engine/src/agent-groups.ts`, `apps/server/src/routes/app/agents.ts`, `packages/client/src/lib/agent-groups.ts`, `apps/web/src/components/AgentGroups.tsx`, `apps/web/src/components/team/TeamSectors.tsx`, `apps/mobile/src/features/agents/AgentsScreen.tsx`; sidebar view and pins: `packages/engine/src/sidebar-items.ts` (`SidebarView`), `packages/client/src/lib/sidebar-view.ts`, `apps/web/src/components/Sidebar.tsx`, `apps/web/src/hooks/useSidebarPins.ts`, `apps/mobile/src/features/chats/pins.ts`
+- Code: `packages/db/src/schema/agents.ts` (`agent_groups`, `agents.group_id`, `agents.group_position`), `packages/engine/src/agent-groups.ts`, `apps/server/src/routes/app/agents.ts`, `packages/client/src/lib/agent-groups.ts`, `apps/web/src/components/AgentGroups.tsx`, `apps/web/src/components/team/TeamSectors.tsx`, `apps/mobile/src/features/agents/AgentsScreen.tsx`; sidebar view and pins: `packages/engine/src/sidebar-items.ts` (`SidebarView`), `packages/client/src/lib/sidebar-view.ts`, `apps/web/src/components/Sidebar.tsx`, `apps/web/src/hooks/useSidebarPins.ts`, `apps/web/src/hooks/usePinDrag.ts`, `apps/mobile/src/features/chats/pins.ts`
 
 ## Context
 
@@ -54,3 +54,20 @@ People said the setores didn't stay organized in the sidebar, that pinning an ag
 - **A pin of something gone holds no place.** The apps leave out the pins of agents, channels and people no longer in their lists before counting the five and when they save (`pinsOf` with `known`); a list not loaded yet keeps its pins. This replaces the consequence above that a stale pin costs a place until it is unpinned.
 - **A setor's menu on its header.** Who manages agents gets a "…" on each setor's header in the sidebar, and the same choices on the header's right click: Editar (name, color and icon), Mover para cima or para baixo, Excluir setor after a question. It is Equipe › Setores' menu (`useGroupEntries`). On the phone, each setor's header in Agentes has a "…" and a long press with Editar, which opens the setor's page, where who manages agents now renames it, and Excluir setor. The phone's channel category headers show the same "…" for their long press menu. "Organizar setores na Equipe" in AGENTES' "…" opens Equipe on Setores.
 
+
+## Amendment (2026-11-15): each person orders their own pinned rows
+
+### Context
+
+People asked to arrange their own conversations in the sidebar, each in their own order, without changing anyone else's. Pins already were each person's, saved on the server and the same on every device (§7), but their order was only the order they were pinned in: the newest first, and the only way to change it was to unpin and pin again. Everything else in the sidebar is the workspace's layout: the channels' order and categories are the organization's, the same for everyone (ADR 0080 §1 and §3), and the agents' order inside a setor is the workspace's or the person's sort (§7).
+
+### Decision
+
+- **The pinned rows are the person's own order.** A pinned row moves among the pinned rows of its section: "Mover para cima" and "Mover para baixo" in its right click, the cards' ⋯ and the channel header's menu on the web, and in a row's long press on the phone (one step at a time, as the phone moves channels, ADR 0080 §7). On the web, the pinned channels and the pinned people under Mensagens diretas also drag among themselves (`usePinDrag`), with the same line the sidebar's other drags show. A pinned agent moves only from its menu: who manages agents drags an agent to another setor, and one drag can't mean both.
+- **Among the rows shown with it.** A pinned agent moves among the pinned agents of its own setor, as they show (`splitPinned`), trading places with its neighbor (`stepPin`), so the pins of other setores keep theirs. A drag lands before another pinned row or last (`placePin`).
+- **Saved with the pins.** The order is the order of the ids in `pins` (`PUT …/me/sidebar/view`), which the server already keeps as sent (`sidebarViewOf`): no new route, no migration. Every change starts from the saved pins as they are now, day one's included, like Fixar no topo.
+- **The workspace's order stays the workspace's.** A pin's drag is a drag of its own: it drops only on the pinned rows beside it and never reaches `placeChannel`, and the workspace's drag of a channel passes over the pinned rows as before.
+
+### Consequences
+
+- An order of one's own covers the pinned rows only, five per section. A personal order of every channel would undo ADR 0080 §1 (everyone sees the same layout); it stays out until a decision changes that.
