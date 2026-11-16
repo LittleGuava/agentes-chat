@@ -120,3 +120,24 @@ On every write through `consolidateItem` (people, agents, reflection) and in the
 - A second external dependency on the memory path. It's mitigated by the fallbacks, but Jev quality and latency are now product quality, so the live eval runs again whenever `jev-latest` moves (`jev-preview` is tried there first).
 - More memory content goes to TypeSafe, on top of the router messages already sent (`SELF_HOSTING.md` lists what it receives).
 - Self-host keeps working without Jev. Each point runs on its fallback, which is today's behavior.
+
+## Addendum (2026-11-15): a memory's end, set by who saves it
+
+Point 2 starts with its end alone: `context_items.valid_until` (migration 0282, nullable, no default). It is the first
+instant an item no longer holds, and it is set on purpose, not by the judge: a person says "until Friday", or edits the
+date on the memory page.
+
+- **Who sets it.** `remember` and `update_memory` take an optional `until`: the last day it holds (`YYYY-MM-DD`, read
+  in the workspace's time zone, so it holds through that whole day there), a span from now (`7d`, `2w`, `3m`, `1y`), or
+  for `update_memory` `never` to take the end away. Left out, `update_memory` keeps the end the item had. An end that
+  can't be read or has passed is refused before anything is written. People set, change and remove it on the memory
+  page (`PATCH …/memories/{id}` with `validUntil`): in place, no new version, and a text edit keeps the end it had.
+- **What it changes.** One predicate (`context/validity.ts`, `currentSql` and `isCurrent`) keeps an item past its end
+  out of everything an agent reads on its own: the run's memory (`retrieveForRun`), the team's memory in the cached
+  prompt, the rules people gave, and `search_context`. The judge and the word match never merge into or supersede an
+  item past its end: the same thing said again is a new item. `expand` still opens it by id, labeled as ended.
+- **What it doesn't.** The item stays active: the memory page lists it, marked "Venceu em …", editable, and a new end
+  brings it back. Nothing archives it on its date and the search index doesn't change; the filter is read time.
+- **Later.** `valid_from`, the judge's `updates` closing the old item in time, and `history: true` on `search_context`
+  and `expand` stay as written in point 2. A team save that waits as a card for who reviews memory carries no end yet,
+  and the phone shows no end until its memory screens read `validUntil`.

@@ -147,6 +147,11 @@ export const contextItems = pgTable(
     version: integer().notNull().default(1),
     /** Summaries: the newest source they cover. */
     coversUntil: timestamp({ withTimezone: true }),
+    /**
+     * When it stops holding (ADR 0028 §2): from then on it reads in no prompt and no agent's search, while people
+     * still see it, marked, and may change it. Null = no end.
+     */
+    validUntil: timestamp({ withTimezone: true }),
     /** `job`, `agent` or `person`. */
     createdByKind: text().notNull().default("job"),
     createdById: text(),

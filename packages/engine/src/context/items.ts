@@ -25,6 +25,7 @@ import { can, getMembership, type Membership, requirePermission } from "../organ
 import { hasContact } from "../outside";
 import { enqueueIndex, userVisibleChannels } from "../search";
 import { type Plan, planConsolidation } from "./judgments";
+import { currentSql } from "./validity";
 
 const { agentActions, agents, contextItems, messages } = schema;
 
@@ -314,6 +315,8 @@ export interface NewContextItem {
   relatedIds?: string[];
   /** Contradicted by another item, until a person resolves it. */
   disputed?: boolean;
+  /** When it stops holding (`validity.ts`); null or left out: no end. On a merge, a given one replaces the old end. */
+  validUntil?: Date | null;
 }
 
 /** Inserts an item (content checked) and enqueues its indexing, in the caller's transaction. */
@@ -346,6 +349,7 @@ export async function insertContextItem(tx: Executor, input: NewContextItem): Pr
       createdById: input.createdById ?? null,
       relatedIds: input.relatedIds ?? [],
       disputed: input.disputed ?? false,
+      validUntil: input.validUntil ?? null,
     })
     .returning();
   if (!row) throw new Error("context item insert returned nothing");
@@ -441,6 +445,8 @@ export async function consolidateItem(
           input.kind === "rule" ? eq(contextItems.createdById, input.createdById ?? "") : undefined,
           // One person's preference never merges into another's: it would read in that person's runs.
           input.scopeType === "person" ? eq(contextItems.scopeId, input.scopeId ?? "") : undefined,
+          // An item past its end is history: the same words said again are a new item, not a merge into it.
+          currentSql(),
           or(eq(contextItems.subjectKey, subjectKey), sql`${contextItems.content} = ${input.content}`),
         ),
       )
@@ -499,6 +505,8 @@ async function mergeInto(tx: Executor, old: ContextItem, input: NewContextItem) 
       trust: low ? "low" : "high",
       sourceIds: [...new Set([...old.sourceIds, ...(input.sourceIds ?? [])])],
       channelIds: [...new Set([...old.channelIds, ...(input.channelIds ?? [])])],
+      // Said again with an end: the latest word on how long it holds.
+      ...(input.validUntil !== undefined ? { validUntil: input.validUntil } : {}),
       updatedAt: new Date(),
     })
     .where(eq(contextItems.id, old.id))
@@ -736,14 +744,21 @@ async function loadItem(db: Database, orgId: string, itemId: string) {
 
 /**
  * A person edits an item: content edits create a new version (history kept),
- * pin and archive change it in place. An edit by a person is human evidence.
+ * pin, archive and its end (`validUntil`, null: none) change it in place. An edit by a person is human evidence.
  */
 export async function editContextItem(
   db: Database,
   actorId: string,
   orgId: string,
   itemId: string,
-  input: { content?: string; title?: string; pinned?: boolean; archived?: boolean; confirmed?: boolean },
+  input: {
+    content?: string;
+    title?: string;
+    pinned?: boolean;
+    archived?: boolean;
+    confirmed?: boolean;
+    validUntil?: Date | null;
+  },
   judge?: Judge,
 ): Promise<ContextItem> {
   const item = await loadItem(db, orgId, itemId);
@@ -752,7 +767,8 @@ export async function editContextItem(
     input.confirmed === true &&
     input.content === undefined &&
     input.pinned === undefined &&
-    input.archived === undefined;
+    input.archived === undefined &&
+    input.validUntil === undefined;
   if (!onlyConfirms || !(await saidBy(db, actorId, item))) await requireEdit(db, actorId, item);
   // A rule passes `requireEdit` only for its giver, the agent's owner or an admin: people who may give it anyway.
   if (input.content !== undefined && input.content !== item.content && item.kind !== "rule") {
@@ -777,6 +793,7 @@ export async function editContextItem(
         evidence: mergeEvidence(item.evidence, [{ type: "human", ref: actorId, at: new Date().toISOString() }]),
         confidence: Math.max(item.confidence, 0.9),
         pinned: input.pinned ?? item.pinned,
+        validUntil: input.validUntil !== undefined ? input.validUntil : item.validUntil,
         createdByKind: "person",
         // A rule holds by its giver (`rulesForPerson`): an owner's or admin's edit keeps it the giver's.
         createdById: item.kind === "rule" && item.createdByKind === "person" ? (item.createdById ?? actorId) : actorId,
@@ -792,7 +809,8 @@ export async function editContextItem(
         item.trust !== "low" &&
         item.evidence.some((e) => e.type === "app") &&
         !isVerified(item.evidence)));
-  if (confirms || input.pinned !== undefined || input.archived !== undefined) {
+  const ends = input.validUntil !== undefined && current === item;
+  if (confirms || ends || input.pinned !== undefined || input.archived !== undefined) {
     const evidence = confirms
       ? mergeEvidence(item.evidence, [{ type: "human", ref: actorId, at: new Date().toISOString() }])
       : undefined;
@@ -806,12 +824,20 @@ export async function editContextItem(
         ...(input.archived !== undefined
           ? { status: input.archived ? ("archived" as const) : ("active" as const) }
           : {}),
+        ...(ends ? { validUntil: input.validUntil ?? null } : {}),
         updatedAt: new Date(),
       })
       .where(eq(contextItems.id, current.id))
       .returning();
     if (row) current = row;
     await enqueueIndex(db, { orgId, kind: "context_item", sourceId: current.id });
+  }
+  // Whether the org and the agent hold any memory or rule is cached (`caches.contextPresence`): an end changed in
+  // place can bring one back into the prompt.
+  if (input.validUntil !== undefined) {
+    caches.contextPresence.delete(`${orgId}:`);
+    if (current.kind === "rule" && current.agentId)
+      caches.contextPresence.delete(rulesPresenceKey(orgId, current.agentId));
   }
   return current;
 }

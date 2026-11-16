@@ -8,6 +8,7 @@ import {
   editContextItem,
   ForbiddenError,
   getAgent,
+  isCurrent,
   isHowTo,
   isPlaybook,
   itemVisibleIn,
@@ -87,6 +88,14 @@ const Memory = z
         'The agent\'s own how-tos, lessons and notes ("How it works"): no receipt in the chat, listed only for its owner and who manages agents.',
     }),
     disputed: z.boolean().optional().openapi({ description: "Another memory says otherwise, until a person decides." }),
+    validUntil: z.string().nullable().optional().openapi({
+      description:
+        "When it stops holding (ADR 0028 §2): from then on no agent reads it in its work or finds it in a search. Null: no end.",
+    }),
+    expired: z
+      .boolean()
+      .optional()
+      .openapi({ description: "Past `validUntil`: kept and shown, marked, and brought back by a new end." }),
     removable: z
       .boolean()
       .optional()
@@ -313,6 +322,8 @@ async function memoryViews(db: Database, items: ContextItem[], visible: readonly
       summary: i.title.trim() && i.title.trim() !== i.content.trim() ? i.title.trim() : null,
       playbook: isPlaybook(i),
       disputed: i.disputed,
+      validUntil: i.validUntil ? i.validUntil.toISOString() : null,
+      expired: !isCurrent(i),
       channelId: i.channelIds[0] ?? null,
       updatedAt: i.updatedAt.toISOString(),
     };
@@ -646,7 +657,7 @@ export function memoryRoutes(deps: AppDeps) {
       tags,
       security,
       summary:
-        "Edit (keeps history), pin or archive a memory (agent owner or admin; a rule people gave: its giver too), or confirm it (`confirmed`: trusted and verified, ADR 0167; also the person who said it)",
+        "Edit (keeps history), pin or archive a memory, or set when it stops holding (`validUntil`, null: no end) (agent owner or admin; a rule people gave: its giver too), or confirm it (`confirmed`: trusted and verified, ADR 0167; also the person who said it)",
       request: {
         params: OrgParams.extend({ memoryId: z.uuid() }),
         body: body(
@@ -655,6 +666,9 @@ export function memoryRoutes(deps: AppDeps) {
             pinned: z.boolean().optional(),
             archived: z.boolean().optional(),
             confirmed: z.literal(true).optional(),
+            validUntil: z.iso.datetime({ offset: true }).nullable().optional().openapi({
+              description: "When it stops holding (ADR 0028 §2); null takes the end away. A past one ends it now.",
+            }),
           }),
         ),
       },
@@ -668,6 +682,8 @@ export function memoryRoutes(deps: AppDeps) {
         pinned: input.pinned,
         archived: input.archived,
         confirmed: input.confirmed,
+        validUntil:
+          input.validUntil === undefined ? undefined : input.validUntil === null ? null : new Date(input.validUntil),
       });
       // The memory mark on the message it came from changes for everyone in the channel.
       await announceMessageMemories({ db, pubsub: deps.adapters.pubsub }, orgId, row).catch(() => {});
