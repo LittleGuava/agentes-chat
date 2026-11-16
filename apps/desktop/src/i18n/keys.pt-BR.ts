@@ -316,6 +316,8 @@ export const desktopPtBR = {
     continue: "Continuar",
     checking: "Conferindo o servidor…",
     notALink: "Este link não é de um servidor do agentes.chat.",
+    elsewhere: "Este link abre uma conversa num servidor que este app não abre.",
+    elsewhereHelp: "Adicione esse servidor em Servidores\u00a0›\u00a0Adicionar um servidor… e abra o link de novo.",
     chipTailnet: "Tailscale",
     chipHere: "Este {{device}}",
     thisServer: "O agentes.chat neste {{device}}",

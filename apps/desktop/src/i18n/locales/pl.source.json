@@ -782,6 +782,12 @@
   "link.notALink": {
     "value": "This link isn't from an agentes.chat server."
   },
+  "link.elsewhere": {
+    "value": "This link opens a conversation on a server this app doesn't open."
+  },
+  "link.elsewhereHelp": {
+    "value": "Add it in Servers › Add a server…, then open the link again."
+  },
   "link.chipTailnet": {
     "value": "Tailscale"
   },

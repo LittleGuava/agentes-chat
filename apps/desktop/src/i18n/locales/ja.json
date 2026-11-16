@@ -292,6 +292,8 @@
     "continue": "続ける",
     "checking": "サーバーを確認中…",
     "notALink": "このリンクはagentes.chatのサーバーのものではありません。",
+    "elsewhere": "このリンクは、このアプリで開いていないサーバーの会話を開きます。",
+    "elsewhereHelp": "サーバー › サーバーを追加… で追加してから、もう一度リンクを開いてください。",
     "chipTailnet": "Tailscale",
     "chipHere": "この{{device}}",
     "thisServer": "この{{device}}のagentes.chat",

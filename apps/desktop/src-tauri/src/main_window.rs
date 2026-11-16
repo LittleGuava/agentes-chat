@@ -44,6 +44,11 @@ pub fn site(app: &AppHandle) -> Option<Url> {
     servers::current(app)
 }
 
+/// The page the window shows; None before it was made.
+pub fn page_url(app: &AppHandle) -> Option<Url> {
+    app.get_webview(LABEL)?.url().ok()
+}
+
 fn same_site(url: &Url, site: &Url) -> bool {
     url.scheme() == site.scheme()
         && url.host_str() == site.host_str()

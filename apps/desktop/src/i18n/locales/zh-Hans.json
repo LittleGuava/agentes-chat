@@ -292,6 +292,8 @@
     "continue": "继续",
     "checking": "正在检查服务器…",
     "notALink": "此链接不是来自 agentes.chat 服务器。",
+    "elsewhere": "此链接会打开一个本应用未打开的服务器上的对话。",
+    "elsewhereHelp": "请在“服务器 › 添加服务器…”中添加它，然后重新打开链接。",
     "chipTailnet": "Tailscale",
     "chipHere": "这台 {{device}}",
     "thisServer": "这台 {{device}} 上的 agentes.chat",

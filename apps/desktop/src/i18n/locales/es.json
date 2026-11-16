@@ -298,6 +298,8 @@
     "continue": "Continuar",
     "checking": "Verificando el servidor…",
     "notALink": "Este enlace no es de un servidor de agentes.chat.",
+    "elsewhere": "Este enlace abre una conversación en un servidor que esta app no abre.",
+    "elsewhereHelp": "Agrégalo en Servidores › Agregar un servidor… y vuelve a abrir el enlace.",
     "chipTailnet": "Tailscale",
     "chipHere": "Esta {{device}}",
     "thisServer": "agentes.chat en esta {{device}}",

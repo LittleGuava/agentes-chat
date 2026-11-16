@@ -321,6 +321,10 @@ export const desktopEn = {
     continue: "Continue",
     checking: "Checking the server…",
     notALink: "This link isn't from an agentes.chat server.",
+    /** A link to a conversation on the server named above it, which isn't in this app's list: nothing opens. */
+    elsewhere: "This link opens a conversation on a server this app doesn't open.",
+    /** Under it: how to open it after all (the menu's "Add a server…"). */
+    elsewhereHelp: "Add it in Servers\u00a0›\u00a0Add a server…, then open the link again.",
     chipTailnet: "Tailscale",
     chipHere: "This {{device}}",
     /** The agentes.chat this computer runs, named in large type instead of its address. */

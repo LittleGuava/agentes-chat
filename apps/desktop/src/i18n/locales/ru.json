@@ -301,6 +301,8 @@
     "continue": "Продолжить",
     "checking": "Проверяем сервер…",
     "notALink": "Эта ссылка не с сервера agentes.chat.",
+    "elsewhere": "Эта ссылка открывает разговор на сервере, который это приложение не открывает.",
+    "elsewhereHelp": "Добавьте его в Серверы › Добавить сервер… и откройте ссылку снова.",
     "chipTailnet": "Tailscale",
     "chipHere": "Этот {{device}}",
     "thisServer": "agentes.chat на этом {{device}}",

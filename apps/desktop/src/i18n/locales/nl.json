@@ -295,6 +295,8 @@
     "continue": "Doorgaan",
     "checking": "Server controleren…",
     "notALink": "Deze link komt niet van een agentes.chat-server.",
+    "elsewhere": "Deze link opent een gesprek op een server die deze app niet opent.",
+    "elsewhereHelp": "Voeg hem toe via Servers › Een server toevoegen… en open de link daarna opnieuw.",
     "chipTailnet": "Tailscale",
     "chipHere": "Deze {{device}}",
     "thisServer": "agentes.chat op deze {{device}}",

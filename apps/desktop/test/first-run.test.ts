@@ -10,6 +10,7 @@ import {
   linkView,
   ownAddresses,
   PROBLEM_TEXT,
+  parseChatElsewhere,
   terminalStartCommand,
   typedServer,
 } from "../src/control/first-run";
@@ -210,6 +211,22 @@ describe("a link to a server", () => {
   test("a problem keeps its words; junk is no link", () => {
     expect(linkView(link(), down(BOX), null)).toEqual({ kind: "problem", server: BOX, problem: "unreachable-tailnet" });
     expect(linkView(parseConnectLink("agenteschat://chat/123"), "checking", null)).toEqual({ kind: "notALink" });
+  });
+
+  test("a chat link for a server this app doesn't open: that server, as Rust hands it over", () => {
+    expect(parseChatElsewhere("agenteschat://chat?server=https%3A%2F%2Fother.example.com")).toEqual({
+      kind: "elsewhere",
+      server: "https://other.example.com",
+    });
+    expect(parseChatElsewhere("agenteschat://chat/?server=http%3A%2F%2F127.0.0.1%3A4310")).toEqual({
+      kind: "elsewhere",
+      server: "http://127.0.0.1:4310",
+    });
+    // Anything else is no such notice: a chat link itself, one without a server, or a server the app can't open.
+    expect(parseChatElsewhere("agenteschat://chat")).toBeNull();
+    expect(parseChatElsewhere("agenteschat://chat/abc?server=https%3A%2F%2Fother.example.com")).toBeNull();
+    expect(parseChatElsewhere("agenteschat://chat?server=http%3A%2F%2Fother.example.com")).toBeNull();
+    expect(parseChatElsewhere("agenteschat://connect?server=https%3A%2F%2Fother.example.com")).toBeNull();
   });
 });
 

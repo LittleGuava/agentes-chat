@@ -292,6 +292,8 @@
     "continue": "계속",
     "checking": "서버를 확인하는 중…",
     "notALink": "agentes.chat 서버의 링크가 아니에요.",
+    "elsewhere": "이 앱에서 열지 않는 서버의 대화를 여는 링크예요.",
+    "elsewhereHelp": "서버 › 서버 추가…에서 추가한 다음 링크를 다시 여세요.",
     "chipTailnet": "Tailscale",
     "chipHere": "이 {{device}}",
     "thisServer": "이 {{device}}의 agentes.chat",
