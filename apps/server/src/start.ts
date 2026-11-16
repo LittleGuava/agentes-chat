@@ -494,6 +494,8 @@ async function boot(
     feedbackFiles: { db: database.db, blobs: adapters.platformBlobs },
     voice: engine.voice,
     approvalDigest: { publicUrl: config.PUBLIC_URL, afterHours: config.APPROVAL_REMINDER_HOURS },
+    // Only where emails really go out: a log of them would claim each person's wait for nothing.
+    ...(adapters.email.delivers ? { awayEmail: { publicUrl: config.PUBLIC_URL } } : {}),
     mail: { deps: engine.mail, pollSeconds: config.MAIL_POLL_SECONDS },
     browserLive: engine.browserLive,
     desktops: engine.desktops,

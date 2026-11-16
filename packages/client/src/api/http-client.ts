@@ -1867,6 +1867,8 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       prefs: (orgId) => request<NoticePrefs>(`${org(orgId)}/notification-prefs`),
       setPref: (orgId, category, on) =>
         request<NoticePrefs>(`${org(orgId)}/notification-prefs`, { method: "PUT", json: { category, on } }),
+      setAwayEmail: (orgId, minutes) =>
+        request<NoticePrefs>(`${org(orgId)}/notification-prefs/away-email`, { method: "PUT", json: { minutes } }),
       askAdmins: (orgId, ask) => request<{ sent: number }>(`${org(orgId)}/admin-asks`, { json: ask }),
     },
     calendar: {

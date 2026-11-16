@@ -5,6 +5,11 @@ import type { EmailWords } from "./index";
  * The emails in id: whatever is here replaces English, word group by word group (`deepMerge`). Indonesian has a
  * single plural form, so a count's words differ only where one reads differently (`n === 1`).
  */
+/** How long the reader was away, and how often the away email comes (ADR 0069, addendum 2026-11-15). */
+const awayFor = (m: number) => (m >= 1440 ? "satu hari" : m >= 60 ? "satu jam" : `${m} menit`);
+const awayOften = (m: number) =>
+  `Email ini datang paling sering ${m >= 1440 ? "sekali sehari" : m >= 60 ? "sekali sejam" : `setiap ${m} menit`}, tidak pernah dua kali untuk hal yang sama. Ubah atau matikan di Pengaturan, Notifikasi.`;
+
 export const words: EmailWords = {
   sentBy: (host) => (host ? atHost("Dikirim oleh server agentes.chat", "di", host) : "Dikirim oleh agentes.chat."),
   fallback: "Tombolnya tidak berfungsi? Salin alamat ini ke browser kamu:",
@@ -172,6 +177,23 @@ export const words: EmailWords = {
       body: () => "Agenmu meminta izin melakukan sesuatu yang perlu persetujuanmu.",
       why: (_org, hours) =>
         `Kamu menerima email ini karena kamu bisa menyetujui permintaan ini.${hours ? ` Email ini dikirim saat permintaan menunggu lebih dari ${hours} jam, sekali per permintaan.` : ""}`,
+    },
+  },
+  away: {
+    subject: (n) => (n === 1 ? "Ada yang baru selama kamu pergi" : `${n} hal baru selama kamu pergi`),
+    preheader: "Sebutan, pesan langsung, dan pekerjaan selesai yang belum kamu lihat.",
+    headline: (n) => (n === 1 ? "Satu hal menunggumu" : `${n} hal menunggumu`),
+    body: (org) => ["Selama kamu pergi, ini masuk di ", { b: org }, " dan belum kamu lihat."],
+    groups: { mentions: "Menyebut kamu", dms: "Pesan langsung", done: "Pekerjaan selesai" },
+    media: { gif: "Mengirim GIF", sticker: "Mengirim stiker", voice: "Mengirim pesan suara" },
+    message: "Mengirim pesan",
+    more: (k) => `Dan ${k} lagi di kotak masukmu.`,
+    button: "Buka kotak masuk",
+    why: (org, minutes) =>
+      `Kamu menerima email ini karena pergi dari ${org} selama ${awayFor(minutes)}. ${awayOften(minutes)}`,
+    personal: {
+      body: () => "Selama kamu pergi, ini masuk dan belum kamu lihat.",
+      why: (_org, minutes) => `Kamu menerima email ini karena pergi selama ${awayFor(minutes)}. ${awayOften(minutes)}`,
     },
   },
   ready: {

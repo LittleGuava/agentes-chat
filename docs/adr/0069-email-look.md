@@ -1,7 +1,7 @@
 # 0069. Emails: one look, in light and dark
 
 - Status: Accepted
-- Date: 2026-10-26. Revised 2026-10-27: every button is the app's primary button, in layers each client keeps or drops (§2). Revised 2026-10-28: a proven address is a mailto link (§5), and a face starts at its name's capitals (§2). Revised 2026-10-31: a picture over the headline where an email marks a moment (§2). Revised 2026-11-07: the Gmail apps darken every email instead of keeping it light (§3)
+- Date: 2026-10-26. Revised 2026-10-27: every button is the app's primary button, in layers each client keeps or drops (§2). Revised 2026-10-28: a proven address is a mailto link (§5), and a face starts at its name's capitals (§2). Revised 2026-10-31: a picture over the headline where an email marks a moment (§2). Revised 2026-11-07: the Gmail apps darken every email instead of keeping it light (§3). Addendum 2026-11-15: the email of what a person missed while away
 - Code: `packages/engine/src/email/` (`layout.ts`, `words.ts`, `inert.ts`), `packages/engine/src/email.ts` (kinds, producers, where the pictures come from), `packages/adapters/src/email.ts` (pictures as inline parts), `apps/server/src/app.ts` (`/email/*`), `apps/web/public/email/` (the pictures and the font), `packages/engine/scripts/email-preview.ts`, `packages/engine/scripts/email-art.ts` (the computer and the onboarding's agents)
 
 ## Context
@@ -41,3 +41,15 @@ No single dark design reaches all of them, and Gmail's conversion of a light des
 - A snapshot per sample guards the HTML (`packages/engine/test/__snapshots__/email.test.ts.snap`), and `email-preview.ts` writes every sample to files, or mails them to one address for a check in real clients. Every kind has a sample (a test fails otherwise).
 - The email test reads the app's `.ac-btn--primary` and the control ruler: when the app's button changes, it fails until the email's button follows.
 - The pictures the waiting list emails already delivered point at stay in `apps/web/public/email/`.
+
+## Addendum 2026-11-15: the email of what a person missed while away
+
+A person who closed the app heard about mentions, DMs and finished work only through pushes, and only on a phone or a browser that had them on. Approvals had a reminder email (`approval_digest`); nothing else did.
+
+1. **What goes in.** The inbox is the source: a person's notifications still unread, not done and not snoozed (`inboxVisible`), of three groups (`AWAY_KINDS` in `packages/engine/src/away-email.ts`): mentions (`mention`), direct messages (`dm`) and finished work (`agent_reply`, `mission_finished`, `routine_finished`). Approvals keep their own email; questions, reactions and the rest stay in the app. A line is who did it (an agent's face or a person's initials), where (`#channel`, a mission's or routine's name) and the start of what was said, never a body the server wrote (`pushQuote`, the push's own rule). At most 10 lines, then how many more.
+2. **Away is a timestamp, not presence.** Presence (`Presence.online`) lives in each process's memory and a worker process (`SERVER_ROLE=worker`) has no sockets, so it can't say who is away. `organization_members.active_at` can: set on connecting and leaving, and every `ACTIVE_MARK_MS` (5 minutes) while a socket stays open (`markActive`, from the socket's session recheck). It moves for a hidden person too, which `last_seen_at` must not (ADR 0084): nobody else ever reads it. Null is "not known", so never away: a person who hasn't opened the app since this shipped gets nothing, and neither does one whose server still runs code that doesn't mark it.
+3. **One setting per person and workspace**, `away_email_minutes`: 15, 60 (the default) or 1440, or 0 for never. It is both how long the person is away before an email and at most how often one comes. Set in Settings › Notifications (`PUT …/notification-prefs/away-email`), offered only where the server sends emails (`EmailSender.delivers`).
+4. **The worker** (`queueAwayEmails`, every 5 minutes, only where emails go out) picks people away their wait, last emailed at least their wait ago, in a workspace not suspended or being deleted (`closedOrg`), with something new: newer than when they were last active, than their last email and than 24 hours ago, and at least 10 minutes old (a push may still bring them back). It claims the person with a conditional update of `away_email_at` and queues the email in the same transaction, so two ticks at once, on two replicas too, queue one, and a tick that runs again finds nothing new.
+5. **The email** (`away_digest`) follows this ADR: our words in the subject, preheader, headline and button (counts only), names and what was said inert in the body, a footer that says how long they were away, how often it comes and where to turn it off. The button opens the inbox.
+
+Later: the setting on the phone app (Você › Notificações) and a one-click stop link in the email, which needs a signed token per person and workspace.

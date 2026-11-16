@@ -49,6 +49,7 @@ import {
   purgeDeletedArtifacts,
   purgeDeletedWikiPages,
   queueApprovalDigests,
+  queueAwayEmails,
   reapRoutineRuns,
   recheckStuckPlans,
   reconcileComposioAccounts,
@@ -125,6 +126,8 @@ export interface WorkerDeps {
   voice?: VoiceDeps;
   /** Approval reminder emails. */
   approvalDigest?: { publicUrl: string; afterHours: number };
+  /** The email of what people missed while away (ADR 0069, addendum 2026-11-15); absent where no email goes out. */
+  awayEmail?: { publicUrl: string };
   /** People's mailboxes (ADR 0038): IMAP polling for routines, and Composio account checks. */
   mail?: { deps: MailDeps; pollSeconds: number };
   /** The agent browser's live view (ADR 0040): expired handoffs are told to its viewers. */
@@ -161,6 +164,8 @@ export const WORKER_INTERVALS_MS = {
   partitions: 24 * 3600_000,
   approvals: 60_000,
   approvalDigest: 15 * 60_000,
+  /** A third of the shortest wait (15 minutes): an email goes at most 5 minutes after it is due. */
+  awayEmail: 5 * 60_000,
   reflections: 10 * 60_000,
   consolidation: 24 * 3600_000,
   /** Often enough that the routines of one minute fire as the ramp their offsets make (`fireDueRoutines`). */
@@ -476,6 +481,14 @@ export function startWorkers(deps: WorkerDeps) {
     every("approvalDigest", WORKER_INTERVALS_MS.approvalDigest, async () => {
       const queued = await queueApprovalDigests(db, digest.publicUrl, digest.afterHours);
       if (queued > 0) log.info("approval reminder emails queued", { queued });
+    });
+  }
+
+  const away = deps.awayEmail;
+  if (away) {
+    every("awayEmail", WORKER_INTERVALS_MS.awayEmail, async () => {
+      const queued = await queueAwayEmails(db, away.publicUrl);
+      if (queued > 0) log.info("away emails queued", { queued });
     });
   }
 

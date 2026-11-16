@@ -6,6 +6,11 @@ import type { EmailWords } from "./index";
  * The emails in ru: whatever is here replaces English, word group by word group (`deepMerge`); write a count's
  * forms with `plural("ru", n, { one, few, many, other })` from `@agenteschat/i18n/format`.
  */
+/** How long the reader was away, and how often the away email comes (ADR 0069, addendum 2026-11-15). */
+const awayFor = (m: number) => (m >= 1440 ? "день" : m >= 60 ? "час" : `${m} минут`);
+const awayOften = (m: number) =>
+  `Оно приходит не чаще ${m >= 1440 ? "раза в день" : m >= 60 ? "раза в час" : `чем раз в ${m} минут`} и никогда дважды об одном и том же. Измените или отключите его в Настройках, Уведомления.`;
+
 export const words: EmailWords = {
   sentBy: (host) => (host ? atHost("Отправлено сервером agentes.chat", "на", host) : "Отправлено agentes.chat."),
   fallback: "Кнопка не работает? Скопируйте этот адрес в браузер:",
@@ -201,6 +206,36 @@ export const words: EmailWords = {
           : "Ваши агенты просят сделать то, что требует вашего одобрения.",
       why: (_org, hours) =>
         `Вы получили это письмо, потому что можете одобрять эти запросы.${hours ? ` Оно приходит, когда запрос ждёт больше ${hours} ч, один раз на запрос.` : ""}`,
+    },
+  },
+  away: {
+    subject: (n) =>
+      plural("ru", n, {
+        one: `${n} новость, пока вас не было`,
+        few: `${n} новости, пока вас не было`,
+        many: `${n} новостей, пока вас не было`,
+        other: `${n} новости, пока вас не было`,
+      }),
+    preheader: "Упоминания, личные сообщения и законченная работа, которые вы ещё не видели.",
+    headline: (n) =>
+      plural("ru", n, {
+        one: `Вас ждёт ${n} новость`,
+        few: `Вас ждут ${n} новости`,
+        many: `Вас ждут ${n} новостей`,
+        other: `Вас ждут ${n} новости`,
+      }),
+    body: (org) => ["Пока вас не было, в ", { b: org }, " пришло это, и вы ещё не видели."],
+    groups: { mentions: "Упомянули вас", dms: "Личные сообщения", done: "Законченная работа" },
+    media: { gif: "Отправил GIF", sticker: "Отправил стикер", voice: "Отправил голосовое сообщение" },
+    message: "Отправил сообщение",
+    more: (k) => `И ещё ${k} во входящих.`,
+    button: "Открыть входящие",
+    why: (org, minutes) =>
+      `Вы получили это письмо, потому что вас не было в ${org} ${awayFor(minutes)}. ${awayOften(minutes)}`,
+    personal: {
+      body: () => "Пока вас не было, пришло это, и вы ещё не видели.",
+      why: (_org, minutes) =>
+        `Вы получили это письмо, потому что вас не было ${awayFor(minutes)}. ${awayOften(minutes)}`,
     },
   },
   ready: {

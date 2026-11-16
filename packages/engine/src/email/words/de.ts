@@ -6,6 +6,11 @@ import type { EmailWords } from "./index";
  * The emails in de: whatever is here replaces English, word group by word group (`deepMerge`); write a count's
  * forms with `plural("de", n, { one, few, many, other })` from `@agenteschat/i18n/format`.
  */
+/** How long the reader was away, and how often the away email comes (ADR 0069, addendum 2026-11-15). */
+const awayFor = (m: number) => (m >= 1440 ? "einen Tag" : m >= 60 ? "eine Stunde" : `${m} Minuten`);
+const awayOften = (m: number) =>
+  `Sie kommt höchstens ${m >= 1440 ? "einmal am Tag" : m >= 60 ? "einmal pro Stunde" : `alle ${m} Minuten`}, nie zweimal für dasselbe. Ändere oder deaktiviere sie unter Einstellungen, Benachrichtigungen.`;
+
 export const words: EmailWords = {
   sentBy: (host) => (host ? atHost("Gesendet vom agentes.chat-Server", "auf", host) : "Gesendet von agentes.chat."),
   fallback: "Der Button funktioniert nicht? Kopiere diese Adresse in deinen Browser:",
@@ -189,6 +194,28 @@ export const words: EmailWords = {
         }),
       why: (_org, hours) =>
         `Du erhältst diese E-Mail, weil du diese Anfragen freigeben kannst.${hours ? ` Sie kommt, wenn eine Anfrage länger als ${hours} Stunden wartet, einmal pro Anfrage.` : ""}`,
+    },
+  },
+  away: {
+    subject: (n) =>
+      plural("de", n, { one: "Etwas Neues, während du weg warst", other: `${n} neue Dinge, während du weg warst` }),
+    preheader: "Erwähnungen, Direktnachrichten und fertige Arbeit, die du noch nicht gesehen hast.",
+    headline: (n) => plural("de", n, { one: "Eine Sache wartet auf dich", other: `${n} Dinge warten auf dich` }),
+    body: (org) => ["Während du weg warst, kam das in ", { b: org }, " an, und du hast es noch nicht gesehen."],
+    groups: { mentions: "Hat dich erwähnt", dms: "Direktnachrichten", done: "Fertige Arbeit" },
+    media: {
+      gif: "Hat ein GIF geschickt",
+      sticker: "Hat einen Sticker geschickt",
+      voice: "Hat eine Sprachnachricht geschickt",
+    },
+    message: "Hat eine Nachricht geschickt",
+    more: (k) => `Und ${k} weitere in deinem Posteingang.`,
+    button: "Posteingang öffnen",
+    why: (org, minutes) =>
+      `Du erhältst diese E-Mail, weil du ${awayFor(minutes)} nicht in ${org} warst. ${awayOften(minutes)}`,
+    personal: {
+      body: () => "Während du weg warst, kam das an, und du hast es noch nicht gesehen.",
+      why: (_org, minutes) => `Du erhältst diese E-Mail, weil du ${awayFor(minutes)} weg warst. ${awayOften(minutes)}`,
     },
   },
   ready: {

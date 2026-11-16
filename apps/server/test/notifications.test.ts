@@ -271,6 +271,21 @@ test("done-all moves my inbox to Done but what waits on me; undo is each one's d
   expect(((await (await api("/notifications")).json()) as Page).counts.all).toBe(5);
 });
 
+test("away email: an hour by default, one of the offered waits or off, and whether this server sends emails", async () => {
+  t = await createTestServer({ reply: () => ({ chunks: ["ok"] }) });
+  const { api } = await signedIn();
+  type Prefs = { awayEmail: number; emails: boolean };
+  const first = (await (await api("/notification-prefs")).json()) as Prefs;
+  expect(first).toMatchObject({ awayEmail: 60, emails: t.adapters.email.delivers });
+  const set = await api("/notification-prefs/away-email", { method: "PUT", json: { minutes: 1440 } });
+  expect(set.status).toBe(200);
+  expect(((await set.json()) as Prefs).awayEmail).toBe(1440);
+  expect(((await (await api("/notification-prefs")).json()) as Prefs).awayEmail).toBe(1440);
+  const off = await api("/notification-prefs/away-email", { method: "PUT", json: { minutes: 0 } });
+  expect(((await off.json()) as Prefs).awayEmail).toBe(0);
+  expect((await api("/notification-prefs/away-email", { method: "PUT", json: { minutes: 7 } })).status).toBe(400);
+});
+
 test("notification prefs: every category with its default, one switched per call, mine only", async () => {
   t = await createTestServer({ reply: () => ({ chunks: ["ok"] }) });
   const { owner, api, orgId } = await signedIn();

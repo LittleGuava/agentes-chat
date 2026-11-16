@@ -6,6 +6,11 @@ import type { EmailWords } from "./index";
  * The emails in fr: whatever is here replaces English, word group by word group (`deepMerge`); write a count's
  * forms with `plural("fr", n, { one, few, many, other })` from `@agenteschat/i18n/format`.
  */
+/** How long the reader was away, and how often the away email comes (ADR 0069, addendum 2026-11-15). */
+const awayFor = (m: number) => (m >= 1440 ? "un jour" : m >= 60 ? "une heure" : `${m} minutes`);
+const awayOften = (m: number) =>
+  `Il arrive au plus ${m >= 1440 ? "une fois par jour" : m >= 60 ? "une fois par heure" : `toutes les ${m} minutes`}, jamais deux fois pour la même chose. Modifiez-le ou désactivez-le dans Paramètres, Notifications.`;
+
 export const words: EmailWords = {
   sentBy: (host) => (host ? atHost("Envoyé par le serveur agentes.chat", "sur", host) : "Envoyé par agentes.chat."),
   fallback: "Le bouton ne fonctionne pas ? Copiez cette adresse dans votre navigateur :",
@@ -191,6 +196,25 @@ export const words: EmailWords = {
         }),
       why: (_org, hours) =>
         `Vous recevez cet e-mail car vous pouvez approuver ces demandes.${hours ? ` Il est envoyé quand une demande attend plus de ${hours} heures, une fois par demande.` : ""}`,
+    },
+  },
+  away: {
+    subject: (n) =>
+      plural("fr", n, { one: "Du nouveau pendant votre absence", other: `${n} nouveautés pendant votre absence` }),
+    preheader: "Mentions, messages directs et travail terminé que vous n'avez pas encore vus.",
+    headline: (n) => plural("fr", n, { one: "Une chose vous attend", other: `${n} choses vous attendent` }),
+    body: (org) => ["Pendant votre absence, ceci est arrivé dans ", { b: org }, " et vous ne l'avez pas encore vu."],
+    groups: { mentions: "Vous ont mentionné", dms: "Messages directs", done: "Travail terminé" },
+    media: { gif: "A envoyé un GIF", sticker: "A envoyé un sticker", voice: "A envoyé un message vocal" },
+    message: "A envoyé un message",
+    more: (k) => `Et ${k} de plus dans votre boîte de réception.`,
+    button: "Ouvrir la boîte de réception",
+    why: (org, minutes) =>
+      `Vous recevez cet email parce que vous êtes resté ${awayFor(minutes)} hors de ${org}. ${awayOften(minutes)}`,
+    personal: {
+      body: () => "Pendant votre absence, ceci est arrivé et vous ne l'avez pas encore vu.",
+      why: (_org, minutes) =>
+        `Vous recevez cet email parce que vous êtes resté absent ${awayFor(minutes)}. ${awayOften(minutes)}`,
     },
   },
   ready: {
