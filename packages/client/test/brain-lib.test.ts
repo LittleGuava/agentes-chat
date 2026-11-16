@@ -1,7 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import type { TFunction } from "i18next";
-import type { AgentBrain } from "../src/api/types";
-import { brainLine, engineOfBrain, engineOfExecutor, engineStateOfOption, thinksWith } from "../src/lib/brain";
+import type { AgentBrain, Model } from "../src/api/types";
+import {
+  agentThinks,
+  brainLine,
+  engineOfBrain,
+  engineOfExecutor,
+  engineStateOfOption,
+  thinksWith,
+} from "../src/lib/brain";
 import {
   ADVANCED_DEFAULTS,
   advancedContents,
@@ -201,5 +208,24 @@ describe("the line under Automático for the context", () => {
     expect(autoContextLine(t, "codex")).toBe("agentPage.work.brain.contextText.autoSummarizes 200K");
     for (const kind of ["model", "cursor", "opencode", "antigravity", null])
       expect(autoContextLine(t, kind)).toBe("agentPage.work.brain.contextText.auto");
+  });
+});
+
+describe("an agent on a workspace endpoint's model (ADR 0146)", () => {
+  const t = ((key: string) => key) as TFunction;
+  const onEndpoint = (credentialId: string, mark?: string): Model => ({
+    id: `custom:${credentialId}:chat`,
+    label: "chat",
+    provider: "custom",
+    inputUsdPerMTok: 0,
+    outputUsdPerMTok: 0,
+    endpoint: { credentialId, name: "Meu endpoint", ...(mark ? { mark } : {}) },
+  });
+
+  test("its card shows the mark its endpoint's host names, else the generic endpoint's", () => {
+    const models = [onEndpoint("k1", "deepseek"), onEndpoint("k2")];
+    const agent = (model: string) => ({ id: "a1", model });
+    expect(agentThinks(t, agent("custom:k1:chat"), { models }).mark).toBe("deepseek");
+    expect(agentThinks(t, agent("custom:k2:chat"), { models }).mark).toBe("custom");
   });
 });

@@ -15,7 +15,7 @@ import { aiChoiceOf, planOfKind } from "@agenteschat/client/lib/no-ai";
 import { can } from "@agenteschat/client/lib/permissions";
 import { modelLimitText } from "@agenteschat/client/lib/plan-usage";
 import { brainPlan, geminiPersonal, isPlanId, planFreeHint, planOf } from "@agenteschat/client/lib/plans";
-import { apiProviderOf, isAuto, providerLabel } from "@agenteschat/client/lib/providers";
+import { apiMarkOf, isAuto, providerLabel } from "@agenteschat/client/lib/providers";
 import { isPersonal } from "@agenteschat/client/lib/workspace-mode";
 import { extraUsageOn, limitOffers, planState } from "@agenteschat/ui/plan-state";
 import { useQueryClient } from "@tanstack/react-query";
@@ -140,7 +140,7 @@ export function AgentAiScreen({ agentId }: { agentId: string }) {
   const thinks = brainLine(t, agent?.brain, t("brain.model"), { agents: dir.agents });
   // Through the API: its maker's mark.
   const models = useModels().data?.models;
-  const thinksMark = thinks.mark ?? apiProviderOf(agent?.model, models ?? []);
+  const thinksMark = thinks.mark ?? apiMarkOf(agent?.model, models ?? []);
   const model = view && kind ? modelRows(t, view, brainPlan(view)).find((r) => r.checked) : undefined;
   const accounts = view && kind ? agentAccounts(view, kind, agent?.ownerUserId, name) : [];
   const current = view ? accounts.find((a) => a.id === view.account) : undefined;

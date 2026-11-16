@@ -375,8 +375,10 @@ function Profile({ id }: { id: string }) {
     : apiModelName(t, agent.model, modelLabel(agent.model) ?? undefined, autoMakerOf(aiStatus.data, id));
   const monthLabel =
     shown.plan?.account ?? thinksPlan ?? thinks?.text ?? apiModel ?? t("usageViews.agent.title", agentGrammar(name));
-  // A plan's maker, or the maker Automático's models come from through the API.
-  const monthMark = thinks?.mark ?? agent?.brain?.maker;
+  // A plan's maker, or the maker Automático's models come from through the API, or the maker a workspace endpoint's
+  // host names for its model (ADR 0146).
+  const endpointMark = models.data?.models.find((m) => m.id === agent?.model)?.endpoint?.mark;
+  const monthMark = thinks?.mark ?? agent?.brain?.maker ?? endpointMark;
   // A short value fits on the right ("week 40%", "$3.20 of $50.00"); a sentence goes under the name.
   const monthValue = planNow?.top
     ? `${meter.short(planNow.top)} ${planNow.top.used}%`

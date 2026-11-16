@@ -128,6 +128,8 @@ export interface ModelInfo {
   unpriced?: true;
   /** A workspace endpoint's name (ADR 0146), which the pickers group its models under. */
   endpoint?: string;
+  /** The maker's mark its endpoint's host shows (`markForEndpointHost`); absent: the generic endpoint's. */
+  endpointMark?: string;
 }
 
 /** The sizes "Automático" chooses between: a fast cheap model, the everyday one, the strongest. */

@@ -1,7 +1,7 @@
 import { customModelId, endpointModelId, parseCustomModel } from "@agenteschat/providers/catalog";
 import type { TFunction } from "i18next";
 import type { AiStatus, Credential, Model } from "../api/types";
-import { CUSTOM_PROVIDER } from "./endpoints";
+import { CUSTOM_PROVIDER, modelMark } from "./endpoints";
 import { serverHost } from "./server";
 
 interface ProviderEntry {
@@ -302,6 +302,15 @@ export function apiProviderOf(model: string | null | undefined, models: readonly
   if (!isAuto(model)) return models.find((m) => m.id === model)?.provider;
   const usable = new Set(models.filter((m) => m.available).map((m) => m.provider));
   return usable.size === 1 ? [...usable][0] : undefined;
+}
+
+/**
+ * The mark of the API an agent's model runs on (a `ProviderLogo` id): `apiProviderOf`'s, but a workspace endpoint's
+ * model (ADR 0146) shows the maker its host names, not the generic endpoint's.
+ */
+export function apiMarkOf(model: string | null | undefined, models: readonly Model[]): string | undefined {
+  const own = isAuto(model) ? undefined : models.find((m) => m.id === model);
+  return own ? modelMark(own) : apiProviderOf(model, models);
 }
 
 /** The maker of the key an agent on Automático thinks with, as the AI status says (none while it can't think). */
