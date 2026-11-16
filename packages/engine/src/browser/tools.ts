@@ -116,6 +116,8 @@ import {
   getBrowserProfile,
   holderOf,
   PROFILE_WAIT_MS,
+  personalBrowserProfile,
+  personalBrowserReader,
   profileGrantees,
   profileMachineProblem,
   runBrowserProfile,
@@ -844,6 +846,28 @@ export function createBrowserToolSource(
   }
 
   /**
+   * Where this run's browser commands go: a workspace profile it switched to or the agent's default, else in a
+   * person's DM with a shared agent that person's own browser (ADR 0110 addendum 2026-11-15), made on the computer
+   * the agent's own would run on; null for the agent's own browser.
+   */
+  async function profileOfRun(ctx: ToolContext): Promise<{ id: string; personal: boolean } | null> {
+    const named = await runBrowserProfile(ctx.db, ctx);
+    if (named) return { id: named, personal: false };
+    if (!hub || !ctx.channelId) return null;
+    const person = await personalBrowserReader(ctx.db, ctx);
+    if (!person) return null;
+    const own = await machineOf(ctx);
+    if (!own.available) return null;
+    const mine = await personalBrowserProfile(ctx.db, hub, {
+      orgId: ctx.orgId,
+      agentId: ctx.agentId,
+      personUserId: person,
+      machineId: own.machineId,
+    });
+    return mine ? { id: mine.id, personal: true } : null;
+  }
+
+  /**
    * The agent's browser for this call: its computer, the agent, its sites (or why it can't be used), and what the
    * runner's answers say their commands waited on, summed (`setup`, protocol 27).
    */
@@ -868,7 +892,12 @@ export function createBrowserToolSource(
     if (!hub) return { ok: false, text: "Connected computers are not available on this server." };
     const caller = hub;
     // `own`: a web search's page never goes to a shared, signed-in profile, nor takes its turn.
-    const profileId = opts.own ? null : await runBrowserProfile(ctx.db, ctx);
+    const inProfile = opts.own ? null : await profileOfRun(ctx);
+    const profileId = inProfile?.id ?? null;
+    // A person's own browser keeps the agent's files in its folder (protocol 70), as the agent's own browser does.
+    const profileRef = inProfile
+      ? { id: inProfile.id, ...(inProfile.personal ? { personal: true as const } : {}) }
+      : null;
     let status: Extract<AgentBrowserStatus, { available: true }>;
     let turn: Extract<TurnResult, { ok: true }> | null = null;
     if (profileId) {
@@ -926,7 +955,7 @@ export function createBrowserToolSource(
       // The computer's tray opens this conversation ("Ver").
       link: `/org/${ctx.orgId}/c/${ctx.channelId}`,
       ...(desktop ? { desktop: true } : {}),
-      ...(profileId ? { profile: { id: profileId } } : {}),
+      ...(profileRef ? { profile: profileRef } : {}),
     };
     /**
      * Every command renews the turn (with the grant, uncached): a revoke, a delete or a person taking control between
@@ -1037,7 +1066,7 @@ export function createBrowserToolSource(
               op: "browser.capture",
               agent: scope,
               ...(domains ? { allowedDomains: domains } : {}),
-              ...(profileId ? { profile: { id: profileId } } : {}),
+              ...(profileRef ? { profile: profileRef } : {}),
             },
             { signal: ctx.signal, timeoutMs: 45_000 },
           );
@@ -1099,6 +1128,8 @@ export function createBrowserToolSource(
     profile: { id: string; name: string } | null,
   ): Promise<VaultBrowserProfile | null> {
     if (!profile) return null;
+    // A person's own browser is like the agent's own here: what the person may type in it, nobody else reaches.
+    if ((await getBrowserProfile(ctx.db, ctx.orgId, profile.id))?.personUserId) return null;
     return { name: profile.name, agentIds: await profileGrantees(ctx.db, ctx.orgId, profile.id) };
   }
 
@@ -1841,9 +1872,8 @@ export function createBrowserToolSource(
       async (input, ctx) => {
         const path = agentFolderPath(str(input.path));
         if (!path) return { content: "Give a path inside your own folder (relative, without `..`).", isError: true };
-        if (await runBrowserProfile(ctx.db, ctx)) {
-          return { content: PROFILE_FILES_TEXT, isError: true };
-        }
+        const inProfile = await profileOfRun(ctx);
+        if (inProfile && !inProfile.personal) return { content: PROFILE_FILES_TEXT, isError: true };
         const linked = await linkFor(ctx);
         if (!linked.ok) return { content: linked.text, isError: true };
         const field = await selectorFor(ctx, str(input.target), linked.link, "upload");
@@ -2020,7 +2050,8 @@ export function createBrowserToolSource(
         // The image is a PNG, whatever the name asked for; and agent-browser's `screenshot [selector] [path]` reads a
         // lone name without a slash or an image extension (`notes.txt`, `code`) as a selector, not where to save it.
         const path = /\.png$/i.test(chosen) ? chosen : `${chosen.replace(/\.[^./]*$/, "")}.png`;
-        if (await runBrowserProfile(ctx.db, ctx)) return { content: PROFILE_FILES_TEXT, isError: true };
+        const inProfile = await profileOfRun(ctx);
+        if (inProfile && !inProfile.personal) return { content: PROFILE_FILES_TEXT, isError: true };
         const linked = await linkFor(ctx);
         if (!linked.ok) return { content: linked.text, isError: true };
         const r = await linked.link.act({

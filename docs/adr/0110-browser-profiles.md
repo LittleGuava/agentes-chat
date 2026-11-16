@@ -1,6 +1,7 @@
 # 0110. Browser profiles: named, shared logins that agents are granted
 
-- Status: Accepted (phase 1 built: single mode, the server, the web and the phone's list)
+- Status: Accepted (phase 1 built: single mode, the server, the web and the phone's list); amended 2026-11-15 (a
+  person's own browser in their DM, see the addendum)
 - Date: 2026-11-01
 - Amends: ADR 0040 §4 ("one browser per agent" becomes "one own browser per agent, plus the profiles it is granted"), ADR 0057 (a system-mode runner refuses profiles until phase 2)
 - Code: `packages/engine/src/browser/profiles.ts` (CRUD, grants, the turn, a person's control), `browser/tools.ts` (`browser_profile`, `runBrowserProfile`, the turn on every command, `profile_busy`, the lost-turn look), `browser/live.ts` (the live view keyed `profile:<id>`), `runs.ts` (`releaseProfileTurns`), `tools/permission.ts` (a profile as a `request_permission` unit), `apps/server/src/routes/app/browser-profiles.ts`, `apps/server/runner/browser.ts` and `handlers.ts` (`handleProfileBrowser`), `packages/adapters/src/machine-protocol.ts` (`BROWSER_PROFILE_PROTOCOL` 34), migration 0160, web `components/browser/BrowserProfiles.tsx` and the agent's browser dialog in `pages/agent/Work.tsx`, phone `ProfilesSection` in `MachineScreen.tsx` and `ProfileLoginScreen.tsx`
@@ -37,3 +38,59 @@ A profile holds a whole account per site and nothing showed which. Its page now 
 4. **Sair.** Every cookie of the site is deleted one by one (`Network.deleteCookies` on a tab's session, with its partition key when it has one), then every origin of the site with stored data is cleared (`Storage.clearDataForOrigin` with `all` on a tab's session: on the browser's target Chrome refuses it). Measured: both stay gone after Chrome quits and starts again. A tab still open on that site may write again; the page says the site is out only when the list after says so.
 5. **Who, and the turn.** Listing and Sair take what driving the profile takes (`manage_connectors` with `control_browsers`, `requireProfileDriver`), never in a system-mode computer (the feature is hidden there, §8). The list is asked for when the person opens it, never with the profiles' list (each ask may start a Chrome). Sair is refused (409 `browser_profile.busy`) while an agent's run holds the turn or another person is in control; otherwise it takes the person's control for the moment it runs and gives it back. Audit row `browser_profile.site_signed_out` (`name`, `site`, `cookies`, `storage`). A computer older than protocol 74 says "Atualize o computador".
 6. **Later:** the same list for an agent's own browser (its Browser dialog; in system mode the op runs in the agent's worker), "Sair de todas as contas", the phone's profile screen, and sessionStorage of tabs left open (gone when the tab closes anyway).
+
+## Addendum 2026-11-15: a person's own browser in their DM
+
+The agent's own browser is shared by everyone who talks to it, so a site one person signed in to in their DM opened
+signed in for the next person who asked the agent to browse. In a DM, the agent's browser is now that person's own.
+
+1. **When.** A run's browser commands go to a person's own browser of the agent when nothing else is chosen (no
+   `browser_profile` switch to a workspace profile and no workspace profile as the agent's default, which still win:
+   they are the workspace's deliberate shared logins), and the run is in the DM where that person is the one reader
+   (`soleReader`) of an agent others may talk to as well (`audience_mode` other than `owner`). Who is behind the run
+   doesn't matter: whatever the run reads goes to that one reader. Channels, group conversations, an agent only its
+   owner talks to and the right hand (whose seats keep each person apart already, ADR 0175) keep what they had.
+   `browser_profile({ name: "own" })` in such a DM is the person's own browser, never the agent's shared one.
+2. **A personal row, not a grant.** It is a `browser_profiles` row with `agent_id` and `person_user_id` set (migration
+   0307), one live row per agent, person and computer (partial unique index), made on the run's first browser command
+   on the computer the agent's own browser would run on (a mission's computer gets its own, and neither removes the
+   other), with `on conflict do nothing` for two first commands at once. Its
+   name is the person's. It has no grant: the turn's statement accepts the row's own agent (`usableBy`), so it never
+   reaches `agentBrowserProfiles`, the `browser_profile` enum, "What you can do", `request_permission`'s units or the
+   workspace's list, and renaming, granting, choosing it as a default and deleting it answer not found. Workspace
+   profile names stay unique among workspace profiles only. Everything else is a profile's: the runner session
+   `profile:<id>` and its Chrome in the profile's folder (protocol 34), the turn, the live view keyed `profile:<id>`,
+   and a person's control.
+3. **Its person alone.** Watching and driving it (Fazer login, opening a site, the input, Devolver) take being that
+   person, with `own_browsers` like their own seat (ADR 0175 §3); an admin, the agent's owner and whoever manages
+   connectors are refused, since it holds that person's sign-ins. The run's card learns it from
+   `GET …/runs/{runId}/personal-browser` (only for someone who reads the run's conversation, and only their own) and
+   shows it as a profile the viewer may drive.
+4. **What changes in a DM.** `browser_ask_person` doesn't open a take over there: the agent is told to tell the person
+   what to do and that they use Fazer login on the card. A Vault login is checked there as in the agent's own
+   browser, not against a profile's grantees. Files stay the agent's own, unlike a workspace profile's (§6): its
+   commands carry `profile: { id, personal: true }` with the real `agent` (protocol 70), and the runner reads uploads
+   and writes screenshots, PDFs and downloads in that agent's folder while Chrome and its sign-ins stay in the
+   profile's. The runner learns that folder from the agent's commands and keeps it until it stops; the person's own
+   Fazer login carries no agent, so a download they make before the agent's first command since the runner started
+   lands in the profile's folder. The agent's folder is one for everyone already (its files were shared in the DM before), so nothing new crosses
+   between people: only the sign-ins are kept apart.
+5. **Where it can't be.** No row is made and the DM keeps the agent's own browser, exactly as before, where its
+   Chrome would not be the person's alone or not the agent's in full: a system-mode computer (§8, every Cloud
+   computer); a runner older than protocol 70 (its files would land in the profile's folder); and an agent whose
+   Chrome shows on its desktop (`browserOnDesktop`: `desktop:use` on a computer that serves desktops, ADR 0058 §7).
+   There the window would be on the agent's one desktop, which whoever watches or controls it sees and which
+   `desktop_do` in any other person's run reads, so that person's signed-in window would reach everyone; a Chrome of
+   one's own on the desktop needs a desktop per agent and person (the right hand's seats do that, ADR 0175), so such
+   an agent keeps one shared, windowed browser in DMs, with no sign-in kept apart, and the card says nothing of a
+   personal one. These change only with a setting or the computer (an update, the mode, `desktop:use`, the computer's
+   desktop switch, its desktop becoming unavailable), not from one command to the next; when one does, the DM's
+   browser changes with it and sign-ins don't follow, and a personal row stays, unused, until it applies again. Where the computer can't be read now (offline), the command
+   waits or fails as the agent's own would, never falling back to the shared browser.
+
+Later: the same in system mode (phase 2, or a seat-like OS user per agent and person as ADR 0175 gives the right
+hand); the same for an agent whose Chrome is on its desktop (a desktop per agent and person); removing a person's browsers (rows and folders) when they
+leave the workspace, delete their account or the agent leaves a computer; two runs of the agent in the same DM taking
+turns instead of the second waiting (`profile_busy`), as in any profile; refusing a take over of the agent's shared browser asked from a
+DM; a label for it in the apps instead of the person's name; the phone's card; warming it instead of the agent's own
+Chrome when a DM run starts.

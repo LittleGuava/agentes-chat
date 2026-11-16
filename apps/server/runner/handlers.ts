@@ -35,7 +35,7 @@ import { type CursorBrainTurnRequest, handleCursorBrainTurn } from "./brain-curs
 import { type GrokBrainTurnRequest, handleGrokBrainTurn } from "./brain-grok";
 import { handleOpencodeBrainTurn, type OpencodeBrainTurnRequest, steerOpencodeTurn } from "./brain-opencode";
 import { routeWithPlan } from "./brain-route";
-import { type BrowserManager, browserSetupText } from "./browser";
+import { type BrowserManager, browserSetupText, isProfileKey } from "./browser";
 import type { BrowserViews } from "./browser-views";
 import { beginCheckpoint, restoreCheckpoint } from "./checkpoints";
 import { allowedMerge, commandApproval, mergeOf, ownBranches } from "./command-gate";
@@ -1293,6 +1293,11 @@ async function handleProfileBrowser(ctx: HandlerContext, req: MachineRequest, sc
   // The agent whose turn it is: its Vault keys open here (ADR 0144); the session isn't its own.
   const actor: AgentScope = req.agent && typeof req.agent.id === "string" && req.agent.id ? req.agent : agent;
   const folder = browser.profileFolder(id.toLowerCase());
+  // Protocol 70: an agent's command in a person's own browser of it; its files are the agent's own, in its folder.
+  const agentsFiles = async () => {
+    if (req.profile?.personal !== true || !req.agent?.id || isProfileKey(req.agent.id)) return;
+    await browser.useFilesFolder(agent.id, await agentWorkspace(ctx.workspaceReal, req.agent));
+  };
   switch (req.op) {
     case "browser.profile.delete":
       return browser.deleteProfile(agent, folder);
@@ -1312,6 +1317,7 @@ async function handleProfileBrowser(ctx: HandlerContext, req: MachineRequest, sc
       return browser.streamStop(agent);
     case "browser.act":
       requireTool(ctx, "browser");
+      await agentsFiles();
       return profileRedacted(
         ctx,
         actor,
@@ -1320,6 +1326,7 @@ async function handleProfileBrowser(ctx: HandlerContext, req: MachineRequest, sc
       );
     case "browser.batch":
       requireTool(ctx, "browser");
+      await agentsFiles();
       return profileRedacted(
         ctx,
         actor,

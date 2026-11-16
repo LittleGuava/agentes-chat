@@ -395,6 +395,14 @@ export const GITHUB_APP_TOKEN = /^ghs_[A-Za-z0-9._-]{36,4096}$/;
 export const BROWSER_PROFILE_PROTOCOL = 34;
 
 /**
+ * Protocol 70: a person's own browser of an agent (ADR 0110 addendum 2026-11-15). A `browser.*` op may carry
+ * `profile: { id, personal: true }` with the real `agent`: the session and its Chrome stay the profile's (its folder
+ * under the runner's home, headless), but the files it reads and writes (uploads, screenshots, PDFs, downloads) are in
+ * that agent's own folder, as in its own browser.
+ */
+export const PERSONAL_BROWSER_PROTOCOL = 70;
+
+/**
  * From this protocol on: `brain.turn` carries `contextTokens`, the most context the agent's model reads
  * (Claude Code compacts there, `CLAUDE_CODE_AUTO_COMPACT_WINDOW`; Codex too, `model_auto_compact_token_limit`).
  * An older runner never sees it.
@@ -2911,8 +2919,11 @@ export type MachineRequest = (
   | { op: "mychrome.disconnect"; agentId?: string }
 ) & {
   agent?: AgentScope;
-  /** Protocol 34: a `browser.*` op in this browser profile's session instead of the agent's (ADR 0110). */
-  profile?: { id: string };
+  /**
+   * Protocol 34: a `browser.*` op in this browser profile's session instead of the agent's (ADR 0110). `personal`
+   * (protocol 70): a person's own browser of `agent`, whose files stay in that agent's folder.
+   */
+  profile?: { id: string; personal?: true };
 };
 
 /** One command of a `browser.batch` (protocol 17). */

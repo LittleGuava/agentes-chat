@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
-import { BROWSER_PROFILE_PROTOCOL, BROWSER_SITES_PROTOCOL, type MachineRequest } from "@agenteschat/adapters";
+import {
+  BROWSER_PROFILE_PROTOCOL,
+  BROWSER_SITES_PROTOCOL,
+  type MachineRequest,
+  PERSONAL_BROWSER_PROTOCOL,
+} from "@agenteschat/adapters";
 import { and, eq, schema } from "@agenteschat/db";
-import { MachineRequestError } from "@agenteschat/engine";
+import { MachineRequestError, openDm, personalBrowserProfile } from "@agenteschat/engine";
 import { parseBrowserClientFrame } from "../src/realtime/browser";
 import { browser, createTestServer, joinByInvitation, pairComputer, seedOrg, signUp, type TestServer } from "./harness";
 
@@ -267,4 +272,60 @@ test("signed-in sites: its drivers list them and sign out of one; a member can't
     .where(and(eq(schema.auditLog.orgId, org.orgId), eq(schema.auditLog.action, "browser_profile.site_signed_out")));
   expect(row?.details).toEqual({ name: "Shop chat", site: "web.whatsapp.com", cookies: 1, storage: 1 });
   expect((await api(`/browser-profiles/${p.id}/sites/sign-out`, { json: { site: "not a site" } })).status).toBe(400);
+});
+
+test("a person's own browser of the agent: its card's route and its control answer that person alone", async () => {
+  const { owner, org, api, machine } = await seeded();
+  const member = await joinByInvitation(t, owner, org.orgId, "rui@example.com");
+  const asMember = (path: string, init?: Parameters<typeof member>[1]) =>
+    member(`/api/app/organizations/${org.orgId}${path}`, init);
+  const [rui] = await t.db
+    .select({ id: schema.users.id })
+    .from(schema.users)
+    .where(eq(schema.users.email, "rui@example.com"));
+  if (!rui) throw new Error("no member");
+  const dm = await openDm(t.db, rui.id, org.orgId, { agentId: org.agentId });
+  const [msg] = await t.db
+    .insert(schema.messages)
+    .values({ orgId: org.orgId, channelId: dm.id, authorType: "person", authorUserId: rui.id, body: "check my mail" })
+    .returning();
+  const [run] = await t.db
+    .insert(schema.agentRuns)
+    .values({
+      orgId: org.orgId,
+      agentId: org.agentId,
+      channelId: dm.id,
+      threadRootId: msg?.id ?? "",
+      triggerMessageId: msg?.id ?? "",
+      trigger: "dm",
+      hop: 1,
+      status: "running",
+    })
+    .returning();
+  if (!run) throw new Error("no run");
+  const path = `/runs/${run.id}/personal-browser`;
+  expect(await json<{ profile: Profile | null }>(await asMember(path))).toEqual({ profile: null });
+  // The run's first browser command makes it, on a runner that keeps its files in the agent's folder.
+  await t.db
+    .update(schema.machines)
+    .set({ protocol: PERSONAL_BROWSER_PROTOCOL })
+    .where(eq(schema.machines.id, machine.machineId));
+  const made = await personalBrowserProfile(t.db, t.engine.machineHub, {
+    orgId: org.orgId,
+    agentId: org.agentId,
+    personUserId: rui.id,
+    machineId: machine.machineId,
+  });
+  if (!made) throw new Error("no personal browser");
+  expect(await json<{ profile: Profile & { personal: boolean } }>(await asMember(path))).toMatchObject({
+    profile: { id: made.id, personal: true, agentIds: [org.agentId] },
+  });
+  // The workspace's owner reads no DM of Rui's and drives nothing of his, and the workspace's list doesn't show it.
+  expect((await api(path)).status).toBe(403);
+  expect((await api(`/browser-profiles/${made.id}/takeover`, { json: {} })).status).toBe(403);
+  expect((await json<{ profiles: Profile[] }>(await api("/browser-profiles"))).profiles).toEqual([]);
+  expect((await api(`/browser-profiles/${made.id}`, { method: "DELETE" })).status).toBe(404);
+  // Rui logs in to it himself, and hands it back.
+  expect((await asMember(`/browser-profiles/${made.id}/takeover`, { json: {} })).status).toBe(200);
+  expect((await asMember(`/browser-profiles/${made.id}/handback`, { json: {} })).status).toBe(200);
 });

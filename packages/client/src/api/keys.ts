@@ -285,6 +285,7 @@ export const keys = {
   /** One profile's signed-in sites (ADR 0110, addendum 2026-11-15). */
   browserProfileSites: (orgId: string, profileId: string) =>
     ["org", orgId, "browser", "profile-sites", profileId] as const,
+  runPersonalBrowser: (orgId: string, runId: string) => ["org", orgId, "browser", "personal", runId] as const,
   /** Everything of the Vault (ADR 0144), the prefix `vault.changed` refreshes. */
   vault: (orgId: string) => ["org", orgId, "vault"] as const,
   /** The Vault as this person sees it: items (never a value), connections, sources. */

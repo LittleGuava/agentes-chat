@@ -2122,6 +2122,13 @@
       "when": 1794844848562,
       "tag": "0306_phone_tools",
       "breakpoints": true
+    },
+    {
+      "idx": 305,
+      "version": "7",
+      "when": 1794845161094,
+      "tag": "0307_personal_browser_profiles",
+      "breakpoints": true
     }
   ]
 }

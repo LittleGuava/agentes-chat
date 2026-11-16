@@ -557,6 +557,9 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         request<BrowserSiteSignOut>(`${org(orgId)}/browser-profiles/${enc(profileId)}/sites/sign-out`, {
           json: { site },
         }),
+      runPersonal: async (orgId, runId) =>
+        (await request<{ profile: BrowserProfile | null }>(`${org(orgId)}/runs/${enc(runId)}/personal-browser`))
+          .profile,
     },
     desktop: {
       status: (orgId, agentId, seat) =>

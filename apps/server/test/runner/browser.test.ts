@@ -3781,6 +3781,39 @@ test.if(posix)(
 );
 
 test.if(posix)(
+  "a person's own browser of an agent: Chrome in the profile's folder, files in the agent's as in its own browser",
+  async () => {
+    const t = setup();
+    const ctx = { workspaceReal: t.ws, exec: true, token: "agm_x", access: browserOn, browser: t.manager };
+    const personal = { id: PROFILE, personal: true as const };
+    const act = (command: string, args: string[], profile: MachineRequest["profile"] = personal) =>
+      handleRequest(ctx, { agent: dev, profile, op: "browser.act", command, args, timeoutSeconds: 5 }, profileScope);
+    // A person's "Fazer login" opened it first (no agent, no personal): the agent's files still go to its folder.
+    await handleRequest(ctx, { agent: dev, profile: { id: PROFILE }, op: "browser.warm" }, profileScope);
+    await act("open", ["https://shop.example.com"]);
+    expect(t.chromes).toHaveLength(1);
+    expect((t.chromes[0] as FakeChrome).profile).toBe(
+      path.join(t.home, "browser-profiles", PROFILE, ".agentes", "browser"),
+    );
+    const folder = await t.folder(dev);
+    writeFileSync(path.join(folder, "logo.png"), "x");
+    expect(await act("upload", ["@e2", "logo.png"])).toMatchObject({
+      success: true,
+      data: { files: [path.join(folder, "logo.png")] },
+    });
+    expect(await act("screenshot", ["screenshots/2026/inbox.png"])).toMatchObject({ success: true });
+    expect(existsSync(path.join(folder, "screenshots", "2026", "inbox.png"))).toBe(true);
+    // Downloads land in the agent's folder too; nothing of the agent's goes to the profile's.
+    const last = t.logged().at(-1)?.args ?? [];
+    expect(last[last.indexOf("--download-path") + 1]).toBe(path.join(folder, "downloads"));
+    expect(existsSync(path.join(t.home, "browser-profiles", PROFILE, "screenshots", "2026"))).toBe(false);
+    expect(await errorCode(() => act("upload", ["@e2", "../../etc/passwd"]))).toBe("outside_workspace");
+    // One session throughout: the same Chrome, signed in where the person left it.
+    expect(t.chromes).toHaveLength(1);
+  },
+);
+
+test.if(posix)(
   "a stale Chrome lock (a restore onto another computer) is cleared before the profile's Chrome starts",
   async () => {
     const t = setup();

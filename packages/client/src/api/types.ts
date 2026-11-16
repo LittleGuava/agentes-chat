@@ -8345,6 +8345,11 @@ export interface BrowserProfile {
   agentIds: string[];
   holder: BrowserProfileHolder | null;
   lastUsedAt: string | null;
+  /**
+   * A person's own browser of one agent, made in their DM with it (ADR 0110 addendum 2026-11-15): only they watch and
+   * drive it, and no list shows it. Absent from older servers.
+   */
+  personal?: boolean;
 }
 
 /**

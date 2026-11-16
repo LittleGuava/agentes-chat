@@ -2246,6 +2246,8 @@ export interface ApiClient {
     sites(orgId: string, profileId: string): Promise<BrowserSite[]>;
     /** "Sair" from one site; 409 `browser_profile.busy` while an agent or another person has the profile. */
     signOutSite(orgId: string, profileId: string, site: string): Promise<BrowserSiteSignOut>;
+    /** The caller's own browser a run in their DM drives (null elsewhere); absent from older fakes. */
+    runPersonal?(orgId: string, runId: string): Promise<BrowserProfile | null>;
   };
   /**
    * The Vault (ADR 0144): logins, keys and contacts agents use without seeing a password or a key. No answer carries
