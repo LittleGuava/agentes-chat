@@ -66,6 +66,7 @@ import {
   createModelGateway,
   createPassToolSource,
   createPermissionToolSource,
+  createPhoneToolSource,
   createReactToolSource,
   createReleaseAsksToolSource,
   createSandboxToolSource,
@@ -435,6 +436,8 @@ export function buildEngine(o: EngineOptions) {
       createReactToolSource({ pubsub: adapters.pubsub }),
       // A GIF or the agent's sticker when asked (ADR 0091): listed by the workspace's switches and the agent's.
       createMediaToolSource({ pubsub: adapters.pubsub, gifs: adapters.gifs ?? null }),
+      // The contacts on the phone of the person talking to the agent, in their own DM, once they turn it on (ADR 0205).
+      createPhoneToolSource({ pubsub: adapters.pubsub }),
       // Long work goes to the background and reports back by itself, on every brain (ADR 0121).
       createWorkToolSource({ pubsub: adapters.pubsub }),
       // An agent comes back to a conversation by itself (a CI run, a deploy), instead of promising to.
