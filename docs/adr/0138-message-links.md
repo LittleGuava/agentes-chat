@@ -63,3 +63,27 @@ replies), a DM's at a route that lists no DMs, the phone had none, and a pasted 
 - "Where did she ask?" gets the request itself and a link the person can tap.
 - A list-channels tool was left out: the prompt names the agent's channels and `post_message` resolves names.
 - `read_conversation` costs one `find_tools` step before its first use in a run; the provenance line needs none.
+
+## Addendum (2026-11-15): the desktop app opens a conversation from a link
+
+A dashboard, a bookmark or a script outside the app could open a conversation on the phone (`agenteschat://chat/…`)
+but not in the desktop app, whose links only connected a server, paired the computer or finished a connector's
+sign-in. The desktop app now takes the same places the phone does, with no new token format (point 4 still holds):
+
+1. **The web's address under the app's scheme**: `agenteschat://org/<org>/c/<channel>`, `…/dm/agent/<agent>`,
+   `…/dm/person/<person>` (each with `?m=<message>`, or `?thread=<thread>&tm=<message>` for the thread in the
+   conversation's panel), `…/threads/<thread>?m=<message>` for a thread's reply and `…/issues/<number>?m=<message>` for
+   a task. That is a permalink of point 1 with `https://<server>` swapped for `agenteschat://`.
+2. **The phone's own link**: `agenteschat://chat/<channel>` with `?thread=` and `?m=` (the thread's message when a
+   thread is named), in the workspace the window shows, or the one `?org=` names.
+3. **Its server**: any of them may say `server=<origin>`, as a pair link does. Without it, the server open now. A server
+   in the app's list is switched to, the main window comes to the front, and the site's router moves to the page
+   (nothing reloads when it is already there). A server the app doesn't open is never added from a link: the welcome
+   window names it and says how to add it, and nothing opens. A phone link naming no workspace on another server than
+   the window shows opens only that server's first page.
+4. **Checked in Rust** (`apps/desktop/src-tauri/src/deep_link.rs`: `chat_link`, `chat_open`): every id is letters,
+   digits, `-` and `_`, a task's number 1 to 9 digits, and the page is rebuilt from those fields only (`m`, `thread`,
+   `tm`). Any other field is dropped, and a link of these hosts that doesn't check out is never passed on as it came.
+5. **Left out**: a "Copy app link" in the web's menus (the web's permalink, with its scheme swapped, is the app link),
+   and the phone's other places (`approval/`, `mission/`, `routines/`, the activity), which the web opens through its
+   own pages.

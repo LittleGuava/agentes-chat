@@ -6,6 +6,9 @@
 //! A pair link (`agenteschat://pair?server=&link=`, the web's "Open the agentes.chat app") goes there too, rebuilt from
 //! its two checked fields: the window asks the server who made the link (`pair_link_info`) and pairs this computer
 //! only after the person confirms there, and then the link's maker still lets it in on the web (ADR 0066 §3 as amended).
+//! A link to a conversation, a DM, a message or a task (`agenteschat://org/<org>/c/<channel>?m=`, the phone's
+//! `agenteschat://chat/<channel>`, ADR 0138 addendum of 2026-11-15) brings the main window forward on that page, rebuilt
+//! from its checked fields; one for a server the app doesn't open only has the welcome window say so.
 //! On macOS a link reaches the running app as an event; on Windows and Linux as a second launch, which the
 //! single-instance plugin hands to the deep-link plugin.
 
@@ -93,6 +96,165 @@ fn pair_url(pair: &PairLink) -> String {
     url.to_string()
 }
 
+/// A chat link's checked fields (ADR 0138, addendum of 2026-11-15).
+#[derive(Debug, PartialEq)]
+pub struct ChatLink {
+    /// The server it names (`server=`); None: the one open now.
+    pub server: Option<String>,
+    /// The workspace; None (the phone's `chat/<channel>` naming none): the one the window shows.
+    pub org: Option<String>,
+    /// The web's page inside the workspace, rebuilt from the checked fields: `/c/<channel>?m=<message>`.
+    pub page: String,
+}
+
+/// The query fields a page reads, in the order they are written; any other field is left out.
+const PAGE_FIELDS: [&str; 3] = ["thread", "tm", "m"];
+
+/// A task's number: what the web's `/issues/<number>` takes.
+fn task_number(n: &str) -> bool {
+    (1..=9).contains(&n.len()) && n.bytes().all(|b| b.is_ascii_digit())
+}
+
+/// `path` with the fields of `query` that are ids, among `fields`, in `PAGE_FIELDS`' order.
+fn with_fields(path: String, query: &[(String, String)], fields: &[&str]) -> String {
+    let mut page = path;
+    let mut sep = '?';
+    for name in PAGE_FIELDS.iter().filter(|f| fields.contains(f)) {
+        if let Some((_, value)) = query.iter().find(|(k, _)| k == name) {
+            if crate::workspaces::good_id(value) {
+                page.push(sep);
+                page.push_str(&format!("{name}={value}"));
+                sep = '&';
+            }
+        }
+    }
+    page
+}
+
+/// A link to a conversation, a DM, a message or a task (ADR 0138, addendum of 2026-11-15):
+/// - the web's own address under the app's scheme: `agenteschat://org/<org>/c/<channel>` (`?m=`, `?thread=&tm=`),
+///   `…/dm/agent/<agent>`, `…/dm/person/<person>` (`?m=`, `?thread=&tm=`), `…/threads/<thread>` and
+///   `…/issues/<number>` (`?m=`);
+/// - the phone's `agenteschat://chat/<channel>` (`?thread=`, `?m=`, `?org=`).
+///
+/// Each may name its server (`server=<origin>`, as a pair link does). None when it isn't one, or names a server the
+/// app couldn't open.
+pub fn chat_link(url: &Url) -> Option<ChatLink> {
+    if url.scheme() != SCHEME {
+        return None;
+    }
+    let query: Vec<(String, String)> = url.query_pairs().map(|(k, v)| (k.into_owned(), v.into_owned())).collect();
+    let field = |name: &str| query.iter().find(|(k, _)| k == name).map(|(_, v)| v.as_str());
+    let server = match field("server") {
+        Some(raw) => Some(crate::servers::origin_of(raw.trim())?),
+        None => None,
+    };
+    let path = url.path().strip_suffix('/').unwrap_or(url.path());
+    let parts: Vec<&str> = path.split('/').skip(1).collect();
+    let id = |s: &str| crate::workspaces::good_id(s);
+    let (org, page) = match (url.host_str()?, parts.as_slice()) {
+        ("org", [org, rest @ ..]) if id(org) => {
+            let page = match rest {
+                ["c", channel] if id(channel) => with_fields(format!("/c/{channel}"), &query, &PAGE_FIELDS),
+                ["dm", who @ ("agent" | "person"), other] if id(other) => {
+                    with_fields(format!("/dm/{who}/{other}"), &query, &PAGE_FIELDS)
+                }
+                ["threads", thread] if id(thread) => with_fields(format!("/threads/{thread}"), &query, &["m"]),
+                ["issues", number] if task_number(number) => with_fields(format!("/issues/{number}"), &query, &["m"]),
+                _ => return None,
+            };
+            (Some(org.to_string()), page)
+        }
+        ("chat", [channel]) if id(channel) => {
+            // The phone's `m` is the thread's message when a thread is open: the web's panel calls that `tm`.
+            let thread = field("thread").filter(|t| id(t));
+            let renamed: Vec<(String, String)> = query
+                .iter()
+                .map(|(k, v)| match (k.as_str(), thread) {
+                    ("m", Some(_)) => ("tm".to_string(), v.clone()),
+                    ("tm", _) => (String::new(), v.clone()),
+                    _ => (k.clone(), v.clone()),
+                })
+                .collect();
+            let org = field("org").filter(|o| id(o)).map(str::to_string);
+            (org, with_fields(format!("/c/{channel}"), &renamed, &PAGE_FIELDS))
+        }
+        _ => return None,
+    };
+    Some(ChatLink { server, org, page })
+}
+
+/// What a chat link does.
+#[derive(Debug, PartialEq)]
+pub enum ChatOpen {
+    /// The window on this page, of a server in the app's list.
+    Page(Url),
+    /// The link names a server the app doesn't open: the welcome window says so.
+    Elsewhere(String),
+    /// No server chosen yet (the first run).
+    Nowhere,
+}
+
+/// Where `link` opens: its server (else the one open now, `current`) when the app has it (`servers`), in its workspace
+/// (else the one the window shows there, `shown`: origin and workspace), else that server's first page.
+pub fn chat_open(link: &ChatLink, servers: &[String], current: Option<&str>, shown: Option<(&str, &str)>) -> ChatOpen {
+    let Some(server) = link.server.as_deref().or(current) else { return ChatOpen::Nowhere };
+    if !servers.iter().any(|s| s == server) {
+        return ChatOpen::Elsewhere(server.to_string());
+    }
+    let org = link.org.as_deref().or(shown.filter(|(origin, _)| *origin == server).map(|(_, org)| org));
+    let page = match org {
+        Some(org) => format!("{server}/org/{org}{}", link.page),
+        None => format!("{server}/"),
+    };
+    page.parse().map_or(ChatOpen::Nowhere, ChatOpen::Page)
+}
+
+/// The link the welcome window gets to say a chat link's server isn't one of the app's: only that server.
+pub fn elsewhere_link(server: &str) -> String {
+    let mut url = Url::parse("agenteschat://chat").expect("a fixed URL");
+    url.query_pairs_mut().append_pair("server", server);
+    url.to_string()
+}
+
+/// The server and workspace of a page the window shows (`/org/<id>/…`).
+pub fn shown_org(page: &Url) -> Option<(String, String)> {
+    let mut parts = page.path_segments()?;
+    let org = (parts.next() == Some("org")).then(|| parts.next()).flatten()?;
+    crate::workspaces::good_id(org).then(|| (page.origin().ascii_serialization(), org.to_string()))
+}
+
+/// A chat link: the main window comes to the front on its page (the server switched when the link names another of
+/// the app's). A server the app doesn't open, or one it can't show, goes to the welcome window, which says so.
+fn open_chat(app: &AppHandle, link: &ChatLink) {
+    let servers = crate::servers::get(app).servers;
+    let current = crate::main_window::site(app).map(|s| s.origin().ascii_serialization());
+    let shown = crate::main_window::page_url(app).and_then(|u| shown_org(&u));
+    let shown = shown.as_ref().map(|(origin, org)| (origin.as_str(), org.as_str()));
+    match chat_open(link, &servers, current.as_deref(), shown) {
+        ChatOpen::Page(page) => {
+            // The server here's loopback pages open at its address for people, which must be in the list too.
+            let page = crate::local_server::page_for_people(app, page);
+            let server = page.origin().ascii_serialization();
+            if !servers.contains(&server) {
+                return to_welcome(app, elsewhere_link(&server));
+            }
+            let _ = crate::main_window::show_url(app, page);
+        }
+        ChatOpen::Elsewhere(server) => to_welcome(app, elsewhere_link(&server)),
+        ChatOpen::Nowhere => {
+            let _ = crate::present(app, "welcome");
+        }
+    }
+}
+
+/// The welcome window shows `link` (only links this file built or checked).
+fn to_welcome(app: &AppHandle, link: String) {
+    *app.state::<PendingLink>().0.lock().unwrap_or_else(|e| e.into_inner()) = Some(link);
+    let _ = crate::present(app, "welcome");
+    let _ = app.emit_to("welcome", "link://pending", ());
+}
+
 fn receive(app: &AppHandle, urls: Vec<Url>) {
     let Some(url) = urls.into_iter().find(accept) else { return };
     // On the server open now, where the window is signed in: its state is that person's there.
@@ -104,6 +266,16 @@ fn receive(app: &AppHandle, urls: Vec<Url>) {
                 let _ = crate::main_window::show_url(&app, page);
             });
         }
+        return;
+    }
+    if matches!(url.host_str(), Some("org" | "chat")) {
+        let Some(link) = chat_link(&url) else {
+            // Never handed over as it came: the welcome window reads a server from `chat` links (`elsewhere_link`).
+            return to_welcome(app, "agenteschat://chat".into());
+        };
+        let app = app.clone();
+        // Not from inside the link's event: the window may have to be made first.
+        std::thread::spawn(move || open_chat(&app, &link));
         return;
     }
     let pending = if url.host_str() == Some("pair") {
@@ -120,9 +292,7 @@ fn receive(app: &AppHandle, urls: Vec<Url>) {
     } else {
         url.to_string()
     };
-    *app.state::<PendingLink>().0.lock().unwrap_or_else(|e| e.into_inner()) = Some(pending);
-    let _ = crate::present(app, "welcome");
-    let _ = app.emit_to("welcome", "link://pending", ());
+    to_welcome(app, pending);
 }
 
 /// Listens for links, takes the one the app was opened with, and (Linux, where an AppImage has no
@@ -266,6 +436,136 @@ mod tests {
             pair_url(&PairLink { server: "https://app.agentes.chat".into(), code: "ABCDEFGH".into() }),
             "agenteschat://pair?server=https%3A%2F%2Fapp.agentes.chat&link=ABCDEFGH"
         );
+    }
+
+    const O: &str = "0193a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b";
+    const C: &str = "0193a1b2-0000-7e5f-8a9b-0c1d2e3f4a5c";
+    const M: &str = "0193a1b2-1111-7e5f-8a9b-0c1d2e3f4a5d";
+
+    fn chat(u: &str) -> Option<ChatLink> {
+        chat_link(&u.parse().unwrap())
+    }
+
+    fn page(u: &str) -> Option<String> {
+        chat(u).map(|l| l.page)
+    }
+
+    #[test]
+    fn chat_links_are_the_web_s_pages() {
+        // The web's address under the app's scheme: a channel, a DM, a thread's reply, a task, at a message.
+        assert_eq!(
+            chat(&format!("agenteschat://org/{O}/c/{C}?m={M}")),
+            Some(ChatLink { server: None, org: Some(O.into()), page: format!("/c/{C}?m={M}") })
+        );
+        assert_eq!(page(&format!("agenteschat://org/{O}/c/{C}/")), Some(format!("/c/{C}")));
+        assert_eq!(page(&format!("agenteschat://org/{O}/dm/agent/{C}?m={M}")), Some(format!("/dm/agent/{C}?m={M}")));
+        assert_eq!(page(&format!("agenteschat://org/{O}/dm/person/{C}")), Some(format!("/dm/person/{C}")));
+        assert_eq!(page(&format!("agenteschat://org/{O}/threads/{C}?m={M}")), Some(format!("/threads/{C}?m={M}")));
+        assert_eq!(page(&format!("agenteschat://org/{O}/issues/42?m={M}")), Some(format!("/issues/42?m={M}")));
+        // A thread open in the conversation's panel; only the fields the page reads, in one order.
+        assert_eq!(
+            page(&format!("agenteschat://org/{O}/c/{C}?tm={M}&reply=true&thread={M}&adjust=x&paid=1")),
+            Some(format!("/c/{C}?thread={M}&tm={M}"))
+        );
+        // A field that isn't an id is left out, as the phone does; the thread panel isn't a thread page's.
+        assert_eq!(page(&format!("agenteschat://org/{O}/c/{C}?m=%3Cscript%3E")), Some(format!("/c/{C}")));
+        assert_eq!(page(&format!("agenteschat://org/{O}/threads/{C}?thread={M}")), Some(format!("/threads/{C}")));
+        // The server it names, as the app keeps it.
+        assert_eq!(
+            chat(&format!("agenteschat://org/{O}/c/{C}?server=https%3A%2F%2Fapp.agentes.chat%2F")).map(|l| l.server),
+            Some(Some("https://app.agentes.chat".into()))
+        );
+        for bad in [
+            format!("agenteschat://org/{O}/c/{C}?server=http%3A%2F%2Fagentes.example.com"),
+            format!("agenteschat://org/{O}/c/{C}?server=agentes.example.com"),
+            format!("agenteschat://org/{O}/c"),
+            format!("agenteschat://org/{O}/c/{C}/x"),
+            format!("agenteschat://org/{O}/c/%3Cscript%3E"),
+            format!("agenteschat://org/{O}/c/.."),
+            format!("agenteschat://org/{O}/c/{}", "a".repeat(65)),
+            format!("agenteschat://org/{O}/dm/bot/{C}"),
+            format!("agenteschat://org/{O}/dm/agent"),
+            format!("agenteschat://org/{O}/issues/x1"),
+            format!("agenteschat://org/{O}/issues/1234567890"),
+            format!("agenteschat://org/{O}/settings/members"),
+            format!("agenteschat://org/{O}"),
+            format!("agenteschat://org/x%2Fy/c/{C}"),
+            format!("agenteschat://pair/{O}/c/{C}"),
+            format!("https://app.agentes.chat/org/{O}/c/{C}"),
+        ] {
+            assert_eq!(chat(&bad), None, "{bad}");
+        }
+    }
+
+    #[test]
+    fn the_phone_s_chat_links() {
+        // `chat/<channel>?thread=` as the phone takes it, in the workspace the window shows unless `org=` names one.
+        assert_eq!(
+            chat(&format!("agenteschat://chat/{C}")),
+            Some(ChatLink { server: None, org: None, page: format!("/c/{C}") })
+        );
+        assert_eq!(page(&format!("agenteschat://chat/{C}?m={M}")), Some(format!("/c/{C}?m={M}")));
+        assert_eq!(
+            page(&format!("agenteschat://chat/{C}?thread={M}&m={C}")),
+            Some(format!("/c/{C}?thread={M}&tm={C}"))
+        );
+        assert_eq!(page(&format!("agenteschat://chat/{C}/?thread=<script>")), Some(format!("/c/{C}")));
+        assert_eq!(chat(&format!("agenteschat://chat/{C}?org={O}")).and_then(|l| l.org), Some(O.into()));
+        assert_eq!(chat(&format!("agenteschat://chat/{C}?org=..")).map(|l| l.org), Some(None));
+        for bad in
+            ["agenteschat://chat", "agenteschat://chat/", "agenteschat://chat/a/b", "agenteschat://chat?server=x"]
+        {
+            assert_eq!(chat(bad), None, "{bad}");
+        }
+    }
+
+    #[test]
+    fn a_chat_link_opens_on_its_server_or_says_it_can_t() {
+        let cloud = "https://app.agentes.chat";
+        let own = "https://agentes.example.com";
+        let servers = vec![cloud.to_string(), own.to_string()];
+        let open = |u: &str, current: Option<&str>, shown: Option<(&str, &str)>| {
+            chat_open(&chat(u).unwrap(), &servers, current, shown)
+        };
+        let at = |u: String| ChatOpen::Page(u.parse().unwrap());
+        // On the server open now, or the one the link names when the app has it: the window moves there.
+        assert_eq!(
+            open(&format!("agenteschat://org/{O}/c/{C}?m={M}"), Some(cloud), None),
+            at(format!("{cloud}/org/{O}/c/{C}?m={M}"))
+        );
+        let elsewhere = format!("agenteschat://org/{O}/issues/7?server=https%3A%2F%2Fagentes.example.com");
+        assert_eq!(open(&elsewhere, Some(cloud), None), at(format!("{own}/org/{O}/issues/7")));
+        // A server the app doesn't open: said, never added.
+        let unknown = format!("agenteschat://org/{O}/c/{C}?server=https%3A%2F%2Fother.example.com");
+        assert_eq!(open(&unknown, Some(cloud), None), ChatOpen::Elsewhere("https://other.example.com".into()));
+        assert_eq!(open(&format!("agenteschat://org/{O}/c/{C}"), None, None), ChatOpen::Nowhere);
+        // The phone's link: the workspace the window shows on that same server, else only the window comes.
+        let phone = format!("agenteschat://chat/{C}");
+        assert_eq!(open(&phone, Some(cloud), Some((cloud, O))), at(format!("{cloud}/org/{O}/c/{C}")));
+        assert_eq!(open(&phone, Some(cloud), None), at(format!("{cloud}/")));
+        let named = format!("agenteschat://chat/{C}?server=https%3A%2F%2Fagentes.example.com");
+        assert_eq!(open(&named, Some(cloud), Some((cloud, O))), at(format!("{own}/")));
+        assert_eq!(
+            open(&format!("{phone}?org={M}"), Some(cloud), Some((cloud, O))),
+            at(format!("{cloud}/org/{M}/c/{C}"))
+        );
+        // What the welcome window is handed to say so: only the server, rebuilt.
+        assert_eq!(
+            elsewhere_link("https://other.example.com"),
+            "agenteschat://chat?server=https%3A%2F%2Fother.example.com"
+        );
+    }
+
+    #[test]
+    fn the_window_s_workspace() {
+        let shown = |u: &str| shown_org(&u.parse().unwrap());
+        assert_eq!(
+            shown(&format!("https://app.agentes.chat/org/{O}/c/{C}?m={M}")),
+            Some(("https://app.agentes.chat".into(), O.into()))
+        );
+        assert_eq!(shown(&format!("http://127.0.0.1:4310/org/{O}")), Some(("http://127.0.0.1:4310".into(), O.into())));
+        assert_eq!(shown("https://app.agentes.chat/login"), None);
+        assert_eq!(shown("https://app.agentes.chat/org/%3Cx%3E/c"), None);
     }
 
     #[test]
