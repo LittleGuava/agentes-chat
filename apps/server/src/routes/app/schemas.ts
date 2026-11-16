@@ -564,6 +564,9 @@ export const Channel = z
     id: z.uuid(),
     name: z.string(),
     topic: z.string(),
+    instructions: z.string().optional().openapi({
+      description: "What every agent working in the channel follows (ADR 0208); empty: none.",
+    }),
     visibility: z.enum(["public", "private"]),
     audienceRoleIds: z.array(z.uuid()).optional().openapi({
       description: "Private and limited to these roles (departments, ADR 0125); empty: public or invite only.",

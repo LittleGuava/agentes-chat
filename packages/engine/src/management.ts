@@ -10,6 +10,7 @@ import { type BrainPolicy, brainPolicyCacheKey, policyOf, validBrainPolicy } fro
 import { caches } from "./cache";
 import {
   announceChannelLeavers,
+  CHANNEL_INSTRUCTIONS_MAX,
   CHANNEL_NAME_PATTERN,
   channelRoleIds,
   dropRoleLeavers,
@@ -580,7 +581,14 @@ export async function updateChannel(
   actorId: string,
   orgId: string,
   channelId: string,
-  input: { name?: string; topic?: string; visibility?: "public" | "private"; audienceRoleIds?: string[] },
+  input: {
+    name?: string;
+    topic?: string;
+    /** What every agent here follows (ADR 0208); "" clears them. */
+    instructions?: string;
+    visibility?: "public" | "private";
+    audienceRoleIds?: string[];
+  },
   options: { pubsub?: PubSub } = {},
 ) {
   const membership = await requireActiveMembership(db, actorId, orgId);
@@ -598,6 +606,13 @@ export async function updateChannel(
   if (channel.name === "general" && name !== undefined && name !== "general")
     throw new ValidationError("#general can't be renamed");
   if (channel.kind === "dm") throw new ValidationError("A direct conversation keeps its participants");
+  const instructions = input.instructions?.trim();
+  // Only a channel's runs read them (a task's conversation has its task).
+  if (instructions !== undefined && channel.kind !== "channel")
+    throw new ValidationError("Only a channel has instructions for its agents");
+  if (instructions !== undefined && instructions.length > CHANNEL_INSTRUCTIONS_MAX)
+    throw new ValidationError(`channel instructions: at most ${CHANNEL_INSTRUCTIONS_MAX} characters`);
+  const instructionsChanged = instructions !== undefined && instructions !== channel.instructions;
   const accessChanges = input.visibility !== undefined || input.audienceRoleIds !== undefined;
   const visibility = input.visibility ?? channel.visibility;
   const asked =
@@ -627,10 +642,23 @@ export async function updateChannel(
         .set({
           ...(name !== undefined ? { name } : {}),
           ...(input.topic !== undefined ? { topic: input.topic } : {}),
+          ...(instructions !== undefined ? { instructions } : {}),
           ...access,
         })
         .where(eq(channels.id, channelId))
         .returning();
+      // Who changed them and how long they are now, never their text (it can be long and say anything), as with an
+      // agent's instructions.
+      if (row && instructionsChanged) {
+        await recordAudit(tx, {
+          orgId,
+          actor: { type: "person", id: actorId },
+          action: "channel.instructions_changed",
+          target: { type: "channel", id: channelId },
+          channelId,
+          details: { name: row.name, length: row.instructions.length },
+        });
+      }
       return { row, leavers: row ? await dropRoleLeavers(tx, orgId, { channelId, roleIds: dropped }) : [] };
     });
     if (!row) throw new NotFoundError("Channel not found");
