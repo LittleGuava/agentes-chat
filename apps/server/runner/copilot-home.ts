@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node
 import path from "node:path";
 
 /**
- * A Copilot account's folder (`COPILOT_HOME`, ADR 0186) as every sign-in and every turn finds it. Names as
+ * A Copilot account's folder (`COPILOT_HOME`, ADR 0189) as every sign-in and every turn finds it. Names as
  * `copilot help config` ("Files and directories"), `copilot help mcp`, `permissions` and `environment` list them on
  * Copilot CLI 1.0.109 (2026-11-12).
  */

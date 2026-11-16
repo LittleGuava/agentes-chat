@@ -110,6 +110,8 @@ export const SHOWN_ONLY: Record<Condition, readonly string[]> = {
     "agentPage.work.browserDialog.noComputer",
     "agentPage.work.computer.connect",
     "aiAccounts.connect.addComputer",
+    // The way out for the right hand's plan on a computer that is away: Cloud's own computer is always on.
+    "rightHand.unusable.connect",
     "aiAccounts.connect.noComputer",
     "brain.reasons.no_computer",
     "browser.inCard.noComputer",
@@ -218,7 +220,10 @@ export const SHOWN_ONLY: Record<Condition, readonly string[]> = {
     "help.any.computers.sections.0.blocks.0",
     "help.any.computers.sections.1.blocks.1.list.0",
     // The moving steps' command is the Mac's, said so in the step above it.
-    "help.selfhost.run-on-your-computer.sections.11.blocks.1.code",
+    "help.selfhost.run-on-your-computer.sections.12.blocks.1.code",
+    // Uninstalling: how Finder shows hidden folders and opens one by its path, each after "On a Mac".
+    "help.selfhost.run-on-your-computer.sections.10.blocks.4.list.3",
+    "help.selfhost.run-on-your-computer.sections.10.blocks.4.list.4",
     "desktop.prefs.general.menuBarTitle",
     // The app icon's hint shows only in the Mac's desktop app (AppIconPicker.tsx): its Dock and Finder.
     "appIcon.hintMac",
@@ -264,6 +269,7 @@ export const SHOWN_ONLY: Record<Condition, readonly string[]> = {
 /** Keys whose server words mean another server (an MCP or database server, one the person picks): every setup. */
 export const ANYWHERE: readonly string[] = [
   "connectFlow.needsKey",
+  "errors.connector.headersWithSignIn",
   "database.error.blocked_host",
   "database.error.no_databases",
   "database.scopeAll",
