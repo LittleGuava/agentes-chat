@@ -32,6 +32,7 @@ import {
   deleteCredential,
   denyAgentProposal,
   denyTeam,
+  duplicateAgent,
   type EndpointNet,
   endpointOrgsOf,
   getAgent,
@@ -1723,6 +1724,54 @@ export function agentRoutes(deps: AppDeps) {
       await unarchiveAgent(db, c.get("user").id, orgId, agentId, { pubsub: adapters.pubsub });
       await publishMachineAgentsChanged(adapters.pubsub, orgId);
       return c.body(null, 204);
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "post",
+      path: "/organizations/{orgId}/agents/{agentId}/duplicate",
+      tags,
+      security,
+      summary: "A new agent with this one's settings, owned by you (who may create agents and edit this one)",
+      description:
+        "Its role, instructions, AI, key, budget, approvals, brakes, look, audience, access, skills, repositories, sites and place in the team, each set by its own call with that call's rules: what you couldn't give an agent of yours stays as a new agent starts and is named in `skipped`. Never its memory, what it learned, conversations, channels, routines, mailboxes, databases or what people approved for good. Audited as `agent.created` with `duplicateOf`.",
+      request: {
+        params: AgentParams,
+        body: {
+          ...body(
+            z.object({
+              name: z.string().trim().max(80).optional().openapi({
+                description: "The copy's name, in the person's language (default \"{name} (copy)\").",
+              }),
+            }),
+          ),
+          required: false,
+        },
+      },
+      responses: {
+        201: json(
+          z.object({
+            agent: Agent,
+            skipped: z.array(z.enum(["access", "approvals", "budget", "brakes", "ai", "team"])).openapi({
+              description:
+                "What the copy didn't take because you may not set it: `access` (what it may use), `approvals`, `budget` (over the default), `brakes`, `ai` (its computer or a plan that can't think for it, ADR 0059), `team` (who it reports to, its group).",
+            }),
+          }),
+          "Created",
+        ),
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { orgId, agentId } = c.req.valid("param");
+      const userId = c.get("user").id;
+      const { agent, skipped } = await duplicateAgent({ db, pubsub: adapters.pubsub }, userId, orgId, agentId, {
+        name: c.req.valid("json")?.name,
+      });
+      if (agent.machineId) await publishMachineAgentsChanged(adapters.pubsub, orgId);
+      const [seesCost, viewer] = await Promise.all([canViewCost(db, userId, orgId), getMembership(db, userId, orgId)]);
+      return c.json({ agent: toAgent(agent, userId, seesCost, undefined, undefined, viewer), skipped }, 201);
     },
   );
 

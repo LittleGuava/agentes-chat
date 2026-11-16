@@ -914,6 +914,18 @@ export const BRAKES_DEFAULTS: AgentBrakes = {
   otherProjects: false,
 };
 
+/**
+ * What the copy of an agent didn't take because whoever duplicated it may not set it: what it may use, how much it
+ * asks, a budget over the default, its brakes, its computer or plan (ADR 0059), who it reports to and its group.
+ */
+export type DuplicateSkipped = "access" | "approvals" | "budget" | "brakes" | "ai" | "team";
+
+/** `POST …/agents/{id}/duplicate`. */
+export interface DuplicatedAgent {
+  agent: Agent;
+  skipped: DuplicateSkipped[];
+}
+
 /** An agent no longer in the team (archived or deleted): what its messages and reports still show. */
 export interface FormerAgent {
   id: string;

@@ -3,6 +3,7 @@ import {
   keys,
   useArchiveChannel,
   useDms,
+  useDuplicateAgent,
   useMarkChannelRead,
   useMuteChannel,
   usePeople,
@@ -238,7 +239,7 @@ export function useChannelMenu() {
 
 /**
  * An agent (sidebar row, its face or name in a message, its card's ⋯): talk, its profile, its computer (`openComputer`,
- * where the caller knows this person may open it), mention, copy @, mark its DM read, edit (its owner and admins), its
+ * where the caller knows this person may open it), mention, copy @, mark its DM read, edit and duplicate (its owner and admins), its
  * link, stop while it works, its id.
  */
 export function useAgentMenu() {
@@ -255,6 +256,7 @@ export function useAgentMenu() {
   const copyId = useCopyId();
   const mention = useMention();
   const pins = useSidebarPins();
+  const duplicate = useDuplicateAgent(org.id);
   /** `extra`: the sidebar row's own items (Mudar de grupo), after Fixar no topo. */
   return (
     a: Pick<Agent, "id" | "name" | "handle" | "ownerUserId" | "builtin">,
@@ -266,12 +268,25 @@ export function useAgentMenu() {
     const working = Object.values(live.get().streams.runs).filter(
       (r) => r.agentId === a.id && isStoppable(r) && runs.canStop(r),
     );
-    const page = (tab?: "settings") =>
+    const page = (tab?: "settings", agentId = a.id) =>
       void navigate({
         to: "/org/$orgId/agents/$agentId",
-        params: { orgId: org.id, agentId: a.id },
+        params: { orgId: org.id, agentId },
         search: tab ? { tab } : {},
       });
+    // A copy with its settings, yours: it opens on its settings to rename it. The right hand is one per workspace.
+    const copy = () =>
+      duplicate.mutate(
+        { agentId: a.id, name: t("contextMenu.agentCopyName", { name: a.name }) },
+        {
+          onSuccess: ({ agent, skipped }) => {
+            const said = skipped.length ? "contextMenu.agentDuplicatedPartly" : "contextMenu.agentDuplicated";
+            toast.show(t(said, { name: agent.name }));
+            page("settings", agent.id);
+          },
+          onError: (e) => toast.show(errorText(t, e), "error"),
+        },
+      );
     return [
       { kind: "header", label: a.name },
       {
@@ -309,6 +324,11 @@ export function useAgentMenu() {
       ...(edits
         ? ([
             { kind: "item", id: "edit", label: t("contextMenu.editAgent"), icon: "edit", run: () => page("settings") },
+          ] satisfies MenuEntry[])
+        : []),
+      ...(edits && can(org, "create_agents") && !isRightHand(a)
+        ? ([
+            { kind: "item", id: "duplicate", label: t("contextMenu.duplicateAgent"), icon: "copy", run: copy },
           ] satisfies MenuEntry[])
         : []),
       {

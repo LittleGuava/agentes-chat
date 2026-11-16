@@ -773,6 +773,19 @@ export function useUnarchiveAgent(orgId: string) {
   });
 }
 
+/** "Duplicar" on an agent: the copy joins the agents' lists (and its group, when it took the original's). */
+export function useDuplicateAgent(orgId: string) {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ agentId, name }: { agentId: string; name?: string }) => api.agents.duplicate(orgId, agentId, name),
+    onSuccess: () => {
+      for (const key of [keys.agents(orgId), keys.team(orgId), keys.agentGroups(orgId)])
+        void qc.invalidateQueries({ queryKey: key });
+    },
+  });
+}
+
 /** The team screen: refetched every 30 s and on focus, so new consultations show up. */
 export const useTeam = (orgId: string) => {
   const api = useApi();

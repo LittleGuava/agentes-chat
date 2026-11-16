@@ -33,6 +33,7 @@ import type {
   ConsultationConversation,
   Credential,
   DeviceAccount,
+  DuplicateSkipped,
   Edition,
   EmailChange,
   EndpointCheck,
@@ -231,6 +232,8 @@ export interface FakeState {
   agentGroups?: AgentGroup[];
   /** Agents no longer in the team (`agents.former`); a purge moves one here. */
   former?: FormerAgent[];
+  /** What `agents.duplicate` says the copy didn't take; unset = nothing. */
+  duplicateSkipped?: DuplicateSkipped[];
   /** The archived channels the viewer may bring back (`chat.archived`). */
   archivedChannels?: ArchivedChannel[];
   channels: Channel[];
@@ -2623,6 +2626,21 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
       unarchive: async (orgId, agentId) => {
         log("agents.unarchive", orgId, agentId);
         state.former = (state.former ?? []).filter((a) => a.id !== agentId || a.deleted);
+      },
+      duplicate: async (orgId, agentId, name) => {
+        log("agents.duplicate", orgId, agentId, name);
+        const source = state.agents.find((a) => a.id === agentId);
+        if (!source) throw new ApiError(404, "not_found", "Agent not found");
+        const agent = {
+          ...source,
+          id: crypto.randomUUID(),
+          name: name ?? `${source.name} (copy)`,
+          handle: freeHandle(source.handle, takenHandles(state.agents, state.members)),
+          ownerUserId: state.me?.user.id ?? null,
+          previousHandles: [],
+        };
+        state.agents = [...state.agents, agent];
+        return { agent: { ...agent }, skipped: state.duplicateSkipped ?? [] };
       },
       purge: async (orgId, agentId) => {
         log("agents.purge", orgId, agentId);

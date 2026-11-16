@@ -131,7 +131,7 @@ const withDms = () => {
 };
 
 describe("an agent", () => {
-  test("Shift+F10 on its row: talk, profile, pin, copy @, a new group with it, edit (owner or admin), link, id", async () => {
+  test("Shift+F10 on its row: talk, profile, pin, copy @, a new group with it, edit and duplicate (owner or admin), link, id", async () => {
     await go(undefined, withDms());
     const row = within(nav()).getByRole("link", { name: /^Ada/ });
     row.focus();
@@ -144,6 +144,7 @@ describe("an agent", () => {
       "Copiar @ada",
       "Novo setor com Ada",
       "Editar agente",
+      "Duplicar",
       "Copiar link",
       "Copiar ID",
     ]);
@@ -159,6 +160,31 @@ describe("an agent", () => {
     await pick("Editar agente");
     expect(router.state.location.pathname).toBe(`/org/${ORG_ID}/agents/${seedState().agents[1]?.id}`);
     expect(router.state.location.search).toMatchObject({ tab: "settings" });
+  });
+
+  test("Duplicar: a copy named in my language, said in a toast, opens on its settings to rename it", async () => {
+    const state = withDms();
+    const { router } = await go(undefined, state);
+    await rightClick(within(nav()).getByRole("link", { name: /^Ada/ }));
+    await pick("Duplicar");
+    expect(state.calls.some((c) => c.method === "agents.duplicate" && c.args[1] === ADA_ID)).toBe(true);
+    const copy = state.agents.find((a) => a.name === "Ada (cópia)");
+    if (!copy) throw new Error("no copy");
+    expect(copy.handle).toBe("ada-2");
+    expect(screen().getByText("Cópia criada: Ada (cópia).")).toBeTruthy();
+    expect(router.state.location.pathname).toBe(`/org/${ORG_ID}/agents/${copy.id}`);
+    expect(router.state.location.search).toMatchObject({ tab: "settings" });
+  });
+
+  test("Duplicar says when what I can't give was left out", async () => {
+    const state = withDms();
+    state.duplicateSkipped = ["access"];
+    await go(undefined, state);
+    await rightClick(within(nav()).getByRole("link", { name: /^Ada/ }));
+    await pick("Duplicar");
+    expect(
+      screen().getByText("Cópia criada: Ada (cópia). O que você não pode dar a um agente ficou de fora."),
+    ).toBeTruthy();
   });
 });
 

@@ -260,8 +260,11 @@ export async function createAgent(
     setup?: { role: string | null } & SetupExtras;
   },
   defaults: { model: string },
-  /** `via`: the agent whose card it was created from (the audit's "via"). */
-  options: { remember?: boolean; via?: string; pubsub?: PubSub } = {},
+  /**
+   * `via`: the agent whose card it was created from (the audit's "via"). `duplicateOf`: the agent it is a copy of
+   * ("Duplicar", `duplicateAgent`), in the audit's details.
+   */
+  options: { remember?: boolean; via?: string; duplicateOf?: string; pubsub?: PubSub } = {},
 ): Promise<Agent> {
   const membership = await requirePermission(db, actorId, orgId, "create_agents");
   const { autonomy, audienceMode, setup, approvalsLevel, ...fields } = input;
@@ -393,6 +396,7 @@ export async function createAgent(
         ...(autonomy ? { autonomy } : {}),
         ...(broad ? { access: "broad" } : {}),
         ...(options.via ? { via: options.via } : {}),
+        ...(options.duplicateOf ? { duplicateOf: options.duplicateOf } : {}),
       },
     });
     // A model or key the creator picked is their latest choice; "Automático" with the default key is no choice.
