@@ -118,6 +118,17 @@ export class ControlServer {
         return d.reconnect();
       case "browser.stop":
         return d.browserStop(str(m.agentId));
+      case "mychrome.connect":
+        return d.myChromeConnect({
+          agentId: str(m.agentId),
+          port: Number(m.port),
+          minutes: Number(m.minutes),
+          ...(typeof m.wsPath === "string" ? { wsPath: m.wsPath } : {}),
+        });
+      case "mychrome.list":
+        return d.myChromeList();
+      case "mychrome.disconnect":
+        return d.myChromeDisconnect(typeof m.agentId === "string" && m.agentId ? m.agentId : undefined);
       case "accounts.list":
         return d.accountsList();
       case "account.begin":

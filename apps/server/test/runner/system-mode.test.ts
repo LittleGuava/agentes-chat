@@ -530,7 +530,13 @@ test("a system-mode runner (root) without workers does no agent work; machine-le
     "cli.install",
     // Opening Xcode on the Mac, beside its fix (listed in `MACHINE_OPS` order).
     "xcode.open",
+    // A person's own Chrome is never an agent user's: root takes these and refuses them in system mode (ADR 0202).
+    "mychrome.act",
+    "mychrome.list",
+    "mychrome.disconnect",
   ]);
+  const mine = { op: "mychrome.list" } as unknown as MachineRequest;
+  expect(await errorCode(() => handleRequest(ctx, mine, scope))).toBe("not_allowed");
   const install = { op: "cli.install", action: "start", tool: "claude" } as unknown as MachineRequest;
   const installer = { ...ctx, cliInstall: () => ({ install: { tool: "claude" as const, state: "running" as const } }) };
   expect(await handleRequest(installer, install, scope)).toEqual({ install: { tool: "claude", state: "unsupported" } });

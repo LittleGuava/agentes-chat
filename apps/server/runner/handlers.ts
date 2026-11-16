@@ -47,6 +47,7 @@ import { isGitInternalPath, touchesGitInternals } from "./git-guard";
 import { type McpTaskInfo, redactDeep } from "./mcp";
 import { ASK_ABOUT_MCP, argvLine, redactedReply, runStdioMcp } from "./mcp-stdio";
 import { missionWorktree } from "./mission-worktree";
+import type { MyChromes } from "./my-chrome";
 import { agentWorkspace, hiddenIn, isInside, resolveForAgent } from "./paths";
 import type { PhoneManager, PhoneRequest } from "./phones";
 import { pullFile } from "./pull";
@@ -103,6 +104,8 @@ const PEOPLE_OPS: ReadonlySet<string> = new Set([
   "desktop.session.status",
   "desktop.session.stop",
   "desktop.text",
+  "mychrome.list",
+  "mychrome.disconnect",
 ]);
 export const MAX_LIST_ENTRIES = 5000;
 
@@ -139,6 +142,7 @@ export const NEW_WORK_OPS: ReadonlySet<string> = new Set([
   "phone.screenshot",
   "phone.logs",
   "mcp.stdio",
+  "mychrome.act",
 ]);
 
 /**
@@ -236,6 +240,11 @@ export const OP_ROUTES: Readonly<Record<MachineOp, "machine" | "agent">> = {
   "mcp.stdio": "agent",
   // As the agent's own user, in the worker that keeps its shadows (ADR 0193).
   "checkpoint.restore": "agent",
+  // ADR 0202: the person's own Chrome is lent to the process that runs as the person, never to an agent's user; a
+  // system-mode runner refuses these outright (`handleMyChrome`).
+  "mychrome.act": "machine",
+  "mychrome.list": "machine",
+  "mychrome.disconnect": "machine",
 };
 
 type AccessRequestOp = Extract<MachineRequest, { op: "access.request" }>;
@@ -337,6 +346,8 @@ export interface HandlerContext {
   ownHome?: string;
   /** Protocol 12: the agents' browsers (ADR 0040); without it the runner refuses `browser.*`. */
   browser?: BrowserManager;
+  /** Protocol 82: the person's own Chrome, lent to an agent (ADR 0202); without it `mychrome.*` is `unsupported`. */
+  myChrome?: MyChromes;
   /** Protocol 13: the computer brains' accounts (ADR 0041); without it the runner refuses `account`. */
   accounts?: AccountManager;
   /** Set per request in a worker (protocol 29): what root handed this turn for its account (`AccountManager.grant`). */
@@ -725,6 +736,9 @@ async function routeRequest(ctx: HandlerContext, req: MachineRequest, scope: Req
   }
   // Protocol 49: an agent's (or a profile's) live view socket, this process's in every mode (ADR 0040 §7.1).
   if (req.op === "browser.view.open") return openBrowserView(ctx, req);
+  if (req.op === "mychrome.act" || req.op === "mychrome.list" || req.op === "mychrome.disconnect") {
+    return handleMyChrome(ctx, req);
+  }
   // Protocol 34: a browser profile's session, never an agent's worker or folder (ADR 0110).
   if (
     req.profile ||
@@ -1175,6 +1189,33 @@ async function profileRedacted<T>(ctx: HandlerContext, actor: AgentScope, sessio
 export const PROFILES_SYSTEM_MODE =
   "Browser profiles don't work yet on a computer where each agent runs as its own user (system mode).";
 const PROFILE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Protocol 82 (ADR 0202): the person's own Chrome. The server lists, acts in the agent's own tab and disconnects;
+ * lending it is the person's alone, on the computer (the control channel), so no op connects one.
+ */
+async function handleMyChrome(
+  ctx: HandlerContext,
+  req: Extract<MachineRequest, { op: "mychrome.act" | "mychrome.list" | "mychrome.disconnect" }>,
+): Promise<unknown> {
+  if (ctx.systemMode?.()) {
+    throw new RunnerError("not_allowed", "A person's own Chrome is never lent on a computer in system mode.");
+  }
+  const chromes = ctx.myChrome;
+  if (!chromes) throw new RunnerError("unsupported", "This runner can't use a person's own Chrome.");
+  if (req.op === "mychrome.list") return { sessions: chromes.list() } satisfies MachineReplies["mychrome.list"];
+  if (req.op === "mychrome.disconnect") {
+    const agentId = typeof req.agentId === "string" ? req.agentId : undefined;
+    return { disconnected: chromes.disconnect(agentId) } satisfies MachineReplies["mychrome.disconnect"];
+  }
+  if (!req.agent) throw new RunnerError("bad_request", "An action in a person's Chrome belongs to an agent");
+  const action = req.action;
+  if (!(action?.kind === "read" || (action?.kind === "open" && typeof action.url === "string"))) {
+    throw new RunnerError("bad_request", "Unknown action");
+  }
+  const allowed = Array.isArray(req.allowedDomains) ? req.allowedDomains.filter((d) => typeof d === "string") : [];
+  return chromes.act(req.agent, action, allowed);
+}
 
 /**
  * `browser.view.open` (protocol 49): the data socket of an agent's live view, or a browser profile's (its frames

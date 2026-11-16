@@ -15,6 +15,7 @@ import type {
   CliInstall,
   CliName,
   InstallableCli,
+  MyChromeSession,
   RunnerAccess,
   RunnerAccountInfo,
   RunnerExecutorInfo,
@@ -266,6 +267,15 @@ export type ControlRequest =
   /** Closes an agent's browser on this computer (the tray's "Parar"); its profile stays. */
   | { type: "browser.stop"; agentId: string }
   /**
+   * ADR 0202: the person lends one agent the Chrome they started with remote debugging on `port` (this computer's
+   * loopback), for `minutes` (at most `MY_CHROME_MAX_MINUTES`). `wsPath`: the browser endpoint's path when Chrome
+   * serves no `/json/version` (the second line of its `DevToolsActivePort`). Only this channel lends one.
+   */
+  | { type: "mychrome.connect"; agentId: string; port: number; minutes: number; wsPath?: string }
+  | { type: "mychrome.list" }
+  /** Ends one agent's use of it (`agentId`), or every one. */
+  | { type: "mychrome.disconnect"; agentId?: string }
+  /**
    * ADR 0041: the computer brains' accounts on this computer. `accounts.list`
    * asks each CLI (cached). `account.begin` starts the CLI's sign-in here: it
    * opens this computer's browser and finishes by itself; poll `account.status`.
@@ -322,6 +332,9 @@ export interface ControlReplies {
   "access.answer": { access: RunnerAccess };
   reconnect: { reconnecting: boolean };
   "browser.stop": { stopped: boolean };
+  "mychrome.connect": { session: MyChromeSession };
+  "mychrome.list": { sessions: MyChromeSession[] };
+  "mychrome.disconnect": { disconnected: number };
   "accounts.list": { accounts: RunnerAccountInfo[] };
   /** The URL the CLI opened (shown in case the browser didn't open) and, for Codex, the code to type there. */
   "account.begin": { loginId: string; url: string; userCode?: string };
