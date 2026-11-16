@@ -23,6 +23,7 @@ import {
   type MachineOs,
   type MachineReplies,
   type MachineRequest,
+  type MyChromeSession,
   OWN_USAGE_ID,
   type RunnerAccess,
   type RunnerFrame,
@@ -120,6 +121,7 @@ import { tailLines } from "./logfile";
 import { adoptLoginPath } from "./login-path";
 import { LoopbackGuard, loopbackEndpoints, runnerEndpoints } from "./loopback-guard";
 import { McpBridge, type McpTaskInfo, mcpSocketPath } from "./mcp";
+import { MyChromes } from "./my-chrome";
 import {
   AgentNetworks,
   desktopUsesHostNetwork,
@@ -489,6 +491,8 @@ export class RunnerDaemon implements RequestObserver {
   private readonly swept = new Set<string>();
   /** The agents' desktops (ADR 0058): they outlive sessions and this process. */
   readonly desktops: DesktopSessions;
+  /** ADR 0202: a person's own Chrome, lent to one agent at a time from the app; kept across reconnections, never on disk. */
+  readonly myChromes: MyChromes;
   /** Terminals people open as an agent (ADR 0058 §6). */
   readonly terminals: Terminals;
   /** The refs each agent's desktop use gave out, across sessions: a number never comes back for another element. */
@@ -593,6 +597,13 @@ export class RunnerDaemon implements RequestObserver {
         // One removed: its agents' workers close what still runs with it.
         this.session?.supervisor?.stateChanged();
       },
+    });
+    this.myChromes = new MyChromes({
+      ownPorts: () => this.session?.browser.ownPorts() ?? new Set<number>(),
+      systemMode: () => this.stored?.mode === "system" || this.session?.config.mode === "system",
+      record: (agent, line) => this.record({ agent: this.agentRef(agent), kind: "access", summary: line }),
+      log: opts.log,
+      now: this.now,
     });
     const daemon = this;
     this.desktops = new DesktopSessions({
@@ -867,6 +878,7 @@ export class RunnerDaemon implements RequestObserver {
     this.stopWatch?.();
     for (const t of this.timers) clearInterval(t);
     if (this.sharedLoginRetry) clearTimeout(this.sharedLoginRetry);
+    this.myChromes.disconnect();
     this.desktops.close();
     if (this.resumeTimer) clearTimeout(this.resumeTimer);
     this.pairing?.abort();
@@ -1539,6 +1551,7 @@ export class RunnerDaemon implements RequestObserver {
         allow: (req) => this.accessAllow(req),
       },
       browser,
+      myChrome: this.myChromes,
       accounts: this.accounts,
       desktops: this.desktops,
       terminals: this.terminals,
@@ -2300,6 +2313,38 @@ export class RunnerDaemon implements RequestObserver {
     const out = await s.browser.stop({ id: agentId, handle: agent?.handle ?? "agent" });
     this.browsersChanged();
     return out;
+  }
+
+  /**
+   * ADR 0202: the person, in the app on this computer, lends `agentId` the Chrome they started with remote debugging
+   * on `port`, for `minutes`. Only this channel lends one: the server can list and end it, never start it.
+   */
+  async myChromeConnect(input: {
+    agentId: string;
+    port: number;
+    minutes: number;
+    wsPath?: string;
+  }): Promise<{ session: MyChromeSession }> {
+    this.requirePaired();
+    const agent = this.agents.find((a) => a.id === input.agentId);
+    if (!agent) throw new RunnerError("not_found", "No agent by that id uses this computer.");
+    const session = await this.myChromes.connect({
+      agent: { id: agent.id, handle: agent.handle, name: agent.name },
+      port: input.port,
+      minutes: input.minutes,
+      ...(input.wsPath !== undefined ? { wsPath: input.wsPath } : {}),
+    });
+    return { session };
+  }
+
+  /** ADR 0202: who uses the person's Chrome now. */
+  myChromeList(): { sessions: MyChromeSession[] } {
+    return { sessions: this.myChromes.list() };
+  }
+
+  /** ADR 0202: ends one agent's use of the person's Chrome, or every one; the tabs stay. */
+  myChromeDisconnect(agentId?: string): { disconnected: number } {
+    return { disconnected: this.myChromes.disconnect(agentId) };
   }
 
   /** The desktop app's iPhone setup asking to look at the iPhone again now (`phone.look`). */

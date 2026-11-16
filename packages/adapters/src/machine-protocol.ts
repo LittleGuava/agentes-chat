@@ -7,7 +7,7 @@ import type { MergeDone } from "./command-policy";
  */
 
 /** Bumped on breaking changes; the server refuses runners older than `MIN_RUNNER_PROTOCOL`. */
-export const MACHINE_PROTOCOL_VERSION = 74;
+export const MACHINE_PROTOCOL_VERSION = 82;
 export const MIN_RUNNER_PROTOCOL = 1;
 /** From this protocol on, requests carry `agent` and each agent works in its own folder. */
 export const AGENT_FOLDERS_PROTOCOL = 2;
@@ -2619,6 +2619,41 @@ export interface AgentScope {
   coAuthors?: string[];
 }
 
+/**
+ * From this protocol on (ADR 0202): the person's own Chrome. The person, on their own computer, lends one agent a
+ * Chrome they started with remote debugging (a loopback port) for a limited time, through the desktop app's control
+ * channel only: the server never connects one. While lent, `mychrome.act` opens and reads pages in tabs the runner
+ * opened for that agent (never the person's own tabs), and `mychrome.list` / `mychrome.disconnect` let the apps see
+ * and end it. Never in system mode. The server never sends these to an older runner.
+ */
+export const MY_CHROME_PROTOCOL = 82;
+/** Protocol 82: the longest one consent lasts, in minutes. */
+export const MY_CHROME_MAX_MINUTES = 8 * 60;
+/** Protocol 82: the most page text one `read` returns. */
+export const MY_CHROME_TEXT_MAX = 20_000;
+
+/** Protocol 82: what an agent does in the person's Chrome: open a web page in its own tab, or read that tab. */
+export type MyChromeAction = { kind: "open"; url: string } | { kind: "read" };
+
+/** Protocol 82: a tab the runner opened for the agent in the person's Chrome. */
+export interface MyChromeTab {
+  url: string;
+  title: string;
+}
+
+/** Protocol 82: one agent's use of the person's Chrome. */
+export interface MyChromeSession {
+  agentId: string;
+  /** The loopback port the person named. */
+  port: number;
+  /** Chrome's own product line (`Chrome/150.0.0.0`). */
+  browser: string;
+  connectedAt: string;
+  /** The consent ends here: the runner disconnects by itself. */
+  expiresAt: string;
+  tabs: MyChromeTab[];
+}
+
 /** What the server asks. Paths are always relative to the workspace (the agent's folder when `agent` is set). */
 export type MachineRequest = (
   | {
@@ -2842,6 +2877,12 @@ export type MachineRequest = (
   | { op: "xcode.open" }
   /** `MCP_STDIO_PROTOCOL` (ADR 0215): one MCP operation of a stdio program, for the request's agent. */
   | { op: "mcp.stdio"; server: McpStdioServer; call: McpStdioCall; timeoutSeconds: number }
+  /** Protocol 82 (ADR 0202): open or read a page in the request agent's tab of the person's Chrome. `allowedDomains`: its sites. */
+  | { op: "mychrome.act"; action: MyChromeAction; allowedDomains?: string[] }
+  /** Protocol 82: who uses the person's Chrome now. */
+  | { op: "mychrome.list" }
+  /** Protocol 82: end one agent's use of it (`agentId`), or every one. Its tabs stay, the person's. */
+  | { op: "mychrome.disconnect"; agentId?: string }
 ) & {
   agent?: AgentScope;
   /** Protocol 34: a `browser.*` op in this browser profile's session instead of the agent's (ADR 0110). */
@@ -2926,6 +2967,9 @@ export const MACHINE_OPS: readonly MachineOp[] = [
   "xcode.open",
   "mcp.stdio",
   "checkpoint.restore",
+  "mychrome.act",
+  "mychrome.list",
+  "mychrome.disconnect",
 ];
 
 /** What each op answers with `ok: true`. */
@@ -3111,6 +3155,10 @@ export interface MachineReplies {
     tools?: McpStdioTool[];
     result?: { content?: unknown[]; isError?: boolean; structuredContent?: unknown };
   };
+  /** `open`: where the tab ended up; `read`: also its text (at most `MY_CHROME_TEXT_MAX` characters). */
+  "mychrome.act": MyChromeTab & { text?: string; truncated?: boolean };
+  "mychrome.list": { sessions: MyChromeSession[] };
+  "mychrome.disconnect": { disconnected: number };
 }
 
 /** An element numbered on a `browser.capture` image: its ref and box (CSS pixels). */

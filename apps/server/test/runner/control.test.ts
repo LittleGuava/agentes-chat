@@ -12,6 +12,7 @@ import { RUNNER_VERSION } from "../../runner/errors";
 import { ORG_LOGO_MAX_BYTES, orgLogoPath } from "../../runner/org-logo";
 import type { FetchFn } from "../../runner/pairing";
 import { askStandby, standbyAcked } from "../../runner/standby";
+import { FakeChrome } from "./fake-chrome";
 import { removeDirs, tempDir, waitFor } from "./helpers";
 
 const dirs: string[] = [];
@@ -1143,3 +1144,67 @@ test.if(process.platform !== "win32")(
   },
   20_000,
 );
+
+test("the person lends an agent their own Chrome from the app; the server acts in its tab, lists and ends it (ADR 0202)", async () => {
+  const { home } = pairedHome();
+  const chrome = new FakeChrome();
+  chrome.pages.set("https://shop.example/orders", { title: "Your orders", text: "Order 42: shipped" });
+  try {
+    const c = control(home);
+    const s = await c.connect();
+    s.frame({ type: "agents", agents: [{ id: AGENT.id, handle: "dev", name: "Dev", look: { color: "amber" } }] });
+    await waitFor(() => c.events("status").some((e) => e.kind === "status" && e.status.agents.length === 1));
+
+    // Before the person lends it, the agent has nothing to act in.
+    const read = { op: "mychrome.act", action: { kind: "read" }, agent: AGENT } as const;
+    s.frame({ type: "request", id: "m0", ...read });
+    await waitFor(() => s.sent.some((f) => f.id === "m0"));
+    expect(s.sent.find((f) => f.id === "m0")).toMatchObject({ ok: false, error: { code: "not_allowed" } });
+
+    const lent = await c.data<{ session: { agentId: string; port: number } }>({
+      type: "mychrome.connect",
+      agentId: AGENT.id,
+      port: chrome.port,
+      minutes: 30,
+    });
+    expect(lent.session).toMatchObject({ agentId: AGENT.id, port: chrome.port });
+
+    s.frame({
+      type: "request",
+      id: "m1",
+      op: "mychrome.act",
+      action: { kind: "open", url: "https://shop.example/orders" },
+      allowedDomains: ["shop.example"],
+      agent: AGENT,
+    });
+    await waitFor(() => s.sent.some((f) => f.id === "m1"));
+    expect(s.sent.find((f) => f.id === "m1")).toMatchObject({
+      ok: true,
+      data: { url: "https://shop.example/orders", title: "Your orders" },
+    });
+    s.frame({ type: "request", id: "m2", ...read });
+    await waitFor(() => s.sent.some((f) => f.id === "m2"));
+    expect(s.sent.find((f) => f.id === "m2")).toMatchObject({ ok: true, data: { text: "Order 42: shipped" } });
+
+    s.frame({ type: "request", id: "m3", op: "mychrome.list" });
+    await waitFor(() => s.sent.some((f) => f.id === "m3"));
+    expect(s.sent.find((f) => f.id === "m3")).toMatchObject({
+      ok: true,
+      data: { sessions: [{ agentId: AGENT.id, tabs: [{ url: "https://shop.example/orders" }] }] },
+    });
+
+    // The person sees each step in the computer's activity.
+    const said = c.events("activity").map((e) => (e.kind === "activity" ? e.entry.summary : ""));
+    expect(said).toEqual(
+      expect.arrayContaining([expect.stringContaining("connected"), "Your Chrome: opened shop.example"]),
+    );
+
+    s.frame({ type: "request", id: "m4", op: "mychrome.disconnect", agentId: AGENT.id });
+    await waitFor(() => s.sent.some((f) => f.id === "m4"));
+    expect(s.sent.find((f) => f.id === "m4")).toMatchObject({ ok: true, data: { disconnected: 1 } });
+    expect(await c.data({ type: "mychrome.list" })).toEqual({ sessions: [] });
+    c.input.end();
+  } finally {
+    chrome.stop();
+  }
+});

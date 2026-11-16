@@ -3778,6 +3778,11 @@ export class BrowserManager {
     return true;
   }
 
+  /** The debugging ports of the Chromes this runner runs (agents' and profiles'): never lent as a person's own (ADR 0202). */
+  ownPorts(): Set<number> {
+    return new Set([...this.sessions.values()].map((s) => s.chrome?.port).filter((p) => p !== undefined));
+  }
+
   private livePids() {
     return new Set([...this.sessions.values()].map((s) => s.chrome?.pid).filter((p) => p !== undefined));
   }
