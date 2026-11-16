@@ -253,6 +253,7 @@ export * from "./pins";
 export * from "./plan-models";
 export * from "./plan-usage";
 export * from "./profile";
+export * from "./published-pages";
 export * from "./push";
 export * from "./push-messages";
 export * from "./push-relay";

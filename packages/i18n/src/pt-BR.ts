@@ -5106,6 +5106,7 @@ export const ptBR = {
         draft: "Salvar um rascunho",
       },
       vault_make_password: "Criar uma senha",
+      publish_page: "Publicar uma página na internet (versão {{version}})",
       pg_query: "Consultar {{target}}",
       request_approval: {
         merge: "Fazer merge de {{target}}",
@@ -13992,6 +13993,7 @@ export const ptBR = {
       request_folder_access: "Pedir acesso a uma pasta",
       create_artifact: "Criar arquivo no Drive",
       update_artifact: "Alterar arquivo no Drive",
+      publish_page: "Publicar página na internet",
       read_artifact: "Ler arquivo do Drive",
       list_artifacts: "Listar arquivos do Drive",
       share_artifact: "Compartilhar arquivo",
@@ -16481,6 +16483,10 @@ export const ptBR = {
         connection_changed: "Mudou a conexão de um gerenciador de senhas",
         connection_removed: "Desconectou um gerenciador de senhas do Cofre",
       },
+      artifact: {
+        page_published: "Publicou uma página na internet (versão {{version}})",
+        page_unpublished: "Tirou uma página da internet (versão {{version}})",
+      },
       verb: {
         created: "Criou",
         deleted: "Apagou",
@@ -17538,6 +17544,7 @@ export const ptBR = {
         readingIssues: "Olhou as tarefas",
         readingDrive: "Leu o Drive",
         writingDrive: "Escreveu no Drive",
+        publishingPage: "Publicou uma página",
         searchingMemory: "Buscou no histórico",
         updatingMemory: "Anotou na memória",
         checkingCalendar: "Olhou a agenda",
@@ -17658,6 +17665,7 @@ export const ptBR = {
       readingIssues: "olhando as tarefas",
       readingDrive: "lendo o Drive",
       writingDrive: "escrevendo no Drive",
+      publishingPage: "publicando uma página",
       searchingMemory: "buscando no histórico",
       updatingMemory: "anotando na memória",
       checkingCalendar: "olhando a agenda",
@@ -18050,6 +18058,11 @@ export const ptBR = {
     update_artifact: {
       label: "Atualizar arquivo",
       description: "Salva uma nova versão de um arquivo.",
+    },
+    publish_page: {
+      label: "Publicar página",
+      description:
+        "Põe uma página que fez num endereço público, que qualquer pessoa com o link abre, depois que alguém aprova. Só em servidores que publicam páginas.",
     },
     list_issues: {
       label: "Ver tarefas",
@@ -20212,6 +20225,13 @@ export const ptBR = {
     onlyHere: "Quem não está nesta conversa não vai abrir o link.",
     choosePeople: "Escolher pessoas",
     readOnly: "Só quem está na conversa muda quem vê.",
+    /** Uma página que um agente publicou num endereço público (ADR 0187). */
+    publicPage: "Página pública",
+    publicVersion: "versão {{version}}",
+    publicNote: "Qualquer pessoa com este link abre a página, sem conta.",
+    copyPublicLink: "Copiar link público",
+    unpublish: "Despublicar",
+    unpublished: "A página saiu do ar. O link não abre mais.",
     open: "Todos no workspace veem este arquivo.",
     openPersonal: "Todos daqui veem este arquivo.",
     savedEveryone: "Agora todos no workspace veem o arquivo.",

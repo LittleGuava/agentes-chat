@@ -560,6 +560,7 @@
       "storage.connect.awsRegion.il-central-1"
     ],
     "fr": [
+      "share.publicVersion",
       "channel.tooLong.fileName",
       "calendar.moreRuns",
       "devices.cpus",

@@ -8047,11 +8047,11 @@
   "connectAi.plan.grok.title": {
     "value": "Your Grok plan"
   },
-  "connectAi.plan.copilot.title": {
-    "value": "Your GitHub Copilot plan"
-  },
   "connectAi.plan.grok.tiers": {
     "value": "SuperGrok, SuperGrok Heavy or X Premium+"
+  },
+  "connectAi.plan.copilot.title": {
+    "value": "Your GitHub Copilot plan"
   },
   "connectAi.plan.copilot.tiers": {
     "value": "Copilot Pro, Pro+, Business or Enterprise"
@@ -11870,6 +11870,9 @@
   },
   "approval.titles.vault_make_password": {
     "value": "Make a password"
+  },
+  "approval.titles.publish_page": {
+    "value": "Publish a page on the internet (version {{version}})"
   },
   "approval.titles.pg_query": {
     "value": "Query {{target}}"
@@ -33841,6 +33844,9 @@
   "toolNames.label.update_artifact": {
     "value": "Change file in Drive"
   },
+  "toolNames.label.publish_page": {
+    "value": "Publish page on the internet"
+  },
   "toolNames.label.read_artifact": {
     "value": "Read file in Drive"
   },
@@ -39988,6 +39994,12 @@
   "audit.change.vault.connection_removed": {
     "value": "Disconnected a password manager from the Vault"
   },
+  "audit.change.artifact.page_published": {
+    "value": "Put a page on the internet (version {{version}})"
+  },
+  "audit.change.artifact.page_unpublished": {
+    "value": "Took a page off the internet (version {{version}})"
+  },
   "audit.change.verb.created": {
     "value": "Created"
   },
@@ -42477,6 +42489,9 @@
   "chat.work.step.writingDrive": {
     "value": "Wrote to the Drive"
   },
+  "chat.work.step.publishingPage": {
+    "value": "Published a page"
+  },
   "chat.work.step.searchingMemory": {
     "value": "Searched the history"
   },
@@ -42827,6 +42842,9 @@
   },
   "chat.activity.writingDrive": {
     "value": "writing to the Drive"
+  },
+  "chat.activity.publishingPage": {
+    "value": "publishing a page"
   },
   "chat.activity.searchingMemory": {
     "value": "searching the history"
@@ -43736,6 +43754,12 @@
   },
   "builtinTools.update_artifact.description": {
     "value": "Saves a new version of a file."
+  },
+  "builtinTools.publish_page.label": {
+    "value": "Publish page"
+  },
+  "builtinTools.publish_page.description": {
+    "value": "Puts a page it made at a public address anyone with the link opens, after a person approves. Only on servers that publish pages."
   },
   "builtinTools.list_issues.label": {
     "value": "View tasks"
@@ -48301,6 +48325,24 @@
   },
   "share.readOnly": {
     "value": "Only who's in the conversation changes who sees it."
+  },
+  "share.publicPage": {
+    "value": "Public page"
+  },
+  "share.publicVersion": {
+    "value": "version {{version}}"
+  },
+  "share.publicNote": {
+    "value": "Anyone with this link opens the page, without an account."
+  },
+  "share.copyPublicLink": {
+    "value": "Copy public link"
+  },
+  "share.unpublish": {
+    "value": "Unpublish"
+  },
+  "share.unpublished": {
+    "value": "The page is down. Its link no longer opens."
   },
   "share.open": {
     "value": "Everyone in the workspace sees this file."

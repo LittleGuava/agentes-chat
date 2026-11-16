@@ -24,6 +24,7 @@ export type ActivityKind =
   | "readingIssues"
   | "readingDrive"
   | "writingDrive"
+  | "publishingPage"
   | "searchingMemory"
   | "updatingMemory"
   | "checkingCalendar"
@@ -161,6 +162,7 @@ const BUILTIN: Record<string, ActivityKind> = {
   list_artifacts: "readingDrive",
   create_artifact: "writingDrive",
   update_artifact: "writingDrive",
+  publish_page: "publishingPage",
   search_context: "searchingMemory",
   expand: "searchingMemory",
   get_summary: "searchingMemory",
