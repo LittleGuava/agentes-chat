@@ -1742,7 +1742,7 @@ function Chat({
             }}
           />
         ) : null}
-        {/* Its AI and model are changed on its profile ("Pensa com"), not from the bar. */}
+        {/* Its AI and model are changed on its profile ("Pensa com"), not from the bar; a model for this conversation alone, in its "…" sheet. */}
         {queueShown && barQueue && queueMachineId ? (
           dmComputer ? (
             <DmQueueButton

@@ -3202,8 +3202,8 @@
       "cursor": "Cursor non ha effettuato l'accesso su questo computer. Collega un account Cursor nella pagina di {{name}}.",
       "cursor_female": "Cursor non ha effettuato l'accesso su questo computer. Collega un account Cursor nella pagina di {{name}}.",
       "grok": "Grok non ha effettuato l'accesso su questo computer. Collega un account Grok nella pagina di {{name}}.",
-      "copilot": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "grok_female": "Grok non ha effettuato l'accesso su questo computer. Collega un account Grok nella pagina di {{name}}.",
+      "copilot": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "copilot_female": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "antigravity": "Gemini non ha effettuato l'accesso su questo computer. Collega un account Gemini nella pagina di {{name}}.",
       "antigravity_female": "Gemini non ha effettuato l'accesso su questo computer. Collega un account Gemini nella pagina di {{name}}.",
@@ -11962,7 +11962,17 @@
       "more": "Altre opzioni",
       "undo": "Annulla",
       "saved": "{{agent}} ora pensa con {{model}}.",
-      "readOnly": "Solo gli admin e il proprietario dell'agente ne cambiano il modello."
+      "readOnly": "Solo gli admin e il proprietario dell'agente ne cambiano il modello.",
+      "conversation": {
+        "title": "Solo in questa conversazione",
+        "default": "Predefinito dell'agente",
+        "line": "{{model}} in questa conversazione",
+        "saved": "In questa conversazione, {{agent}} pensa con {{model}}.",
+        "reset": "In questa conversazione, {{agent}} torna al suo modello abituale.",
+        "button": "Modelli in questa conversazione",
+        "of": "Modello di {{agent}} in questa conversazione",
+        "inherited": "Come nel canale ({{model}})"
+      }
     },
     "title": "Chi pensa",
     "auto": {

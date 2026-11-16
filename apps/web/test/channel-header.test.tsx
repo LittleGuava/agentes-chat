@@ -18,7 +18,7 @@ const open = async () => {
 };
 
 describe("the channel header, as Discord's", () => {
-  test("the name and topic, then threads, pins, settings, members and the search, with no faces", async () => {
+  test("the name and topic, then threads, pins, models, settings, members and the search, with no faces", async () => {
     const header = await open();
     expect(within(header).getByRole("heading", { level: 1, name: "eng" })).toBeTruthy();
     expect(within(header).getByText("Código, erros e deploys")).toBeTruthy();
@@ -32,6 +32,8 @@ describe("the channel header, as Discord's", () => {
     expect(icons).toEqual([
       expect.stringMatching(/^Threads: \d+ neste canal$/),
       "Mensagens fixadas",
+      // Its agents' models here (ADR 0032, addendum 2026-11-15).
+      "Modelos nesta conversa",
       "Configurações do canal",
       "Membros do canal (4)",
     ] as never);

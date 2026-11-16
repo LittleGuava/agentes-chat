@@ -182,6 +182,7 @@ import {
   triedCalls,
   verdictRecord,
 } from "./continuation";
+import { withConversationModel } from "./conversation-model";
 import { modelInfoFor } from "./credentials";
 import { sha256 } from "./crypto";
 import { widgetRunWaitChanged } from "./dashboards/refresh-fire";
@@ -1749,10 +1750,12 @@ async function executeRunInner(
   const heldBack: string[] = [];
   const stored = await getAgentCached(db, run.orgId, run.agentId);
   // The right hand thinks with the AI of the person whose DM this is, when they chose their own (ADR 0137 §11).
-  const agent =
+  const own =
     stored && isRightHand(stored)
       ? (await withPersonalBrain(db, stored, await rightHandPerson(db, stored, run))).agent
       : stored;
+  // A model chosen for this conversation alone (ADR 0032, addendum 2026-11-15): this run thinks with it.
+  const agent = own && (await withConversationModel(db, own, run, replyThreadId));
   // Claude Code defers our tools itself (its ToolSearch): a new run lists every tool the agent has, the same in every
   // run, instead of the groups a judge picks, so its cached prefix holds across runs and sessions (ADR 0043).
   if (needsContext && deps.toolsOnDemand && agent && brainOf(agent.brain) === "claude_code") {
@@ -2910,7 +2913,7 @@ async function executeRunInner(
   // The agent's model left its plan's live list, so this turn runs another: its owner hears it, never silently.
   const dropped =
     brainPlan.kind === "claude_code" && !brainPlan.missionId && agent.brain === "claude_code"
-      ? droppedPlanModel(brainPlan.account?.provider, agent.brainModel)
+      ? droppedPlanModel(brainPlan.account?.provider, own?.brainModel)
       : null;
   const droppedFrom = dropped ? planOf(brainPlan.account?.provider) : undefined;
   if (dropped && droppedFrom) {
