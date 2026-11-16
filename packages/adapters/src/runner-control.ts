@@ -16,6 +16,7 @@ import type {
   CliName,
   InstallableCli,
   MyChromeSession,
+  RelayAgent,
   RunnerAccess,
   RunnerAccountInfo,
   RunnerExecutorInfo,
@@ -108,6 +109,11 @@ export interface ControlStatus {
   agents: ControlAgent[];
   /** Protocol 10: folders and tools allowed on this machine. */
   access?: RunnerAccess;
+  /**
+   * `RELAY_PROTOCOL` (ADR 0203): the workspace's agents that work on other computers, whom this one may lend a site to,
+   * as the server last said. Absent: not heard yet (offline since the runner started), or an older runner or server.
+   */
+  lendable?: RelayAgent[];
   /** The agents' browsers that are open or have a person's turn (absent: older runner). */
   browsers?: ControlBrowser[];
   /** The phones this computer reaches now, as the server hears them (absent: older runner, or no phones looked for). */
@@ -278,6 +284,14 @@ export type ControlRequest =
   | { type: "folders.remove"; path: string; agentId?: string }
   | { type: "folders.setAgents"; path: string; agents: string[] }
   | { type: "tools.set"; tool: keyof RunnerTools; on: boolean }
+  /**
+   * `RELAY_PROTOCOL` (ADR 0203): the sites this computer lends its connection for, and to which agents (ids, or `*` for
+   * every agent). `site` as the person typed it; `invalid_site` when it names no public site. An older runner answers
+   * `bad_request`.
+   */
+  | { type: "relay.add"; site: string; agents: string[] }
+  | { type: "relay.remove"; site: string; agentId?: string }
+  | { type: "relay.setAgents"; site: string; agents: string[] }
   /** Looks for Claude Code and Codex now, not at the next scheduled look. An older runner answers `bad_request`. */
   | { type: "executors.check" }
   | { type: "access.pending" }
@@ -359,6 +373,9 @@ export interface ControlReplies {
   "folders.remove": RunnerAccess;
   "folders.setAgents": RunnerAccess;
   "tools.set": RunnerAccess;
+  "relay.add": RunnerAccess;
+  "relay.remove": RunnerAccess;
+  "relay.setAgents": RunnerAccess;
   "executors.check": ControlStatus;
   "access.pending": { requests: ControlAccessRequest[] };
   "access.answer": { access: RunnerAccess };
@@ -394,6 +411,8 @@ export type ControlErrorCode =
   | "invalid_path"
   /** The runner refuses it as things stand (ADR 0202: a Chrome can't be lent while agents here may run programs). */
   | "not_allowed"
+  /** `relay.add`: a site that isn't a public site's name (an address, `localhost`, a name only a local network uses). */
+  | "invalid_site"
   | "internal";
 
 /** Something happened; the app updates its view. */

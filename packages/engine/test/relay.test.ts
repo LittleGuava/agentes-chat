@@ -54,6 +54,16 @@ test("an agent's computer is told the sites the others lend it", () => {
   expect(relaySitesOf(machines, "home", "a1")).toEqual(["jobs.org"]);
 });
 
+test("a site leaves an agent's list while every computer lending it is away, paused or too old to dial", () => {
+  for (const over of [{ online: false }, { paused: true }, { protocol: 67 }]) {
+    expect(relaySitesOf([agentsComputer, lender(over)], "cloud", "a1")).toEqual([]);
+    // Another computer that lends it and is there keeps it listed.
+    expect(relaySitesOf([agentsComputer, lender(over), lender({ id: "office" })], "cloud", "a1")).toEqual([
+      "example.com",
+    ]);
+  }
+});
+
 /** A data socket as the broker hands it over: what it was sent, and whether it was closed. */
 function fakeSocket() {
   const sent: Uint8Array[] = [];

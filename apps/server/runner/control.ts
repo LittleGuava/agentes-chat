@@ -108,6 +108,12 @@ export class ControlServer {
         return d.foldersSetAgents(str(m.path), m.agents);
       case "tools.set":
         return d.toolsSet(m.tool, m.on);
+      case "relay.add":
+        return d.relayAdd(str(m.site), m.agents);
+      case "relay.remove":
+        return d.relayRemove(str(m.site), typeof m.agentId === "string" ? m.agentId : undefined);
+      case "relay.setAgents":
+        return d.relaySetAgents(str(m.site), m.agents);
       case "executors.check":
         return d.executorsCheck();
       case "access.pending":

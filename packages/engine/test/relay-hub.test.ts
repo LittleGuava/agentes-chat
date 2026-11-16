@@ -3,10 +3,12 @@ import { MACHINE_PROTOCOL_VERSION, type ServerFrame } from "@agenteschat/adapter
 import {
   createSiteRelay,
   createStreamBroker,
+  getAgentComputer,
   type MachineHub,
   type StreamSocket,
   setAgentComputerTarget,
   siteRelayFromDb,
+  siteRelayHooks,
   withRelaySites,
 } from "../src";
 import { type Fixture, setup } from "./fixtures";
@@ -47,6 +49,8 @@ function fakeRunner(hub: MachineHub, onRequest: (req: Request) => unknown = () =
   });
   return {
     sent,
+    /** The runner's socket drops (the computer slept, or lost its network). */
+    drop: () => hub.close(conn),
     send: (frame: Record<string, unknown>) => reply(frame),
     hello: (token: string, access: Record<string, unknown>) =>
       reply({ type: "hello", token, ...RUNNER, protocol: MACHINE_PROTOCOL_VERSION, exec: true, access }),
@@ -209,4 +213,84 @@ test("the stream broker hands each end's data socket to the relay by its id, che
   } finally {
     broker.stop();
   }
+});
+
+/** Two computers on one workspace, the hooks as the server sets them, and the agent working on the first. */
+async function twoComputers() {
+  f = await setup({ machines: true });
+  const hub = f.machineHub as MachineHub;
+  const deps = { db: f.db, pubsub: f.pubsub };
+  hub.setRelayHooks(siteRelayHooks(f.db, createSiteRelay({ hub, ...siteRelayFromDb(f.db) })));
+  const agentsComputer = await pairMachine(deps, f.owner.id, f.org.id, { name: "Server", ...RUNNER, exec: true });
+  const home = await pairMachine(deps, f.owner.id, f.org.id, { name: "Ana's PC", ...RUNNER, exec: true });
+  await setAgentComputerTarget(deps, f.owner.id, f.org.id, f.agent.id, agentsComputer.machineId);
+  return { hub, agentsComputer, home };
+}
+
+const LENT = { folders: [], tools: TOOLS, relay: [{ site: "example.com", agents: ["*"] }] };
+
+test("a site leaves the agent's list while the only computer lending it is away or paused, and comes back with it", async () => {
+  const { hub, agentsComputer, home } = await twoComputers();
+  const agentRunner = fakeRunner(hub);
+  await agentRunner.hello(agentsComputer.token, { folders: [], tools: TOOLS });
+  const sites = () => agentRunner.last("agents")?.agents.find((a) => a.id === f.agent.id)?.relay;
+  let person = fakeRunner(hub);
+  await person.hello(home.token, LENT);
+  await waitFor(() => sites());
+  expect(sites()).toEqual(["example.com"]);
+
+  // The person's laptop sleeps: its socket drops, and the agent's browser stops sending that site to it.
+  await person.drop();
+  await waitFor(() => !sites());
+  expect(sites()).toBeUndefined();
+
+  person = fakeRunner(hub);
+  await person.hello(home.token, LENT);
+  await waitFor(() => sites());
+  expect(sites()).toEqual(["example.com"]);
+
+  // Paused at the computer: nothing goes through it, so the site leaves the list until it resumes.
+  await person.send({ type: "runner.state", paused: { paused: true, until: null } });
+  await waitFor(() => !sites());
+  expect(sites()).toBeUndefined();
+  await person.send({ type: "runner.state", paused: { paused: false } });
+  await waitFor(() => sites());
+  expect(sites()).toEqual(["example.com"]);
+});
+
+test("a person's computer hears the workspace's agents that work elsewhere, by name and by their computer", async () => {
+  const { hub, agentsComputer, home } = await twoComputers();
+  const agentRunner = fakeRunner(hub);
+  await agentRunner.hello(agentsComputer.token, { folders: [], tools: TOOLS });
+  const person = fakeRunner(hub);
+  await person.hello(home.token, { folders: [], tools: TOOLS });
+  await waitFor(() => person.last("agents")?.lendable);
+  const lendable = person.last("agents")?.lendable ?? [];
+  expect(lendable).toContainEqual(
+    expect.objectContaining({ id: f.agent.id, handle: f.agent.handle, name: f.agent.name, machine: "Server" }),
+  );
+  // Not its own agents (it can't lend to itself), and every entry names its computer.
+  await waitFor(() => agentRunner.last("agents")?.lendable);
+  expect(agentRunner.last("agents")?.lendable?.some((a) => a.id === f.agent.id)).toBe(false);
+  expect(lendable.every((a) => a.machine.length > 0)).toBe(true);
+});
+
+test("the agent's page says which sites go through whose computer, and whether it is there", async () => {
+  const { hub, agentsComputer, home } = await twoComputers();
+  const agentRunner = fakeRunner(hub);
+  await agentRunner.hello(agentsComputer.token, { folders: [], tools: TOOLS });
+  const person = fakeRunner(hub);
+  await person.hello(home.token, { folders: [], tools: TOOLS, relay: [{ site: "example.com", agents: [f.agent.id] }] });
+  const view = await getAgentComputer(f.db, f.owner.id, f.org.id, f.agent.id);
+  expect(view.relay).toEqual([
+    {
+      site: "example.com",
+      machine: { id: home.machineId, name: "Ana's PC" },
+      by: { id: f.owner.id, name: f.owner.name },
+      online: true,
+    },
+  ]);
+  await person.drop();
+  const away = await getAgentComputer(f.db, f.owner.id, f.org.id, f.agent.id);
+  expect(away.relay).toEqual([expect.objectContaining({ site: "example.com", online: false })]);
 });

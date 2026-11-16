@@ -238,7 +238,7 @@ export function setTool(access: RunnerAccess, tool: keyof RunnerTools, on: boole
 export function allowRelaySite(access: RunnerAccess, input: string, agents: string[]): RunnerAccess {
   const site = relaySite(input);
   if (!site) {
-    throw new ControlError("bad_request", `${input} isn't a public site's name (like example.com)`);
+    throw new ControlError("invalid_site", `${input} isn't a public site's name (like example.com)`);
   }
   const next = copy(access);
   const relay = next.relay ?? [];
@@ -274,6 +274,16 @@ export function relayAgentIds(
     if (!ids.includes(id)) ids.push(id);
   }
   return { ids };
+}
+
+/** Which agents a site already lent goes to from now on (ids, or `ALL_AGENTS`); `not_found` for a site not lent. */
+export function setRelayAgents(access: RunnerAccess, input: string, agents: string[]): RunnerAccess {
+  const site = relaySite(input) ?? input;
+  const next = copy(access);
+  const found = next.relay?.find((g) => g.site === site);
+  if (!found) throw new ControlError("not_found", `${input} isn't a site this computer lends`);
+  found.agents = uniq(agents).slice(0, RELAY_LIMITS.agentsPerSite);
+  return next;
 }
 
 /** Stops lending `input` to everyone, or only to `agentId` (the site stays listed for the others). */

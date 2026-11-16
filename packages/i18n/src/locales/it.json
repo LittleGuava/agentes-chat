@@ -6504,7 +6504,12 @@
       "foldersMore_female": "Oltre alla sua cartella, usa queste:",
       "foldersUnknown": "{{machine}} non ha ancora comunicato le cartelle consentite.",
       "foldersHidden": "Solo gli admin e chi ha collegato {{machine}} vedono le cartelle consentite.",
-      "foldersHint": "Un'altra cartella si consente sul computer stesso, da parte di chi l'ha collegato."
+      "foldersHint": "Un'altra cartella si consente sul computer stesso, da parte di chi l'ha collegato.",
+      "sites": "Siti tramite il computer di qualcuno",
+      "sitesHint": "I siti che bloccano i server si aprono tramite la connessione del computer di una persona. Quella persona li presta in agentes.chat su quel computer, in Preferenze, Siti.",
+      "siteVia": "tramite {{machine}}, collegato da {{name}}",
+      "siteViaMachine": "tramite {{machine}}",
+      "siteAway": "non in linea ora, si apre dal computer di questo agente finché non torna"
     },
     "settings": {
       "sections": "Sezioni delle impostazioni",
@@ -16134,6 +16139,12 @@
       "remove": "Rimuovi",
       "removed": "{{folder}} è stata rimossa.",
       "removedAgent": "{{name}} non usa più {{folder}}.",
+      "sites": "Siti tramite questo computer",
+      "sitesHint": "Gli agenti di altri computer aprono questi siti tramite la connessione di questo. Solo chi lo ha collegato presta un sito, in agentes.chat su di esso, in Preferenze, Siti.",
+      "noSites": "Nessun sito. Gli agenti aprono ogni sito dal computer su cui lavorano.",
+      "everyAgent": "Tutti gli agenti",
+      "siteUsedBy": "Chi apre {{site}} tramite esso",
+      "formerAgent": "Un agente che non c'è più",
       "tools": "Strumenti",
       "tool": {
         "claude": "Claude Code",

@@ -6734,7 +6734,12 @@
       "foldersMore_female": "Oprócz własnego folderu używa tych:",
       "foldersUnknown": "{{machine}} nie zgłosił jeszcze dozwolonych folderów.",
       "foldersHidden": "Dozwolone foldery komputera {{machine}} widzą tylko administratorzy i osoba, która go połączyła.",
-      "foldersHint": "Kolejny folder dodaje się na samym komputerze, robi to osoba, która go połączyła."
+      "foldersHint": "Kolejny folder dodaje się na samym komputerze, robi to osoba, która go połączyła.",
+      "sites": "Witryny przez komputer innej osoby",
+      "sitesHint": "Witryny, które blokują serwery, otwierają się przez połączenie komputera jakiejś osoby. Ta osoba udostępnia je w agentes.chat na tym komputerze, w Preferencje, Witryny.",
+      "siteVia": "przez {{machine}}, połączony przez: {{name}}",
+      "siteViaMachine": "przez {{machine}}",
+      "siteAway": "teraz offline, otwiera się z komputera tego agenta, dopóki nie wróci"
     },
     "settings": {
       "sections": "Sekcje ustawień",
@@ -16644,6 +16649,12 @@
       "remove": "Usuń",
       "removed": "Usunięto {{folder}}.",
       "removedAgent": "{{name}} nie używa już {{folder}}.",
+      "sites": "Witryny przez ten komputer",
+      "sitesHint": "Agenci z innych komputerów otwierają te witryny przez połączenie tego komputera. Witrynę udostępnia tylko osoba, która go połączyła, w agentes.chat na nim, w Preferencje, Witryny.",
+      "noSites": "Brak witryn. Agenci otwierają każdą witrynę z komputera, na którym pracują.",
+      "everyAgent": "Wszyscy agenci",
+      "siteUsedBy": "Kto otwiera {{site}} przez ten komputer",
+      "formerAgent": "Agent, którego już tu nie ma",
       "tools": "Narzędzia",
       "tool": {
         "claude": "Claude Code",

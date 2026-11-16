@@ -6501,7 +6501,12 @@
       "foldersMore_female": "En plus de son propre dossier, elle utilise ceux-ci :",
       "foldersUnknown": "{{machine}} n'a pas encore indiqué ses dossiers autorisés.",
       "foldersHidden": "Seuls les admins et la personne qui a connecté {{machine}} voient ses dossiers autorisés.",
-      "foldersHint": "Autoriser un autre dossier se fait sur l'ordinateur lui-même, par la personne qui l'a connecté."
+      "foldersHint": "Autoriser un autre dossier se fait sur l'ordinateur lui-même, par la personne qui l'a connecté.",
+      "sites": "Sites via l'ordinateur de quelqu'un",
+      "sitesHint": "Les sites qui bloquent les serveurs s'ouvrent via la connexion de l'ordinateur d'une personne. Elle les prête dans agentes.chat sur cet ordinateur, dans Préférences, Sites web.",
+      "siteVia": "via {{machine}}, connecté par {{name}}",
+      "siteViaMachine": "via {{machine}}",
+      "siteAway": "hors ligne pour l'instant, il s'ouvre depuis l'ordinateur de cet agent jusqu'à son retour"
     },
     "settings": {
       "sections": "Sections des paramètres",
@@ -16121,6 +16126,12 @@
       "remove": "Retirer",
       "removed": "{{folder}} a été retiré.",
       "removedAgent": "{{name}} n'utilise plus {{folder}}.",
+      "sites": "Sites via cet ordinateur",
+      "sitesHint": "Les agents d'autres ordinateurs ouvrent ces sites via la connexion de celui-ci. Seule la personne qui l'a connecté prête un site, dans agentes.chat sur cet ordinateur, dans Préférences, Sites web.",
+      "noSites": "Aucun site. Les agents ouvrent tous les sites depuis l'ordinateur où ils travaillent.",
+      "everyAgent": "Tous les agents",
+      "siteUsedBy": "Qui ouvre {{site}} par lui",
+      "formerAgent": "Un agent qui n'est plus là",
       "tools": "Outils",
       "tool": {
         "claude": "Claude Code",

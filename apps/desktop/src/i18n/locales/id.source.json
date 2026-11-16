@@ -1565,6 +1565,9 @@
   "prefs.nav.folders": {
     "value": "Folders"
   },
+  "prefs.nav.sites": {
+    "value": "Sites"
+  },
   "prefs.nav.tools": {
     "value": "Tools"
   },
@@ -1807,6 +1810,84 @@
   },
   "prefs.folders.invalid": {
     "value": "This folder can't be allowed. Choose one of your folders, not a system one."
+  },
+  "prefs.sites.title": {
+    "value": "Sites"
+  },
+  "prefs.sites.lead": {
+    "value": "Sites that block servers open through this {{device}}'s connection, for the agents you choose."
+  },
+  "prefs.sites.how": {
+    "value": "The site sees this {{device}}'s address. Agents only open the sites listed here through it, and nothing else of your network."
+  },
+  "prefs.sites.add": {
+    "value": "Add site"
+  },
+  "prefs.sites.addTitle": {
+    "value": "Lend this {{device}}'s connection to a site"
+  },
+  "prefs.sites.site": {
+    "value": "Site"
+  },
+  "prefs.sites.addConfirm": {
+    "value": "Add"
+  },
+  "prefs.sites.invalid": {
+    "value": "That isn't a public site. Type a name like example.com."
+  },
+  "prefs.sites.added": {
+    "value": "Choose which agents open {{site}} through this {{device}}"
+  },
+  "prefs.sites.agents": {
+    "value": "Agents"
+  },
+  "prefs.sites.whoUses": {
+    "value": "Who opens {{site}} here"
+  },
+  "prefs.sites.every": {
+    "value": "Every agent"
+  },
+  "prefs.sites.everyAgent": {
+    "value": "Every agent of {{org}}"
+  },
+  "prefs.sites.noAgents": {
+    "value": "No agent uses it yet"
+  },
+  "prefs.sites.unknownAgent": {
+    "value": "An agent no longer listed"
+  },
+  "prefs.sites.offline": {
+    "value": "Connect this {{device}} to see the agents by name."
+  },
+  "prefs.sites.noLendable": {
+    "value": "No agent of {{org}} works on another computer yet."
+  },
+  "prefs.sites.agentsFailed": {
+    "value": "Couldn't change who opens this site. Try again."
+  },
+  "prefs.sites.noneTitle": {
+    "value": "No site through this {{device}} in {{org}}"
+  },
+  "prefs.sites.noneBody": {
+    "value": "Agents open every site from the computer they work on."
+  },
+  "prefs.sites.outdatedTitle": {
+    "value": "Update agentes.chat to lend sites"
+  },
+  "prefs.sites.outdatedBody": {
+    "value": "This version can't open sites for agents of other computers."
+  },
+  "prefs.sites.removeLabel": {
+    "value": "Remove {{site}}"
+  },
+  "prefs.sites.removeTitle": {
+    "value": "Stop lending {{site}}?"
+  },
+  "prefs.sites.removeBody": {
+    "value": "Agents stop opening it through this {{device}} right away, and what they have open there closes."
+  },
+  "prefs.sites.removed": {
+    "value": "Site removed"
   },
   "prefs.tools.title": {
     "value": "Tools"

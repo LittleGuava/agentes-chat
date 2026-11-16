@@ -810,8 +810,9 @@ export const BROWSER_SITE_HOST =
  * From this protocol on (ADR 0203): sites that refuse data centers open through a person's own computer.
  * `access.relay` lists the sites the person lends their connection for, and to which agents; the `agents` frame's
  * `relay` lists, per agent, the sites another computer of the workspace lends it; `relay.want` asks the server for
- * a tunnel and `relay.ready` answers it; `relay.open` has the lending computer dial its end. The server sends none
- * of these to an older runner.
+ * a tunnel and `relay.ready` answers it; `relay.open` has the lending computer dial its end. The `agents` frame's
+ * `lendable` lists the workspace's agents that work on other computers, so the person picks by name whom this one
+ * lends to. The server sends none of these to an older runner.
  */
 export const RELAY_PROTOCOL = 83;
 
@@ -2658,6 +2659,21 @@ export interface MachineAgent {
   containers?: boolean;
 }
 
+/**
+ * `RELAY_PROTOCOL` (ADR 0203): an agent of the workspace that works on another computer, which a person's computer
+ * may lend its connection to; `machine` is that computer's name, so the person tells two agents of one name apart.
+ */
+export interface RelayAgent {
+  id: string;
+  handle: string;
+  name: string;
+  look?: { color?: string; eyes?: string; accessory?: string };
+  machine: string;
+}
+
+/** At most this many agents in an `agents` frame's `lendable`. */
+export const RELAY_LENDABLE_MAX = 500;
+
 /** The pause state (protocol 9). `until` null: paused until the owner resumes. */
 export interface RunnerPause {
   paused: boolean;
@@ -3541,7 +3557,7 @@ export type ServerFrame =
    * at it), sent after `welcome` and again whenever the list or a name/look
    * changes. The runner shows them in the desktop app.
    */
-  | { type: "agents"; agents: MachineAgent[]; deleted?: string[] }
+  | { type: "agents"; agents: MachineAgent[]; deleted?: string[]; lendable?: RelayAgent[] }
   /**
    * Protocol 12: a request for help or a person in control in an agent's
    * browser started, changed or ended (`handoff: null`); sent again on
@@ -5255,6 +5271,31 @@ export function relayCovers(host: string, sites: readonly string[]): boolean {
 export function relaySitesFor(access: Pick<RunnerAccess, "relay"> | null | undefined, agentId: string): string[] {
   const out: string[] = [];
   for (const g of access?.relay ?? []) if (grantedTo(g, agentId) && !out.includes(g.site)) out.push(g.site);
+  return out;
+}
+
+/** An `agents` frame's `lendable` as the server said it, checked and cut; undefined when it isn't a list. */
+export function parseRelayAgents(v: unknown): RelayAgent[] | undefined {
+  if (!Array.isArray(v)) return undefined;
+  const text = (x: unknown, max: number) => (isString(x) ? x.slice(0, max) : "");
+  const out: RelayAgent[] = [];
+  for (const a of v.slice(0, RELAY_LENDABLE_MAX)) {
+    if (!isObject(a) || !isString(a.id) || !a.id || out.some((x) => x.id === a.id)) continue;
+    const look = isObject(a.look)
+      ? Object.fromEntries(
+          (["color", "eyes", "accessory"] as const)
+            .filter((k) => text((a.look as Record<string, unknown>)[k], 40))
+            .map((k) => [k, text((a.look as Record<string, unknown>)[k], 40)]),
+        )
+      : {};
+    out.push({
+      id: a.id.slice(0, 64),
+      handle: text(a.handle, 64),
+      name: text(a.name, 100) || text(a.handle, 64),
+      ...(Object.keys(look).length > 0 ? { look } : {}),
+      machine: text(a.machine, 100),
+    });
+  }
   return out;
 }
 

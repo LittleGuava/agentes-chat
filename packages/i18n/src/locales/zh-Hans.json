@@ -6065,7 +6065,12 @@
       "foldersMore_female": "除了自己的文件夹，她还使用这些：",
       "foldersUnknown": "{{machine}} 还没有报告允许的文件夹。",
       "foldersHidden": "只有管理员和连接 {{machine}} 的人能看到允许的文件夹。",
-      "foldersHint": "要允许其他文件夹，需由连接这台电脑的人在电脑本机上操作。"
+      "foldersHint": "要允许其他文件夹，需由连接这台电脑的人在电脑本机上操作。",
+      "sites": "通过某人电脑访问的网站",
+      "sitesHint": "屏蔽服务器的网站会通过某个人电脑的网络连接打开。由这个人在那台电脑上的 agentes.chat 偏好设置 › 网站中出借。",
+      "siteVia": "通过 {{machine}}，由 {{name}} 连接",
+      "siteViaMachine": "通过 {{machine}}",
+      "siteAway": "现在离线，恢复前从此智能体的电脑打开"
     },
     "settings": {
       "sections": "设置分区",
@@ -15118,6 +15123,12 @@
       "remove": "移除",
       "removed": "已移除 {{folder}}。",
       "removedAgent": "{{name}} 不再使用 {{folder}}。",
+      "sites": "通过这台电脑访问的网站",
+      "sitesHint": "其他电脑上的智能体通过这台电脑的网络连接打开这些网站。只有连接它的人能出借网站，在这台电脑上的 agentes.chat 偏好设置 › 网站中进行。",
+      "noSites": "没有网站。智能体从它们工作的电脑打开所有网站。",
+      "everyAgent": "所有智能体",
+      "siteUsedBy": "通过它打开 {{site}} 的智能体",
+      "formerAgent": "已不在这里的智能体",
       "tools": "工具",
       "tool": {
         "claude": "Claude Code",

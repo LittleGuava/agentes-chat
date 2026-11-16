@@ -6028,7 +6028,12 @@
       "foldersMore_female": "자기 폴더 외에 다음 폴더도 사용해요:",
       "foldersUnknown": "{{machine}}이(가) 아직 허용된 폴더를 알려 주지 않았어요.",
       "foldersHidden": "허용된 폴더는 관리자와 {{machine}}을(를) 연결한 사람만 볼 수 있어요.",
-      "foldersHint": "다른 폴더 허용은 컴퓨터를 연결한 사람이 그 컴퓨터에서 직접 해요."
+      "foldersHint": "다른 폴더 허용은 컴퓨터를 연결한 사람이 그 컴퓨터에서 직접 해요.",
+      "sites": "다른 사람 컴퓨터를 통한 사이트",
+      "sitesHint": "서버를 차단하는 사이트는 한 사람의 컴퓨터 연결을 통해 열려요. 그 사람이 그 컴퓨터의 agentes.chat 환경설정 › 사이트에서 빌려줘요.",
+      "siteVia": "{{machine}} 통해, 연결한 사람 {{name}}",
+      "siteViaMachine": "{{machine}} 통해",
+      "siteAway": "지금은 오프라인이라 돌아올 때까지 이 에이전트의 컴퓨터에서 열려요"
     },
     "settings": {
       "sections": "설정 섹션",
@@ -15046,6 +15051,12 @@
       "remove": "삭제",
       "removed": "{{folder}}을(를) 삭제했어요.",
       "removedAgent": "{{name}}은(는) 이제 {{folder}}을(를) 사용하지 않아요.",
+      "sites": "이 컴퓨터를 통한 사이트",
+      "sitesHint": "다른 컴퓨터의 에이전트가 이 컴퓨터의 연결을 통해 이 사이트들을 열어요. 사이트는 연결한 사람만 빌려줄 수 있고, 이 컴퓨터의 agentes.chat 환경설정 › 사이트에서 해요.",
+      "noSites": "사이트가 없어요. 에이전트는 작업하는 컴퓨터에서 모든 사이트를 열어요.",
+      "everyAgent": "모든 에이전트",
+      "siteUsedBy": "이 컴퓨터로 {{site}} 사이트를 여는 에이전트",
+      "formerAgent": "더 이상 없는 에이전트",
       "tools": "도구",
       "tool": {
         "claude": "Claude Code",

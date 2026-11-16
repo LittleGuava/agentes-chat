@@ -3,7 +3,12 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { PassThrough } from "node:stream";
 import { MACHINE_PROTOCOL_VERSION, type ServerFrame } from "@agenteschat/adapters/machine-protocol";
-import { CONTROL_PROTOCOL_VERSION, type ControlEvent, type ControlOut } from "@agenteschat/adapters/runner-control";
+import {
+  CONTROL_PROTOCOL_VERSION,
+  type ControlEvent,
+  type ControlOut,
+  type ControlStatus,
+} from "@agenteschat/adapters/runner-control";
 import { configPath, readStoredConfig, type StoredConfig, writeConfig } from "../../runner/config";
 import type { Dial, Socket, SocketHandlers } from "../../runner/connection";
 import { EXIT_LOCKED, type RunControlOptions, runControl } from "../../runner/control";
@@ -653,6 +658,44 @@ test("a tool turned on from the apps: the switch is written, the server and the 
   });
   await waitFor(() => s.sent.some((f) => f.id === "w3"));
   expect(s.sent.find((f) => f.id === "w3")).toMatchObject({ ok: false, error: { code: "bad_request" } });
+});
+
+test("sites through this computer from the app: lent by name to agents of other computers or to all, decided here", async () => {
+  const { home } = pairedHome();
+  const c = control(home);
+  const s = await c.connect();
+  const elsewhere = { id: "0193bbbb-cccc-7ddd-8eee-ffff00001111", handle: "ana", name: "Ana", machine: "Server" };
+  // The server says whom this computer may lend to: the workspace's agents that work on another computer.
+  s.frame({ type: "agents", agents: [AGENT], lendable: [elsewhere] });
+  let status = await c.data<ControlStatus>({ type: "status" });
+  for (let i = 0; i < 300 && !status.lendable?.length; i++) {
+    await Bun.sleep(10);
+    status = await c.data<ControlStatus>({ type: "status" });
+  }
+  expect(status.lendable).toEqual([elsewhere]);
+
+  // What names no public site is refused with its own reason, and nothing is stored.
+  for (const site of ["localhost", "192.168.0.1", "nas.local", ""]) {
+    expect(await c.request({ type: "relay.add", site, agents: [elsewhere.id] })).toMatchObject({
+      ok: false,
+      error: { code: "invalid_site" },
+    });
+  }
+  expect(
+    await c.data({ type: "relay.add", site: "https://www.Example.com/jobs", agents: [elsewhere.id] }),
+  ).toMatchObject({ relay: [{ site: "www.example.com", agents: [elsewhere.id] }] });
+  expect(await c.data({ type: "relay.setAgents", site: "www.example.com", agents: ["*"] })).toMatchObject({
+    relay: [{ site: "www.example.com", agents: ["*"] }],
+  });
+  // It lands in config.json, and the server hears it.
+  expect(stored(home)).toMatchObject({ access: { relay: [{ site: "www.example.com", agents: ["*"] }] } });
+  await waitFor(() => s.of("access.changed").some((f) => (f.access as { relay?: unknown[] }).relay?.length === 1));
+  expect(await c.request({ type: "relay.setAgents", site: "jobs.org", agents: [] })).toMatchObject({
+    ok: false,
+    error: { code: "not_found" },
+  });
+  expect(await c.data({ type: "relay.remove", site: "www.example.com" })).toMatchObject({ relay: [] });
+  expect(stored(home)).toMatchObject({ access: { relay: [] } });
 });
 
 test("folders, tools and settings from the app: system folders refused, everything lands in config.json", async () => {

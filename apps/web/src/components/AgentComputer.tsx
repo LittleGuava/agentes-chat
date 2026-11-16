@@ -1,4 +1,4 @@
-import type { Agent, ComputerTarget, Machine } from "@agenteschat/client";
+import type { Agent, AgentRelaySite, ComputerTarget, Machine } from "@agenteschat/client";
 import { useAgents, useComputer, useComputerSetup, useMachines, useSetComputerTarget } from "@agenteschat/client";
 import {
   type NoComputer,
@@ -173,6 +173,39 @@ export function AgentComputerPanel({ agent, machineNote }: { agent: Agent; machi
         </div>
       )}
       {target.kind === "machine" && <AgentMachineFolders agent={agent} machineId={target.machineId} />}
+      {(pc.data.relay?.length ?? 0) > 0 && <AgentRelaySites sites={pc.data.relay ?? []} />}
+    </div>
+  );
+}
+
+/**
+ * "Sites pelo computador de alguém" (ADR 0203): the sites its browser opens through a person's computer, through
+ * which and whose, and when that computer is away (the site then opens from the agent's own). Granted over there.
+ */
+function AgentRelaySites({ sites }: { sites: AgentRelaySite[] }) {
+  const { t } = useTranslation();
+  return (
+    <div className="stack-4" style={{ gap: 6 }} data-agent-relay>
+      <span className="ac-hintline">
+        <span className="newag__label">{t("agentPage.computer.sites")}</span>
+        <InfoHint name={t("common.about", { label: t("agentPage.computer.sites") })}>
+          {t("agentPage.computer.sitesHint")}
+        </InfoHint>
+      </span>
+      <ul className="agent-folders">
+        {sites.map((s) => (
+          <li key={`${s.site}-${s.machine.id}`}>
+            <Icon name="globe" size={14} />
+            <span className="machine-folder__name">{s.site}</span>
+            <span className="small muted">
+              {s.by
+                ? t("agentPage.computer.siteVia", { machine: s.machine.name, name: s.by.name })
+                : t("agentPage.computer.siteViaMachine", { machine: s.machine.name })}
+              {!s.online && ` · ${t("agentPage.computer.siteAway")}`}
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

@@ -2235,3 +2235,21 @@ body[data-window="notch"] {
   list-style: none;
   overflow-wrap: anywhere;
 }
+/* Sites through this computer (ADR 0203): many agents of other computers scroll, each with its computer's name. */
+.dk-drop__list {
+  display: flex;
+  flex-direction: column;
+  max-height: 280px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.dk-drop__who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.dk-drop__who small {
+  color: var(--faint);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
