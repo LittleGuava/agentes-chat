@@ -13,6 +13,7 @@ mod cover;
 mod deep_link;
 mod discover;
 mod dock;
+mod folder_sync;
 mod graphics;
 mod host_sync;
 mod local_server;
@@ -667,7 +668,11 @@ pub fn run() {
             prepare::network_ask,
             prepare::privacy_open,
             prepare::setup_state_get,
-            prepare::setup_state_set
+            prepare::setup_state_set,
+            folder_sync::folder_sync_list,
+            folder_sync::folder_sync_root,
+            folder_sync::folder_sync_scan,
+            folder_sync::folder_sync_fetch
         ])
         .on_menu_event(|app, event| menus::on_event(app, event.id().as_ref()))
         .on_window_event(|window, event| match event {

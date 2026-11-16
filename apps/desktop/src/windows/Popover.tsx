@@ -31,6 +31,15 @@ import {
   siteLink,
 } from "../control/browser";
 import { MENU_BAR_PREF, menuBarShown } from "../control/dock";
+import {
+  FOLDER_SYNC_PREF,
+  FOLDER_SYNC_STATUS_PREF,
+  type FolderSyncChoice,
+  type Manifest,
+  manifestPref,
+  startFolderSync,
+  statusOf,
+} from "../control/folder-sync";
 import { hereBanner, hereLine, isHereServer, type LocalServerStatus } from "../control/local-server";
 import { menuLabels } from "../control/menu-labels";
 import { NOTCH_PREF } from "../control/notch";
@@ -43,7 +52,16 @@ import { type Home, isIncompatible, isRefusedHome, orgName, pairedHomes } from "
 import { answerThisMac, type PrefsTab, whenHostHomeReady } from "../control/this-mac";
 import { isOnline, macStateOf, trayStateOf } from "../control/tray";
 import { AUTO_UPDATE_PREF, autoUpdateOn, installNight } from "../control/version";
-import { agentOf, readPref, useLocalServer, useOnShown, usePending, useUpdateCheck, writePref } from "../hooks";
+import {
+  agentOf,
+  onPrefChange,
+  readPref,
+  useLocalServer,
+  useOnShown,
+  usePending,
+  useUpdateCheck,
+  writePref,
+} from "../hooks";
 import type { BadgeCounts } from "../host/types";
 import { AgentFace, Banner, BrandFace, Count, HelpLink, MacPortrait, MenuRow, OrgTile } from "../ui/bits";
 import { CopyDetails } from "../ui/here";
@@ -102,6 +120,26 @@ export function Popover() {
   // The server here's address moves with reach: the list again.
   // biome-ignore lint/correctness/useExhaustiveDependencies: when its address or whether it runs changes
   useEffect(readList, [local.publicUrl, local.run]);
+
+  // The agents' folder on this computer (ADR 0204): the chosen conversations' files, every five minutes. Started once:
+  // a language change reads the folder's name at the next pass instead of starting a second timer.
+  const tRef = useRef(t);
+  tRef.current = t;
+  useEffect(
+    () =>
+      startFolderSync({
+        host,
+        choice: () => readPref<FolderSyncChoice | null>(FOLDER_SYNC_PREF, null),
+        manifest: (choice) => readPref<Manifest>(manifestPref(choice), {}),
+        save: (choice, manifest) => writePref(manifestPref(choice), manifest),
+        dmFolder: () => tRef.current("desktop.folderSync.dmFolder"),
+        // A choice changed in Preferences starts a pass now; each ending is what Preferences shows.
+        kick: (run) => onPrefChange(FOLDER_SYNC_PREF, run),
+        onPass: (choice, pass) => writePref(FOLDER_SYNC_STATUS_PREF, statusOf(choice, pass, new Date())),
+        onError: (choice) => writePref(FOLDER_SYNC_STATUS_PREF, statusOf(choice, "unreachable", new Date())),
+      }),
+    [host],
+  );
 
   // The server here's sync made a home: its first tools once its runner is up.
   useEffect(() => host.onNewHostHome((homeId) => whenHostHomeReady(store, homeId)), [host, store]);

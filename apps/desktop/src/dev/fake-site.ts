@@ -1,7 +1,8 @@
 /**
  * The server's devices API as the fake host answers `siteFetch` (design work and tests): this computer in each fake
  * workspace, its phones (the Pixel an agent uses for Rui, the iPhone that needs Developer Mode), an iPhone on its
- * Wi-Fi it could use, the people and roles of "Specific people or roles", and confirming a runner's code. Writes
+ * Wi-Fi it could use, the people and roles of "Specific people or roles", the conversations of Agents' files (ADR 0204)
+ * and confirming a runner's code. Writes
  * change it; `calls` keeps every request.
  */
 import type { ComputerDevice, DeviceAudience, PhoneDevice, WifiIphone } from "@agenteschat/client";
@@ -120,6 +121,21 @@ export function createFakeSite(
             { userId: "u_sam", name: "Sam Rivera", email: "sam@example.com", image: null },
             { userId: "u_ana", name: "Ana Costa", email: "ana@example.com", image: null },
             { userId: "u_rui", name: "Rui Tanaka", email: "rui@example.com", image: null },
+          ],
+        });
+      if (route === "GET channels")
+        return json(200, {
+          channels: [
+            { id: "c-general", name: "general", isMember: true },
+            { id: "c-vendas", name: "vendas", isMember: true },
+            { id: "c-anuncios", name: "anúncios", isMember: false },
+          ],
+        });
+      if (route === "GET dms")
+        return json(200, {
+          dms: [
+            { channelId: "d-dev", with: { type: "agent", id: "a_dev", name: "Dev", handle: "dev" } },
+            { channelId: "d-ana", with: { type: "person", id: "u_ana", name: "Ana Costa", handle: null } },
           ],
         });
       if (route === "GET roles")
