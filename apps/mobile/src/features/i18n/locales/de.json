@@ -875,6 +875,7 @@
   "activity": {
     "title": "Aktivität",
     "chooseModel": "Anderes Modell wählen",
+    "connectAi": "KI verbinden",
     "filter": {
       "all": "Alle",
       "waiting": "Anfragen",
@@ -982,6 +983,8 @@
       "desktop_taken_other": "{{names}} haben den Bildschirm des Computers von {{agent}} übernommen",
       "desktop_taken_female_one": "{{names}} hat den Bildschirm des Computers von {{agent}} übernommen",
       "desktop_taken_female_other": "{{names}} haben den Bildschirm des Computers von {{agent}} übernommen",
+      "agent_needs_ai_one": "{{names}} hat {{agent}} angesprochen, aber dort ist keine KI zum Antworten verbunden",
+      "agent_needs_ai_other": "{{names}} haben {{agent}} angesprochen, aber dort ist keine KI zum Antworten verbunden",
       "plan_lent_one": "{{names}} hat dein {{plan}}-Abo mit {{agent}} verbunden",
       "plan_lent_other": "{{names}} haben dein {{plan}}-Abo mit {{agent}} verbunden",
       "plan_lent_female_one": "{{names}} hat dein {{plan}}-Abo mit {{agent}} verbunden",

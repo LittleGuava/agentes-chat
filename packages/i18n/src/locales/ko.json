@@ -4788,6 +4788,9 @@
     "planModelDropped": {
       "choose": "다른 모델 고르기"
     },
+    "agentNeedsAi": {
+      "connect": "AI 연결"
+    },
     "planServes": {
       "onlyMe": "나만 사용으로 변경",
       "done": "이제 이 플랜은 나만 사용해요."
@@ -4891,6 +4894,7 @@
       "routineFailed": "<b>{{name}}</b>이(가) 루틴을 실행하지 못했어요",
       "routineFailedRetried": "<b>{{name}}</b>이(가) 다시 시도했는데도 루틴을 실행하지 못했어요",
       "runFailed": "<b>{{name}}</b>이(가) 끝내지 못했어요",
+      "agentNeedsAi": "<b>{{name}}</b> 님이 <b>{{agent}}</b>을(를) 불렀지만 답할 AI가 연결되어 있지 않아요",
       "runFailedMany_other": "<b>에이전트 {{count}}명</b>이 계속하지 못했어요: {{cause}}",
       "runFailedManyAny_other": "<b>에이전트 {{count}}명</b>이 계속하지 못했어요",
       "routinePaused": "<b>{{name}}</b>의 루틴이 일시 중지됐어요",

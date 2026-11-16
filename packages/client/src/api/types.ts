@@ -6661,6 +6661,12 @@ export type NotificationKind =
   | "routine_failed"
   /** ADR 0097: an agent's run in a conversation failed for good (`latest.reason` coded). Opens that conversation. */
   | "run_failed"
+  /**
+   * ADR 0061 addendum: a person's message couldn't start an agent's run for want of an AI (its owner and whoever
+   * manages agents or keys, once a day per agent; the person who asked as actor). `source.agentId`, its name in
+   * `source.label`, why in `latest.reason`. Opens "Conectar uma IA" for that agent; done once it thinks again.
+   */
+  | "agent_needs_ai"
   /** The server paused a routine (`latest.reason`: its coded `pausedReason`). Opens it in Rotinas. */
   | "routine_paused"
   /** A routine waits for its computer (once per outage; `source.machineId`). Opens it in Rotinas. */

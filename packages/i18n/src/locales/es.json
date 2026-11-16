@@ -5101,6 +5101,9 @@
     "planModelDropped": {
       "choose": "Elegir otro modelo"
     },
+    "agentNeedsAi": {
+      "connect": "Conectar una IA"
+    },
     "planServes": {
       "onlyMe": "Cambiar a Solo yo",
       "done": "Ahora solo tú usas este plan."
@@ -5232,6 +5235,7 @@
       "routineFailed": "<b>{{name}}</b> no pudo ejecutar una rutina",
       "routineFailedRetried": "<b>{{name}}</b> no pudo ejecutar una rutina, ni siquiera con un segundo intento",
       "runFailed": "<b>{{name}}</b> no pudo terminar",
+      "agentNeedsAi": "<b>{{name}}</b> llamó a <b>{{agent}}</b>, que no tiene una IA conectada para responder",
       "runFailedMany_one": "<b>{{count}} agente</b> no pudo seguir: {{cause}}",
       "runFailedMany_many": "<b>{{count}} de agentes</b> no pudieron seguir: {{cause}}",
       "runFailedMany_other": "<b>{{count}} agentes</b> no pudieron seguir: {{cause}}",

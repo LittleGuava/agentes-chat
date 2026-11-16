@@ -245,3 +245,10 @@ describe("the workspace's computer is ready", () => {
     expect(notificationHref(n, someAi)).toBe("/computer-setup");
   });
 });
+
+test("someone couldn't reach an agent with no AI: its push and its row open Conectar uma IA for that agent", () => {
+  expect(hrefForPush({ kind: "agent_needs_ai", orgId: "o1", agentId: "a1" })).toBe("/connect-ai?agentId=a1");
+  const n = notification({ id: "n", kind: "agent_needs_ai", actors: [], source: { agentId: "a1", label: "Dev" } });
+  expect(notificationHref(n)).toBe("/connect-ai?agentId=a1");
+  expect(notificationHref({ ...n, source: { agentId: "../x" } })).toBeNull();
+});

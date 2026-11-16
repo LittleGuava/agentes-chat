@@ -911,6 +911,8 @@ export const featureKeysPtBR = {
     title: "Atividade",
     /** Under `plan_model_dropped`: opens the agent's model. */
     chooseModel: "Escolher outro modelo",
+    /** Under `agent_needs_ai`: opens "Conectar uma IA" for the agent. */
+    connectAi: "Conectar uma IA",
     /** The pills over Atividade: short, no counts (the section and the tab's badge count). */
     filter: {
       all: "Tudo",
@@ -1021,6 +1023,11 @@ export const featureKeysPtBR = {
       desktop_taken_other: "{{names}} assumiram a tela do computador do\u00a0{{agent}}",
       desktop_taken_female_one: "{{names}} assumiu a tela do computador da\u00a0{{agent}}",
       desktop_taken_female_other: "{{names}} assumiram a tela do computador da\u00a0{{agent}}",
+      /** A person's message got no answer from an agent with no AI (`agent_needs_ai`). */
+      agent_needs_ai_one: "{{names}} chamou o\u00a0{{agent}}, que está sem IA conectada para responder",
+      agent_needs_ai_other: "{{names}} chamaram o\u00a0{{agent}}, que está sem IA conectada para responder",
+      agent_needs_ai_female_one: "{{names}} chamou a\u00a0{{agent}}, que está sem IA conectada para responder",
+      agent_needs_ai_female_other: "{{names}} chamaram a\u00a0{{agent}}, que está sem IA conectada para responder",
       plan_lent_one: "{{names}} conectou o seu plano do {{plan}} ao\u00a0{{agent}}",
       plan_lent_other: "{{names}} conectaram o seu plano do {{plan}} ao\u00a0{{agent}}",
       plan_lent_female_one: "{{names}} conectou o seu plano do {{plan}} à\u00a0{{agent}}",

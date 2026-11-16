@@ -5107,6 +5107,9 @@
     "planModelDropped": {
       "choose": "Choisir un autre modèle"
     },
+    "agentNeedsAi": {
+      "connect": "Connecter une IA"
+    },
     "planServes": {
       "onlyMe": "Passer à Moi seul",
       "done": "Vous êtes désormais seul à utiliser ce forfait."
@@ -5238,6 +5241,7 @@
       "routineFailed": "<b>{{name}}</b> n'a pas pu exécuter une routine",
       "routineFailedRetried": "<b>{{name}}</b> n’a pas pu exécuter une routine, même après un nouvel essai",
       "runFailed": "<b>{{name}}</b> n'a pas pu terminer",
+      "agentNeedsAi": "<b>{{name}}</b> a appelé <b>{{agent}}</b>, qui n'a pas d'IA connectée pour répondre",
       "runFailedMany_one": "<b>{{count}} agent</b> n'a pas pu continuer: {{cause}}",
       "runFailedMany_many": "<b>{{count}} d'agents</b> n'ont pas pu continuer: {{cause}}",
       "runFailedMany_other": "<b>{{count}} agents</b> n'ont pas pu continuer: {{cause}}",

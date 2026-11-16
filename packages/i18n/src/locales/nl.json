@@ -4964,6 +4964,9 @@
     "planModelDropped": {
       "choose": "Ander model kiezen"
     },
+    "agentNeedsAi": {
+      "connect": "Een AI koppelen"
+    },
     "planServes": {
       "onlyMe": "Wijzig naar Alleen ik",
       "done": "Nu gebruik alleen jij dit abonnement."
@@ -5082,6 +5085,7 @@
       "routineFailed": "<b>{{name}}</b> kon een routine niet uitvoeren",
       "routineFailedRetried": "<b>{{name}}</b> kon een routine niet uitvoeren, ook niet na een nieuwe poging",
       "runFailed": "<b>{{name}}</b> kon het niet afmaken",
+      "agentNeedsAi": "<b>{{name}}</b> heeft <b>{{agent}}</b> aangesproken, maar er is geen AI gekoppeld om te antwoorden",
       "runFailedMany_one": "<b>{{count}} agent</b> kon niet verder: {{cause}}",
       "runFailedMany_other": "<b>{{count}} agents</b> konden niet verder: {{cause}}",
       "runFailedManyAny_one": "<b>{{count}} agent</b> kon niet verder",

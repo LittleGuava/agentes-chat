@@ -5356,6 +5356,8 @@ export const en = {
     },
     /** Under `plan_model_dropped`: opens the agent's "Quem pensa". */
     planModelDropped: { choose: "Choose another model" },
+    /** Under `agent_needs_ai`: opens "Conectar uma IA" for the agent. */
+    agentNeedsAi: { connect: "Connect an AI" },
     planServes: { onlyMe: "Switch to Only me", done: "Only you use this plan now." },
     /**
      * What the right hand found wrong (`team_watch`), by cause: the notice's headline, its stored text and its push.
@@ -5472,6 +5474,8 @@ export const en = {
       /** Its automatic retry failed too (ADR 0177 addendum 2026-11-15). */
       routineFailedRetried: "<b>{{name}}</b> couldn't run a routine, even after one more try",
       runFailed: "<b>{{name}}</b> couldn't finish",
+      /** A person's message got no answer from an agent with no AI (`agent_needs_ai`): `agent` the agent's name. */
+      agentNeedsAi: "<b>{{name}}</b> called <b>{{agent}}</b>, who has no AI connected to answer",
       /** Agents that failed for one cause close together, on one row; `cause` is a `failedCause` line. */
       runFailedMany_one: "<b>{{count}} agent</b> couldn't go on: {{cause}}",
       runFailedMany_other: "<b>{{count}} agents</b> couldn't go on: {{cause}}",

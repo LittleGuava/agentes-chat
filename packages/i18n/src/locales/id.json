@@ -4804,6 +4804,9 @@
     "planModelDropped": {
       "choose": "Pilih model lain"
     },
+    "agentNeedsAi": {
+      "connect": "Hubungkan AI"
+    },
     "planServes": {
       "onlyMe": "Ubah ke Hanya saya",
       "done": "Sekarang hanya kamu yang memakai paket ini."
@@ -4908,6 +4911,7 @@
       "routineFailed": "<b>{{name}}</b> tidak bisa menjalankan rutinitas",
       "routineFailedRetried": "<b>{{name}}</b> tidak bisa menjalankan rutinitas, bahkan setelah dicoba lagi",
       "runFailed": "<b>{{name}}</b> tidak bisa menyelesaikan",
+      "agentNeedsAi": "<b>{{name}}</b> memanggil <b>{{agent}}</b>, tetapi belum ada AI yang terhubung untuk menjawab",
       "runFailedMany_other": "<b>{{count}} agen</b> tidak bisa melanjutkan: {{cause}}",
       "runFailedManyAny_other": "<b>{{count}} agen</b> tidak bisa melanjutkan",
       "routinePaused": "Rutinitas milik <b>{{name}}</b> dijeda",

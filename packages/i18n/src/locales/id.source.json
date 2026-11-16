@@ -12108,6 +12108,9 @@
   "notifications.planModelDropped.choose": {
     "value": "Choose another model"
   },
+  "notifications.agentNeedsAi.connect": {
+    "value": "Connect an AI"
+  },
   "notifications.planServes.onlyMe": {
     "value": "Switch to Only me"
   },
@@ -12407,6 +12410,9 @@
   },
   "notifications.what.runFailed": {
     "value": "<b>{{name}}</b> couldn't finish"
+  },
+  "notifications.what.agentNeedsAi": {
+    "value": "<b>{{name}}</b> called <b>{{agent}}</b>, who has no AI connected to answer"
   },
   "notifications.what.runFailedMany": {
     "value": {

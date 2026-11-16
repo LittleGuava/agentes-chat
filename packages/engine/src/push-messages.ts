@@ -116,6 +116,9 @@ function renderOne(locale: PushLocale, input: PushTextInput): { title: string; b
       return out(input.retried ? s.routineFailedRetriedTitle : s.routineFailedTitle, what || s.routineFailedBody);
     case "run_failed":
       return out(s.runFailedTitle(actor), s.routineFailedBody);
+    case "agent_needs_ai":
+      // The agent's name (`label`), then who asked it: the person is the actor.
+      return out(s.needsAiTitle(input.label?.trim() || s.anAgent), s.needsAiBody(actor));
     case "routine_paused":
       // Its name only: the app says why, in the person's words.
       return out(s.routinePausedTitle, what || s.routinePausedBody);

@@ -4790,6 +4790,9 @@
     "planModelDropped": {
       "choose": "別のモデルを選ぶ"
     },
+    "agentNeedsAi": {
+      "connect": "AIを接続"
+    },
     "planServes": {
       "onlyMe": "自分だけに変更",
       "done": "このプランは今あなただけが使います。"
@@ -4893,6 +4896,7 @@
       "routineFailed": "<b>{{name}}</b>はルーティンを実行できませんでした",
       "routineFailedRetried": "<b>{{name}}</b> が再試行してもルーティンを実行できませんでした",
       "runFailed": "<b>{{name}}</b>は最後まで完了できませんでした",
+      "agentNeedsAi": "<b>{{name}}</b>が<b>{{agent}}</b>を呼びましたが、応答するためのAIが接続されていません",
       "runFailedMany_other": "<b>{{count}}人のエージェント</b>が続けられませんでした：{{cause}}",
       "runFailedManyAny_other": "<b>{{count}}人のエージェント</b>が続けられませんでした",
       "routinePaused": "<b>{{name}}</b>のルーティンが一時停止されました",

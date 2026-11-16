@@ -17,6 +17,8 @@ export const strings: Partial<PushStrings> = {
   routineFailedTitle: "Bir rutin tamamlanamadı",
   routineFailedRetriedTitle: "Bir rutin, yeniden denendikten sonra da tamamlanamadı",
   runFailedTitle: (a) => `${a} işi bitiremedi`,
+  needsAiTitle: (a) => `${a} için bağlı bir yapay zeka yok`,
+  needsAiBody: (p) => `${p} sordu ama yanıt alamadı. Yanıt verebilmesi için bir yapay zeka bağlayın.`,
   routineFailedBody: "Ne olduğunu görmek için dokunun.",
   routinePausedTitle: "Bir rutin duraklatıldı",
   routinePausedBody: "Nedenini görmek için dokunun.",

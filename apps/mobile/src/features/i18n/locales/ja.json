@@ -851,6 +851,7 @@
   "activity": {
     "title": "アクティビティ",
     "chooseModel": "別のモデルを選ぶ",
+    "connectAi": "AIを接続",
     "filter": {
       "all": "すべて",
       "waiting": "リクエスト",
@@ -916,6 +917,7 @@
       "browser_profile_request_other": "{{names}}がブラウザプロフィールの追加を求めています",
       "desktop_taken_other": "{{names}}が{{agent}}のコンピューターの画面の操作を引き継ぎました",
       "desktop_taken_female_other": "{{names}}が{{agent}}のコンピューターの画面の操作を引き継ぎました",
+      "agent_needs_ai_other": "{{names}}が{{agent}}を呼びましたが、応答するためのAIが接続されていません",
       "plan_lent_other": "{{names}}があなたの {{plan}} プランを{{agent}}に接続しました",
       "plan_lent_female_other": "{{names}}があなたの {{plan}} プランを{{agent}}に接続しました",
       "plan_serves_other": "あなたの{{plan}}は workspace 全体で使えるようになりました",

@@ -875,6 +875,7 @@
   "activity": {
     "title": "Activiteit",
     "chooseModel": "Ander model kiezen",
+    "connectAi": "Een AI koppelen",
     "filter": {
       "all": "Alles",
       "waiting": "Verzoeken",
@@ -982,6 +983,8 @@
       "desktop_taken_other": "{{names}} hebben het scherm van de computer van {{agent}} overgenomen",
       "desktop_taken_female_one": "{{names}} heeft het scherm van de computer van {{agent}} overgenomen",
       "desktop_taken_female_other": "{{names}} hebben het scherm van de computer van {{agent}} overgenomen",
+      "agent_needs_ai_one": "{{names}} heeft {{agent}} aangesproken, maar er is geen AI gekoppeld om te antwoorden",
+      "agent_needs_ai_other": "{{names}} hebben {{agent}} aangesproken, maar er is geen AI gekoppeld om te antwoorden",
       "plan_lent_one": "{{names}} heeft je {{plan}}-abonnement aan {{agent}} gekoppeld",
       "plan_lent_other": "{{names}} hebben je {{plan}}-abonnement aan {{agent}} gekoppeld",
       "plan_lent_female_one": "{{names}} heeft je {{plan}}-abonnement aan {{agent}} gekoppeld",

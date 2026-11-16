@@ -923,6 +923,7 @@
   "activity": {
     "title": "Aktywność",
     "chooseModel": "Wybierz inny model",
+    "connectAi": "Połącz AI",
     "filter": {
       "all": "Wszystko",
       "waiting": "Prośby",
@@ -1114,6 +1115,10 @@
       "desktop_taken_female_few": "Ekran komputera {{agent}} przejęty przez {{names}}",
       "desktop_taken_female_many": "Ekran komputera {{agent}} przejęty przez {{names}}",
       "desktop_taken_female_other": "Ekran komputera {{agent}} przejęty przez {{names}}",
+      "agent_needs_ai_one": "{{names}} wywołał(a) {{agent}}, ale nie ma podłączonej AI, która mogłaby odpowiedzieć",
+      "agent_needs_ai_few": "{{names}} wywołali {{agent}}, ale nie ma podłączonej AI, która mogłaby odpowiedzieć",
+      "agent_needs_ai_many": "{{names}} wywołali {{agent}}, ale nie ma podłączonej AI, która mogłaby odpowiedzieć",
+      "agent_needs_ai_other": "{{names}} wywołali {{agent}}, ale nie ma podłączonej AI, która mogłaby odpowiedzieć",
       "plan_lent_one": "Twój plan {{plan}} połączony z agentem {{agent}} przez {{names}}",
       "plan_lent_few": "Twój plan {{plan}} połączony z agentem {{agent}} przez {{names}}",
       "plan_lent_many": "Twój plan {{plan}} połączony z agentem {{agent}} przez {{names}}",

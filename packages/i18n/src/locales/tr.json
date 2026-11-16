@@ -4945,6 +4945,9 @@
     "planModelDropped": {
       "choose": "Başka bir model seç"
     },
+    "agentNeedsAi": {
+      "connect": "Yapay zeka bağla"
+    },
     "planServes": {
       "onlyMe": "Yalnızca ben olarak değiştir",
       "done": "Artık bu planı yalnızca sen kullanıyorsun."
@@ -5062,6 +5065,7 @@
       "routineFailed": "<b>{{name}}</b> bir rutini çalıştıramadı",
       "routineFailedRetried": "<b>{{name}}</b> yeniden denemeye rağmen bir rutini çalıştıramadı",
       "runFailed": "<b>{{name}}</b> bitiremedi",
+      "agentNeedsAi": "<b>{{name}}</b>, <b>{{agent}}</b> ajanını çağırdı ama yanıt verecek bağlı bir yapay zekası yok",
       "runFailedMany_one": "<b>{{count}} ajan</b> devam edemedi: {{cause}}",
       "runFailedMany_other": "<b>{{count}} ajan</b> devam edemedi: {{cause}}",
       "runFailedManyAny_one": "<b>{{count}} ajan</b> devam edemedi",

@@ -4793,6 +4793,9 @@
     "planModelDropped": {
       "choose": "选择其他模型"
     },
+    "agentNeedsAi": {
+      "connect": "连接 AI"
+    },
     "planServes": {
       "onlyMe": "改为仅我自己",
       "done": "现在只有你使用这个套餐。"
@@ -4896,6 +4899,7 @@
       "routineFailed": "<b>{{name}}</b> 无法运行一个例行工作",
       "routineFailedRetried": "<b>{{name}}</b> 重试后仍未能运行一项例行工作",
       "runFailed": "<b>{{name}}</b> 没能完成",
+      "agentNeedsAi": "<b>{{name}}</b> 呼叫了 <b>{{agent}}</b>，但没有连接可以回答的 AI",
       "runFailedMany_other": "<b>{{count}} 个智能体</b>没能继续：{{cause}}",
       "runFailedManyAny_other": "<b>{{count}} 个智能体</b>没能继续",
       "routinePaused": "<b>{{name}}</b> 的一个例行工作已暂停",

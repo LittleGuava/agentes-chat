@@ -1167,6 +1167,56 @@ export async function resolveRunFailed(
   await dropRunFailure(deps, run.orgId, runFailedGroup(run));
 }
 
+/**
+ * Why a run had no AI that means nothing is connected for it: no key, no computer, no such program there, or the
+ * computer's own sign-in of that program never made (`own`). An account's sign-in that ended is told by the right hand
+ * (`team_watch`, `sign_in`); waits, limits and plans that serve someone else are the card's alone.
+ */
+const NOTHING_CONNECTED: ReadonlySet<string> = new Set(["no_key", "no_computer", "cli_missing"]);
+
+const needsAiGroup = (agentId: string) => `agent_needs_ai:${agentId}:`;
+
+/**
+ * A person's message couldn't start the agent's run for want of an AI (ADR 0061 addendum): who can connect one for it
+ * (its owner and whoever manages agents or keys, as the card's Connect) hears it once a day per agent
+ * (`agent_needs_ai:{agentId}:{UTC day}`), the person who asked as actor (never told: the card is theirs). Done once the
+ * agent thinks again (`resolveAgentNeedsAi`).
+ */
+export async function notifyAgentNeedsAi(
+  deps: NotificationDeps,
+  run: { id: string; orgId: string; agentId: string },
+  reason: string,
+  own?: string,
+) {
+  if (!NOTHING_CONNECTED.has(reason) && !(reason === "not_signed_in" && own)) return;
+  const asker = await humanBehindRun(deps, run.orgId, run.id);
+  if (!asker) return;
+  const [a] = await deps.db
+    .select({ name: agents.name, owner: agents.ownerUserId })
+    .from(agents)
+    .where(and(eq(agents.orgId, run.orgId), eq(agents.id, run.agentId)));
+  if (!a) return;
+  const day = (deps.now?.() ?? new Date()).toISOString().slice(0, 10);
+  await notify(deps, {
+    orgId: run.orgId,
+    userIds: [
+      a.owner,
+      ...(await adminsOf(deps, run.orgId, "manage_agents")),
+      ...(await adminsOf(deps, run.orgId, "manage_credentials")),
+    ],
+    kind: "agent_needs_ai",
+    groupKey: `${needsAiGroup(run.agentId)}${day}`,
+    actor: person(asker),
+    source: { agentId: run.agentId, label: a.name },
+    latest: { reason },
+  });
+}
+
+/** The agent thought again: its "no AI" notices are done. */
+export async function resolveAgentNeedsAi(deps: NotificationDeps, orgId: string, agentId: string) {
+  await resolveNotifications(deps, orgId, { groupKeyPrefix: needsAiGroup(agentId) });
+}
+
 /** A routine ran well again: its failure streak and computer outage notifications are done. */
 export async function resolveRoutineTrouble(deps: NotificationDeps, orgId: string, routineId: string) {
   await resolveNotifications(deps, orgId, { groupKeyPrefix: `routine_failed:${routineId}:` });
