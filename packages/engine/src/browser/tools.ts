@@ -59,6 +59,7 @@ import {
   screenStepOf,
   type TargetCache,
 } from "../screen";
+import { afterPlanAsk, planAskOf, recipeProperties } from "../screen-recipes";
 import { requestSecretTool } from "../secret-request-tool";
 import { REQUEST_SECRET_TOOL, SITE_SECRET_TTL_TEXT, siteSecretGone } from "../secrets";
 import { toolDetail } from "../tool-detail";
@@ -1154,7 +1155,7 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
   async function plan(
     ctx: ToolContext,
     steps: ScreenStep[],
-    options: { trail?: boolean; made?: boolean; onReport?: (report: PlanReport) => void } = {},
+    options: { trail?: boolean; made?: boolean; keep?: boolean; onReport?: (report: PlanReport) => void } = {},
   ): Promise<ToolOutput> {
     for (const s of steps) {
       const refused = s.do === "open" && s.url ? await outboundRefusal(ctx, s.url) : null;
@@ -1228,6 +1229,7 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
         last: seen.within(key, FRESH_LOOK_MS),
         before: seen.within(key, KNOWN_LOOK_MS),
         vision: deps.vision?.() === true && linked.status.protocol >= BROWSER_FAST_PROTOCOL,
+        ...(options.keep ? { keep: true } : {}),
         now,
       },
       steps,
@@ -1482,22 +1484,28 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
       `${BROWSER_TOOL_INFO.browser_do.description} The fastest way to use the browser: write the whole task as \`steps\` in one call, from the \`open\` to the last click and wait, the way you'd do it by hand. You don't need to have seen a page to plan on it: name each target in words (\`the Email field\`, \`Export\`) and it is found on the page as it is at that step, even pages the plan reaches on its way. Give \`expect\` on steps whose result matters (\`signed in\`, \`the order is confirmed\`): it's checked, and the plan stops at the first step that fails or doesn't show what you expected, telling you why and what's on the page then, so you can go on from there. To report what the page says at the end, finish with a \`read\` step and \`find\` (\`the status message\`). ${changes}`,
       {
         type: "object",
-        properties: { steps: { type: "array", minItems: 1, maxItems: MAX_PLAN_STEPS, items: STEP_SCHEMA } },
-        required: ["steps"],
+        properties: {
+          steps: { type: "array", minItems: 1, maxItems: MAX_PLAN_STEPS, items: STEP_SCHEMA },
+          ...recipeProperties("browser"),
+        },
         additionalProperties: false,
       },
       async (input, ctx) => {
-        const raw = Array.isArray(input.steps) ? input.steps : [];
-        const steps = raw.map(stepOf);
-        if (steps.length === 0 || steps.some((s) => s === null)) {
-          return { content: "Give `steps`, each with a known `do`.", isError: true };
-        }
-        const valid = steps as ScreenStep[];
-        if (actsBeforeOpening(valid)) {
+        const ask = await planAskOf(ctx, "browser", input, stepOf, VERBS);
+        if ("error" in ask) return { content: ask.error, isError: true };
+        if (actsBeforeOpening(ask.steps)) {
           const stale = await requirePageRead(ctx.db, ctx);
           if (stale) return stale;
         }
-        return plan(ctx, valid, { trail: true });
+        let report: PlanReport | null = null;
+        const out = await plan(ctx, ask.steps, {
+          trail: true,
+          ...(ask.saveAs ? { keep: true } : {}),
+          onReport: (r) => {
+            report = r;
+          },
+        });
+        return afterPlanAsk(ctx, "browser", ask, report, out);
       },
     ),
     tool(

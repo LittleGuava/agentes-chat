@@ -6,5 +6,6 @@
 export * from "./checks";
 export * from "./observation";
 export * from "./plan";
+export * from "./recipe";
 export * from "./report";
 export * from "./targets";

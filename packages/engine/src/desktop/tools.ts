@@ -32,6 +32,7 @@ import {
   screenStepOf,
   type TargetCache,
 } from "../screen";
+import { afterPlanAsk, planAskOf, recipeProperties } from "../screen-recipes";
 import type { JsonSchema } from "../tools/json-schema";
 import { accessWithNeeds, grantedScopeKeys, isAllowed, toolAccess } from "../tools/scopes";
 import type { ToolContext, ToolDefinition, ToolOutput, ToolSource } from "../tools/types";
@@ -348,7 +349,11 @@ export function createDesktopToolSource(deps: DesktopToolDeps): ToolSource {
   }
 
   /** Runs steps on the agent's desktop (`runPlan`) and answers with the report and the screen at the end. */
-  async function plan(ctx: ToolContext, steps: ScreenStep[]): Promise<ToolOutput> {
+  async function plan(
+    ctx: ToolContext,
+    steps: ScreenStep[],
+    options: { keep?: boolean; onReport?: (report: PlanReport) => void } = {},
+  ): Promise<ToolOutput> {
     const linked = await linkFor(ctx);
     if (!linked.ok) return { content: linked.text, isError: true };
     const key = await seenKey(ctx);
@@ -390,10 +395,12 @@ export function createDesktopToolSource(deps: DesktopToolDeps): ToolSource {
         vision: deps.vision?.() === true,
         // What covers a target on a desktop is usually a real dialog ("Save changes?"): never closed on a guess.
         dismiss: false,
+        ...(options.keep ? { keep: true } : {}),
         now,
       },
       steps,
     );
+    options.onReport?.(report);
     await auditOpened(ctx, linked.machineId, acted);
     // The agent has seen the screen (the report shows it); not when a person changed it meanwhile.
     if (!handedBack && report.after) await markPageRead(ctx.db, ctx, "desktop");
@@ -444,23 +451,28 @@ export function createDesktopToolSource(deps: DesktopToolDeps): ToolSource {
       `${DESKTOP_TOOL_INFO.desktop_do.description} For apps with no API or web version (native apps, file and system dialogs, a terminal window); web pages go to browser_do, and commands to run_code. Write the whole task as \`steps\` in one call, from the \`open\` (an app by its name, or a file) to the last click, the way you'd do it by hand: name each target in words (\`the File menu\`, \`Save\`) or by its number, and it is found on the screen as it is at that step. Give \`expect\` on steps whose result matters: it's checked, and the plan stops at the first step that fails or doesn't show it, saying why and what's on the screen then. A dialog in the way is never closed for you: the plan stops and names it, and you decide. ${changes}`,
       {
         type: "object",
-        properties: { steps: { type: "array", minItems: 1, maxItems: MAX_PLAN_STEPS, items: STEP_SCHEMA } },
-        required: ["steps"],
+        properties: {
+          steps: { type: "array", minItems: 1, maxItems: MAX_PLAN_STEPS, items: STEP_SCHEMA },
+          ...recipeProperties("desktop"),
+        },
         additionalProperties: false,
       },
       async (input, ctx) => {
-        const raw = Array.isArray(input.steps) ? input.steps : [];
-        const steps = raw.map((s) => screenStepOf(s, VERBS));
-        if (steps.length === 0 || steps.some((s) => s === null)) {
-          return { content: "Give `steps`, each with a known `do`.", isError: true };
-        }
-        const valid = steps as ScreenStep[];
-        if (valid.some(opensWebPage)) return { content: `Nothing was done: ${BROWSER_HINT}.`, isError: true };
-        if (actsBeforeOpening(valid)) {
+        const ask = await planAskOf(ctx, "desktop", input, (s) => screenStepOf(s, VERBS), VERBS);
+        if ("error" in ask) return { content: ask.error, isError: true };
+        if (ask.steps.some(opensWebPage)) return { content: `Nothing was done: ${BROWSER_HINT}.`, isError: true };
+        if (actsBeforeOpening(ask.steps)) {
           const stale = await requirePageRead(ctx.db, ctx, "desktop");
           if (stale) return stale;
         }
-        return plan(ctx, valid);
+        let report: PlanReport | null = null;
+        const out = await plan(ctx, ask.steps, {
+          ...(ask.saveAs ? { keep: true } : {}),
+          onReport: (r) => {
+            report = r;
+          },
+        });
+        return afterPlanAsk(ctx, "desktop", ask, report, out);
       },
     ),
     tool(
