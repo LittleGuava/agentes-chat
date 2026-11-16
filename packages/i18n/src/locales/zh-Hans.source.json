@@ -43618,6 +43618,9 @@
   "chat.notice.waitResult": {
     "value": "What {{name}} was waiting for came in"
   },
+  "chat.notice.meetingEnded": {
+    "value": "The meeting {{name}} took notes in has ended"
+  },
   "chat.notice.runRetry": {
     "value": "{{by}} asked {{name}} to try again"
   },

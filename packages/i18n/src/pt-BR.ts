@@ -18048,6 +18048,7 @@ export const ptBR = {
       waitResult: "Chegou o resultado que {{name}} esperava",
       runRetry: "{{by}} pediu para {{name}} tentar de novo",
       runRetryAnon: "{{name}} está tentando de novo",
+      meetingEnded: "Terminou a reunião em que {{name}} fazia anotações",
       other: "Aviso para {{name}}",
       wakeSkipped: "A menção de {{name}} não chamou {{agents}}",
       wakeSkippedAnon: "A menção de {{name}} não chamou outro agente",

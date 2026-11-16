@@ -25,6 +25,7 @@ export const NOTICE_KINDS = [
   "burst_results",
   "run_incident",
   "run_retry",
+  "meeting_ended",
 ] as const;
 export type NoticeKind = (typeof NOTICE_KINDS)[number];
 
@@ -240,6 +241,9 @@ export function noticeView(
         person: notice.refs.personName ?? notice.from ?? "",
         name: names.author,
       });
+    // A meeting the agent took notes in ended (ADR 0199): the transcript is for the agent; its notes are its reply.
+    case "meeting_ended":
+      return line("chat.notice.meetingEnded", { name: names.author });
     // A return's line is the bar's (`isReturnLine`), never one of the conversation's.
     case "follow_up":
     case "proposal_result":

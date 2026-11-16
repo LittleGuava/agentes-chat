@@ -17652,6 +17652,7 @@
       "agentNote": "{{from}} ajanından not",
       "agentNoteAnon": "Başka bir ajandan not",
       "waitResult": "{{name}} ajanının beklediği şey geldi",
+      "meetingEnded": "{{name}} tarafından not alınan toplantı sona erdi",
       "runRetry": "{{by}}, {{name}} ajanından yeniden denemesini istedi",
       "runRetryAnon": "{{name}} ajanı yeniden deniyor",
       "other": "{{name}} için bildirim",

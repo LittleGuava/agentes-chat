@@ -17118,6 +17118,7 @@
       "agentNote": "{{from}}의 메모",
       "agentNoteAnon": "다른 에이전트의 메모",
       "waitResult": "{{name}}이(가) 기다리던 결과가 도착했어요",
+      "meetingEnded": "{{name}}이(가) 메모하던 회의가 끝났습니다",
       "runRetry": "{{by}}이(가) {{name}}에게 다시 시도해 달라고 했어요",
       "runRetryAnon": "{{name}}이(가) 다시 시도하고 있어요",
       "other": "{{name}}에게 온 알림",

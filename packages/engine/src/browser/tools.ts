@@ -765,7 +765,21 @@ const NO_JUDGE: Judge = {
  * are typed by the runner from what `request_secret` delivered: the value
  * never reaches the server.
  */
-export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { readPage: BrowserPageReader } {
+export interface BrowserPlanOptions {
+  own?: boolean;
+  onReport?: (report: PlanReport) => void;
+}
+
+/** `browser_do`'s plan for another tool of ours (`join_meeting`, ADR 0199): the same checks, holds and report. */
+export type BrowserPlanner = (
+  ctx: ToolContext,
+  steps: ScreenStep[],
+  options?: BrowserPlanOptions,
+) => Promise<ToolOutput>;
+
+export function createBrowserToolSource(
+  deps: BrowserToolDeps,
+): ToolSource & { readPage: BrowserPageReader; plan: BrowserPlanner } {
   const hub = deps.machines?.hub;
   const judge = deps.judge ?? NO_JUDGE;
   const targets = deps.targets ?? createTargetCache();
@@ -1175,24 +1189,20 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
    * Runs steps on the agent's browser (`runPlan`) and answers with the report:
    * what was done, where it stopped, and the page at the end. `trail`: the
    * steps go to the chat's trail from here (a `browser_do`; single tools are
-   * on it by their own name).
+   * on it by their own name). `own`: the agent's own browser, never a shared,
+   * signed-in profile the run switched to (a meeting is joined as the agent,
+   * ADR 0199).
    */
   async function plan(
     ctx: ToolContext,
     steps: ScreenStep[],
-    options: {
-      trail?: boolean;
-      made?: boolean;
-      record?: boolean;
-      keep?: boolean;
-      onReport?: (report: PlanReport) => void;
-    } = {},
+    options: BrowserPlanOptions & { trail?: boolean; made?: boolean; record?: boolean; keep?: boolean } = {},
   ): Promise<ToolOutput> {
     for (const s of steps) {
       const refused = s.do === "open" && s.url ? await outboundRefusal(ctx, s.url) : null;
       if (refused) return refused;
     }
-    const linked = await linkFor(ctx);
+    const linked = await linkFor(ctx, { own: options.own === true });
     if (!linked.ok) return { content: linked.text, isError: true };
     // A secret is typed only on the site the person gave it for: found before anything runs.
     const sites = new Map<string, string>();
@@ -2136,6 +2146,7 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
   return {
     name: "browser",
     readPage,
+    plan: (ctx, steps, options) => plan(ctx, steps, { own: options?.own, onReport: options?.onReport }),
     async tools(ctx) {
       if (!hub) return [];
       // Most agents have no browser: the cached grants decide before any machine lookup. Without them the

@@ -18174,6 +18174,7 @@ export const en = {
       /** The team's right hand (`by`) asked an agent to try a failed task again. */
       runRetry: "{{by}} asked {{name}} to try again",
       runRetryAnon: "{{name}} is trying again",
+      meetingEnded: "The meeting {{name}} took notes in has ended",
       other: "Notice for {{name}}",
       wakeSkipped: "{{name}}'s mention didn't reach {{agents}}",
       /** The same, on an older line that didn't keep whom. */

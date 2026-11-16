@@ -17195,6 +17195,7 @@
       "agentNote": "来自 {{from}} 的备注",
       "agentNoteAnon": "来自另一个智能体的备注",
       "waitResult": "{{name}} 等待的结果到了",
+      "meetingEnded": "{{name}} 记录笔记的会议已结束",
       "runRetry": "{{by}} 请 {{name}} 重试",
       "runRetryAnon": "{{name}} 正在重试",
       "other": "给 {{name}} 的通知",

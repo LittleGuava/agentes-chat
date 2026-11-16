@@ -17126,6 +17126,7 @@
       "agentNote": "{{from}}からのメモ",
       "agentNoteAnon": "別のエージェントからのメモ",
       "waitResult": "{{name}}が待っていたものが届きました",
+      "meetingEnded": "{{name}} がメモを取っていた会議が終了しました",
       "runRetry": "{{by}}が{{name}}に再試行を頼みました",
       "runRetryAnon": "{{name}}が再試行しています",
       "other": "{{name}}へのお知らせ",

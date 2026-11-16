@@ -17791,6 +17791,7 @@
       "agentNote": "Notitie van {{from}}",
       "agentNoteAnon": "Notitie van een andere agent",
       "waitResult": "Waar {{name}} op wachtte, is binnen",
+      "meetingEnded": "De vergadering waarin {{name}} notities maakte is afgelopen",
       "runRetry": "{{by}} heeft {{name}} gevraagd het opnieuw te proberen",
       "runRetryAnon": "{{name}} probeert het opnieuw",
       "other": "Melding voor {{name}}",

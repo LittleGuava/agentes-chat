@@ -17181,6 +17181,7 @@
       "agentNote": "Catatan dari {{from}}",
       "agentNoteAnon": "Catatan dari agen lain",
       "waitResult": "Yang ditunggu {{name}} sudah masuk",
+      "meetingEnded": "Rapat yang dicatat oleh {{name}} sudah selesai",
       "runRetry": "{{by}} meminta {{name}} mencoba lagi",
       "runRetryAnon": "{{name}} sedang mencoba lagi",
       "other": "Pemberitahuan untuk {{name}}",

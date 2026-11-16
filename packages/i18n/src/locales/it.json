@@ -18297,6 +18297,7 @@
       "agentNote": "Nota di {{from}}",
       "agentNoteAnon": "Nota di un altro agente",
       "waitResult": "È arrivato ciò che {{name}} aspettava",
+      "meetingEnded": "La riunione in cui {{name}} prendeva appunti è finita",
       "runRetry": "{{by}} ha chiesto a {{name}} di riprovare",
       "runRetryAnon": "{{name}} sta riprovando",
       "other": "Avviso per {{name}}",

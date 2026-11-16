@@ -65,6 +65,7 @@ import {
   createMachineHub,
   createMailToolSource,
   createMediaToolSource,
+  createMeetingToolSource,
   createMissionHooks,
   createMissionRunToolSource,
   createMissionToolSource,
@@ -546,6 +547,9 @@ export function buildEngine(o: EngineOptions) {
         publicUrl: config.PUBLIC_URL,
       }),
       browserTools,
+      // Meetings (ADR 0199): joined from the agent's own browser, offered only once a computer can hear one (no listener
+      // yet, so nothing is offered).
+      createMeetingToolSource({ browser: browserTools.plan }),
       // Reading the web, for every agent and run (ADR 0109): a search service when configured, else the agent's
       // own browser, else DuckDuckGo's HTML page.
       createWebToolSource({

@@ -17722,6 +17722,7 @@
       "agentNote": "Notiz von {{from}}",
       "agentNoteAnon": "Notiz von einem anderen Agenten",
       "waitResult": "Worauf {{name}} gewartet hat, ist da",
+      "meetingEnded": "Die Besprechung, in der {{name}} Notizen gemacht hat, ist vorbei",
       "runRetry": "{{by}} hat {{name}} gebeten, es erneut zu versuchen",
       "runRetryAnon": "{{name}} versucht es erneut",
       "other": "Hinweis für {{name}}",
