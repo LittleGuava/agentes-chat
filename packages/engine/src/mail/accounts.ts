@@ -30,6 +30,7 @@ import { countComposioConnection } from "../connector-usage";
 import { composioToolkitUrl } from "../connectors/presets";
 import { openSecret, sealSecret, sha256 } from "../crypto";
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from "../errors";
+import type { Judge } from "../judge";
 import { isBlockedAddress, type ResolveHost, resolveHostDns } from "../net-guard";
 import { requirePermission } from "../organizations";
 import { closedRefusal, orgStanding } from "../standing";
@@ -54,6 +55,8 @@ export interface MailDeps {
   now?: () => Date;
   /** Between the callback's reads of a sign-in that is still pending (default 1 s; tests: 0). */
   composioPollMs?: number;
+  /** Sorts new mail of mailboxes with triage on (`mail_triage`); absent or null: mail goes through unsorted. */
+  judge?: Judge | null;
 }
 
 export interface MailAccountView {
@@ -76,6 +79,8 @@ export interface MailAccountView {
   defaultFrom: string | null;
   /** Who connected it: the only person who gives agents access to it (ADR 0038). */
   ownerUserId: string | null;
+  /** New mail is sorted (important, needs a reply, ignore) before it wakes a routine; ignored mail doesn't. */
+  triage: boolean;
   agents: { agentId: string; level: "read" | "read_write"; canDelete: boolean }[];
 }
 
@@ -168,6 +173,7 @@ export function mailAccountView(row: MailAccountRow, grants?: Map<string, Set<st
     aliases: row.aliases,
     defaultFrom: row.defaultFrom,
     ownerUserId: row.createdByUserId,
+    triage: row.triage,
     agents,
   };
 }
@@ -616,9 +622,9 @@ export async function completeComposioConnect(
 // ── Changes ─────────────────────────────────────────────────────────────────
 
 /**
- * Renames, turns actions on or off, sets the mailbox's other addresses and
- * the one new mail goes out from, or replaces the IMAP app password after
- * testing it. An agent pinned to an address the mailbox no longer has goes
+ * Renames, turns actions on or off, turns triage on or off, sets the
+ * mailbox's other addresses and the one new mail goes out from, or replaces
+ * the IMAP app password after testing it. An agent pinned to an address the mailbox no longer has goes
  * back to the default.
  */
 export async function updateMailAccount(
@@ -633,12 +639,14 @@ export async function updateMailAccount(
     askActions?: string[];
     aliases?: string[];
     defaultFrom?: string | null;
+    triage?: boolean;
   },
 ): Promise<{ ok: true; account: MailAccountView } | { ok: false; error: MailTestError }> {
   await requirePermission(deps.db, actorId, orgId, "manage_connectors");
   const row = await loadAccount(deps.db, orgId, accountId);
   const set: Partial<typeof mailAccounts.$inferInsert> = {};
   if (input.label !== undefined) set.label = input.label.trim().slice(0, 80) || row.address;
+  if (input.triage !== undefined) set.triage = input.triage;
   const aliases = input.aliases !== undefined ? normalizeAliases(row.address, input.aliases) : row.aliases;
   const addresses = mailboxAddresses({ address: row.address, aliases });
   if (input.aliases !== undefined) set.aliases = aliases;

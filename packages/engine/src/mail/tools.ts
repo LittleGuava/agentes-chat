@@ -44,6 +44,7 @@ import {
   oneLine,
   wrapUntrusted,
 } from "./text";
+import { type MailTriageVerdict, mailTriageVerdicts } from "./triage";
 
 const { mailSends } = schema;
 /** An attachment's text shown with the `attachment` result; read_artifact reads the rest. */
@@ -212,7 +213,10 @@ interface Planned {
   body: string;
 }
 
-function summaryLine(m: MailSummary) {
+/** How triage sorted a message (`mail_triage`), as a line of what the agent reads. */
+const triageLine = (verdict: MailTriageVerdict | undefined) => (verdict ? [`triage: ${verdict}`] : []);
+
+function summaryLine(m: MailSummary, verdict?: MailTriageVerdict) {
   const flags = [m.unread ? "unread" : null, m.flagged ? "flagged" : null, m.hasAttachments ? "attachments" : null]
     .filter(Boolean)
     .join(", ");
@@ -223,11 +227,12 @@ function summaryLine(m: MailSummary) {
     `subject: ${oneLine(m.subject, 300)}`,
     ...(m.folder ? [`folder: ${m.folder}`] : []),
     ...(flags ? [`flags: ${flags}`] : []),
+    ...triageLine(verdict),
     `snippet: ${oneLine(m.snippet, 200)}`,
   ].join("\n");
 }
 
-function messageText(m: MailMessage) {
+function messageText(m: MailMessage, verdict?: MailTriageVerdict) {
   return [
     `id: ${m.id}`,
     ...(m.threadId ? [`thread: ${m.threadId}`] : []),
@@ -238,6 +243,7 @@ function messageText(m: MailMessage) {
     ...(m.replyTo.length > 0 ? [`reply-to: ${m.replyTo.map(formatAddress).join(", ")}`] : []),
     `subject: ${oneLine(m.subject, 500)}`,
     ...(m.folder ? [`folder: ${m.folder}`] : []),
+    ...triageLine(verdict),
     ...(m.attachments.length > 0
       ? [
           `attachments: ${m.attachments
@@ -420,8 +426,13 @@ export function createMailToolSource(deps: MailToolDeps): ToolSource {
             );
             const visible = results.filter((m) => !messageRefusal(policy, m, t));
             if (visible.length === 0) return { content: "No messages found.", data: { count: 0 } };
+            const verdicts = await mailTriageVerdicts(
+              ctx.db,
+              account.id,
+              visible.map((m) => m.id),
+            );
             return {
-              content: wrapUntrusted(visible.map(summaryLine).join("\n\n")),
+              content: wrapUntrusted(visible.map((m) => summaryLine(m, verdicts.get(m.id))).join("\n\n")),
               data: { count: visible.length },
             };
           } catch (error) {
@@ -441,7 +452,8 @@ export function createMailToolSource(deps: MailToolDeps): ToolSource {
           try {
             const m =
               recalled(account.id, str(input.message_id)) ?? (await read(ctx.db, account, str(input.message_id)));
-            return { content: wrapUntrusted(messageText(m)), data: { messageId: m.id } };
+            const verdicts = await mailTriageVerdicts(ctx.db, account.id, [m.id]);
+            return { content: wrapUntrusted(messageText(m, verdicts.get(m.id))), data: { messageId: m.id } };
           } catch (error) {
             return failure(ctx.db, account, error);
           }
