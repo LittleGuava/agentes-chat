@@ -1,6 +1,6 @@
 # 0068. An invitation link asks to join; an admin approves
 
-- Status: Accepted (built: server, web, the shared client and the phone app). Revised by ADR 0072: on a server that sends email, an address proves itself with a code before it asks, and an approval lets in at once only a confirmed account whose address was proven. Amended by ADR 0078: an early-access link also opens sign-up, for the address it was sent to. Revised by ADR 0090: a proven ask carries a password, and an approval makes that account. Amended by ADR 0184: a link carries cargos, channels, agents, an expiry and a maximum, and a workspace has many links (§9), each still only asking
+- Status: Accepted (built: server, web, the shared client and the phone app). Revised by ADR 0072: on a server that sends email, an address proves itself with a code before it asks, and an approval lets in at once only a confirmed account whose address was proven. Amended by ADR 0078: an early-access link also opens sign-up, for the address it was sent to. Revised by ADR 0090: a proven ask carries a password, and an approval makes that account. Amended by ADR 0184: a link carries cargos, channels, agents, an expiry and a maximum, and a workspace has many links (§9), each still only asking. Amended 2026-11-15: a confirmed account at a domain an admin named joins with a click (addendum)
 - Date: 2026-10-26
 - Revises: ADR 0006 (the organization-wide invitation link, and the sign-up policy's link path)
 
@@ -83,3 +83,34 @@ by an account with it.
 - One-click Approve and Deny links in the email: mail scanners follow them.
 - A role chosen per link: one choice at approval, when the admin knows who it is, is enough.
 - Keeping 7-day links: approval makes a link safe for the month a team takes to arrive.
+
+## Addendum (2026-11-15): joining by the address's domain
+
+A team whose people all have addresses at one company domain shouldn't need a link or an approval per person.
+
+1. **Admins name domains.** Someone with `manage_members` adds a domain in Settings › Members (`acme.com`, at most
+   10 per workspace, table `organization_join_domains`), with the cargos it starts people on, checked as an
+   invitation's (`givableRoleIds`). The domain is lowercased, a leading `@` dropped, and refused when it isn't a
+   host name (`join_domain.invalid`) or is a public mailbox provider (`gmail.com`, `outlook.com` and the others in
+   `PUBLIC_MAIL_DOMAINS`, and a provider's country domains such as `outlook.de` or `yahoo.com.br`,
+   `join_domain.public`). Only a domain the admin's own confirmed address is at
+   (`join_domain.not_yours`): otherwise any workspace could show itself to every person at another company. The
+   match is exact, a subdomain is a domain of its own. Adding and removing are audited (`join_domain.added`,
+   `join_domain.removed`). A personal workspace (ADR 0159) doesn't show the card: the mode changes what is in sight,
+   never who may do what, so the server takes a domain there as anywhere.
+2. **A confirmed account sees it and joins with a click, never on its own.** `GET /api/app/domain-workspaces` lists
+   the active workspaces (`openOrg`) with the account's domain that it isn't in, as id, name and logo only, never
+   who is in them; `POST /api/app/domain-workspaces/{orgId}/join` joins. Only an account whose address is confirmed
+   (`users.email_verified`, read again in the transaction) and isn't closed, and not someone an admin removed from
+   that workspace (a `member.removed` row in its audit log): they come back by invitation. Joining is
+   `joinOrganization`, so the member limit (`org.members_full`) and a closed workspace are refused under the
+   `org-members` lock like any other way in, and it is audited as `member.joined { via: "domain", domain }`. The
+   cargos are those whoever added the domain could still give (`stillGivableRoleIds`): demoting or removing them
+   takes back what the domain hands out, as with an invitation. A request to join they had waiting closes, and the
+   admins' notice with the last one, as when an invitation is accepted.
+3. **It doesn't open sign-up.** §5 stands: only an email invitation opens a server whose sign-up is closed. Someone
+   at the domain with an account (or who can sign up on an open server) finds the workspace in the onboarding's
+   first step.
+
+Later: the phone app's and the workspace switcher's list, a notice to admins when someone joins this way, proving a
+domain by DNS instead of by the admin's address.

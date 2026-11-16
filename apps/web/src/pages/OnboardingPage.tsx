@@ -70,6 +70,7 @@ import { returnPlace } from "@/lib/return-to";
 import { STORAGE_KEYS, sessionStore, storage } from "@/lib/storage";
 import { useToast } from "@/lib/toast";
 import { AiHost, AiStage, AiStep } from "./onboarding/AiStep";
+import { DomainWorkspaces } from "./onboarding/DomainWorkspaces";
 import { OnboardingPreview, type PreviewAgent } from "./onboarding/OnboardingPreview";
 import { PeopleStep } from "./onboarding/PeopleStep";
 import { PurposeCards } from "./onboarding/PurposeCards";
@@ -846,6 +847,8 @@ export function OnboardingPage() {
 
               {step === "name" && (
                 <>
+                  {/* Before any workspace is made: the team may already be here (ADR 0068, addendum 2026-11-15). */}
+                  {orgId === null && <DomainWorkspaces />}
                   <Locked when={busy}>
                     {asking ? (
                       <div className="onb__answer">

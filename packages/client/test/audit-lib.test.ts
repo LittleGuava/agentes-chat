@@ -56,6 +56,14 @@ describe("Auditoria in words (web and phone)", () => {
     expect(set({})).toBe("audit.change.pattern(audit.change.verb.other,audit.change.area.other)");
   });
 
+  test("a domain named or removed for joining says which domain (ADR 0068, addendum 2026-11-15)", () => {
+    const person = { type: "person" as const, id: "u1", name: "Bia" };
+    const said = (action: string) =>
+      auditSentence(t, row({ actor: person, action, details: { domain: "acme.com" } }), "pt-BR").text;
+    expect(said("join_domain.added")).toBe("audit.change.joinDomain.added(acme.com)");
+    expect(said("join_domain.removed")).toBe("audit.change.joinDomain.removed(acme.com)");
+  });
+
   test("a billing hold's reason is said in words, never as its code; any other reason as written", () => {
     expect(auditReason(t, standing({ from: "active", to: "hold", reason: "unpaid" }))).toBe(
       "standing.notification.billing.unpaid",

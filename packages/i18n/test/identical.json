@@ -997,6 +997,7 @@
       "storage.connect.awsRegion.eu-north-1"
     ],
     "de": [
+      "members.domains.domain",
       "devices.iphone.steps.account",
       "devices.workspace",
       "devices.cpus",
@@ -2947,6 +2948,7 @@
       "storage.connect.provider.b2"
     ],
     "id": [
+      "members.domains.domain",
       "shell.email.label",
       "devices.cpus",
       "devices.memory",
