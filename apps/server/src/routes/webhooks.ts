@@ -52,7 +52,11 @@ export function registerWebhookReceiver(api: OpenAPIHono, deps: AppDeps) {
     const raw = await readWebhookText(c.req.raw, 1_000_000);
     if (raw === null) return c.json({ error: "too large" }, 413);
     try {
-      const result = await handleComposioWebhook({ db: deps.db, mail: deps.adapters.mail }, c.req.raw.headers, raw);
+      const result = await handleComposioWebhook(
+        { db: deps.db, mail: deps.adapters.mail, judge: deps.extras?.context?.judge },
+        c.req.raw.headers,
+        raw,
+      );
       if (result.fired > 0) deps.wakeWorkers?.();
       return c.json({ ok: true, type: result.type, fired: result.fired }, 202);
     } catch (error) {

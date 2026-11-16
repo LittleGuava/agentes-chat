@@ -147,6 +147,13 @@ test("mail API: IMAP account (tested), Gmail through Composio, agent access, fol
   const renamed = await api(`/mail/accounts/${account.id}`, { method: "PATCH", json: { label: "Help desk" } });
   expect(((await renamed.json()) as { account: { label: string } }).account.label).toBe("Help desk");
 
+  // Triage is off until someone turns it on for the mailbox.
+  expect(
+    ((await (await api("/mail/accounts")).json()) as { accounts: { triage: boolean }[] }).accounts[0]?.triage,
+  ).toBe(false);
+  const sorted = await api(`/mail/accounts/${account.id}`, { method: "PATCH", json: { triage: true } });
+  expect(((await sorted.json()) as { account: { triage: boolean } }).account.triage).toBe(true);
+
   // Other addresses of the mailbox, and the one new mail goes out from.
   const aliased = await api(`/mail/accounts/${account.id}`, {
     method: "PATCH",

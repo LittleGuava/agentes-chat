@@ -73,6 +73,10 @@ const MailAccount = z
       .string()
       .nullable()
       .openapi({ description: "Who connected it: the only person who gives agents access to it." }),
+    triage: z.boolean().openapi({
+      description:
+        "New mail watched by routines is sorted first (important, needs a reply, ignore); ignored mail wakes no routine.",
+    }),
     agents: z.array(z.object({ agentId: z.uuid(), level: z.enum(["read", "read_write"]), canDelete: z.boolean() })),
   })
   .openapi("MailAccount");
@@ -126,6 +130,7 @@ export function mailRoutes(deps: AppDeps, log: Logger) {
     mail: adapters.mail,
     publicUrl: config.PUBLIC_URL,
     resolveHost: deps.extras?.resolveHost,
+    judge: deps.extras?.context?.judge,
   };
 
   app.openapi(
@@ -278,7 +283,7 @@ export function mailRoutes(deps: AppDeps, log: Logger) {
       tags,
       security,
       summary:
-        "Rename a mailbox, turn its actions on or off for every agent, set its other addresses, or replace an IMAP mailbox's app password (tested first) (admins)",
+        "Rename a mailbox, turn its actions on or off for every agent, turn triage on or off, set its other addresses, or replace an IMAP mailbox's app password (tested first) (admins)",
       description:
         "Replies go out from the address a message arrived at (`address` or one of `aliases`); new mail from `defaultFrom`. 400 `mail.from_not_mailbox` when `defaultFrom` isn't one of them.",
       request: {
@@ -294,6 +299,7 @@ export function mailRoutes(deps: AppDeps, log: Logger) {
               .optional(),
             aliases: z.array(z.string().max(320)).max(20).optional(),
             defaultFrom: z.string().max(320).nullable().optional(),
+            triage: z.boolean().optional(),
           }),
         ),
       },
