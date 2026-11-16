@@ -189,6 +189,8 @@ const READS = new Set([
   "list_reminders",
   "find_agent",
   "get_my_usage",
+  // A part of an answer this run already got (ADR 0015, addendum on long results).
+  "query_result",
   "computer_status",
   "read_file",
   "list_files",

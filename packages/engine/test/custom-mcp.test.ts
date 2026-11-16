@@ -216,6 +216,8 @@ function stripeMcp() {
       loja: { stripe_context: "acct_loja", livemode: true, name: "Loja B" },
     } as Record<string, { stripe_context: string; livemode: boolean; name: string }>,
     down: false,
+    /** What `list_customers` answers, when a test sets it. */
+    customers: null as string | null,
   };
   const connect: McpConnect = async (_connection, headers) => {
     const key = (headers.authorization ?? "").replace(/^Bearer /, "");
@@ -238,7 +240,7 @@ function stripeMcp() {
       { description: "List customers", inputSchema: {}, annotations: { readOnlyHint: true } },
       async () => {
         state.calls.push({ tool: "list_customers", key });
-        return { content: [{ type: "text", text: `customers of ${account?.stripe_context}` }] };
+        return { content: [{ type: "text", text: state.customers ?? `customers of ${account?.stripe_context}` }] };
       },
     );
     const [client, transport] = InMemoryTransport.createLinkedPair();
@@ -858,6 +860,36 @@ describe("custom MCP servers", () => {
     const call = await gateway.invoke(ctx, { toolUseId: "t1", name: "stripe_2_list_customers", input: {} });
     expect(call).toMatchObject({ type: "result" });
     expect(stripe.state.calls.at(-1)).toEqual({ tool: "list_customers", key: "rk_loja_2222" });
+  });
+
+  test("a server's JSON answer past the limit is kept for the run, framed as outside, and read in parts", async () => {
+    f = await setup();
+    const stripe = stripeMcp();
+    const deps = depsOf(f, { connect: stripe.connect, resolveHost: async () => ["93.184.216.34"] });
+    const acme = await connectStripe(deps, "rk_acme_1111");
+    await acceptCustomSuggestion(deps, f.owner.id, f.org.id, acme.server.id);
+    const gateway = createToolGateway({ sources: [createConnectorToolSource(deps)], keepLongResults: true });
+    const ctx = await runContext(f);
+    const data = Array.from({ length: 600 }, (_, i) => ({
+      id: `cus_${i}`,
+      email: `c${i}@acme.test`,
+      note: "x".repeat(80),
+    }));
+    stripe.state.customers = JSON.stringify({ object: "list", data, has_more: false });
+
+    const call = await gateway.invoke(ctx, { toolUseId: "t1", name: "stripe_list_customers", input: {} });
+    const content = call.type === "result" ? call.output.content : "";
+    expect(content).toContain("data: array, 600 items");
+    expect(content).toContain('<external_data source="stripe_list_customers">');
+    const id = /result_id "([0-9a-f-]{36})"/.exec(content)?.[1] ?? "";
+    const part = await gateway.invoke(ctx, {
+      toolUseId: "t2",
+      name: "query_result",
+      input: { result_id: id, expression: "data[?id=='cus_42'].email | [0]" },
+    });
+    expect(part.type === "result" ? part.output.content : "").toBe(
+      '<external_data source="stripe_list_customers">\n"c42@acme.test"\n</external_data>',
+    );
   });
 
   test("renaming keeps the tool names: a denied tool stays denied; names are unique in the workspace", async () => {
