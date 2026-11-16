@@ -16761,6 +16761,9 @@ export const ptBR = {
       "Antes de mandar e-mail, mensagem ou abrir PR, o agente vê se alguém do time já fez isso com a mesma pessoa ou lugar nos últimos 30 dias, e não repete.",
     actionCheckHelpPersonal:
       "Antes de mandar e-mail ou mensagem, o agente vê se você ou outro agente já fez isso com a mesma pessoa ou lugar nos últimos 30 dias, e não repete.",
+    meetingNotes: "Agentes anotam reuniões",
+    meetingNotesHelp:
+      "Agentes podem entrar em chamadas do Google Meet e do Jitsi quando alguém pede, e avisam no chat da chamada antes de ouvir. Em alguns lugares, gravar exige o consentimento de todos os participantes. Quem envia o agente responde por isso e precisa avisar o anfitrião.",
     mode: {
       label: "Modo do workspace",
       team: "Time",
@@ -17437,6 +17440,8 @@ export const ptBR = {
       agentNoteAnon: "Nota de outro agente",
       waitResult: "Chegou o resultado que {{name}} esperava",
       meetingEnded: "Terminou a reunião em que {{name}} fazia anotações",
+      meetingJoined: "{{name}} está anotando uma reunião",
+      leaveMeeting: "Sair da reunião",
       other: "Aviso para {{name}}",
       wakeSkipped: "A menção de {{name}} não chamou {{agents}}",
       wakeSkippedAnon: "A menção de {{name}} não chamou outro agente",

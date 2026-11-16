@@ -530,6 +530,10 @@ test("a system-mode runner (root) without workers does no agent work; machine-le
     "cli.install",
     // Opening Xcode on the Mac, beside its fix (listed in `MACHINE_OPS` order).
     "xcode.open",
+    // A meeting's audio goes out on a data socket, which needs the machine token (ADR 0199 §4); root says it can't
+    // hear one yet (`meeting_audio_system_mode`), so nothing is offered there.
+    "meeting.listen",
+    "meeting.stop",
   ]);
   const install = { op: "cli.install", action: "start", tool: "claude" } as unknown as MachineRequest;
   const installer = { ...ctx, cliInstall: () => ({ install: { tool: "claude" as const, state: "running" as const } }) };

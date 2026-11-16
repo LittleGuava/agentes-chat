@@ -3,6 +3,7 @@ import {
   type BrainTurnRequest,
   type ErrorReporter,
   type S3Fetch,
+  type SpeechEngine,
   type SpeechFetch,
   STREAM_CLOSE,
 } from "@agenteschat/adapters";
@@ -60,6 +61,7 @@ import {
   createMachineHub,
   createMailToolSource,
   createMediaToolSource,
+  createMeetingAudio,
   createMeetingToolSource,
   createMissionHooks,
   createMissionRunToolSource,
@@ -396,6 +398,16 @@ export function buildEngine(o: EngineOptions) {
     errors: o.errors,
     vault,
   });
+  // Meetings an agent takes notes in (ADR 0199 §4): the speech chain is made below, with voice messages.
+  let meetingSpeech: () => SpeechEngine[] = () => [];
+  const meetingAudio = createMeetingAudio({
+    db,
+    pubsub: adapters.pubsub,
+    hub: machineHub,
+    speech: () => meetingSpeech(),
+    browser: browserTools.plan,
+    log: o.log,
+  });
   // The workspace's cap of live background works (ADR 0121 §7).
   setWorkOrgCap(config.AGENT_WORK_MAX_PER_ORG);
   const tools = createToolGateway({
@@ -524,9 +536,14 @@ export function buildEngine(o: EngineOptions) {
         publicUrl: config.PUBLIC_URL,
       }),
       browserTools,
-      // Meetings (ADR 0199): joined from the agent's own browser, offered only once a computer can hear one (no listener
-      // yet, so nothing is offered).
-      createMeetingToolSource({ browser: browserTools.plan }),
+      // Meetings (ADR 0199): joined from the agent's own browser, offered only where the workspace turned them on, the
+      // agent's computer can hear a call and a speech engine makes its words.
+      createMeetingToolSource({
+        browser: browserTools.plan,
+        listener: meetingAudio.listener,
+        leave: meetingAudio.leave,
+        pubsub: adapters.pubsub,
+      }),
       // Reading the web, for every agent and run (ADR 0109): a search service when configured, else the agent's
       // own browser, else DuckDuckGo's HTML page.
       createWebToolSource({
@@ -620,8 +637,10 @@ export function buildEngine(o: EngineOptions) {
     },
     recheck: (stream) => recheckStream(db, stream),
     reauthorize: (stream, mode) => reauthorizeStream(db, stream, mode),
-    // An agent browser's live view has a data socket of its own too (ADR 0040 §7.1).
-    claim: (streamId, machineId, socket) => browserLive.claimView(streamId, machineId, socket),
+    // An agent browser's live view has a data socket of its own too (ADR 0040 §7.1), and so does a meeting's audio
+    // (ADR 0199 §4).
+    claim: (streamId, machineId, socket) =>
+      browserLive.claimView(streamId, machineId, socket) ?? meetingAudio.claim(streamId, machineId, socket),
     onReady: sessions ? (stream) => sessions.ready(stream) : undefined,
     onClosed: (stream) => Promise.all([streamClosed(db, stream), sessions?.closed(stream)]),
     log: o.log,
@@ -757,8 +776,9 @@ export function buildEngine(o: EngineOptions) {
       { fetch: o.speechFetch },
     ),
   });
-  // An audio file an agent opens is heard by the same engines as a voice message.
+  // An audio file an agent opens is heard by the same engines as a voice message, and so is a meeting (ADR 0199).
   artifacts.speech = speech.chain;
+  meetingSpeech = speech.chain;
   const voice: VoiceDeps = {
     db,
     pubsub: adapters.pubsub,
@@ -899,6 +919,8 @@ export function buildEngine(o: EngineOptions) {
     /** Likewise: the speech engines, read before the first voice message. */
     speech,
     voice,
+    /** Meetings agents take notes in (ADR 0199): the routes' "Leave meeting". */
+    meetingAudio,
   };
 }
 

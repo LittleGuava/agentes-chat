@@ -729,6 +729,7 @@ export function createMachineHub(deps: MachineHubDeps) {
         frame.desktop ||
         frame.terminal ||
         frame.desktopUse ||
+        frame.meetingAudio ||
         frame.claudeLoginMethods ||
         frame.toolchains
           ? {
@@ -741,6 +742,8 @@ export function createMachineHub(deps: MachineHubDeps) {
                 ...(frame.desktop ? { desktop: frame.desktop } : {}),
                 ...(frame.terminal ? { terminal: frame.terminal } : {}),
                 ...(frame.desktopUse ? { desktopUse: frame.desktopUse } : {}),
+                // ADR 0199 §4: whether it can hear a meeting an agent's browser is in.
+                ...(frame.meetingAudio ? { meetingAudio: frame.meetingAudio } : {}),
                 ...(system ? { mode: "system" as const } : {}),
                 ...(frame.claudeLoginMethods ? { claudeLoginMethods: frame.claudeLoginMethods } : {}),
                 ...(loginBlocked ? { claudeLoginBlocked: loginBlocked } : {}),

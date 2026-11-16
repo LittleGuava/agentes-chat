@@ -16036,6 +16036,8 @@
     "actionCheckPersonal": "智能体会检查已经做过的事",
     "actionCheckHelp": "在发送邮件、消息或 Pull Request 之前，智能体会检查过去 30 天内团队中是否已有人对同一个人或同一个地方做过同样的事，避免重复。",
     "actionCheckHelpPersonal": "在发送邮件或消息之前，智能体会检查过去 30 天内你或其他智能体是否已经对同一个人或地方做过，避免重复。",
+    "meetingNotes": "智能体记录会议笔记",
+    "meetingNotesHelp": "有人请求时，智能体可以加入 Google Meet 和 Jitsi 通话，并在开始收听前在通话聊天中告知。在某些地区，录音需要所有参与者同意。派出智能体的人对此负责，并且必须告知主持人。",
     "mode": {
       "label": "工作区模式",
       "team": "团队",
@@ -16659,6 +16661,8 @@
       "agentNoteAnon": "来自另一个智能体的备注",
       "waitResult": "{{name}} 等待的结果到了",
       "meetingEnded": "{{name}} 记录笔记的会议已结束",
+      "meetingJoined": "{{name}} 正在会议中做笔记",
+      "leaveMeeting": "离开会议",
       "other": "给 {{name}} 的通知",
       "wakeSkipped": "{{name}} 的提及没有传达给 {{agents}}",
       "wakeSkippedAnon": "{{name}} 的提及没有叫到其他智能体",

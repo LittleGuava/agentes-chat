@@ -137,7 +137,7 @@ export function meetingJoinSteps(link: MeetingLink, displayName: string): Screen
 export type MeetingPageState = "waiting" | "in_call" | "refused";
 
 const REFUSED = [/you can.t join this video call/i, /não é possível participar desta videochamada/i];
-const IN_CALL = [/\bleave call\b/i, /\bleave meeting\b/i, /sair da chamada/i, /sair da reunião/i];
+const IN_CALL = [/\bleave call\b/i, /\bleave (the )?meeting\b/i, /sair da chamada/i, /sair da reunião/i];
 
 /** Where the page after the steps says the agent is; anything it doesn't recognize is waiting for the host. */
 export function meetingStateOf(page: ScreenObservation | null): MeetingPageState {
@@ -145,4 +145,43 @@ export function meetingStateOf(page: ScreenObservation | null): MeetingPageState
   if (REFUSED.some((r) => r.test(text))) return "refused";
   if (IN_CALL.some((r) => r.test(text))) return "in_call";
   return "waiting";
+}
+
+/** What shows on the page once the bot is in the call (its leave button): the lobby's wait ends when it does. */
+export function meetingInCallText(platform: MeetingPlatform): string {
+  return platform === "jitsi" ? "Leave the meeting" : "Leave call";
+}
+
+/**
+ * The line the bot posts in the meeting's chat before anything is heard (ADR 0199 §5): who it is, for whom, and that
+ * what is said becomes notes. No command it can't keep: nothing reads the meeting's chat yet.
+ */
+export function meetingAnnouncement(displayName: string, person: string | null): string {
+  const forWhom =
+    person
+      ?.replace(/[\p{Cc}\p{Cf}"]/gu, "")
+      .trim()
+      .slice(0, 60) || null;
+  return `Hi, I'm ${displayName}, an AI agent from agentes.chat taking notes${
+    forWhom ? ` for ${forWhom}` : ""
+  }. What is said from now on is transcribed for those notes. If you don't agree, ask ${
+    forWhom ?? "whoever invited me"
+  } or the host to remove me.`;
+}
+
+/** Shows the line was posted: its first words, as the chat shows them. */
+const announcedText = (line: string) => line.slice(0, 40);
+
+/**
+ * The steps that post the line in the meeting's chat and check it shows there: the chat opened, the line typed and
+ * sent, then a wait for it on the page. A step that fails stops the plan, and the bot hears nothing.
+ */
+export function meetingAnnounceSteps(platform: MeetingPlatform, line: string): ScreenStep[] {
+  const [open, box] = platform === "jitsi" ? ["Open chat", "Type a message"] : ["Chat with everyone", "Send a message"];
+  return [
+    { do: "click", target: open },
+    { do: "fill", target: box, text: line },
+    { do: "press", key: "Enter" },
+    { do: "wait", text: announcedText(line), seconds: 15 },
+  ];
 }

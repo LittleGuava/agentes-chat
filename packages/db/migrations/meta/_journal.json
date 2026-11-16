@@ -1919,6 +1919,13 @@
       "when": 1794765955217,
       "tag": "0277_agent_meetings",
       "breakpoints": true
+    },
+    {
+      "idx": 276,
+      "version": "7",
+      "when": 1794828345709,
+      "tag": "0278_meeting_audio",
+      "breakpoints": true
     }
   ]
 }

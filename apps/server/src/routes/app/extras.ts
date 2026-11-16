@@ -8,6 +8,7 @@ import type {
   GitProxyDeps,
   JevKey,
   McpConnect,
+  MeetingAudio,
   ModelGateway,
   ResolveHost,
   RouterDeps,
@@ -69,4 +70,6 @@ export interface AppExtras {
   /** Speech engines and what voice messages need (ADR 0100); absent: no voice messages. */
   speech?: SpeechSettings;
   voice?: VoiceDeps;
+  /** Meetings agents take notes in (ADR 0199): "Leave meeting"; absent: 404. */
+  meetings?: Pick<MeetingAudio, "leaveAs">;
 }

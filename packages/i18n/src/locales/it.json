@@ -17060,6 +17060,8 @@
     "actionCheckPersonal": "Gli agenti controllano cosa è già stato fatto",
     "actionCheckHelp": "Prima di un'email, un messaggio o una pull request, l'agente controlla se qualcuno del team l'ha già fatto alla stessa persona o nello stesso posto negli ultimi 30 giorni, e non lo ripete.",
     "actionCheckHelpPersonal": "Prima di un'email o di un messaggio, l'agente controlla se tu o un altro agente l'avete già fatto con la stessa persona o nello stesso posto negli ultimi 30 giorni, e non lo ripete.",
+    "meetingNotes": "Gli agenti prendono appunti delle riunioni",
+    "meetingNotesHelp": "Gli agenti possono partecipare a chiamate Google Meet e Jitsi quando qualcuno lo chiede, e lo dicono nella chat della chiamata prima di ascoltare. In alcuni luoghi registrare richiede il consenso di tutti i partecipanti. Chi invia l'agente ne risponde e deve avvisare l'organizzatore.",
     "mode": {
       "label": "Modalità dello spazio di lavoro",
       "team": "Team",
@@ -17719,6 +17721,8 @@
       "agentNoteAnon": "Nota di un altro agente",
       "waitResult": "È arrivato ciò che {{name}} aspettava",
       "meetingEnded": "La riunione in cui {{name}} prendeva appunti è finita",
+      "meetingJoined": "{{name}} sta prendendo appunti in una riunione",
+      "leaveMeeting": "Esci dalla riunione",
       "other": "Avviso per {{name}}",
       "wakeSkipped": "La menzione di {{name}} non ha raggiunto {{agents}}",
       "wakeSkippedAnon": "La menzione di {{name}} non ha raggiunto un altro agente",

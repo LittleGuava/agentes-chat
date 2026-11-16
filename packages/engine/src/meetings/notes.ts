@@ -22,18 +22,25 @@ const clock = (ms: number) => {
   return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
 };
 
-/** The transcript as the agent reads it: `[mm:ss] Speaker: words`, one line per piece, empty pieces left out. */
+const speakerOf = (l: MeetingLine) => l.speaker.replace(/\s+/g, " ").trim();
+
+/**
+ * The transcript as the agent reads it: `[mm:ss] Speaker: words`, one line per piece, empty pieces left out. A piece
+ * nobody is named for (the computer hears the call, not who speaks) is `[mm:ss] words`.
+ */
 export function meetingTranscriptText(lines: MeetingLine[]): string {
   return lines
-    .map((l) => ({ ...l, speaker: l.speaker.replace(/\s+/g, " ").trim() || "Someone", text: l.text.trim() }))
-    .filter((l) => l.text)
-    .map((l) => `[${clock(l.atMs)}] ${l.speaker}: ${l.text.replace(/\s+/g, " ")}`)
+    .filter((l) => l.text.trim())
+    .map((l) => {
+      const who = speakerOf(l);
+      return `[${clock(l.atMs)}] ${who ? `${who}: ` : ""}${l.text.trim().replace(/\s+/g, " ")}`;
+    })
     .join("\n");
 }
 
-/** Who spoke, in the order they first did. */
+/** Who spoke, in the order they first did; only those the transcript names. */
 export const meetingSpeakers = (lines: MeetingLine[]) => [
-  ...new Set(lines.filter((l) => l.text.trim()).map((l) => l.speaker.replace(/\s+/g, " ").trim() || "Someone")),
+  ...new Set(lines.filter((l) => l.text.trim() && speakerOf(l)).map(speakerOf)),
 ];
 
 export interface FinishMeetingInput {
@@ -90,9 +97,9 @@ export async function finishMeeting(
         },
       },
       // For people: no transcript and no names here, so nobody's words can mention (and wake) an agent.
-      body: `Meeting ended (${platform}${minutes ? `, ${minutes} min` : ""}, ${speakers.length} ${
-        speakers.length === 1 ? "person" : "people"
-      } spoke). Notes follow.`,
+      body: `Meeting ended (${platform}${minutes ? `, ${minutes} min` : ""}${
+        speakers.length > 0 ? `, ${speakers.length} ${speakers.length === 1 ? "person" : "people"} spoke` : ""
+      }). Notes follow.`,
       readOutside: true,
     });
     await tx.update(t).set({ noticeMessageId: delivered.message.id }).where(eq(t.id, meeting.id));

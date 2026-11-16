@@ -210,12 +210,12 @@ export class DataSockets {
 
   async dial(
     streamId: string,
-    kind: "desktop" | "terminal" | "browserView" | "phone",
+    kind: "desktop" | "terminal" | "browserView" | "phone" | "meetingAudio",
     signal?: AbortSignal,
   ): Promise<DataSocket> {
     const { relayed, ...dial } = this.opts;
-    // Phones are only reached by single-user runners, which count nothing.
-    const bytes = kind === "phone" ? undefined : relayed?.[kind];
+    // Phones and meetings are only reached by single-user runners, which count nothing.
+    const bytes = kind === "phone" || kind === "meetingAudio" ? undefined : relayed?.[kind];
     let socket: DataSocket | null = null;
     socket = await openDataSocket({
       ...dial,

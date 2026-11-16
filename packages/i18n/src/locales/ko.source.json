@@ -40717,6 +40717,12 @@
   "settings.actionCheckHelpPersonal": {
     "value": "Before an email or a message, the agent checks whether you or another agent already did it to the same person or place in the last 30 days, and doesn't repeat it."
   },
+  "settings.meetingNotes": {
+    "value": "Agents take meeting notes"
+  },
+  "settings.meetingNotesHelp": {
+    "value": "Agents can join Google Meet and Jitsi calls when someone asks, and say so in the call's chat before they listen. Some places require every participant's consent to record. Whoever sends the agent answers for it and must tell the host."
+  },
   "settings.mode.label": {
     "value": "Workspace mode"
   },
@@ -42249,6 +42255,12 @@
   },
   "chat.notice.meetingEnded": {
     "value": "The meeting {{name}} took notes in has ended"
+  },
+  "chat.notice.meetingJoined": {
+    "value": "{{name}} is taking notes in a meeting"
+  },
+  "chat.notice.leaveMeeting": {
+    "value": "Leave meeting"
   },
   "chat.notice.other": {
     "value": "Notice for {{name}}"

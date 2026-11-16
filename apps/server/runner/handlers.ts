@@ -42,6 +42,7 @@ import { runCommand } from "./exec";
 import { type CacheFill, type CloneSlots, gitSync } from "./git";
 import { isGitInternalPath, touchesGitInternals } from "./git-guard";
 import { type McpTaskInfo, redactDeep } from "./mcp";
+import type { MeetingAudio } from "./meeting-audio";
 import { missionWorktree } from "./mission-worktree";
 import { agentWorkspace, hiddenIn, isInside, resolveForAgent } from "./paths";
 import type { PhoneManager, PhoneRequest } from "./phones";
@@ -119,6 +120,7 @@ export const NEW_WORK_OPS: ReadonlySet<string> = new Set([
   "browser.capture",
   "browser.warm",
   "browser.stream.start",
+  "meeting.listen",
   "desktop.session.start",
   "desktop.look",
   "desktop.act",
@@ -183,6 +185,9 @@ export const OP_ROUTES: Readonly<Record<MachineOp, "machine" | "agent">> = {
   "stream.open": "machine",
   // The live view's data socket is the process's that holds the server connection (only it has the token).
   "browser.view.open": "machine",
+  // ADR 0199 §4: its data socket needs the machine token; a system-mode runner doesn't serve it yet (`MeetingAudio`).
+  "meeting.listen": "machine",
+  "meeting.stop": "machine",
   // The helper runs as the agent's own user, in its worker; the worker asks the supervisor for the desktop.
   "desktop.look": "agent",
   "desktop.act": "agent",
@@ -331,6 +336,8 @@ export interface HandlerContext {
   streams?: DataSockets;
   /** Protocol 49: the live views of the agents' browsers (`browser.view.open`, ADR 0040 §7.1). */
   browserViews?: BrowserViews;
+  /** `MEETING_PROTOCOL`: hearing the meetings agents' browsers are in (ADR 0199 §4); without it `meeting.*` is refused. */
+  meetingAudio?: MeetingAudio;
   /** Protocol 21: the agents' use of their own desktops (ADR 0062); without it the runner refuses `desktop.look`… */
   desktopUse?: DesktopManager;
   /** A person takes control of the agent's desktop: what the agent's pointer and keys are doing stops. */
@@ -642,6 +649,7 @@ async function routeRequest(ctx: HandlerContext, req: MachineRequest, scope: Req
   }
   // Protocol 49: an agent's (or a profile's) live view socket, this process's in every mode (ADR 0040 §7.1).
   if (req.op === "browser.view.open") return openBrowserView(ctx, req);
+  if (req.op === "meeting.listen" || req.op === "meeting.stop") return meetingOp(ctx, req);
   // Protocol 34: a browser profile's session, never an agent's worker or folder (ADR 0110).
   if (req.profile || req.op === "browser.profile.delete") return handleProfileBrowser(ctx, req, scope);
   if (ctx.systemMode?.() && OP_ROUTES[req.op] !== "machine") {
@@ -1093,6 +1101,22 @@ async function openBrowserView(
   const key = typeof profileId === "string" ? profileKey(profileId) : String(req.agent?.id ?? "");
   if (!key || !isStreamId(req.streamId)) throw new RunnerError("bad_request", "A live view needs an agent and its id");
   return ctx.browserViews.open(key, req.streamId);
+}
+
+/** `meeting.listen` / `meeting.stop` (ADR 0199 §4): the agent's capture, in the process that holds the token. */
+async function meetingOp(
+  ctx: HandlerContext,
+  req: Extract<MachineRequest, { op: "meeting.listen" | "meeting.stop" }>,
+): Promise<MachineReplies["meeting.listen"] | MachineReplies["meeting.stop"]> {
+  const audio = ctx.meetingAudio;
+  if (!audio) throw new RunnerError("unsupported", "This runner can't hear meetings. Update it on this computer.");
+  const meetingId = requireString(req.meetingId, "meetingId");
+  if (req.op === "meeting.stop") return audio.stop(meetingId);
+  if (ctx.access) requireTool(ctx, "browser");
+  const agentId = String(req.agent?.id ?? "");
+  if (!agentId || !isStreamId(req.streamId))
+    throw new RunnerError("bad_request", "Hearing a meeting needs an agent and a stream");
+  return audio.listen(agentId, meetingId, req.streamId);
 }
 
 /**

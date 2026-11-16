@@ -16837,6 +16837,9 @@ export const en = {
       "Before an email, a message or a pull request, the agent checks whether anyone on the team already did it to the same person or place in the last 30 days, and doesn't repeat it.",
     actionCheckHelpPersonal:
       "Before an email or a message, the agent checks whether you or another agent already did it to the same person or place in the last 30 days, and doesn't repeat it.",
+    meetingNotes: "Agents take meeting notes",
+    meetingNotesHelp:
+      "Agents can join Google Meet and Jitsi calls when someone asks, and say so in the call's chat before they listen. Some places require every participant's consent to record. Whoever sends the agent answers for it and must tell the host.",
     /** Who the workspace is for (ADR 0159): a row of General and About you, with the button that switches it. */
     mode: {
       label: "Workspace mode",
@@ -17495,6 +17498,8 @@ export const en = {
       agentNoteAnon: "Note from another agent",
       waitResult: "What {{name}} was waiting for came in",
       meetingEnded: "The meeting {{name}} took notes in has ended",
+      meetingJoined: "{{name}} is taking notes in a meeting",
+      leaveMeeting: "Leave meeting",
       other: "Notice for {{name}}",
       wakeSkipped: "{{name}}'s mention didn't reach {{agents}}",
       /** The same, on an older line that didn't keep whom. */

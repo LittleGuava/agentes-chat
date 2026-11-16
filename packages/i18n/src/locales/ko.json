@@ -15964,6 +15964,8 @@
     "actionCheckPersonal": "에이전트가 이미 한 일을 확인해요",
     "actionCheckHelp": "이메일, 메시지, 풀 리퀘스트를 보내기 전에 지난 30일 동안 팀의 누군가가 같은 사람이나 같은 곳에 이미 같은 일을 했는지 확인하고, 반복하지 않아요.",
     "actionCheckHelpPersonal": "이메일이나 메시지를 보내기 전에, 지난 30일 동안 나나 다른 에이전트가 같은 사람이나 장소에 이미 했는지 확인하고 반복하지 않아요.",
+    "meetingNotes": "에이전트가 회의를 기록해요",
+    "meetingNotesHelp": "에이전트는 요청을 받으면 Google Meet와 Jitsi 통화에 참여하고, 듣기 전에 통화 채팅에 알려요. 일부 지역에서는 녹음에 모든 참가자의 동의가 필요해요. 에이전트를 보낸 사람이 책임지며 주최자에게 알려야 해요.",
     "mode": {
       "label": "워크스페이스 모드",
       "team": "팀",
@@ -16582,6 +16584,8 @@
       "agentNoteAnon": "다른 에이전트의 메모",
       "waitResult": "{{name}}이(가) 기다리던 결과가 도착했어요",
       "meetingEnded": "{{name}}이(가) 메모하던 회의가 끝났습니다",
+      "meetingJoined": "{{name}}이(가) 회의를 기록하고 있어요",
+      "leaveMeeting": "회의 나가기",
       "other": "{{name}}에게 온 알림",
       "wakeSkipped": "{{name}}의 멘션이 {{agents}}에게 전달되지 않았어요",
       "wakeSkippedAnon": "{{name}}의 멘션이 다른 에이전트에게 닿지 않았어요",

@@ -75,6 +75,8 @@ export interface MachineExecutors {
   terminal?: { available: boolean; reason?: string; code?: string };
   /** `hello.desktopUse` (ADR 0062): whether agents can use their desktops there; absent = not reported. */
   desktopUse?: { available: boolean; reason?: string; code?: string };
+  /** `hello.meetingAudio` (ADR 0199 §4): whether it can hear a meeting an agent joined; absent = not reported. */
+  meetingAudio?: { available: boolean; reason?: string; code?: string };
   /** `hello.mode` (ADR 0058 §10): each agent works as its own OS user; absent = all as the runner's user. */
   mode?: "system";
   /** `hello.claudeLoginMethods` (protocol 50): what a new Claude sign-in for all agents can use there; absent: older. */

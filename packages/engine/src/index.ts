@@ -192,6 +192,7 @@ export * from "./mail/watches";
 export * from "./management";
 export * from "./media";
 export * from "./media-tools";
+export * from "./meetings/audio";
 export * from "./meetings/links";
 export * from "./meetings/notes";
 export * from "./meetings/tool";

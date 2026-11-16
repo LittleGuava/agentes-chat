@@ -238,6 +238,7 @@ export async function createTestServer(
         githubApp: engine.githubApp,
         speech: engine.speech,
         voice: engine.voice,
+        meetings: engine.meetingAudio,
       },
     },
     log,
