@@ -47,6 +47,7 @@ import { RunnerError, toMachineError } from "./errors";
 import { runCommand } from "./exec";
 import { type CacheFill, type CloneSlots, gitSync } from "./git";
 import { isGitInternalPath, touchesGitInternals } from "./git-guard";
+import type { HostConsent } from "./host-desktop";
 import { type McpTaskInfo, redactDeep } from "./mcp";
 import { ASK_ABOUT_MCP, argvLine, redactedReply, runStdioMcp } from "./mcp-stdio";
 import { missionWorktree } from "./mission-worktree";
@@ -377,6 +378,11 @@ export interface HandlerContext {
   desktopUse?: DesktopManager;
   /** A person takes control of the agent's desktop: what the agent's pointer and keys are doing stops. */
   desktopTaken?: (agentId: string) => void;
+  /**
+   * Protocol 81 (ADR 0201): the person's own desktop, on their own computer. With it, `desktop.look`, `.act`,
+   * `.capture` and `.apps` reach the person's screen behind the `hostDesktop` switch, commands and the person's yes.
+   */
+  hostDesktop?: { manager: DesktopManager; consent: HostConsent };
   /** The phones this computer reaches (`PHONES_PROTOCOL`); without it every phone op answers `phone_missing`. */
   phones?: PhoneManager;
   /** `KEEP_RUNNING_PROTOCOL` (system mode under systemd): the agents' holds; without it `keep.*` is `unsupported`. */
@@ -427,6 +433,7 @@ const TOOL_LABEL: Record<keyof RunnerTools, string> = {
   browser: "Browser",
   desktop: "The desktop",
   terminal: "The terminal",
+  hostDesktop: "Using the person's screen",
 };
 
 /** Whether a tool is on: from the machine's access (protocol 10), or `exec` for a runner without it. */
@@ -444,6 +451,12 @@ function requireTool(ctx: HandlerContext, tool: keyof RunnerTools) {
   }
   // The apps match "<Tool> is turned off" (`browserOffMessage`) to offer the one-click switch: keep those words.
   const how = "its owner can turn it on from agentes.chat";
+  if (tool === "hostDesktop") {
+    throw new RunnerError(
+      "not_allowed",
+      `${TOOL_LABEL[tool]} is turned off on this computer (the person turns it on in the agentes.chat app there)`,
+    );
+  }
   if (tool === "commands") throw new RunnerError("exec_disabled", `Commands are turned off on this computer (${how})`);
   throw new RunnerError("not_allowed", `${TOOL_LABEL[tool]} is turned off on this computer (${how})`);
 }
@@ -893,7 +906,7 @@ async function routeRequest(ctx: HandlerContext, req: MachineRequest, scope: Req
     req.op === "desktop.apps" ||
     req.op === "desktop.text"
   ) {
-    return handleDesktopUse(ctx, req);
+    return handleDesktopUse(ctx, req, scope);
   }
   const secrets = await agentSecrets(ctx.secretsDir, req.agent);
   switch (req.op) {
@@ -1041,18 +1054,31 @@ function handleDesktop(
  * desktop switch and its commands switch. Protocol 25's `desktop.text` goes
  * through the same helper, behind the same switches.
  */
-function handleDesktopUse(
+async function handleDesktopUse(
   ctx: HandlerContext,
   req: Extract<
     MachineRequest,
     { op: "desktop.look" | "desktop.act" | "desktop.capture" | "desktop.apps" | "desktop.text" }
   >,
+  scope: RequestScope,
 ) {
-  const desktop = ctx.desktopUse;
-  if (!desktop) throw new RunnerError("desktop_unavailable", "This runner doesn't serve desktop use");
   if (!req.agent) throw new RunnerError("bad_request", "A desktop belongs to an agent");
-  requireTool(ctx, "desktop");
-  requireTool(ctx, "commands");
+  const host = ctx.hostDesktop;
+  let desktop = ctx.desktopUse;
+  if (host) {
+    // The person's own screen (ADR 0201 §3): their switch, commands, and their yes on this computer, every time.
+    requireTool(ctx, "hostDesktop");
+    requireTool(ctx, "commands");
+    if (req.op === "desktop.text") {
+      throw new RunnerError("desktop_unavailable", "The person's own screen is never read for screening");
+    }
+    if (await host.consent.require(req.agent, scope.signal)) host.manager.granted(req.agent.id);
+    desktop = host.manager;
+  } else {
+    requireTool(ctx, "desktop");
+    requireTool(ctx, "commands");
+  }
+  if (!desktop) throw new RunnerError("desktop_unavailable", "This runner doesn't serve desktop use");
   switch (req.op) {
     case "desktop.look":
       return desktop.look(req.agent);

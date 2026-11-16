@@ -52,7 +52,14 @@ export const TOOL_NAMES: readonly (keyof RunnerTools)[] = [
   "browser",
   "desktop",
   "terminal",
+  "hostDesktop",
 ];
+
+/**
+ * Switches the person turns on only in the desktop app on this computer (ADR 0201 §3): never `access.allow` from
+ * the server, never `agentes-runner tools enable`, which an agent's own commands could run here.
+ */
+export const APP_ONLY_TOOLS: ReadonlySet<keyof RunnerTools> = new Set(["hostDesktop"]);
 
 /** What each tool is, as the CLI names it (`tools list`, `doctor`). */
 export const TOOL_LABELS: Record<keyof RunnerTools, string> = {
@@ -67,6 +74,7 @@ export const TOOL_LABELS: Record<keyof RunnerTools, string> = {
   browser: "Browser",
   desktop: "Desktops (each agent's own screen, watched and controlled from the app)",
   terminal: "Terminal (a shell as the agent, opened from the app)",
+  hostDesktop: "Your screen (agents ask you, in the app, to use it; turned on there only)",
 };
 
 const caseless = process.platform === "win32" || process.platform === "darwin";

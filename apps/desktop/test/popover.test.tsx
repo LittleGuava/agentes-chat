@@ -342,3 +342,46 @@ test("the site's This computer: the Mac pairs with commands on, then the welcome
     writePref(PREPARE_PREF, null);
   }
 });
+
+test("an agent asks for the person's own screen: Allow or Not now here, then who holds it and Stop (ADR 0201)", () => {
+  const host = createFakeHost("popover", "here");
+  return withMenu(async (el) => {
+    const runner = [...host.runners.values()][0];
+    if (!runner) throw new Error("no runner");
+    await act(async () => runner.raiseScreenRequest());
+    const card = () =>
+      [...el.querySelectorAll<HTMLElement>(".dk-req")].find((c) => c.textContent?.includes("wants to use your screen"));
+    await until(card);
+    // The tray's dot from the ask on, before any status says so: the person has 90 seconds.
+    await until(() => host.tray === "needs");
+    expect(card()?.querySelector(".dk-req__whotext b")?.textContent).toBe("Dev wants to use your screen");
+    expect(card()?.querySelector(".dk-req__quote")?.textContent).toContain("never types in a password field");
+    const button = (root: Element | undefined, label: string) =>
+      [...(root?.querySelectorAll<HTMLButtonElement>("button") ?? [])].find((b) => b.textContent === label);
+    expect([...(card()?.querySelectorAll(".dk-banner__acts button") ?? [])].map((b) => b.textContent)).toEqual([
+      "Allow",
+      "Not now",
+    ]);
+
+    await act(async () => button(card(), "Allow")?.click());
+    await until(() => banners(el).some((b) => b.title === "Dev is using your screen"));
+    expect(card()).toBeUndefined();
+    const held = banners(el).find((b) => b.title === "Dev is using your screen");
+    expect(held?.line).toMatch(/^Until .+\. Moving your mouse or keyboard pauses it\.$/);
+    expect(held?.actions).toEqual(["Stop"]);
+
+    const stop = [...el.querySelectorAll<HTMLButtonElement>(".dk-banner__acts button")].find(
+      (b) => b.textContent === "Stop",
+    );
+    await act(async () => stop?.click());
+    await until(() => !banners(el).some((b) => b.title === "Dev is using your screen"));
+    await until(() => host.tray !== "needs");
+
+    // Not now: the card goes, and nobody holds the screen.
+    await act(async () => runner.raiseScreenRequest());
+    await until(card);
+    await act(async () => button(card(), "Not now")?.click());
+    await until(() => !card());
+    expect(banners(el).some((b) => b.title === "Dev is using your screen")).toBe(false);
+  }, host);
+});

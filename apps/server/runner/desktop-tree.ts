@@ -201,6 +201,8 @@ export interface DesktopTarget {
   app: string;
   /** It takes text through EditableText. */
   editable?: boolean;
+  /** A password field: on a person's own screen nothing is typed into it (ADR 0201 §3). */
+  secret?: boolean;
 }
 
 export interface DesktopLook {
@@ -501,6 +503,7 @@ export function desktopLook(snap: HelperSnapshot, refOf: DesktopRefs, options: D
         app: ctx.tree.app.name || ctx.win.class[1],
         ...(window ? { xid: window.xid } : {}),
         ...(n.ifaces.includes("EditableText") ? { editable: true } : {}),
+        ...(n.role === "password text" ? { secret: true } : {}),
       };
     }
     // A label that only repeats its element's name (GTK4's buttons hold one).

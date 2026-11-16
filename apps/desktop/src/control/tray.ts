@@ -1,4 +1,4 @@
-import type { ControlJob, ControlStatus } from "@agenteschat/adapters/runner-control";
+import type { ControlJob, ControlScreen, ControlStatus } from "@agenteschat/adapters/runner-control";
 import { browserBadgeOf } from "./browser";
 
 /**
@@ -11,6 +11,8 @@ export interface TrayInput {
   running: boolean;
   status?: ControlStatus | null;
   jobs: readonly ControlJob[];
+  /** Who holds the person's screen and who asks, kept from its events (`Home.screen`). */
+  screen?: ControlScreen | null;
 }
 
 /** A home that is signed in to an organization (unpaired homes are a sign-in in progress). */
@@ -26,15 +28,18 @@ export function macStateOf(homes: readonly TrayInput[]): "online" | "paused" | "
   return paired.some(isOnline) ? "online" : "offline";
 }
 
+/** An agent holds the person's own screen, or asks for it (ADR 0201): the icon says so as long as it lasts. */
+export const onScreen = (h: TrayInput) => !!h.screen && (h.screen.session !== null || h.screen.requests.length > 0);
+
 /**
- * One icon for the whole computer: an agent needs a person in its browser → needs (the dot wins,
- * even paused); any organization paused → paused; an agent in its browser → browsing; anything
- * running → working; every organization offline → offline; a newer app → update; else idle.
+ * One icon for the whole computer: an agent needs a person in its browser, holds the person's screen or asks
+ * for it → needs (the dot wins, even paused); any organization paused → paused; an agent in its browser →
+ * browsing; anything running → working; every organization offline → offline; a newer app → update; else idle.
  */
 export function trayStateOf(homes: readonly TrayInput[], updateAvailable: boolean): TrayState {
   const paired = homes.filter(isPaired);
   const badge = browserBadgeOf(paired.filter((h) => h.running).map((h) => h.status));
-  if (badge === "needs") return "needs";
+  if (badge === "needs" || paired.some(onScreen)) return "needs";
   if (paired.some((h) => h.status?.paused.paused)) return "paused";
   if (badge === "browsing") return "browsing";
   if (paired.some((h) => h.jobs.length > 0)) return "working";

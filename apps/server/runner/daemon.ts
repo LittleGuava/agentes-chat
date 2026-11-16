@@ -43,10 +43,12 @@ import {
   type ControlEvent,
   type ControlJob,
   type ControlReplies,
+  type ControlScreen,
   type ControlStatus,
 } from "@agenteschat/adapters/runner-control";
 import {
   AccessRequests,
+  APP_ONLY_TOOLS,
   addFolder,
   allowedFor,
   ControlError,
@@ -117,6 +119,7 @@ import { cachedExecutors, EXECUTORS_TTL_MS, type ExecutorRun } from "./executors
 import { systemGitCache } from "./git";
 import type { HandlerContext, RequestObserver, RequestOutcome } from "./handlers";
 import { Holds } from "./holds";
+import { HostConsent, type HostDialect, windowsHost } from "./host-desktop";
 import { IphoneSetup, type IphoneSetupOptions } from "./iphone-setup";
 import { currentProcess, isCompiled, selfCommand } from "./launch";
 import { localConfigPaths, readLocalConfig } from "./local-config";
@@ -349,6 +352,8 @@ interface Session {
   relayEntrance: RelayEntrance | null;
   /** The agents' use of their desktops (ADR 0062): its helpers end with the session, the desktops don't. */
   desktopUse: DesktopManager;
+  /** ADR 0201: the person's own desktop, on their own Windows computer in single-user mode; null elsewhere. */
+  hostUse: DesktopManager | null;
   connection: RunnerConnection;
   /** System mode: the agents' workers, where all their work runs. */
   supervisor: Supervisor | null;
@@ -359,6 +364,11 @@ interface Session {
 export interface DaemonOptions {
   home: string;
   mode: "start" | "app";
+  /**
+   * Host computer use (ADR 0201): how the person's own desktop is reached. Default: the Windows helper on Windows in
+   * single-user mode (tests pass a dry one); `null`: never served.
+   */
+  hostDesktop?: HostDialect | null;
   log: (line: string) => void;
   /** App mode: events for the desktop app. */
   onEvent?: (event: ControlEvent) => void;
@@ -505,6 +515,8 @@ export class RunnerDaemon implements RequestObserver {
   readonly terminals: Terminals;
   /** The refs each agent's desktop use gave out, across sessions: a number never comes back for another element. */
   private readonly desktopRefsGiven = new Map<string, { last: number }>();
+  /** The person's yes to an agent's use of their screen (ADR 0201): in memory only, answered only by the app. */
+  readonly hostConsent: HostConsent;
   /** The phones this computer reaches (single-user runners): their locks outlive a reconnect. */
   private phones: PhoneManager | null = null;
   /** The phones the last `hello` carried (JSON). */
@@ -535,6 +547,17 @@ export class RunnerDaemon implements RequestObserver {
     this.activity = new ActivityLog(opts.home);
     this.now = opts.now ?? Date.now;
     this.requests = new AccessRequests(opts.home, this.now);
+    this.hostConsent = new HostConsent({
+      emit: (event) => {
+        this.emit(event);
+        if (event.kind === "screen.changed") this.queueStatus();
+      },
+      // Only the desktop app answers: a runner started from a terminal has nobody to ask.
+      listening: () => this.opts.mode === "app",
+      record: (entry) => this.record(entry),
+      release: (agentId) => this.session?.hostUse?.release(agentId),
+      now: this.now,
+    });
     const proc = currentProcess();
     this.self = opts.self ?? { command: selfCommand(proc), compiled: isCompiled(proc) };
     this.refreshPath = opts.refreshPath ?? (process.platform === "win32" ? () => adoptLoginPath() : undefined);
@@ -1031,6 +1054,9 @@ export class RunnerDaemon implements RequestObserver {
       // Desktop use needs both: its helpers stop with either.
       const use = (a: RunnerAccess) => a.tools.desktop === true && a.tools.commands;
       if (use(prevAccess) && !use(nextAccess)) this.session?.desktopUse.stopAll();
+      // The person's screen needs both too: either off ends whoever's session, at once (ADR 0201 §3).
+      const host = (a: RunnerAccess) => a.tools.hostDesktop === true && a.tools.commands;
+      if (host(prevAccess) && !host(nextAccess)) this.hostConsent.stop("switch");
     }
 
     if (this.session && paired) {
@@ -1115,6 +1141,7 @@ export class RunnerDaemon implements RequestObserver {
       browser: "the browser",
       desktop: "the agents' desktops",
       terminal: "the terminal",
+      hostDesktop: "your screen",
     };
     for (const t of TOOL_NAMES)
       if ((a.tools[t] === true) !== (b.tools[t] === true)) {
@@ -1318,6 +1345,25 @@ export class RunnerDaemon implements RequestObserver {
       numbered: this.desktopRefsGiven,
       log,
     });
+    // ADR 0201: the person's own desktop, only where the runner works as the person (never system mode).
+    const hostDialect =
+      config.mode === "system"
+        ? null
+        : this.opts.hostDesktop !== undefined
+          ? this.opts.hostDesktop
+          : process.platform === "win32"
+            ? windowsHost()
+            : null;
+    const hostUse = hostDialect
+      ? new DesktopManager({
+          desktops: this.desktops,
+          host: hostDialect,
+          secrets: (agent) => agentSecrets(secretsDir, agent),
+          numbered: this.desktopRefsGiven,
+          onLocked: (agentId) => this.hostConsent.stop("locked", agentId),
+          log,
+        })
+      : null;
     const streams = new DataSockets({
       url: connectUrl(config.server, "stream"),
       token: config.token,
@@ -1583,6 +1629,7 @@ export class RunnerDaemon implements RequestObserver {
       browserViews: views,
       ...(relayExits ? { relayExits } : {}),
       desktopUse,
+      ...(hostUse ? { hostDesktop: { manager: hostUse, consent: this.hostConsent } } : {}),
       desktopTaken: (agentId) => {
         if (supervisor) supervisor.desktopTaken(agentId);
         else {
@@ -1625,6 +1672,7 @@ export class RunnerDaemon implements RequestObserver {
           desktop: this.desktops.info(),
           terminal: this.terminals.info(),
           desktopUse: desktopUse.info(),
+          ...(hostUse ? { hostDesktop: hostUse.info() } : {}),
           ...(accounts ? { accounts } : {}),
           ...usage,
           // Who may control a desktop or open a terminal follows it (ADR 0058 §4).
@@ -1705,6 +1753,7 @@ export class RunnerDaemon implements RequestObserver {
       streams,
       relayEntrance,
       desktopUse,
+      hostUse,
       connection,
       supervisor,
       agentUser,
@@ -1938,6 +1987,8 @@ export class RunnerDaemon implements RequestObserver {
     s.streams.closeAll();
     await s.relayEntrance?.close();
     s.desktopUse.stopAll();
+    this.hostConsent.stop("switch");
+    s.hostUse?.stopAll();
     await s.supervisor?.close();
     s.tasks.close();
     s.brains.close();
@@ -2271,6 +2322,7 @@ export class RunnerDaemon implements RequestObserver {
       access: this.access(),
       browsers,
       ...(this.phones ? { phones: this.phones.list() } : {}),
+      ...(this.session?.hostUse ? { screen: this.hostConsent.screen() } : {}),
       // In system mode each agent runs as a user of its own, not as the runner's.
       ...(OS_USER && c?.mode !== "system" && s?.mode !== "system" ? { user: OS_USER } : {}),
       seq: ++this.statusSeq,
@@ -2314,6 +2366,22 @@ export class RunnerDaemon implements RequestObserver {
    * The tray's "Parar": the agent's browser closes on this computer (its
    * profile and logins stay). A live view watching it is told it ended.
    */
+  /** Protocol 81 (ADR 0201): who holds the person's screen and who asks. */
+  screenGet(): ControlScreen {
+    return this.hostConsent.screen();
+  }
+
+  /** The person's yes or no to an agent's ask for their screen: only here, from the app. */
+  screenAnswer(requestId: string, decision: "granted" | "denied"): ControlScreen {
+    this.requirePaired();
+    return this.hostConsent.answer(requestId, decision);
+  }
+
+  /** The person's Stop: whoever holds the screen (or that agent) lets go of it at once. */
+  screenStop(agentId?: string): ControlScreen {
+    return this.hostConsent.stop("person", agentId);
+  }
+
   async browserStop(agentId: string): Promise<{ stopped: boolean }> {
     this.requirePaired();
     const s = this.session;
@@ -2750,6 +2818,10 @@ export class RunnerDaemon implements RequestObserver {
   async accessAllow(req: Extract<MachineRequest, { op: "access.allow" }>): Promise<MachineReplies["access.allow"]> {
     const tool = req.tool;
     if (!TOOL_NAMES.includes(tool)) throw new RunnerError("bad_request", `Unknown tool ${String(tool).slice(0, 40)}`);
+    // The person's screen is theirs to turn on, here (ADR 0201 §3).
+    if (APP_ONLY_TOOLS.has(tool)) {
+      throw new RunnerError("not_allowed", "This one is turned on only in the agentes.chat app on the computer itself");
+    }
     const before = this.access();
     if (before.tools[tool] !== true) {
       this.writeAccess(setTool(before, tool, true));

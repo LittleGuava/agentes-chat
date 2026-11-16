@@ -114,6 +114,12 @@ export class ControlServer {
         return { requests: d.accessPending() };
       case "access.answer":
         return d.accessAnswer(str(m.requestId), m.decision, m.scope === "all" ? "all" : "agent");
+      case "screen.get":
+        return d.screenGet();
+      case "screen.answer":
+        return d.screenAnswer(str(m.requestId), m.decision);
+      case "screen.stop":
+        return d.screenStop(typeof m.agentId === "string" && m.agentId ? m.agentId : undefined);
       case "reconnect":
         return d.reconnect();
       case "browser.stop":

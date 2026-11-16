@@ -25,8 +25,10 @@ import HELPER_SOURCE from "./desktop-helper-win.cs" with { type: "text" };
  * `desktopLook` reads, and a key step is a chord of virtual-key codes, which
  * `winSteps` makes from the X key names the screen layer uses.
  *
- * Nothing serves it yet: the runner keeps desktop use off on Windows until
- * the person's switch and consent exist (ADR 0201 §7).
+ * The runner serves it only on the person's own computer, behind its
+ * `hostDesktop` switch and the person's consent (`host-desktop.ts`, ADR 0201
+ * addendum). While it isn't dry, low-level hooks note the person's own mouse
+ * and keys: an `input` right after them, or during one, stops as `stopped`.
  */
 
 /**
@@ -142,6 +144,8 @@ export interface WinHello {
   /** The secure desktop (lock screen, UAC) is in front: nothing to read or act on. */
   locked: boolean;
   dry: boolean;
+  /** The low-level hooks that tell the person's own input are on (always, in dry mode: nothing to stop). */
+  watching: boolean;
   missing: string[];
   problem?: string;
 }
@@ -156,6 +160,10 @@ export interface WinRequests {
   input: { steps: WinStep[]; settle?: HelperSettle };
   capture: { region?: HelperRegion; quality?: number };
   apps: Record<string, never>;
+  /** Dry mode only: as if the person just used the mouse (the hooks' stand-in for tests). */
+  person: Record<string, never>;
+  /** The person's input so far stops nothing: sent right after their yes, whose click is their own input. */
+  forget: Record<string, never>;
 }
 
 export interface WinReplies {
@@ -166,6 +174,8 @@ export interface WinReplies {
   input: { ms: number; settled?: boolean; changed?: boolean; sent?: string[] };
   capture: HelperReplies["capture"];
   apps: HelperAppEntry[];
+  person: Record<string, never>;
+  forget: Record<string, never>;
 }
 
 export type WinOp = keyof WinRequests;

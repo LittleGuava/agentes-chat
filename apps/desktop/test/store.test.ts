@@ -235,3 +235,37 @@ test("a tool its owner turned on from the apps: kept on the home for the popover
   store.dismissAllowed("h1");
   expect(store.home("h1")?.allowed).toBeNull();
 });
+
+test("the person's own screen (ADR 0201): an agent's ask is kept and told once, its answer clears it, and who holds it follows", async () => {
+  const told: string[] = [];
+  const { store, event, state } = setup({ onScreenRequested: (_home, request) => told.push(request.requestId) });
+  store.start();
+  await settle();
+  // An older runner, or one that doesn't serve it: nothing to show.
+  expect(store.home("h1")?.screen ?? null).toBeNull();
+
+  const agent = { id: "ag_dev", name: "Dev" };
+  const request = { requestId: "r1", agent, at: "2026-11-16T15:00:00Z", expiresAt: "2026-11-16T15:01:30Z" };
+  event({ kind: "screen.requested", request });
+  event({ kind: "screen.requested", request });
+  await settle();
+  expect(store.home("h1")?.screen).toEqual({ session: null, requests: [request] });
+  expect(told).toEqual(["r1"]);
+
+  event({ kind: "screen.resolved", requestId: "r1", decision: "granted" });
+  await settle();
+  expect(store.home("h1")?.screen?.requests).toEqual([]);
+  const session = { agent, since: "2026-11-16T15:00:10Z", until: "2026-11-16T15:30:10Z" };
+  event({ kind: "screen.changed", screen: { session, requests: [] } });
+  await settle();
+  expect(store.home("h1")?.screen?.session).toEqual(session);
+
+  // A status says it too, and a status without it (the runner stopped serving it) clears it.
+  state.status = { ...status('"a.png"'), screen: { session: null, requests: [] } };
+  event({ kind: "status", status: state.status });
+  await settle();
+  expect(store.home("h1")?.screen).toEqual({ session: null, requests: [] });
+  event({ kind: "status", status: status('"a.png"') });
+  await settle();
+  expect(store.home("h1")?.screen).toBeNull();
+});

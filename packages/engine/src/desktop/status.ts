@@ -1,6 +1,7 @@
-import { DESKTOP_USE_PROTOCOL } from "@agenteschat/adapters";
+import { DESKTOP_USE_PROTOCOL, HOST_DESKTOP_PROTOCOL } from "@agenteschat/adapters";
 import type { Database } from "@agenteschat/db";
 import { getAgentCached } from "../agents";
+import { runAuthorityById } from "../authority";
 import type { MachineCaller } from "../machine-hub";
 import { REMOVED_COMPUTER_MESSAGE } from "../machines";
 import { toolMachineId } from "../right-hand-seats";
@@ -13,10 +14,21 @@ export type DesktopUseUnavailable =
   | "switched_off"
   | "commands_off"
   | "not_ready"
-  | "not_reported";
+  | "not_reported"
+  /** The person's own screen (ADR 0201): its switch, set only on that computer, is off. */
+  | "host_switched_off"
+  /** The person's own screen: this run isn't one its pairer asked for (a routine, unattended, someone else's). */
+  | "not_the_owner";
 
 export type AgentDesktopUseStatus =
-  | { available: true; machineId: string; machineName: string; online: boolean }
+  | {
+      available: true;
+      machineId: string;
+      machineName: string;
+      online: boolean;
+      /** The person's own desktop on their own computer (ADR 0201), not the agent's: each session is their yes there. */
+      host?: true;
+    }
   | {
       available: false;
       code: DesktopUseUnavailable;
@@ -33,12 +45,17 @@ export type AgentDesktopUseStatus =
  * it (`hello.desktopUse`: Linux, the agents' desktops, each agent its own OS
  * user, the packages). Offline machines still count: the call says it's
  * offline, as other tools do.
+ *
+ * On a person's own Windows computer (ADR 0201, protocol 81, `hello.hostDesktop`) the desktop is the person's:
+ * its own switch and commands must be on, and with `runId` the run must be one the computer's pairer asked for,
+ * never a routine's, an unattended one or anyone else's. Each session is still their yes on that computer.
  */
 export async function agentDesktopUseStatus(
   db: Database,
   hub: Pick<MachineCaller, "status"> | undefined,
   orgId: string,
   agentId: string,
+  runId?: string,
 ): Promise<AgentDesktopUseStatus> {
   const none = (code: DesktopUseUnavailable, machineId: string | null = null, machineName: string | null = null) => ({
     available: false as const,
@@ -52,6 +69,21 @@ export async function agentDesktopUseStatus(
   if (!machineId || !hub) return none("no_machine");
   const status = await hub.status(machineId);
   if (!status || status.orgId !== orgId) return none("machine_removed", machineId);
+  const host = status.executors.hostDesktop;
+  if (host && status.protocol >= HOST_DESKTOP_PROTOCOL && status.kind !== "managed") {
+    if (!status.access?.tools.hostDesktop) return none("host_switched_off", machineId, status.name);
+    if (!status.access.tools.commands) return none("commands_off", machineId, status.name);
+    if (!host.available) {
+      return { ...none("not_ready", machineId, status.name), detail: host.reason?.slice(0, 500) ?? null };
+    }
+    if (runId !== undefined) {
+      const by = await runAuthorityById(db, orgId, runId);
+      if (by.kind !== "person" || !status.pairedByUserId || by.personId !== status.pairedByUserId) {
+        return none("not_the_owner", machineId, status.name);
+      }
+    }
+    return { available: true, machineId, machineName: status.name, online: status.online, host: true };
+  }
   if (status.protocol < DESKTOP_USE_PROTOCOL) return none("outdated", machineId, status.name);
   if (!status.access?.tools.desktop) return none("switched_off", machineId, status.name);
   if (!status.access.tools.commands) return none("commands_off", machineId, status.name);
@@ -79,6 +111,10 @@ export function desktopUseUnavailableText(s: Extract<AgentDesktopUseStatus, { av
       return `Commands are turned off on ${on}, and using your desktop runs them. Whoever connected it can turn them on from agentes.chat; tell the people.`;
     case "not_ready":
       return `Your desktop can't be used on ${on}${s.detail ? `: ${s.detail}` : ""}. Tell the person.`;
+    case "host_switched_off":
+      return `Using the person's own screen is turned off on ${on}. Only they can turn it on, in the agentes.chat app on that computer; tell them if you need it.`;
+    case "not_the_owner":
+      return `${on.charAt(0).toUpperCase()}${on.slice(1)} is a person's own computer: you use its screen only in a task its owner asked you for, never in a routine or for someone else.`;
     default:
       return `${on.charAt(0).toUpperCase()}${on.slice(1)} hasn't said whether it can serve your desktop yet; try again after it reconnects.`;
   }

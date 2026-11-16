@@ -6,7 +6,12 @@
  * its banners. This window also owns the tray icon's state, answers the site's questions about this computer
  * and raises the notifications for folder requests (it lives, hidden, for as long as the app runs).
  */
-import type { ControlAccessRequest, ControlBrowser, ControlJob } from "@agenteschat/adapters/runner-control";
+import type {
+  ControlAccessRequest,
+  ControlBrowser,
+  ControlJob,
+  ControlScreenRequest,
+} from "@agenteschat/adapters/runner-control";
 import { joinNames } from "@agenteschat/client/lib/format";
 import { Button, Icon, Kbd, normalizeAppearance, PixelSpinner, Segmented } from "@agenteschat/ui";
 import {
@@ -758,6 +763,13 @@ export function Popover() {
             />
           )}
 
+          {homes.map((h) => h.screen?.session && <ScreenBanner key={h.homeId} home={h} />)}
+          {homes.flatMap((h) =>
+            (h.screen?.requests ?? []).map((r) => (
+              <ScreenRequestCard key={r.requestId} home={h} request={r} now={now} />
+            )),
+          )}
+
           {homes.map((h) => h.allowed && <AllowedBanner key={h.homeId} home={h} />)}
 
           {requests.length > 0 && (
@@ -1254,6 +1266,85 @@ function AllowedBanner({ home }: { home: Home }) {
     >
       {t("desktop.tray.allowedBody")}
     </Banner>
+  );
+}
+
+/**
+ * An agent holds the person's own screen (ADR 0201): said at the top while it lasts, with Stop. Their mouse or
+ * keyboard pauses it; Stop ends the session at once.
+ */
+function ScreenBanner({ home }: { home: Home }) {
+  const { t, i18n } = useTranslation();
+  const store = useStore();
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  const session = home.screen?.session;
+  if (!session) return null;
+  const agent = agentOf(home, session.agent);
+  const stop = async () => {
+    setBusy(true);
+    try {
+      await store.request(home.homeId, { type: "screen.stop" });
+      toast(t("desktop.tray.screenStopped", { agent: agent.name }), "stop");
+    } catch {
+      toast(t("desktop.common.error"), "alert");
+    }
+    setBusy(false);
+  };
+  return (
+    <Banner
+      icon="eye"
+      title={t("desktop.tray.screenUsing", { agent: agent.name })}
+      actions={
+        <Button size="sm" variant="primary" icon="stop" disabled={busy} onClick={() => void stop()}>
+          {t("desktop.tray.screenStop")}
+        </Button>
+      }
+    >
+      {t("desktop.tray.screenUsingBody", { time: clock(session.until, i18n.language, new Date()) })}
+    </Banner>
+  );
+}
+
+/** An agent asks for the person's own screen: Allow or Not now, only here (ADR 0201 §3). */
+function ScreenRequestCard({ home, request, now }: { home: Home; request: ControlScreenRequest; now: number }) {
+  const { t } = useTranslation();
+  const store = useStore();
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  const agent = agentOf(home, request.agent);
+  const answer = async (decision: "granted" | "denied") => {
+    setBusy(true);
+    try {
+      await store.request(home.homeId, { type: "screen.answer", requestId: request.requestId, decision });
+      if (decision === "denied") toast(t("desktop.tray.screenDenied", { agent: agent.name }), "close");
+    } catch {
+      toast(t("desktop.common.error"), "alert");
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="dk-banner dk-req">
+      <div className="dk-req__who">
+        <AgentFace agent={agent} size="sm" state="waiting" />
+        <span className="dk-req__whotext">
+          <b>{t("desktop.tray.screenWants", { agent: agent.name })}</b>
+          <small>
+            <OrgTile logo={home.logo} size="sm" />
+            {orgName(home)} · {since(request.at, t, now)}
+          </small>
+        </span>
+      </div>
+      <div className="dk-req__quote">{t("desktop.tray.screenWantsBody")}</div>
+      <div className="dk-banner__acts">
+        <Button size="sm" variant="primary" icon="check" disabled={busy} onClick={() => void answer("granted")}>
+          {t("desktop.tray.allow")}
+        </Button>
+        <Button size="sm" variant="ghost" disabled={busy} onClick={() => void answer("denied")}>
+          {t("desktop.tray.deny")}
+        </Button>
+      </div>
+    </div>
   );
 }
 
