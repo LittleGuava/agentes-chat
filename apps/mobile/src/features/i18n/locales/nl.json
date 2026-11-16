@@ -919,6 +919,8 @@
       "routine_finished_other": "Routines klaar",
       "routine_failed_one": "Routine mislukt",
       "routine_failed_other": "Routines mislukt",
+      "routine_failed_retried_one": "Routine ook na een nieuwe poging mislukt",
+      "routine_failed_retried_other": "Routines ook na een nieuwe poging mislukt",
       "run_failed_one": "Kon niet afronden",
       "run_failed_other": "Kon niet afronden",
       "admin_ask_channel_agent": "{{names}} vraagt je {{agent}} toe te voegen aan #{{label}}",

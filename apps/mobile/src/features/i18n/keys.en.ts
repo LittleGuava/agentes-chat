@@ -979,6 +979,9 @@ export const featureKeysEn = {
       routine_finished_other: "Routine finished",
       routine_failed_one: "Routine failed",
       routine_failed_other: "Routine failed",
+      /** Its automatic retry failed too (ADR 0177 addendum 2026-11-15). */
+      routine_failed_retried_one: "Routine failed after one more try",
+      routine_failed_retried_other: "Routine failed after one more try",
       run_failed_one: "Couldn't finish",
       run_failed_other: "Couldn't finish",
       admin_ask_channel_agent: "{{names}} asks you to add {{agent}} to #{{label}}",

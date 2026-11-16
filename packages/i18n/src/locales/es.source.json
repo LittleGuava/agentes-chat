@@ -8047,11 +8047,11 @@
   "connectAi.plan.grok.title": {
     "value": "Your Grok plan"
   },
-  "connectAi.plan.copilot.title": {
-    "value": "Your GitHub Copilot plan"
-  },
   "connectAi.plan.grok.tiers": {
     "value": "SuperGrok, SuperGrok Heavy or X Premium+"
+  },
+  "connectAi.plan.copilot.title": {
+    "value": "Your GitHub Copilot plan"
   },
   "connectAi.plan.copilot.tiers": {
     "value": "Copilot Pro, Pro+, Business or Enterprise"
@@ -12305,6 +12305,9 @@
   },
   "notifications.what.routineFailed": {
     "value": "<b>{{name}}</b> couldn't run a routine"
+  },
+  "notifications.what.routineFailedRetried": {
+    "value": "<b>{{name}}</b> couldn't run a routine, even after one more try"
   },
   "notifications.what.runFailed": {
     "value": "<b>{{name}}</b> couldn't finish"

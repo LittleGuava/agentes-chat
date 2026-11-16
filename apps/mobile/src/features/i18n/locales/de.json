@@ -919,6 +919,8 @@
       "routine_finished_other": "Routinen abgeschlossen",
       "routine_failed_one": "Routine fehlgeschlagen",
       "routine_failed_other": "Routinen fehlgeschlagen",
+      "routine_failed_retried_one": "Routine auch nach erneutem Versuch fehlgeschlagen",
+      "routine_failed_retried_other": "Routinen auch nach erneutem Versuch fehlgeschlagen",
       "run_failed_one": "Ließ sich nicht abschließen",
       "run_failed_other": "Ließen sich nicht abschließen",
       "admin_ask_channel_agent": "{{names}} bittet dich, {{agent}} zu #{{label}} hinzuzufügen",

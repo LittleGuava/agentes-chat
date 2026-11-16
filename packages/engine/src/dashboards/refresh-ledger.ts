@@ -4,7 +4,7 @@ import { WIDGET_HISTORY_KEPT } from "@agenteschat/ui/widgets/spec";
 import { notifyWidgetFailed, resolveWidgetNotices } from "../notification-producers";
 import { getMembership } from "../organizations";
 import type { RoutineRunEndStatus } from "../routine-ledger";
-import { ROUTINE_FATIGUE_LIMIT } from "../routine-state";
+import { failuresAfter, isRoutineRetryRun, ROUTINE_FATIGUE_LIMIT } from "../routine-state";
 import { dashboardRights, viewerOf } from "./access";
 import { publishWidgetChanged, widgetEvent } from "./events";
 import { type DashboardRow, WIDGET_FAILURES, type WidgetRow, type WidgetStatus } from "./types";
@@ -297,6 +297,8 @@ export async function widgetRoutineEnded(
     const [rr] = await db
       .select({
         agentRunId: routineRuns.agentRunId,
+        trigger: routineRuns.trigger,
+        dedupeKey: routineRuns.dedupeKey,
         code: routineRuns.code,
         event: routineRuns.event,
         summary: routineRuns.summary,
@@ -322,8 +324,9 @@ export async function widgetRoutineEnded(
       await publishWidgetChanged(deps.pubsub, board, widgetEvent(widget, status)).catch(() => {});
     }
     const change = widgetChangeOf(rr?.event ?? null)?.text ?? null;
-    // This failure is the one that pauses the routine (the ledger counts it next).
-    const fatigued = routine.active && routine.failuresInRow + 1 >= ROUTINE_FATIGUE_LIMIT;
+    // This failure is the one that pauses the routine (the ledger counts it next, a retry's as the failure it retried).
+    const retry = rr ? isRoutineRetryRun(rr) : false;
+    const fatigued = routine.active && failuresAfter(routine.failuresInRow, retry) >= ROUTINE_FATIGUE_LIMIT;
     const failedRun = async (code: string) => {
       // The ledger's row says it failed, with why (it ended `silent`: the agent said nothing to people).
       await db

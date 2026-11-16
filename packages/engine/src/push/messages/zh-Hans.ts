@@ -15,6 +15,7 @@ export const strings: Partial<PushStrings> = {
   replyTitle: (a) => `${a} 回复了`,
   missionStoppedTitle: "一个专项任务已停止",
   routineFailedTitle: "一项例行工作没有完成",
+  routineFailedRetriedTitle: "一项例行工作重试后仍没有完成",
   runFailedTitle: (a) => `${a} 没能完成`,
   routineFailedBody: "点按查看发生了什么。",
   routinePausedTitle: "一项例行工作已暂停",

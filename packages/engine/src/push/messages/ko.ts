@@ -15,6 +15,7 @@ export const strings: Partial<PushStrings> = {
   replyTitle: (a) => `${a} 님이 답장했어요`,
   missionStoppedTitle: "미션이 멈췄어요",
   routineFailedTitle: "루틴이 끝나지 못했어요",
+  routineFailedRetriedTitle: "루틴이 다시 시도했는데도 끝나지 못했어요",
   runFailedTitle: (a) => `${a} 님이 작업을 끝내지 못했어요`,
   routineFailedBody: "탭해서 무슨 일인지 확인하세요.",
   routinePausedTitle: "루틴이 일시 중지됐어요",
