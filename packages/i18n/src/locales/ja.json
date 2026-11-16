@@ -11108,6 +11108,11 @@
     "inProgress": "進行中",
     "quiet": "{{minutes}}分間更新なし",
     "refresh": "更新",
+    "rescue": {
+      "silent": "AI がまだ応答していません",
+      "switchAi": "AI を切り替える",
+      "status": "状態を見る"
+    },
     "stop": "停止",
     "stopping": "停止中…",
     "stopHint": "タスクを停止 · Esc",

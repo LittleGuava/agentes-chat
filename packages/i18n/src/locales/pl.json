@@ -12462,6 +12462,11 @@
     "inProgress": "w toku",
     "quiet": "brak wieści od {{minutes}} min",
     "refresh": "Odśwież",
+    "rescue": {
+      "silent": "Jego AI jeszcze nie odpowiedziała",
+      "switchAi": "Zmień AI",
+      "status": "Zobacz status"
+    },
     "stop": "Zatrzymaj",
     "stopping": "Zatrzymuję…",
     "stopHint": "Zatrzymaj zadanie · Esc",

@@ -11580,6 +11580,11 @@
     "inProgress": "läuft",
     "quiet": "seit {{minutes}} Min. nichts Neues",
     "refresh": "Aktualisieren",
+    "rescue": {
+      "silent": "Seine KI hat noch nicht geantwortet",
+      "switchAi": "KI wechseln",
+      "status": "Status ansehen"
+    },
     "stop": "Stoppen",
     "stopping": "Wird gestoppt…",
     "stopHint": "Aufgabe stoppen · Esc",

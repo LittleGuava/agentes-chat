@@ -12037,6 +12037,11 @@
     "inProgress": "in corso",
     "quiet": "nessuna novità da {{minutes}} min",
     "refresh": "Aggiorna",
+    "rescue": {
+      "silent": "La sua IA non ha ancora risposto",
+      "switchAi": "Cambia IA",
+      "status": "Vedi stato"
+    },
     "stop": "Ferma",
     "stopping": "Arresto in corso…",
     "stopHint": "Ferma l'attività · Esc",

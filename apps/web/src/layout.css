@@ -7247,17 +7247,19 @@ html:not([data-pointer]) .msg-quote:focus-visible {
   height: 18px;
   border-radius: 5px;
 }
-/* "Parar": a small round icon button (stop square in a circle); a danger tint only on hover. */
+/* Its status lines under a live block ("A IA ainda não respondeu · Trocar IA", "sem notícias · Atualizar"), one under
+   the other. */
 .run-status {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
 }
 /* "Atualizar" hangs over its 16px line as the failed run's buttons do over theirs: the line keeps its own height. */
 .run-quiet > .ac-btn {
   margin-block: calc((16px - var(--control-h-sm)) / 2);
 }
+/* "Parar": a small round icon button (stop square in a circle); a danger tint only on hover. */
 .stop-run-wrap {
   position: relative;
   display: inline-flex;

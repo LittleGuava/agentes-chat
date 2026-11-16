@@ -12018,6 +12018,11 @@
     "inProgress": "en cours",
     "quiet": "pas de nouvelles depuis {{minutes}} min",
     "refresh": "Actualiser",
+    "rescue": {
+      "silent": "Son IA n'a pas encore répondu",
+      "switchAi": "Changer d'IA",
+      "status": "Voir l'état"
+    },
     "stop": "Arrêter",
     "stopping": "Arrêt…",
     "stopHint": "Arrêter la tâche · Échap",

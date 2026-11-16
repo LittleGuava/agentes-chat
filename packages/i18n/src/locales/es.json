@@ -11949,6 +11949,11 @@
     "inProgress": "en curso",
     "quiet": "sin novedades hace {{minutes}} min",
     "refresh": "Actualizar",
+    "rescue": {
+      "silent": "Su IA aún no ha respondido",
+      "switchAi": "Cambiar IA",
+      "status": "Ver estado"
+    },
     "stop": "Detener",
     "stopping": "Deteniendo…",
     "stopHint": "Detener tarea · Esc",

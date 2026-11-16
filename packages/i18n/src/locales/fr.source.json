@@ -28325,6 +28325,15 @@
   "run.refresh": {
     "value": "Refresh"
   },
+  "run.rescue.silent": {
+    "value": "Its AI hasn't answered yet"
+  },
+  "run.rescue.switchAi": {
+    "value": "Switch AI"
+  },
+  "run.rescue.status": {
+    "value": "See status"
+  },
   "run.stop": {
     "value": "Stop"
   },

@@ -11935,6 +11935,12 @@ export const en = {
     inProgress: "in progress",
     quiet: "no news for {{minutes}} min",
     refresh: "Refresh",
+    /** Under a run whose AI has sent nothing for a while (`firstReplyRescue`), to the person who asked. */
+    rescue: {
+      silent: "Its AI hasn't answered yet",
+      switchAi: "Switch AI",
+      status: "See status",
+    },
     stop: "Stop",
     stopping: "Stopping…",
     stopHint: "Stop task · Esc",

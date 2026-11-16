@@ -11647,6 +11647,11 @@
     "inProgress": "bezig",
     "quiet": "al {{minutes}} min geen nieuws",
     "refresh": "Vernieuwen",
+    "rescue": {
+      "silent": "De AI heeft nog niet geantwoord",
+      "switchAi": "AI wisselen",
+      "status": "Status bekijken"
+    },
     "stop": "Stoppen",
     "stopping": "Stoppen…",
     "stopHint": "Taak stoppen · Esc",

@@ -11958,6 +11958,11 @@ export const ptBR = {
     inProgress: "em andamento",
     quiet: "sem notícias há {{minutes}} min",
     refresh: "Atualizar",
+    rescue: {
+      silent: "A IA ainda não respondeu",
+      switchAi: "Trocar IA",
+      status: "Ver status",
+    },
     stop: "Parar",
     stopping: "Parando…",
     stopHint: "Parar tarefa · Esc",

@@ -137,6 +137,7 @@ import {
 } from "@agenteschat/client/lib/errors";
 import { everyoneWord, isEveryoneMention, mentionsReader, offersEveryone } from "@agenteschat/client/lib/everyone";
 import { fileIcon, fitsUpload, formatBytes, MAX_UPLOAD_MB, previewKind } from "@agenteschat/client/lib/files";
+import { FIRST_REPLY_RESCUE_MS, firstReplyRescue } from "@agenteschat/client/lib/first-reply";
 import { dayLabel, formatClock, formatFullDate, formatTime } from "@agenteschat/client/lib/format";
 import { agentGrammar } from "@agenteschat/client/lib/grammar";
 import { useHeldWhile } from "@agenteschat/client/lib/hold";
@@ -3583,7 +3584,10 @@ function RunBlock({
   // A run gone quiet meanwhile draws for "sem notícias · Atualizar": wake when that moment comes.
   const waits = Boolean(live && !message && waitsForWords(live));
   useDue(live?.lastEventAt ?? liveStart ?? null, QUIET_AFTER_MS, waits);
-  const hidden = Boolean(live && !message && !rowShows(live, Date.now()));
+  // And for "A IA ainda não respondeu", to the person who asked, once its AI has been silent long enough.
+  useDue(live?.silentSince ?? null, FIRST_REPLY_RESCUE_MS, waits && live?.silentSince !== undefined);
+  const { viewerOf } = useStopRun();
+  const hidden = Boolean(live && !message && !rowShows(live, Date.now(), viewerOf(live)));
   const shown = message ?? placeholder;
   // Its live row on the page: the view measures which blocks are in view again (the bar speaks for those out of it).
   const rowDrawn = useContext(RowDrawnContext);
@@ -3744,7 +3748,10 @@ function LiveRunStatus({ run }: { run: LiveRun }) {
     };
   }, []);
   const [checking, setChecking] = useState(false);
-  if (!isQuiet(run)) return null;
+  const { viewerOf } = useStopRun();
+  const rescue = firstReplyRescue(run, viewerOf(run));
+  const quiet = isQuiet(run);
+  if (!quiet && !rescue) return null;
   const recheck = () => {
     setChecking(true);
     void reconcileChannelRuns(api, liveStore, org.id, run.channelId, [run.runId])
@@ -3755,15 +3762,32 @@ function LiveRunStatus({ run }: { run: LiveRun }) {
   };
   return (
     <div className="run-status">
-      <p className="ac-msg__activity run-quiet">
-        {t("run.quiet", {
-          minutes: Math.max(3, Math.floor((Date.now() - (run.lastEventAt ?? run.startedAt ?? 0)) / 60_000)),
-        })}
-        {" · "}
-        <Button variant="ghost" size="sm" loading={checking} onClick={recheck}>
-          {t("run.refresh")}
-        </Button>
-      </p>
+      {rescue && (
+        // Its AI sent nothing since it was set to work (`firstReplyRescue`): another AI, or where it stands.
+        <p className="ac-msg__activity run-quiet">
+          {t("run.rescue.silent")}
+          {" · "}
+          <Link
+            to="/org/$orgId/agents/$agentId"
+            params={{ orgId: org.id, agentId: run.agentId }}
+            search={rescue.action === "switchAi" ? { tab: "settings", sec: "brain", brain: "switch" } : {}}
+            className="ac-btn ac-btn--ghost ac-btn--sm"
+          >
+            {t(rescue.action === "switchAi" ? "run.rescue.switchAi" : "run.rescue.status")}
+          </Link>
+        </p>
+      )}
+      {quiet && (
+        <p className="ac-msg__activity run-quiet">
+          {t("run.quiet", {
+            minutes: Math.max(3, Math.floor((Date.now() - (run.lastEventAt ?? run.startedAt ?? 0)) / 60_000)),
+          })}
+          {" · "}
+          <Button variant="ghost" size="sm" loading={checking} onClick={recheck}>
+            {t("run.refresh")}
+          </Button>
+        </p>
+      )}
     </div>
   );
 }
@@ -4131,7 +4155,7 @@ function ActivityBar({
     runs,
     rowInView,
   );
-  const { stop } = useStopRun();
+  const { stop, viewerOf } = useStopRun();
   const active = entries.length > 0;
   const agents = entries.filter((e) => e.type === "agent");
   // What waits for the one agent at work here, by who asked (ADR 0084 addendum of 2026-11-15): only what the reader
@@ -4322,7 +4346,7 @@ function ActivityBar({
               </>
             )}
             {/* "Ver" once its row is in the conversation (before that, there is nothing to go back to). */}
-            {!seeConsult && soloAway && rowShows(soloAway, now) && (
+            {!seeConsult && soloAway && rowShows(soloAway, now, viewerOf(soloAway)) && (
               <>
                 <span className="ac-typing__sep" aria-hidden="true" />
                 <button type="button" className="ac-typing__see" onClick={() => onSee(soloAway.runId)}>

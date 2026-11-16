@@ -11162,6 +11162,11 @@
     "inProgress": "sedang berjalan",
     "quiet": "tidak ada kabar selama {{minutes}} mnt",
     "refresh": "Muat ulang",
+    "rescue": {
+      "silent": "AI-nya belum menjawab",
+      "switchAi": "Ganti AI",
+      "status": "Lihat status"
+    },
     "stop": "Hentikan",
     "stopping": "Menghentikan…",
     "stopHint": "Hentikan tugas · Esc",

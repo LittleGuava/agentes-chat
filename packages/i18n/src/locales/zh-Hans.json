@@ -11175,6 +11175,11 @@
     "inProgress": "进行中",
     "quiet": "{{minutes}} 分钟没有新进展",
     "refresh": "刷新",
+    "rescue": {
+      "silent": "它的 AI 还没有回复",
+      "switchAi": "切换 AI",
+      "status": "查看状态"
+    },
     "stop": "停止",
     "stopping": "正在停止…",
     "stopHint": "停止任务 · Esc",

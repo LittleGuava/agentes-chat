@@ -11522,6 +11522,11 @@
     "inProgress": "sürüyor",
     "quiet": "{{minutes}} dakikadır yenilik yok",
     "refresh": "Yenile",
+    "rescue": {
+      "silent": "Yapay zekası henüz yanıt vermedi",
+      "switchAi": "Yapay zekayı değiştir",
+      "status": "Durumu gör"
+    },
     "stop": "Durdur",
     "stopping": "Durduruluyor…",
     "stopHint": "Görevi durdur · Esc",

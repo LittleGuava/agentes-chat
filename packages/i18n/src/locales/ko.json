@@ -11102,6 +11102,11 @@
     "inProgress": "진행 중",
     "quiet": "{{minutes}}분째 소식 없음",
     "refresh": "새로고침",
+    "rescue": {
+      "silent": "AI가 아직 응답하지 않았어요",
+      "switchAi": "AI 바꾸기",
+      "status": "상태 보기"
+    },
     "stop": "중지",
     "stopping": "중지하는 중…",
     "stopHint": "작업 중지 · Esc",

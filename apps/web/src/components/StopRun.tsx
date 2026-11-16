@@ -2,6 +2,7 @@ import type { LiveRun, Message } from "@agenteschat/client";
 import { ApiError, continuedRunIdOf, keys, useContinuedRun, workingSinceOf } from "@agenteschat/client";
 import { activityVerb, toolActivity } from "@agenteschat/client/lib/activity";
 import { errorText } from "@agenteschat/client/lib/errors";
+import type { RescueViewer } from "@agenteschat/client/lib/first-reply";
 import { can } from "@agenteschat/client/lib/permissions";
 import { playSound } from "@agenteschat/client/lib/sounds";
 import { PixelStop, Spinner } from "@agenteschat/ui";
@@ -47,14 +48,28 @@ export function useStopRun() {
     },
   });
   const startedByMe = (r: RunOwner) => {
-    const list = qc.getQueryData<Message[]>(keys.messages(org.id, r.channelId)) ?? [];
-    const root = list.find((m) => m.id === (r.triggerMessageId ?? r.threadId));
+    // A reply in a thread lives in the thread's list, not the channel's.
+    const lists = [
+      keys.messages(org.id, r.channelId),
+      ...(r.threadId ? [keys.thread(org.id, r.channelId, r.threadId)] : []),
+    ];
+    const id = r.triggerMessageId ?? r.threadId;
+    const root = lists.flatMap((key) => qc.getQueryData<Message[]>(key) ?? []).find((m) => m.id === id);
     return root?.author.type === "person" && root.author.id === me.user.id;
   };
-  const canStop = (r: RunOwner) =>
-    can(org, "manage_agents") || dir.agentById.get(r.agentId)?.ownerUserId === me.user.id || startedByMe(r);
+  /** Who the viewer is to this run: also what the first-reply rescue offers them (`firstReplyRescue`). */
+  const viewerOf = (r: RunOwner): RescueViewer => ({
+    askedByMe: startedByMe(r),
+    ownsAgent: dir.agentById.get(r.agentId)?.ownerUserId === me.user.id,
+    admin: can(org, "manage_agents"),
+  });
+  const canStop = (r: RunOwner) => {
+    const v = viewerOf(r);
+    return v.admin || v.ownsAgent || v.askedByMe;
+  };
   return {
     canStop,
+    viewerOf,
     stop: (r: LiveRun) => {
       playSound("stop");
       stop.mutate(r.runId);
