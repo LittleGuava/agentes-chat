@@ -382,3 +382,42 @@ change in how its outcome is counted and told.
 Left as they are: no retry without the right hand's switch, the 15 minutes, the hour of room, routines started by an
 event, a webhook or "Rodar agora", and the causes outside the routine (`OUTSIDE_RUN_ERRORS`). Changing any of them is
 a decision on §1 itself.
+
+## Addendum (2026-11-15): the day ahead on the daily brief
+
+"Resumo do dia" (§2) tells the reader what happened since the last card. A morning brief also says what the day
+holds. That part is now on the same card, as a choice of the person's own.
+
+- **The choice.** `agenda` in `organization_members.team_week`, read by `lodiPrefsOf` and `lodiPrefsSql` like the
+  rest of §0, written through `setLodiPrefs` and `PUT …/team-week`. Off unless the person turns it on, and only
+  while the day's card is on (`dayOff` stops both, so an older build's single stop still stops everything). No
+  migration: it is one more key in the same JSON. The apps show its switch under "Resumo do dia" only when the
+  server answers the key, so a new app on an older server shows nothing it cannot save.
+- **What it reads.** `dayAgenda` (`packages/engine/src/day-agenda.ts`) reads the person's own calendar through
+  `calendarRange`, the view the Calendar page draws, from the card's slot to midnight in the card's time zone (the
+  person's own, else the workspace's). It keeps only what is theirs: meetings they attend and did not decline (a
+  timed one starting in the window, an all-day one on that day), routines of agents they own (each routine once,
+  however often it runs), and tasks due that local day held by them or one of their agents. The calendar's range
+  keeps every UTC day the window touches, so deadlines are kept by the person's local date.
+- **The row.** One `moreRows` row, `{ id: "today", kind: "today", meetings, routines, deadlines, first }`, first on
+  the card and ahead of every other row's five-row limit. `first` is the first meeting's title, start and whether it
+  is all day. Never an event's description, a routine's prompt or a task's text beyond what the reader's own
+  calendar shows them. It is never in `seen`: each day's is its own.
+- **When it posts and rings.** With the choice on, a day whose row is not empty posts the card even with nothing
+  else new, and the card rings: the person asked for a brief at that hour. With it off, §2's rules hold unchanged
+  (posting only for something new of theirs, ringing only for a run newly held). A day with nothing on the
+  calendar and nothing new posts nothing, as before.
+- **The apps.** The row reads "Hoje: 2 reuniões, 1 rotina e 1 tarefa com prazo", then the first meeting and its
+  hour on the reader's own clock. On the web its button opens the Calendar. The phone has no calendar screen: the
+  row is read on the card with no button. A build from before the row leaves it off (it travels in `moreRows`), so
+  on such a build a card posted only for the day ahead shows its numbers and no row.
+- **No model call.** The card stays built from stored data. A summary written by a small model when something is
+  new was asked for and is not built: this ADR keeps model calls to §5's wakes and turns a person starts.
+
+Later:
+
+- A summary in words by a small model, only on days with something new, as its own switch, if the "no model call"
+  rule above is revisited.
+- The person's reminders (`calendarReminders`) and calendar proposals waiting for them on the row.
+- A calendar screen on the phone for the row's button, and asking the right hand for the day ahead through
+  `set_team_week` (an `agenda` field).

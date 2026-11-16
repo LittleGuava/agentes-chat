@@ -33,6 +33,10 @@ const TeamWeekSaved = z.object({
   weekHour: hour.openapi({ description: "The weekly card's hour, in `timezone`." }),
   dayOff: z.boolean().openapi({ description: "Resumo do dia, everyone's daily card, stopped." }),
   dayHour: hour.openapi({ description: "The daily card's hour, in `dayTimezone`." }),
+  agenda: z.boolean().openapi({
+    description:
+      "The day ahead on my daily card: my meetings, my agents' routines and my tasks due, from its hour to midnight. Off unless I turn it on; on, a day with only that to say still brings the card.",
+  }),
   digestOff: z.boolean().openapi({ description: "The summary of approvals waiting on me, stopped." }),
   remindOff: z.boolean().openapi({ description: "Reminders of what the right hand and I agreed on, stopped." }),
   off: z.boolean().openapi({

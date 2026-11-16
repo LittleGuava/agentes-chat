@@ -19,6 +19,11 @@ export interface LodiPrefs {
   dayOff: boolean;
   /** In the person's own time zone (`dayTimezone`). */
   dayHour: number;
+  /**
+   * The day ahead on the daily card (its meetings, routines and tasks due), off unless asked for. Absent: the server
+   * has no such choice, and no switch shows.
+   */
+  agenda?: boolean;
   digestOff: boolean;
   remindOff: boolean;
   timezone: string;
@@ -55,6 +60,7 @@ export function lodiPrefsOf(raw: unknown): LodiPrefs {
     weekHour: r.weekHour ?? r.hour ?? 17,
     dayOff: r.dayOff ?? (r.off === true || r.daily !== true),
     dayHour: r.dayHour ?? r.hour ?? 9,
+    ...(typeof r.agenda === "boolean" ? { agenda: r.agenda } : {}),
     digestOff: r.digestOff === true,
     remindOff: r.remindOff === true,
     timezone,
