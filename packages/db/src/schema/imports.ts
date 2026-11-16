@@ -32,6 +32,17 @@ export const importItems = pgTable(
     hash: text().notNull(),
     /** A channel that already existed: the import only joined its agents to it (it must never delete it). */
     adopted: boolean().notNull().default(false),
+    /**
+     * The target as this import last wrote it (`targetPrint`): another print now means someone changed it here since,
+     * so the next update keeps it unless the person asks to overwrite it, and undoing the import leaves it. Null: last
+     * written before prints were kept, read as not changed.
+     */
+    writtenHash: text(),
+    /**
+     * Undone (`undoImport`): what it made was archived or deleted. The row stays, so importing the package again brings
+     * the same agent, channel or skill back instead of a copy beside it.
+     */
+    undoneAt: timestamp({ withTimezone: true }),
     createdByUserId: text().references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),

@@ -2,11 +2,11 @@ import type { BlobStoreResolver, PubSub } from "@agenteschat/adapters";
 import { and, type Database, eq, inArray, isNull, like, or, schema, sql } from "@agenteschat/db";
 import { isCustomModel, isKnownModel, isOpenRouterModel } from "@agenteschat/providers";
 import { driveFolder, isIdHandle, isSecretFile } from "@agenteschat/ui/names";
-import { archiveAgent, createAgent, freeHandle, HANDLE_PATTERN, updateAgent } from "./agents";
+import { archiveAgent, createAgent, freeHandle, HANDLE_PATTERN, unarchiveAgent, updateAgent } from "./agents";
 import { type AgentAppearance, setAgentAppearance, validateAppearance } from "./appearance";
 import { ARTIFACT_LIMITS, type ArtifactDeps, createFileArtifact } from "./artifacts";
 import { recordAudit } from "./audit";
-import { addChannelMember, archiveChannel, CHANNEL_NAME_PATTERN, createChannel } from "./channels";
+import { addChannelMember, archiveChannel, CHANNEL_NAME_PATTERN, createChannel, unarchiveChannel } from "./channels";
 import type { ConnectorTriggerDeps } from "./connector-triggers";
 import {
   addContextItemByPerson,
@@ -32,7 +32,8 @@ import { localDate, nextOccurrence, normalizeRule, type ScheduleRule } from "./r
 import { deleteSkill, type ParsedSkill, parseSkillMarkdown, saveSkill, setAgentSkills } from "./skills";
 import { canonicalJson } from "./tools/json-schema";
 
-const { importItems, agents, skills, channels, channelMembers, routines, contextItems, organizationMembers } = schema;
+const { importItems, agents, skills, channels, channelMembers, routines, contextItems, organizationMembers, messages } =
+  schema;
 
 // The bundle (ADR 0055). Mirrors `MigrationBundle` in packages/client/src/api/types.ts; the route validates it.
 
@@ -116,7 +117,12 @@ export type ImportSkipReason =
   | "invalid"
   | "failed"
   /** A note on a created routine: its agent already had the most active routines, so it arrived paused. */
-  | "too_many_routines";
+  | "too_many_routines"
+  /**
+   * Changed here since the import wrote it, and changed at the source too: kept as it is (`skip`) unless the person
+   * asked to overwrite it (`overwrite`), then an `update` with this note.
+   */
+  | "edited_here";
 
 export interface ImportItemResult {
   kind: ImportItemKind;
@@ -140,6 +146,8 @@ export interface ImportInput {
    * false: listed as `keep`; true: removed (`delete`). A `pick` narrows the removals one call applies.
    */
   prune?: boolean;
+  /** `kind:key` of items changed here since the import that the person chose to overwrite with the source's version. */
+  overwrite?: string[];
 }
 
 /** One item an earlier import of this package made, still there, that the bundle no longer has. */
@@ -191,8 +199,14 @@ interface Made {
   targetId: string;
   hash: string;
   adopted: boolean;
-  /** The target is still there (not archived or deleted). */
+  /** The target is still there (not archived or deleted) and the import wasn't undone. */
   live: boolean;
+  /** Someone changed the target here since the import last wrote it (its print isn't the one the import left). */
+  edited: boolean;
+  /** The import was undone (`undoImport`). */
+  undone: boolean;
+  /** An agent or public channel not deleted (archived, or brought back by hand): what an undone import brings back. */
+  restorable: boolean;
   /** Agents: the handle it got. */
   handle?: string;
 }
@@ -213,6 +227,8 @@ export interface ImportState {
 type Work =
   | {
       kind: "agent";
+      /** Archived by an undo: brought back as it was, with its handle. */
+      restore?: boolean;
       name: string;
       handle: string;
       role: string;
@@ -222,7 +238,15 @@ type Work =
       skills: string[];
     }
   | { kind: "skill"; skill: ParsedSkill }
-  | { kind: "channel"; name: string; topic: string; adopt: boolean; agents: { key: string; autoReply: boolean }[] }
+  | {
+      kind: "channel";
+      name: string;
+      topic: string;
+      adopt: boolean;
+      agents: { key: string; autoReply: boolean }[];
+      /** Archived by an undo: brought back. */
+      restore?: boolean;
+    }
   | { kind: "routine"; name: string; prompt: string; agent: string; channel: string | null; trigger: BundleTrigger }
   | { kind: "note"; agent: string | null; noteKind: BundleNote["kind"]; title: string; content: string };
 
@@ -351,10 +375,25 @@ export function planImport(
     willExist.add(`${item.kind}:${item.key}`);
     items.push(item);
   };
-  const compare = (kind: ImportItemKind, key: string, hash: string) => {
+  const overwrite = new Set(input.overwrite ?? []);
+  /** Made by an earlier import that was undone, archived and still there: it comes back instead of a copy. */
+  const back = (kind: ImportItemKind, key: string) => {
     const prev = made(kind, key);
-    if (!prev?.live) return { action: "create" as const };
-    return { action: prev.hash === hash ? ("unchanged" as const) : ("update" as const), targetId: prev.targetId };
+    return prev && !prev.live && prev.undone && prev.restorable ? prev : undefined;
+  };
+  const compare = (
+    kind: ImportItemKind,
+    key: string,
+    hash: string,
+  ): Pick<PlannedItem, "action" | "targetId" | "reason"> => {
+    const prev = made(kind, key);
+    if (!prev?.live) return { action: "create" };
+    const targetId = prev.targetId;
+    if (prev.hash === hash) return { action: "unchanged", targetId };
+    // A channel's update only adds agents: nothing people changed in it is written over.
+    if (!prev.edited || kind === "channel") return { action: "update", targetId };
+    const action = overwrite.has(`${kind}:${key}`) ? "update" : "skip";
+    return { action, reason: "edited_here", targetId };
   };
 
   const skillNames = new Map(state.skills);
@@ -406,7 +445,8 @@ export function planImport(
   const newHandles = new Map<string, string>();
   for (const fromName of [false, true]) {
     for (const [key, r] of read) {
-      if (!r.name || r.secretLike || made("agent", key)?.live || isIdHandle(r.wanted) !== fromName) continue;
+      if (!r.name || r.secretLike || made("agent", key)?.live || back("agent", key)) continue;
+      if (isIdHandle(r.wanted) !== fromName) continue;
       const base = fromName ? handleFromName(r.name, r.role, r.instructions) : fit(r.wanted, 32, "handle", r.trimmed);
       if (!HANDLE_PATTERN.test(base)) continue;
       const handle = handles.has(base) ? freeHandle(base, handles) : base;
@@ -435,23 +475,41 @@ export function planImport(
     // A source that couldn't read this agent (another bot's reply lists it by name only) has nothing to say about
     // it: what an earlier import brought stays.
     const prev = made("agent", a.key);
-    const step =
+    const restore = back("agent", a.key);
+    const step: Pick<PlannedItem, "action" | "targetId" | "reason"> =
       prev?.live && !r.instructions
-        ? { action: "unchanged" as const, targetId: prev.targetId }
-        : compare("agent", a.key, hash);
-    const handle = step.action === "create" ? newHandles.get(a.key) : (made("agent", a.key)?.handle ?? r.wanted);
+        ? { action: "unchanged", targetId: prev.targetId }
+        : restore
+          ? { action: "create", targetId: restore.targetId }
+          : compare("agent", a.key, hash);
+    const handle = restore
+      ? restore.handle
+      : step.action === "create"
+        ? newHandles.get(a.key)
+        : (prev?.handle ?? r.wanted);
     if (!handle) {
       skip(item, "invalid");
       continue;
     }
     const { trimmed, name, role, instructions, look } = r;
+    const fresh = step.action === "create" && !restore;
     add({
       ...item,
       ...step,
-      ...(step.action === "create" && a.model && !model ? { reason: "model_not_in_catalog" as const } : {}),
+      ...(fresh && a.model && !model ? { reason: "model_not_in_catalog" as const } : {}),
       ...(handle !== r.wanted ? { renamedTo: handle } : {}),
       trimmed,
-      work: { kind: "agent", name, handle, role, instructions, model, look, skills: a.skills },
+      work: {
+        kind: "agent",
+        ...(restore ? { restore: true } : {}),
+        name,
+        handle,
+        role,
+        instructions,
+        model,
+        look,
+        skills: a.skills,
+      },
     });
   }
 
@@ -474,12 +532,16 @@ export function planImport(
     }
     const prev = made("channel", c.key);
     const holder = channelNames.get(name);
+    const restore = back("channel", c.key);
     let step: Pick<PlannedItem, "action" | "targetId" | "reason">;
     let adopt = false;
     if (prev?.live) {
       // Ours (even renamed since): the agents follow the source.
       step = compare("channel", c.key, hash);
       adopt = prev.adopted;
+    } else if (restore) {
+      // Archived by an undo: it holds the name, and comes back with its conversation.
+      step = { action: "create", targetId: restore.targetId };
     } else if (holder?.open) {
       step = { action: "update", reason: "exists", targetId: holder.id };
       adopt = true;
@@ -495,7 +557,12 @@ export function planImport(
       step = { ...step, action: "update" };
       members = joining;
     }
-    add({ ...item, ...step, trimmed, work: { kind: "channel", name, topic, adopt, agents: members } });
+    add({
+      ...item,
+      ...step,
+      trimmed,
+      work: { kind: "channel", name, topic, adopt, agents: members, ...(restore ? { restore: true } : {}) },
+    });
   }
 
   for (const r of bundle.routines) {
@@ -583,6 +650,76 @@ function planRemovals(input: ImportInput, state: ImportState): ImportRemoval[] {
     .map((m) => ({ kind: m.kind, key: m.key, targetId: m.targetId, action: input.prune ? "delete" : "keep" }));
 }
 
+/**
+ * A target as it is now, in the fields an import writes and people change (an agent's look too, which an update
+ * writes). Never what jobs write on their own (a routine's next run, a skill's use count). A note edited by a person
+ * becomes a new version: the old one points at it (`supersededBy`), so that is a change too. Keyed `kind:targetId`;
+ * a target that is gone has none.
+ */
+async function targetPrints(db: Database, orgId: string, targets: { kind: ImportItemKind; targetId: string }[]) {
+  const ids = (kind: ImportItemKind) => [...new Set(targets.filter((t) => t.kind === kind).map((t) => t.targetId))];
+  const read = async <T extends { id: string }>(kind: ImportItemKind, query: (ids: string[]) => Promise<T[]>) => {
+    const list = ids(kind);
+    const rows = list.length > 0 ? await query(list) : [];
+    return rows.map(({ id, ...fields }) => [`${kind}:${id}`, digest(fields)] as const);
+  };
+  const found = await Promise.all([
+    read("agent", (list) =>
+      db
+        .select({
+          id: agents.id,
+          name: agents.name,
+          role: agents.role,
+          instructions: agents.instructions,
+          appearance: agents.appearance,
+        })
+        .from(agents)
+        .where(and(eq(agents.orgId, orgId), inArray(agents.id, list))),
+    ),
+    read("skill", (list) =>
+      db
+        .select({ id: skills.id, name: skills.name, description: skills.description, body: skills.body })
+        .from(skills)
+        .where(and(eq(skills.orgId, orgId), inArray(skills.id, list))),
+    ),
+    read("channel", (list) =>
+      db
+        .select({ id: channels.id, name: channels.name, topic: channels.topic })
+        .from(channels)
+        .where(and(eq(channels.orgId, orgId), inArray(channels.id, list))),
+    ),
+    read("routine", (list) =>
+      db
+        .select({
+          id: routines.id,
+          name: routines.name,
+          prompt: routines.prompt,
+          agentId: routines.agentId,
+          target: routines.target,
+          triggerType: routines.triggerType,
+          cron: routines.cron,
+          rule: routines.rule,
+          timezone: routines.timezone,
+          event: routines.event,
+        })
+        .from(routines)
+        .where(and(eq(routines.orgId, orgId), inArray(routines.id, list))),
+    ),
+    read("note", (list) =>
+      db
+        .select({
+          id: contextItems.id,
+          title: contextItems.title,
+          content: contextItems.content,
+          supersededBy: contextItems.supersededBy,
+        })
+        .from(contextItems)
+        .where(and(eq(contextItems.orgId, orgId), inArray(contextItems.id, list))),
+    ),
+  ]);
+  return new Map<string, string>(found.flat());
+}
+
 /** The workspace as the plan needs it, for one source package as this person imported it. */
 export async function loadImportState(
   db: Database,
@@ -621,6 +758,7 @@ export async function loadImportState(
         handle: agents.handle,
         previousHandles: agents.previousHandles,
         archivedAt: agents.archivedAt,
+        deletedAt: agents.deletedAt,
       })
       .from(agents)
       .where(eq(agents.orgId, orgId)),
@@ -635,6 +773,7 @@ export async function loadImportState(
         kind: channels.kind,
         visibility: channels.visibility,
         archivedAt: channels.archivedAt,
+        deletedAt: channels.deletedAt,
       })
       .from(channels)
       .where(eq(channels.orgId, orgId)),
@@ -668,10 +807,28 @@ export async function loadImportState(
     routine: (id) => routineRows.some((r) => r.id === id && r.deletedAt === null),
     note: (id) => noteRows.some((n) => n.id === id),
   };
+  // Archived by the undo, or brought back by hand since: either way the same one comes back, never a copy beside it.
+  const restorable = (kind: ImportItemKind, id: string) => {
+    if (kind === "agent") {
+      const a = agentById.get(id);
+      return !!a && a.deletedAt === null;
+    }
+    return (
+      kind === "channel" &&
+      channelRows.some((c) => c.id === id && c.kind === "channel" && c.visibility === "public" && c.deletedAt === null)
+    );
+  };
+  // Only rows that know what they wrote can tell a change here; older ones read as unchanged, as before.
+  const prints = await targetPrints(
+    db,
+    orgId,
+    rows.flatMap((r) => (r.writtenHash ? [{ kind: r.kind as ImportItemKind, targetId: r.targetId }] : [])),
+  );
   return {
     made: new Map(
       rows.map((r) => {
         const kind = r.kind as ImportItemKind;
+        const undone = r.undoneAt !== null;
         return [
           `${kind}:${r.key}`,
           {
@@ -680,7 +837,10 @@ export async function loadImportState(
             targetId: r.targetId,
             hash: r.hash,
             adopted: r.adopted,
-            live: live[kind]?.(r.targetId) ?? false,
+            live: !undone && (live[kind]?.(r.targetId) ?? false),
+            edited: r.writtenHash !== null && prints.get(`${kind}:${r.targetId}`) !== r.writtenHash,
+            undone,
+            restorable: restorable(kind, r.targetId),
             handle: kind === "agent" ? agentById.get(r.targetId)?.handle : undefined,
           },
         ];
@@ -792,9 +952,11 @@ export async function applyImport(
           importItems.kind,
           importItems.key,
         ],
-        set: { targetId, hash: item.hash, adopted, updatedAt: new Date() },
+        set: { targetId, hash: item.hash, adopted, undoneAt: null, updatedAt: new Date() },
       });
   };
+  /** Items written in this apply: what each target is now is kept as what the import wrote (`writtenHash`). */
+  const written: PlannedItem[] = [];
   /** A routine posts only where its agent is: it joins quietly (mentions only) when it isn't there yet. */
   const joinQuietly = async (channelId: string, agentId: string) => {
     const [member] = await db
@@ -835,12 +997,16 @@ export async function applyImport(
           const model = work.model ? { model: work.model } : {};
           const input = { ...fields, ...model, handle: work.handle };
           agentId = (await createAgent(db, actorId, orgId, input, defaults, { pubsub })).id;
-        } else await updateAgent(db, actorId, orgId, agentId, fields, { pubsub });
+        } else {
+          if (work.restore) await unarchiveAgent(db, actorId, orgId, agentId, { pubsub });
+          await updateAgent(db, actorId, orgId, agentId, fields, { pubsub });
+        }
         await remember(item, agentId);
         if (work.look) await setAgentAppearance(db, actorId, orgId, agentId, work.look, { pubsub });
         return;
       }
       case "channel": {
+        if (work.restore && item.targetId) await unarchiveChannel(db, actorId, orgId, item.targetId, { pubsub });
         const channelId =
           item.targetId ??
           (await createChannel(db, actorId, orgId, { name: work.name, topic: work.topic }, { pubsub })).id;
@@ -881,8 +1047,9 @@ export async function applyImport(
       case "note": {
         const agentId = work.agent === null ? null : (ids.agent.get(work.agent) as string);
         const fields = { content: work.content, ...(work.title ? { title: work.title } : {}) };
+        // Overwriting a note someone edited here writes over their version, the newest one.
         const row = item.targetId
-          ? await editContextItem(db, actorId, orgId, item.targetId, fields)
+          ? await editContextItem(db, actorId, orgId, await newestVersion(db, orgId, item.targetId), fields)
           : await addContextItemByPerson(db, actorId, orgId, { ...fields, kind: work.noteKind, agentId });
         await remember(item, row.id);
         return;
@@ -903,9 +1070,32 @@ export async function applyImport(
     try {
       if (missing) throw missing;
       await apply(item, work);
+      written.push(item);
     } catch (error) {
       Object.assign(item, { action: "skip", reason: missing ?? failure(error) });
     }
+  }
+  // A channel's update only joins agents: what people renamed it to since stays a change of theirs.
+  const stamped = written.filter((i) => i.kind !== "channel" || i.action === "create");
+  const prints = await targetPrints(
+    db,
+    orgId,
+    stamped.flatMap((i) => (i.targetId ? [{ kind: i.kind, targetId: i.targetId }] : [])),
+  );
+  for (const item of stamped) {
+    await db
+      .update(importItems)
+      .set({ writtenHash: prints.get(`${item.kind}:${item.targetId}`) ?? null })
+      .where(
+        and(
+          eq(importItems.orgId, orgId),
+          eq(importItems.createdByUserId, actorId),
+          eq(importItems.sourceApp, source.app),
+          eq(importItems.sourceRef, source.ref),
+          eq(importItems.kind, item.kind),
+          eq(importItems.key, item.key),
+        ),
+      );
   }
 
   // Imported skills arrive on for the agents that had them, only where the agent or the skill is new: a pair that
@@ -987,9 +1177,179 @@ export async function applyImport(
   return result();
 }
 
+/** The newest version of a note (a person's edit supersedes the one the import wrote). */
+async function newestVersion(db: Database, orgId: string, itemId: string) {
+  let id = itemId;
+  // A chain longer than this is no person's edits: write over the one it reached.
+  for (let hop = 0; hop < 50; hop++) {
+    const [row] = await db
+      .select({ next: contextItems.supersededBy })
+      .from(contextItems)
+      .where(and(eq(contextItems.orgId, orgId), eq(contextItems.id, id)));
+    if (!row?.next) break;
+    id = row.next;
+  }
+  return id;
+}
+
+// ── Undoing ──────────────────────────────────────────────────────────────────
+
+/** Why undoing an import leaves an item: changed here since, a room people talked in, or its removal failed. */
+export type ImportUndoReason = "edited_here" | "in_use" | "failed";
+
+export interface ImportUndoItem {
+  kind: ImportItemKind;
+  key: string;
+  label: string;
+  action: "remove" | "keep";
+  reason?: ImportUndoReason;
+  targetId: string;
+}
+
+/** What an undo takes back first: what depends on something comes before it. */
+const UNDO_ORDER: ImportItemKind[] = ["note", "routine", "channel", "agent", "skill"];
+
+/** The names an undo shows, read from the targets as they are now. */
+async function targetLabels(db: Database, orgId: string, made: Made[]) {
+  const ids = (kind: ImportItemKind) => made.filter((m) => m.kind === kind).map((m) => m.targetId);
+  const named = async (kind: ImportItemKind, query: (ids: string[]) => Promise<{ id: string; label: string }[]>) => {
+    const list = ids(kind);
+    return (list.length > 0 ? await query(list) : []).map((r) => [`${kind}:${r.id}`, r.label] as const);
+  };
+  const found = await Promise.all([
+    named("agent", (list) =>
+      db
+        .select({ id: agents.id, label: agents.name })
+        .from(agents)
+        .where(and(eq(agents.orgId, orgId), inArray(agents.id, list))),
+    ),
+    named("skill", (list) =>
+      db
+        .select({ id: skills.id, label: skills.name })
+        .from(skills)
+        .where(and(eq(skills.orgId, orgId), inArray(skills.id, list))),
+    ),
+    named("channel", (list) =>
+      db
+        .select({ id: channels.id, label: channels.name })
+        .from(channels)
+        .where(and(eq(channels.orgId, orgId), inArray(channels.id, list))),
+    ),
+    named("routine", (list) =>
+      db
+        .select({ id: routines.id, label: routines.name })
+        .from(routines)
+        .where(and(eq(routines.orgId, orgId), inArray(routines.id, list))),
+    ),
+    named("note", async (list) =>
+      (
+        await db
+          .select({ id: contextItems.id, title: contextItems.title, content: contextItems.content })
+          .from(contextItems)
+          .where(and(eq(contextItems.orgId, orgId), inArray(contextItems.id, list)))
+      ).map((n) => ({ id: n.id, label: n.title || (n.content.split("\n")[0] ?? "").slice(0, 80) })),
+    ),
+  ]);
+  return new Map<string, string>(found.flat());
+}
+
+/**
+ * Takes back what one source package brought, as this person imported it (`dryRun`: only says what would go). Each
+ * item the import made and nobody changed here since goes the way it can come back: a note archived, a routine and a
+ * skill deleted (a skill is restorable), a channel and an agent archived. What someone changed here stays
+ * (`edited_here`), and so does a channel with messages in it (`in_use`); a channel that was here already (`adopted`)
+ * is never listed. The provenance rows stay, marked undone, so importing the package again brings the same agents
+ * (with their handles), channels and skills back. Safe to repeat: what it took back isn't there to take. One audit
+ * entry, `import.undone`. Who manages agents only: it archives them.
+ */
+export async function undoImport(
+  deps: Omit<ImportDeps, "blobs">,
+  actorId: string,
+  orgId: string,
+  input: { app: string; ref: string; dryRun: boolean },
+): Promise<{ items: ImportUndoItem[] }> {
+  const { db, pubsub } = deps;
+  await requirePermission(db, actorId, orgId, "manage_agents");
+  const state = await loadImportState(db, actorId, orgId, { app: input.app, ref: input.ref });
+  const made = [...state.made.values()]
+    .filter((m) => m.live && !m.adopted)
+    .sort((a, b) => UNDO_ORDER.indexOf(a.kind) - UNDO_ORDER.indexOf(b.kind));
+  const labels = await targetLabels(db, orgId, made);
+  const rooms = made.filter((m) => m.kind === "channel").map((m) => m.targetId);
+  const talked = new Set(
+    rooms.length > 0
+      ? (
+          await db
+            .selectDistinct({ channelId: messages.channelId })
+            .from(messages)
+            .where(and(eq(messages.orgId, orgId), inArray(messages.channelId, rooms)))
+        ).map((r) => r.channelId)
+      : [],
+  );
+  const items: ImportUndoItem[] = made.map((m) => {
+    const reason: ImportUndoReason | undefined = m.edited
+      ? "edited_here"
+      : m.kind === "channel" && talked.has(m.targetId)
+        ? "in_use"
+        : undefined;
+    return {
+      kind: m.kind,
+      key: m.key,
+      label: labels.get(`${m.kind}:${m.targetId}`) ?? m.key,
+      action: reason ? "keep" : "remove",
+      ...(reason ? { reason } : {}),
+      targetId: m.targetId,
+    };
+  });
+  if (input.dryRun) return { items };
+
+  const routineDeps: RoutineDeps = { db, pubsub, connectors: deps.connectors };
+  const takeBack: Record<ImportItemKind, (id: string) => Promise<unknown>> = {
+    note: (id) => editContextItem(db, actorId, orgId, id, { archived: true }),
+    routine: (id) => deleteRoutine(routineDeps, actorId, orgId, id),
+    channel: (id) => archiveChannel(db, actorId, orgId, id, { pubsub }),
+    agent: (id) => archiveAgent(db, actorId, orgId, id, pubsub),
+    skill: (id) => deleteSkill(db, actorId, orgId, id),
+  };
+  for (const item of items) {
+    if (item.action !== "remove") continue;
+    try {
+      await takeBack[item.kind](item.targetId);
+      await db
+        .update(importItems)
+        .set({ undoneAt: new Date(), updatedAt: new Date() })
+        .where(
+          and(
+            eq(importItems.orgId, orgId),
+            eq(importItems.createdByUserId, actorId),
+            eq(importItems.sourceApp, input.app),
+            eq(importItems.kind, item.kind),
+            eq(importItems.targetId, item.targetId),
+          ),
+        );
+    } catch {
+      Object.assign(item, { action: "keep", reason: "failed" });
+    }
+  }
+  await recordAudit(db, {
+    orgId,
+    actor: { type: "person", id: actorId },
+    action: "import.undone",
+    target: { type: "import", id: null },
+    details: {
+      app: input.app,
+      ref: input.ref,
+      removed: items.filter((i) => i.action === "remove").length,
+      kept: items.filter((i) => i.action === "keep").length,
+    },
+  });
+  return { items };
+}
+
 /**
  * What the workspace brought from other apps, one entry per source package in the order they first came: how many
- * of each kind. A channel that was here already (`adopted`) didn't come. Admins only (`manage_agents`).
+ * of each kind are still there from it. A channel that was here already (`adopted`) didn't come, and what an undo
+ * took back is gone. `mine`: the caller imported some of it, so they may undo it. Admins only (`manage_agents`).
  */
 export async function importedSources(db: Database, actorId: string, orgId: string) {
   await requirePermission(db, actorId, orgId, "manage_agents");
@@ -999,20 +1359,26 @@ export async function importedSources(db: Database, actorId: string, orgId: stri
       ref: importItems.sourceRef,
       kind: importItems.kind,
       n: sql<number>`count(*)::int`,
+      mine: sql<boolean>`bool_or(${importItems.createdByUserId} = ${actorId})`,
     })
     .from(importItems)
-    .where(and(eq(importItems.orgId, orgId), eq(importItems.adopted, false)))
+    .where(and(eq(importItems.orgId, orgId), eq(importItems.adopted, false), isNull(importItems.undoneAt)))
     .groupBy(importItems.sourceApp, importItems.sourceRef, importItems.kind)
     .orderBy(sql`min(${importItems.createdAt})`);
-  const sources = new Map<string, { app: string; ref: string; counts: Record<ImportItemKind, number> }>();
+  const sources = new Map<
+    string,
+    { app: string; ref: string; mine: boolean; counts: Record<ImportItemKind, number> }
+  >();
   for (const row of rows) {
     const key = JSON.stringify([row.app, row.ref]);
     const source = sources.get(key) ?? {
       app: row.app,
       ref: row.ref,
+      mine: false,
       counts: Object.fromEntries(IMPORT_KINDS.map((k) => [k, 0])) as Record<ImportItemKind, number>,
     };
     if (row.kind in source.counts) source.counts[row.kind as ImportItemKind] = row.n;
+    source.mine ||= row.mine === true;
     sources.set(key, source);
   }
   return [...sources.values()];
