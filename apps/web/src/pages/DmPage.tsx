@@ -127,7 +127,13 @@ export function DmPage({ target, focusMessageId }: { target: DmTarget; focusMess
           {agent && <AgentTasksPill />}
           {/* The sidebar has the computer: only a line of turns waiting for it still shows here. A viewer of its public
               card gets the sidebar's head alone, so the way in stays for one who may still watch the computer. */}
-          {agent && !rightHand && <ModelPickerButton agent={agent} className="channel__brain" />}
+          {agent && !rightHand && (
+            <ModelPickerButton
+              agent={agent}
+              className="channel__brain"
+              conversation={{ channelId: dm.data.channelId }}
+            />
+          )}
           {agent && !rightHand && <ComputerButton agent={agent} queueOnly={side?.docked && seesDetails(agent)} />}
           {/* A read-only copy of this talk, for a channel or a colleague (ADR 0151, addendum 2026-11-15). */}
           {agent && <ShareDmButton channelId={dm.data.channelId} agentName={agent.name} />}

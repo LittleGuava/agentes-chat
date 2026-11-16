@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 import { useApi } from "@/api/context";
 import { ActorAvatar } from "@/components/AgentAvatar";
 import { useActors } from "@/components/actors";
+import { ConversationModelsButton } from "@/components/ai/ConversationModels";
 import { useExportConversation } from "@/components/ConversationExport";
 import { NavToggle } from "@/components/NavDrawer";
 import { useOrg } from "@/components/org-context";
@@ -214,6 +215,7 @@ export function ThreadHeader({
         </span>
       </div>
       {thread.state !== "open" && <ThreadStatusChip thread={thread} />}
+      <ConversationModelsButton channelId={thread.channelId} threadId={thread.id} look="thread" />
       <Menu
         align="end"
         label={more}

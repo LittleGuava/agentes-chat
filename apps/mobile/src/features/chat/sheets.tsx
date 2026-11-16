@@ -49,6 +49,7 @@ import { type ActionItem, ActionList, copyText, successHaptic, Tile, tapHaptic, 
 import { useSheet } from "../shared/SheetHost";
 import { TextArea } from "../shared/TextArea";
 
+import { ConversationModelSheet, useConversationAgents } from "./ConversationModelSheet";
 import { QUICK_REACTIONS, reactionName, reactionPills } from "./logic";
 import type { MenuSymbol } from "./MessageMenu";
 
@@ -407,6 +408,7 @@ export function ThreadOptions({
   };
   const control = useMissionControl(orgId);
   const close = useCloseMission(orgId);
+  const agents = useConversationAgents(thread.channelId);
   // A thread on a GIF or a sticker has no words of its own to title it (ADR 0091).
   const title = thread.title?.trim() || previewOf(thread.rootText) || t("mobile.chat.thread");
   const name = mission ? (dir.agentById.get(mission.agentId)?.name ?? "") : "";
@@ -456,6 +458,22 @@ export function ThreadOptions({
             onPress: () => setFollowing(!following),
           },
           ...(onPins ? [{ key: "pins", icon: "pin" as const, label: t("mobile.pins.title"), onPress: onPins }] : []),
+          ...(agents.length > 0
+            ? [
+                {
+                  key: "models",
+                  icon: "brain" as const,
+                  label: t("brain.picker.conversation.button"),
+                  onPress: () =>
+                    sheet.open(
+                      <ConversationModelSheet
+                        place={{ channelId: thread.channelId, threadId: thread.id }}
+                        agents={agents}
+                      />,
+                    ),
+                },
+              ]
+            : []),
           ...(mission
             ? [
                 {
@@ -621,6 +639,7 @@ export function ChannelOptions({
   const categoryName = channel?.categoryId
     ? categories.data?.find((c) => c.id === channel.categoryId)?.name
     : undefined;
+  const agents = useConversationAgents(channelId);
   return (
     <>
       <SheetTitle leading={leading} title={title} {...(subtitle ? { subtitle } : {})} />
@@ -641,6 +660,16 @@ export function ChannelOptions({
             ...(count > 0 ? { trailing: <Count value={count} max={99} /> } : {}),
             onPress: onPins,
           },
+          ...(agents.length > 0
+            ? [
+                {
+                  key: "models",
+                  icon: "brain" as const,
+                  label: t("brain.picker.conversation.button"),
+                  onPress: () => sheet.open(<ConversationModelSheet place={{ channelId }} agents={agents} />),
+                },
+              ]
+            : []),
           ...(onMembers && moves
             ? [
                 {
