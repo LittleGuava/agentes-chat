@@ -745,7 +745,7 @@ function emailSender(config: Config, log: Logger): EmailSender {
 }
 
 /** Our bucket (S3_*) when configured, else a folder on this server (FILES_DIR), else Postgres. */
-function platformBlobStore(config: Config, db: Database) {
+export function platformBlobStore(config: Config, db: Database) {
   const { S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY } = config;
   if (!S3_ENDPOINT || !S3_BUCKET || !S3_ACCESS_KEY_ID || !S3_SECRET_ACCESS_KEY) {
     return config.FILES_DIR ? createDiskBlobStore(config.FILES_DIR) : createPostgresBlobStore(db);

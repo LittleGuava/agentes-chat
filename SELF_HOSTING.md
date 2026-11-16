@@ -744,6 +744,66 @@ or build one file for Node 18 or Bun with `bun run --filter @agenteschat/cli bui
 </details>
 
 <details>
+<summary><b>Your team in a file (team.yaml, CI)</b></summary>
+
+Agents, skills, channels, routines and notes can live in a `team.yaml` kept in git, reviewed in pull
+requests and applied to a workspace, with a check for CI that fails when the workspace and the file disagree
+(ADR 0055, addendum 2026-11-15):
+
+```yaml
+version: 1
+name: Launch Room
+id: launch-room               # what this file made is found by it: keep it when the name changes
+agents:
+  - handle: scout
+    name: Scout
+    role: Researcher
+    instructions: { file: agents/scout.md }
+    skills: [research]
+skills:
+  - file: skills/research/SKILL.md
+channels:
+  - name: launch
+    agents: [scout]
+routines:
+  - name: Morning digest
+    agent: scout
+    channel: launch
+    cron: "0 9 * * 1-5"
+    timezone: America/Sao_Paulo
+    prompt: Sum up what changed overnight.
+```
+
+Every agent needs `instructions`. It runs in the server's image, against its database, as a member named by `--as` and with that person's
+permissions. From the folder that holds the file:
+
+```sh
+docker compose run --rm -T -v "$PWD:/team:ro" agentes team plan  /team/team.yaml --as ana@example.com  # what would change
+docker compose run --rm -T -v "$PWD:/team:ro" agentes team check /team/team.yaml --as ana@example.com  # exit 6 if anything would
+docker compose run --rm -T -v "$PWD:/team:ro" agentes team apply /team/team.yaml --as ana@example.com  # make it so
+```
+
+`-` instead of the path reads the file from standard input (`… agentes team check - --as … < team.yaml`); its
+`{ file: … }` paths then can't be read. It needs the Postgres of the Docker setup: the server on this computer
+without Docker keeps its database to itself while it runs. `--org ID` picks the workspace
+when that person is in more than one. A problem in the file stops it before anything is planned, at its line
+(`team.yaml:12:5: unknown field "rol" in agents[0] …`, exit 2). Exit codes: 0 done or in sync, 1 refused or
+failed, 2 the file is invalid, 6 the check found differences.
+
+What the file no longer has stays, listed as kept, unless `--prune`: then what this same file made (same `id`,
+applied by the same person) is removed through the app, agents and channels archived, routines, skills and notes
+deleted. Nothing made by hand, by another file or another person is touched, nor a channel that was already
+there. Put back in the file, a skill comes back as it was; an agent or a channel comes back as the same one only
+after you unarchive it in the app (otherwise the agent returns with the next handle, `lead-2`, and the channel's
+name stays taken). Always apply as the same person, and keep the file's `id`: what one account applied is new to
+another, and a file without `id` takes it from `name`, so renaming the team makes a new one.
+
+The check compares the file with what the last apply brought, not with edits made in the app since: an agent's
+model and look, and a channel's topic, are set only when they are created.
+
+</details>
+
+<details>
 <summary><b>What needs a public URL</b></summary>
 
 On Tailscale, only devices in your tailnet reach the instance. Everything people do in the apps works
