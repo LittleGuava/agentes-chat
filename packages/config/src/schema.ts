@@ -117,6 +117,13 @@ export const envVars = {
     section: "Server",
     example: "https://agentes.chat",
   },
+  PUBLISHED_PAGES_URL: {
+    schema: z.url().optional(),
+    description:
+      "Base URL public pages are served from, without a trailing slash (ADR 0211): an agent may then publish a page it made (`publish_page`, after a person approves) at `<this URL>/p/<token>/`, which anyone with the link opens. Its host must differ from `PUBLIC_URL`'s, ideally on a domain of its own: point it at this server and keep the `Host` header in the proxy. That host serves only pages, and the app's host never does. Unset (default): nothing is published.",
+    section: "Server",
+    example: "https://pages.example.net",
+  },
   APP_VERSION: {
     schema: z
       .string()

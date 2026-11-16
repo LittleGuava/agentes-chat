@@ -206,6 +206,7 @@ import type {
   PlanServes,
   Poll,
   Proposal,
+  PublishedPage,
   ReactionCount,
   Reminder,
   RemovalPreview,
@@ -1651,6 +1652,13 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         request<ArtifactDetail>(`${org(orgId)}/artifacts/${enc(id)}/versions`, { json: input }),
       setSharing: (orgId, id, sharing) =>
         request<Artifact>(`${org(orgId)}/artifacts/${enc(id)}/sharing`, { method: "PUT", json: sharing }),
+      publishedPages: async (orgId, artifactId) =>
+        (
+          await request<{ pages: PublishedPage[] }>(
+            `${org(orgId)}/published-pages${artifactId ? `?artifactId=${enc(artifactId)}` : ""}`,
+          )
+        ).pages,
+      unpublish: (orgId, pageId) => request<void>(`${org(orgId)}/published-pages/${enc(pageId)}`, { method: "DELETE" }),
       remove: (orgId, id) => request<void>(`${org(orgId)}/artifacts/${enc(id)}`, { method: "DELETE" }),
       trash: async (orgId) => {
         // The server answers `{ files }`.

@@ -5314,6 +5314,7 @@
         "draft": "Zapisać wersję roboczą"
       },
       "vault_make_password": "Utwórz hasło",
+      "publish_page": "Opublikuj stronę w internecie (wersja {{version}})",
       "pg_query": "Odpytaj {{target}}",
       "request_approval": {
         "merge": "Wykonaj merge {{target}}",
@@ -15026,6 +15027,7 @@
       "request_folder_access": "Poproś o dostęp do folderu",
       "create_artifact": "Utwórz plik w Drive",
       "update_artifact": "Zaktualizuj plik w Drive",
+      "publish_page": "Opublikuj stronę w internecie",
       "read_artifact": "Przeczytaj plik w Drive",
       "list_artifacts": "Wyświetl pliki w Drive",
       "share_artifact": "Udostępnij plik",
@@ -17699,6 +17701,10 @@
         "connection_changed": "Zmieniono połączenie menedżera haseł",
         "connection_removed": "Odłączono menedżer haseł od Vault"
       },
+      "artifact": {
+        "page_published": "Opublikował stronę w internecie (wersja {{version}})",
+        "page_unpublished": "Zdjął stronę z internetu (wersja {{version}})"
+      },
       "verb": {
         "created": "Utworzono",
         "deleted": "Usunięto",
@@ -18852,6 +18858,7 @@
         "readingIssues": "Przejrzano zadania",
         "readingDrive": "Przeczytano Drive",
         "writingDrive": "Zapisano na Drive",
+        "publishingPage": "Opublikował stronę",
         "searchingMemory": "Przeszukano historię",
         "updatingMemory": "Zapisano w pamięci",
         "checkingCalendar": "Sprawdzono kalendarz",
@@ -18972,6 +18979,7 @@
       "readingIssues": "przeglądanie zadań",
       "readingDrive": "czytanie Drive",
       "writingDrive": "zapisywanie na Drive",
+      "publishingPage": "publikuje stronę",
       "searchingMemory": "przeszukiwanie historii",
       "updatingMemory": "robienie notatek",
       "checkingCalendar": "sprawdzanie kalendarza",
@@ -19332,6 +19340,10 @@
     "update_artifact": {
       "label": "Zaktualizuj plik",
       "description": "Zapisuje nową wersję pliku."
+    },
+    "publish_page": {
+      "label": "Opublikuj stronę",
+      "description": "Umieszcza stworzoną stronę pod publicznym adresem, który otworzy każdy z linkiem, po zatwierdzeniu przez osobę. Tylko na serwerach, które publikują strony."
     },
     "list_issues": {
       "label": "Zobacz zadania",
@@ -21455,6 +21467,12 @@
     "onlyHere": "Osoby spoza tej rozmowy nie otworzą linku.",
     "choosePeople": "Wybierz osoby",
     "readOnly": "Tylko osoby z rozmowy zmieniają, kto to widzi.",
+    "publicPage": "Strona publiczna",
+    "publicVersion": "wersja {{version}}",
+    "publicNote": "Każdy z tym linkiem otworzy stronę, bez konta.",
+    "copyPublicLink": "Kopiuj publiczny link",
+    "unpublish": "Cofnij publikację",
+    "unpublished": "Strona została zdjęta. Jej link już się nie otwiera.",
     "open": "Cała przestrzeń robocza widzi ten plik.",
     "openPersonal": "Wszyscy tutaj widzą ten plik.",
     "savedEveryone": "Teraz cała przestrzeń robocza widzi plik.",

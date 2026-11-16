@@ -1657,6 +1657,20 @@ export async function getArtifact(
   return detail(view(a, editableKind(a.kind)), v.version, await contentOf(deps, a, v));
 }
 
+/**
+ * A page's HTML at one version, read for nobody in particular: only for a published page's address (ADR 0211), whose
+ * row already says the file was approved for everyone. Null for a file in the trash or gone, anything but a page, and
+ * a version it doesn't have.
+ */
+export async function pageHtmlAt(deps: ArtifactDeps, orgId: string, artifactId: string, version: number) {
+  const a = await loadArtifact(deps.db, orgId, artifactId);
+  if (a?.kind !== "html") return null;
+  const v = await versionRow(deps.db, a, version).catch(() => null);
+  if (!v) return null;
+  const content = await contentOf(deps, a, v);
+  return content.kind === "html" ? content.html : null;
+}
+
 /** What a file's pill in a text shows (`idRef`): its name and type, only for a person who may read it; else null. */
 export async function fileRefOf(db: Database, userId: string, orgId: string, artifactId: string) {
   const a = await loadArtifact(db, orgId, artifactId);

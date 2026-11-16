@@ -43,7 +43,7 @@ export const BUILTIN_TOOLS: Record<string, string[]> = {
   "context:read": ["search_context", "get_summary", "expand"],
   "memory:write": ["remember", "update_memory", "forget", "save_how_to", "propose_instruction_change"],
   "drive:read": ["read_artifact", "list_artifacts", "share_artifact"],
-  "drive:write": ["create_artifact", "update_artifact"],
+  "drive:write": ["create_artifact", "update_artifact", "publish_page"],
   "issues:read": ["list_issues"],
   "issues:write": ["create_issue", "update_issue", "comment_issue"],
   "calendar:read": ["list_events", "find_free_time"],
@@ -177,6 +177,11 @@ export const BUILTIN_TOOL_INFO: Record<string, { label: string; description: str
   },
   create_artifact: { label: "Create file", description: "Creates a document, table, diff, diagram or page." },
   update_artifact: { label: "Update file", description: "Saves a new version of a file." },
+  publish_page: {
+    label: "Publish page",
+    description:
+      "Puts a page it made at a public address anyone with the link opens, after a person approves. Only on servers that publish pages.",
+  },
   list_issues: { label: "View issues", description: "Lists and opens issues." },
   create_issue: { label: "Create issue", description: "Creates an issue with acceptance criteria." },
   update_issue: { label: "Update issue", description: "Changes status or priority, or links a PR." },

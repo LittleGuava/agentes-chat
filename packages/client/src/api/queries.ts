@@ -4523,6 +4523,26 @@ export function useSetArtifactSharing(orgId: string) {
   });
 }
 
+/** A file's live public page, if any, that I may take down (ADR 0211). */
+export function usePublishedPages(orgId: string, artifactId: string) {
+  const api = useApi();
+  return useQuery({
+    queryKey: keys.publishedPages(orgId, artifactId),
+    queryFn: () => api.artifacts.publishedPages(orgId, artifactId),
+  });
+}
+
+/** Despublicar: the page's address stops at once. The caller says a failure. */
+export function useUnpublishPage(orgId: string) {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (pageId: string) => api.artifacts.unpublish(orgId, pageId),
+    meta: { silent: true },
+    onSettled: () => qc.invalidateQueries({ queryKey: keys.artifacts(orgId) }),
+  });
+}
+
 /** Uploads a file to the Drive, or a new version of `artifactId`. Errors are shown by the caller. */
 export function useUploadFile(orgId: string) {
   const api = useApi();

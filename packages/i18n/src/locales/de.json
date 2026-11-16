@@ -4984,6 +4984,7 @@
         "draft": "Einen Entwurf speichern"
       },
       "vault_make_password": "Ein Passwort erstellen",
+      "publish_page": "Eine Seite im Internet veröffentlichen (Version {{version}})",
       "pg_query": "{{target}} abfragen",
       "request_approval": {
         "merge": "{{target}} mergen",
@@ -14058,6 +14059,7 @@
       "request_folder_access": "Ordner anfragen",
       "create_artifact": "Datei in Drive erstellen",
       "update_artifact": "Datei in Drive ändern",
+      "publish_page": "Seite im Internet veröffentlichen",
       "read_artifact": "Datei in Drive lesen",
       "list_artifacts": "Dateien in Drive auflisten",
       "share_artifact": "Datei teilen",
@@ -16624,6 +16626,10 @@
         "connection_changed": "Hat die Verbindung eines Passwort-Managers geändert",
         "connection_removed": "Hat einen Passwort-Manager vom Vault getrennt"
       },
+      "artifact": {
+        "page_published": "Hat eine Seite im Internet veröffentlicht (Version {{version}})",
+        "page_unpublished": "Hat eine Seite aus dem Internet genommen (Version {{version}})"
+      },
       "verb": {
         "created": "Erstellt",
         "deleted": "Gelöscht",
@@ -17720,6 +17726,7 @@
         "readingIssues": "Die Aufgaben angesehen",
         "readingDrive": "Drive gelesen",
         "writingDrive": "In Drive geschrieben",
+        "publishingPage": "Hat eine Seite veröffentlicht",
         "searchingMemory": "Den Verlauf durchsucht",
         "updatingMemory": "Im Gedächtnis notiert",
         "checkingCalendar": "Den Kalender geprüft",
@@ -17840,6 +17847,7 @@
       "readingIssues": "Ansehen der Aufgaben",
       "readingDrive": "Lesen in Drive",
       "writingDrive": "Schreiben in Drive",
+      "publishingPage": "veröffentlicht eine Seite",
       "searchingMemory": "Durchsuchen des Verlaufs",
       "updatingMemory": "Notizenmachen",
       "checkingCalendar": "Prüfen des Kalenders",
@@ -18191,6 +18199,10 @@
     "update_artifact": {
       "label": "Datei aktualisieren",
       "description": "Speichert eine neue Version einer Datei."
+    },
+    "publish_page": {
+      "label": "Seite veröffentlichen",
+      "description": "Stellt eine selbst erstellte Seite unter eine öffentliche Adresse, die jeder mit dem Link öffnet, nachdem eine Person zustimmt. Nur auf Servern, die Seiten veröffentlichen."
     },
     "list_issues": {
       "label": "Aufgaben ansehen",
@@ -20173,6 +20185,12 @@
     "onlyHere": "Wer nicht in dieser Unterhaltung ist, kann den Link nicht öffnen.",
     "choosePeople": "Personen wählen",
     "readOnly": "Nur wer in der Unterhaltung ist, ändert, wer es sieht.",
+    "publicPage": "Öffentliche Seite",
+    "publicVersion": "Version {{version}}",
+    "publicNote": "Jeder mit diesem Link öffnet die Seite, auch ohne Konto.",
+    "copyPublicLink": "Öffentlichen Link kopieren",
+    "unpublish": "Veröffentlichung aufheben",
+    "unpublished": "Die Seite ist offline. Ihr Link öffnet nicht mehr.",
     "open": "Der ganze Workspace sieht diese Datei.",
     "openPersonal": "Alle hier sehen diese Datei.",
     "savedEveryone": "Jetzt sieht der ganze Workspace die Datei.",

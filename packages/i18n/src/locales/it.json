@@ -5135,6 +5135,7 @@
         "draft": "Salvare una bozza"
       },
       "vault_make_password": "Crea una password",
+      "publish_page": "Pubblica una pagina su internet (versione {{version}})",
       "pg_query": "Interroga {{target}}",
       "request_approval": {
         "merge": "Fai il merge di {{target}}",
@@ -14551,6 +14552,7 @@
       "request_folder_access": "Chiedi una cartella",
       "create_artifact": "Crea file in Drive",
       "update_artifact": "Modifica file in Drive",
+      "publish_page": "Pubblica pagina su internet",
       "read_artifact": "Leggi file in Drive",
       "list_artifacts": "Elenca file di Drive",
       "share_artifact": "Condividi file",
@@ -17168,6 +17170,10 @@
         "connection_changed": "Ha modificato il collegamento di un gestore di password",
         "connection_removed": "Ha scollegato un gestore di password dal Vault"
       },
+      "artifact": {
+        "page_published": "Ha pubblicato una pagina su internet (versione {{version}})",
+        "page_unpublished": "Ha tolto una pagina da internet (versione {{version}})"
+      },
       "verb": {
         "created": "Ha creato",
         "deleted": "Ha eliminato",
@@ -18295,6 +18301,7 @@
         "readingIssues": "Ha guardato le attività",
         "readingDrive": "Ha letto Drive",
         "writingDrive": "Ha scritto su Drive",
+        "publishingPage": "Ha pubblicato una pagina",
         "searchingMemory": "Ha cercato nella cronologia",
         "updatingMemory": "L'ha annotato in memoria",
         "checkingCalendar": "Ha controllato il calendario",
@@ -18415,6 +18422,7 @@
       "readingIssues": "guardando le attività",
       "readingDrive": "leggendo Drive",
       "writingDrive": "scrivendo su Drive",
+      "publishingPage": "sta pubblicando una pagina",
       "searchingMemory": "cercando nella cronologia",
       "updatingMemory": "prendendo appunti",
       "checkingCalendar": "controllando il calendario",
@@ -18771,6 +18779,10 @@
     "update_artifact": {
       "label": "Aggiorna file",
       "description": "Salva una nuova versione di un file."
+    },
+    "publish_page": {
+      "label": "Pubblica pagina",
+      "description": "Mette una pagina che ha creato a un indirizzo pubblico che chiunque abbia il link apre, dopo che una persona approva. Solo sui server che pubblicano pagine."
     },
     "list_issues": {
       "label": "Vedi attività",
@@ -20896,6 +20908,12 @@
     "onlyHere": "Chi non è in questa conversazione non aprirà il link.",
     "choosePeople": "Scegli persone",
     "readOnly": "Solo chi è nella conversazione cambia chi lo vede.",
+    "publicPage": "Pagina pubblica",
+    "publicVersion": "versione {{version}}",
+    "publicNote": "Chiunque abbia questo link apre la pagina, senza account.",
+    "copyPublicLink": "Copia link pubblico",
+    "unpublish": "Annulla pubblicazione",
+    "unpublished": "La pagina non è più online. Il suo link non si apre più.",
     "open": "Tutto lo spazio di lavoro vede questo file.",
     "openPersonal": "Tutti qui vedono questo file.",
     "savedEveryone": "Ora tutto lo spazio di lavoro vede il file.",

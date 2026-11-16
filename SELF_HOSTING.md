@@ -964,6 +964,14 @@ volume. With all four `S3_*` variables set they go to that bucket instead, and w
 Postgres. Choose before the first upload: a file stays in the store it was written to. An
 organization can also keep its files in a bucket of its own (**Settings → Storage**).
 
+**Public pages (optional).** An agent can publish a page it made at an address anyone with the link
+opens, after a person approves (`publish_page`, ADR 0211). Point a second host name at this server, on a
+domain of its own (`pages.example.net`, not a subdomain of the app's), keep the `Host` header in the proxy
+as above, and set `PUBLISHED_PAGES_URL=https://pages.example.net`. That host serves only pages, sandboxed
+and cut off from the network, and the app's host never serves one. The server refuses to start when it is
+`PUBLIC_URL`'s host. A page comes down from the file's **Compartilhar** (Despublicar), when the file goes to
+the trash, or when the workspace is held.
+
 **Services through Composio (optional).** Google Drive, Google Calendar, Sheets and Docs, Slack,
 Microsoft Teams, OneDrive, HubSpot, Salesforce, Zendesk, Instagram, Facebook Pages, LinkedIn, YouTube,
 Pinterest, Reddit and WhatsApp Business have no server that connects to us directly;

@@ -142,6 +142,8 @@ const ELSEWHERE = new Set([
   "propose_event",
   // An email to whoever runs the server, in a person's name (ADR 0160 §11): only a run a person is behind sends it.
   "send_feedback",
+  // A page anyone on the internet opens (ADR 0211 §4): never what a routine or what it read asks for.
+  "publish_page",
 ]);
 
 /** Long work's tools (ADR 0121), on the run's own work: `self`. */

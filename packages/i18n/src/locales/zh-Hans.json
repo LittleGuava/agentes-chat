@@ -4808,6 +4808,7 @@
         "draft": "保存草稿"
       },
       "vault_make_password": "创建密码",
+      "publish_page": "在互联网上发布页面(版本 {{version}})",
       "pg_query": "查询 {{target}}",
       "request_approval": {
         "merge": "合并 {{target}}",
@@ -13605,6 +13606,7 @@
       "request_folder_access": "请求文件夹权限",
       "create_artifact": "在 Drive 中创建文件",
       "update_artifact": "更新 Drive 中的文件",
+      "publish_page": "在互联网上发布页面",
       "read_artifact": "读取 Drive 中的文件",
       "list_artifacts": "列出 Drive 文件",
       "share_artifact": "分享文件",
@@ -16118,6 +16120,10 @@
         "connection_changed": "修改了一个密码管理器的连接",
         "connection_removed": "断开了一个密码管理器与 Vault 的连接"
       },
+      "artifact": {
+        "page_published": "在互联网上发布了页面(版本 {{version}})",
+        "page_unpublished": "从互联网上撤下了页面(版本 {{version}})"
+      },
       "verb": {
         "created": "创建了",
         "deleted": "删除了",
@@ -17193,6 +17199,7 @@
         "readingIssues": "查看了任务",
         "readingDrive": "读取了 Drive",
         "writingDrive": "写入了 Drive",
+        "publishingPage": "发布了一个页面",
         "searchingMemory": "搜索了历史记录",
         "updatingMemory": "记入了记忆",
         "checkingCalendar": "查看了日历",
@@ -17313,6 +17320,7 @@
       "readingIssues": "查看任务",
       "readingDrive": "读取 Drive",
       "writingDrive": "写入 Drive",
+      "publishingPage": "正在发布页面",
       "searchingMemory": "搜索历史记录",
       "updatingMemory": "做笔记",
       "checkingCalendar": "查看日历",
@@ -17661,6 +17669,10 @@
     "update_artifact": {
       "label": "更新文件",
       "description": "保存文件的新版本。"
+    },
+    "publish_page": {
+      "label": "发布页面",
+      "description": "在有人批准后,把它做的页面放到一个公开地址,任何有链接的人都能打开。仅限发布页面的服务器。"
     },
     "list_issues": {
       "label": "查看任务",
@@ -19715,6 +19727,12 @@
     "onlyHere": "不在这个对话里的人打不开这个链接。",
     "choosePeople": "选择人",
     "readOnly": "只有对话里的人能更改谁能看到。",
+    "publicPage": "公开页面",
+    "publicVersion": "版本 {{version}}",
+    "publicNote": "任何有此链接的人都能打开页面,无需账号。",
+    "copyPublicLink": "复制公开链接",
+    "unpublish": "取消发布",
+    "unpublished": "页面已下线。链接不再能打开。",
     "open": "整个工作区都能看到这个文件。",
     "openPersonal": "这里的所有人都能看到这个文件。",
     "savedEveryone": "现在整个工作区都能看到这个文件。",

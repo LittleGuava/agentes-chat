@@ -31,6 +31,12 @@ export interface OrgLimits {
 
 const { organizations, organizationMembers, artifactVersions, skillFiles, usageRecords } = schema;
 
+/**
+ * Live public pages a workspace keeps at once (ADR 0211 §5): a fixed number on every server, since a page writes no
+ * bytes of its own (it shows a version already counted in storage) and each one is HTML anyone may be sent to.
+ */
+export const PUBLISHED_PAGES_MAX = 100;
+
 /** `usage_records.cost_nano_usd`'s unit, in which the platform cap is kept. */
 const NANO_PER_USD = 1e9;
 

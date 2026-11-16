@@ -3926,6 +3926,18 @@ export interface ArtifactSharing {
   roleIds: string[];
 }
 
+/** A page anyone with its address opens (ADR 0211): `version` is the one a person approved. */
+export interface PublishedPage {
+  id: string;
+  artifactId: string;
+  title: string;
+  version: number;
+  url: string;
+  createdBy: { type: "agent" | "person"; id: string };
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type ArtifactAudience =
   | { kind: "workspace" }
   /**

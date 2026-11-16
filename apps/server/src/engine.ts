@@ -69,6 +69,7 @@ import {
   createModelGateway,
   createPassToolSource,
   createPermissionToolSource,
+  createPublishedPageToolSource,
   createReactToolSource,
   createReleaseAsksToolSource,
   createSandboxToolSource,
@@ -455,6 +456,8 @@ export function buildEngine(o: EngineOptions) {
       // Runs nobody called by name may stay quiet (reply-policy.ts): listed only for them.
       createPassToolSource(),
       createArtifactToolSource(artifacts),
+      // A page at a public address, after a person approves, only where the server has a pages host (ADR 0211).
+      createPublishedPageToolSource({ ...artifacts, baseUrl: config.PUBLISHED_PAGES_URL }),
       // Live blocks and votes in the agent's own conversation (ADR 0113).
       createBlockToolSource(artifacts),
       createChatToolSource({ pubsub: adapters.pubsub, artifacts, gif: createAgentGifPoster(adapters.gifs) }),

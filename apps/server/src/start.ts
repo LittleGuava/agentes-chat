@@ -92,6 +92,7 @@ import { createApp } from "./app";
 import { createAuth } from "./auth";
 import { buildEngine } from "./engine";
 import { startFreezeWatch } from "./freeze-watch";
+import { frontDoor } from "./http/front-door";
 import { checkHumanCheckAtBoot, createHumanCheck } from "./http/human-check";
 import { createLogger, type Logger } from "./logger";
 import { OPERATOR_API_PREFIX, serveOperatorApi } from "./operator/app";
@@ -579,18 +580,11 @@ async function boot(
   const ownHosts = ownHostsOnly
     ? new Set([`127.0.0.1:${config.PORT}`, `localhost:${config.PORT}`, publicUrl.host])
     : null;
-  /**
-   * A 421 for a name not its own; and a page opened at another of its own names goes to `PUBLIC_URL`,
-   * the only origin that sign-in and saving accept. Temporary: `PUBLIC_URL` changes with Tailscale.
-   */
-  const ownHostAnswer = (req: Request) => {
-    const host = req.headers.get("host") ?? "";
-    if (!ownHosts || host === publicUrl.host) return null;
-    if (!ownHosts.has(host)) return new Response("This server answers only at its own address.\n", { status: 421 });
-    if (req.method !== "GET" || !req.headers.get("accept")?.includes("text/html")) return null;
-    const { pathname, search } = new URL(req.url);
-    return Response.redirect(new URL(pathname + search, publicUrl).href, 302);
-  };
+  const serveFetch = frontDoor<Bun.Server<SocketData>>(
+    { ownHosts, publicUrl, pagesUrl: config.PUBLISHED_PAGES_URL },
+    (req, srv, next) => realtime.fetch(req, srv, next),
+    (req) => app.fetch(req),
+  );
   // A worker answers its health check alone: the image's check reads it, and a deploy waits for it.
   const server = worker
     ? Bun.serve({
@@ -610,7 +604,7 @@ async function boot(
         // Bun's default (10 s) cuts a request still waiting on its answer: opening a site in an agent's
         // browser waits for the page, and a closed browser starts first (up to 90 s on the computer).
         idleTimeout: 120,
-        fetch: (req, srv) => ownHostAnswer(req) ?? realtime.fetch(req, srv, (r) => app.fetch(r)),
+        fetch: serveFetch,
         websocket: realtime.websocket,
         // What the HTTP app doesn't answer itself: a WebSocket upgrade that failed before the socket opened.
         error(error) {

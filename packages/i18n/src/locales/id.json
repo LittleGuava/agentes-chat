@@ -4819,6 +4819,7 @@
         "draft": "Menyimpan draf"
       },
       "vault_make_password": "Buat kata sandi",
+      "publish_page": "Terbitkan halaman di internet (versi {{version}})",
       "pg_query": "Kueri {{target}}",
       "request_approval": {
         "merge": "Lakukan merge {{target}}",
@@ -13596,6 +13597,7 @@
       "request_folder_access": "Minta akses folder",
       "create_artifact": "Buat file di Drive",
       "update_artifact": "Ubah file di Drive",
+      "publish_page": "Terbitkan halaman di internet",
       "read_artifact": "Baca file di Drive",
       "list_artifacts": "Daftar file Drive",
       "share_artifact": "Bagikan file",
@@ -16109,6 +16111,10 @@
         "connection_changed": "Mengubah koneksi pengelola kata sandi",
         "connection_removed": "Memutus pengelola kata sandi dari Vault"
       },
+      "artifact": {
+        "page_published": "Menerbitkan halaman di internet (versi {{version}})",
+        "page_unpublished": "Menurunkan halaman dari internet (versi {{version}})"
+      },
       "verb": {
         "created": "Membuat",
         "deleted": "Menghapus",
@@ -17179,6 +17185,7 @@
         "readingIssues": "Melihat tugas",
         "readingDrive": "Membaca Drive",
         "writingDrive": "Menulis ke Drive",
+        "publishingPage": "Menerbitkan halaman",
         "searchingMemory": "Mencari di riwayat",
         "updatingMemory": "Mencatatnya di memori",
         "checkingCalendar": "Memeriksa kalender",
@@ -17299,6 +17306,7 @@
       "readingIssues": "melihat tugas",
       "readingDrive": "membaca Drive",
       "writingDrive": "menulis ke Drive",
+      "publishingPage": "menerbitkan halaman",
       "searchingMemory": "mencari di riwayat",
       "updatingMemory": "mencatat",
       "checkingCalendar": "memeriksa kalender",
@@ -17646,6 +17654,10 @@
     "update_artifact": {
       "label": "Perbarui file",
       "description": "Menyimpan versi baru sebuah file."
+    },
+    "publish_page": {
+      "label": "Terbitkan halaman",
+      "description": "Menaruh halaman buatannya di alamat publik yang bisa dibuka siapa pun yang punya tautannya, setelah seseorang menyetujui. Hanya di server yang menerbitkan halaman."
     },
     "list_issues": {
       "label": "Lihat tugas",
@@ -19639,6 +19651,12 @@
     "onlyHere": "Orang di luar percakapan ini tidak akan bisa membuka tautannya.",
     "choosePeople": "Pilih orang",
     "readOnly": "Hanya yang ada di percakapan yang bisa mengubah siapa yang melihat.",
+    "publicPage": "Halaman publik",
+    "publicVersion": "versi {{version}}",
+    "publicNote": "Siapa pun yang punya tautan ini bisa membuka halamannya, tanpa akun.",
+    "copyPublicLink": "Salin tautan publik",
+    "unpublish": "Batalkan terbit",
+    "unpublished": "Halaman sudah tidak tayang. Tautannya tidak bisa dibuka lagi.",
     "open": "Seluruh ruang kerja bisa melihat file ini.",
     "openPersonal": "Semua orang di sini bisa melihat file ini.",
     "savedEveryone": "Sekarang seluruh ruang kerja bisa melihat file ini.",

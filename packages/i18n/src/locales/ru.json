@@ -5313,6 +5313,7 @@
         "draft": "Сохранить черновик"
       },
       "vault_make_password": "Создать пароль",
+      "publish_page": "Опубликовать страницу в интернете (версия {{version}})",
       "pg_query": "Запросить {{target}}",
       "request_approval": {
         "merge": "Выполнить merge {{target}}",
@@ -14976,6 +14977,7 @@
       "request_folder_access": "Запросить доступ к папке",
       "create_artifact": "Создать файл в Drive",
       "update_artifact": "Изменить файл в Drive",
+      "publish_page": "Опубликовать страницу в интернете",
       "read_artifact": "Прочитать файл в Drive",
       "list_artifacts": "Показать файлы в Drive",
       "share_artifact": "Поделиться файлом",
@@ -17648,6 +17650,10 @@
         "connection_changed": "Изменено подключение менеджера паролей",
         "connection_removed": "Отключён менеджер паролей от Vault"
       },
+      "artifact": {
+        "page_published": "Опубликовал страницу в интернете (версия {{version}})",
+        "page_unpublished": "Снял страницу из интернета (версия {{version}})"
+      },
       "verb": {
         "created": "Создано",
         "deleted": "Удалено",
@@ -18790,6 +18796,7 @@
         "readingIssues": "Посмотрел задачи",
         "readingDrive": "Почитал Drive",
         "writingDrive": "Записал в Drive",
+        "publishingPage": "Опубликовал страницу",
         "searchingMemory": "Поискал в истории",
         "updatingMemory": "Записал в память",
         "checkingCalendar": "Посмотрел календарь",
@@ -18910,6 +18917,7 @@
       "readingIssues": "смотрит задачи",
       "readingDrive": "читает Drive",
       "writingDrive": "пишет в Drive",
+      "publishingPage": "публикует страницу",
       "searchingMemory": "ищет в истории",
       "updatingMemory": "делает заметки",
       "checkingCalendar": "смотрит календарь",
@@ -19269,6 +19277,10 @@
     "update_artifact": {
       "label": "Обновить файл",
       "description": "Сохраняет новую версию файла."
+    },
+    "publish_page": {
+      "label": "Опубликовать страницу",
+      "description": "Размещает созданную страницу по публичному адресу, который откроет любой со ссылкой, после одобрения человеком. Только на серверах, которые публикуют страницы."
     },
     "list_issues": {
       "label": "Смотреть задачи",
@@ -21373,6 +21385,12 @@
     "onlyHere": "Кто не участвует в этом разговоре, не откроет ссылку.",
     "choosePeople": "Выбрать людей",
     "readOnly": "Менять, кто видит, могут только участники разговора.",
+    "publicPage": "Публичная страница",
+    "publicVersion": "версия {{version}}",
+    "publicNote": "Любой со ссылкой откроет страницу без аккаунта.",
+    "copyPublicLink": "Копировать публичную ссылку",
+    "unpublish": "Снять с публикации",
+    "unpublished": "Страница снята. Ссылка больше не открывается.",
     "open": "Всё рабочее пространство видит этот файл.",
     "openPersonal": "Все здесь видят этот файл.",
     "savedEveryone": "Теперь всё рабочее пространство видит файл.",

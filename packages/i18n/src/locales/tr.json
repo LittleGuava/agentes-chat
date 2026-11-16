@@ -4968,6 +4968,7 @@
         "draft": "Taslak kaydetme"
       },
       "vault_make_password": "Parola oluştur",
+      "publish_page": "Bir sayfayı internette yayınla (sürüm {{version}})",
       "pg_query": "{{target}} sorgula",
       "request_approval": {
         "merge": "{{target}} birleştir",
@@ -13994,6 +13995,7 @@
       "request_folder_access": "Klasör erişimi iste",
       "create_artifact": "Drive'da dosya oluştur",
       "update_artifact": "Drive'daki dosyayı güncelle",
+      "publish_page": "Sayfayı internette yayınla",
       "read_artifact": "Drive'daki dosyayı oku",
       "list_artifacts": "Drive dosyalarını listele",
       "share_artifact": "Dosyayı paylaş",
@@ -16560,6 +16562,10 @@
         "connection_changed": "Bir şifre yöneticisinin bağlantısını değiştirdi",
         "connection_removed": "Bir şifre yöneticisinin Vault bağlantısını kesti"
       },
+      "artifact": {
+        "page_published": "Bir sayfayı internette yayınladı (sürüm {{version}})",
+        "page_unpublished": "Bir sayfayı internetten kaldırdı (sürüm {{version}})"
+      },
       "verb": {
         "created": "Oluşturdu",
         "deleted": "Sildi",
@@ -17650,6 +17656,7 @@
         "readingIssues": "Görevlere baktı",
         "readingDrive": "Drive'ı okudu",
         "writingDrive": "Drive'a yazdı",
+        "publishingPage": "Bir sayfa yayınladı",
         "searchingMemory": "Geçmişte arama yaptı",
         "updatingMemory": "Belleğe not etti",
         "checkingCalendar": "Takvimi kontrol etti",
@@ -17770,6 +17777,7 @@
       "readingIssues": "görevlere bakıyor",
       "readingDrive": "Drive'ı okuyor",
       "writingDrive": "Drive'a yazıyor",
+      "publishingPage": "bir sayfa yayınlıyor",
       "searchingMemory": "geçmişte arıyor",
       "updatingMemory": "not alıyor",
       "checkingCalendar": "takvimi kontrol ediyor",
@@ -18121,6 +18129,10 @@
     "update_artifact": {
       "label": "Dosyayı güncelle",
       "description": "Bir dosyanın yeni sürümünü kaydeder."
+    },
+    "publish_page": {
+      "label": "Sayfa yayınla",
+      "description": "Yaptığı bir sayfayı, bir kişi onayladıktan sonra, bağlantıya sahip herkesin açabileceği herkese açık bir adrese koyar. Yalnızca sayfa yayınlayan sunucularda."
     },
     "list_issues": {
       "label": "Görevleri gör",
@@ -20103,6 +20115,12 @@
     "onlyHere": "Bu sohbette olmayanlar bağlantıyı açamaz.",
     "choosePeople": "Kişi seç",
     "readOnly": "Kimin göreceğini yalnızca sohbettekiler değiştirebilir.",
+    "publicPage": "Herkese açık sayfa",
+    "publicVersion": "sürüm {{version}}",
+    "publicNote": "Bu bağlantıya sahip herkes sayfayı hesap olmadan açar.",
+    "copyPublicLink": "Herkese açık bağlantıyı kopyala",
+    "unpublish": "Yayından kaldır",
+    "unpublished": "Sayfa yayından kalktı. Bağlantısı artık açılmıyor.",
     "open": "Tüm çalışma alanı bu dosyayı görüyor.",
     "openPersonal": "Buradaki herkes bu dosyayı görüyor.",
     "savedEveryone": "Artık tüm çalışma alanı dosyayı görüyor.",

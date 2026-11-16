@@ -4985,6 +4985,7 @@
         "draft": "Een concept opslaan"
       },
       "vault_make_password": "Een wachtwoord maken",
+      "publish_page": "Een pagina op internet publiceren (versie {{version}})",
       "pg_query": "{{target}} bevragen",
       "request_approval": {
         "merge": "{{target}} mergen",
@@ -14122,6 +14123,7 @@
       "request_folder_access": "Een map vragen",
       "create_artifact": "Bestand in Drive maken",
       "update_artifact": "Bestand in Drive bijwerken",
+      "publish_page": "Pagina op internet publiceren",
       "read_artifact": "Bestand in Drive lezen",
       "list_artifacts": "Drive-bestanden weergeven",
       "share_artifact": "Bestand delen",
@@ -16688,6 +16690,10 @@
         "connection_changed": "De koppeling van een wachtwoordmanager gewijzigd",
         "connection_removed": "Een wachtwoordmanager van de Vault ontkoppeld"
       },
+      "artifact": {
+        "page_published": "Heeft een pagina op internet gepubliceerd (versie {{version}})",
+        "page_unpublished": "Heeft een pagina van internet gehaald (versie {{version}})"
+      },
       "verb": {
         "created": "Aangemaakt",
         "deleted": "Verwijderd",
@@ -17789,6 +17795,7 @@
         "readingIssues": "De taken bekeken",
         "readingDrive": "Drive gelezen",
         "writingDrive": "Naar Drive geschreven",
+        "publishingPage": "Heeft een pagina gepubliceerd",
         "searchingMemory": "De geschiedenis doorzocht",
         "updatingMemory": "In het geheugen genoteerd",
         "checkingCalendar": "De agenda bekeken",
@@ -17909,6 +17916,7 @@
       "readingIssues": "de taken aan het bekijken",
       "readingDrive": "Drive aan het lezen",
       "writingDrive": "naar Drive aan het schrijven",
+      "publishingPage": "publiceert een pagina",
       "searchingMemory": "de geschiedenis aan het doorzoeken",
       "updatingMemory": "notities aan het maken",
       "checkingCalendar": "de agenda aan het bekijken",
@@ -18261,6 +18269,10 @@
     "update_artifact": {
       "label": "Bestand bijwerken",
       "description": "Slaat een nieuwe versie van een bestand op."
+    },
+    "publish_page": {
+      "label": "Pagina publiceren",
+      "description": "Zet een pagina die het maakte op een openbaar adres dat iedereen met de link opent, nadat iemand goedkeurt. Alleen op servers die pagina's publiceren."
     },
     "list_issues": {
       "label": "Taken bekijken",
@@ -20352,6 +20364,12 @@
     "onlyHere": "Wie niet in dit gesprek zit, kan de link niet openen.",
     "choosePeople": "Mensen kiezen",
     "readOnly": "Alleen wie in het gesprek zit, verandert wie het ziet.",
+    "publicPage": "Openbare pagina",
+    "publicVersion": "versie {{version}}",
+    "publicNote": "Iedereen met deze link opent de pagina, zonder account.",
+    "copyPublicLink": "Openbare link kopiëren",
+    "unpublish": "Publicatie intrekken",
+    "unpublished": "De pagina is offline. De link opent niet meer.",
     "open": "De hele werkruimte ziet dit bestand.",
     "openPersonal": "Iedereen hier ziet dit bestand.",
     "savedEveryone": "Nu ziet de hele werkruimte het bestand.",

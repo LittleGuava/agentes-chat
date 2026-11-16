@@ -270,6 +270,7 @@ import type {
   Poll,
   PostMedia,
   Proposal,
+  PublishedPage,
   PushDeviceInput,
   QuestionAnswerInput,
   ReactionCount,
@@ -1922,6 +1923,13 @@ export interface ApiClient {
       id: string,
       sharing: { mode: ArtifactSharing["mode"]; userIds?: string[]; roleIds?: string[] },
     ): Promise<Artifact>;
+    /**
+     * Live public pages I may take down (ADR 0211): every one for an administrator, else those of files I read; one
+     * file's with `artifactId`. None on a server that publishes no pages.
+     */
+    publishedPages(orgId: string, artifactId?: string): Promise<PublishedPage[]>;
+    /** Takes a public page down at once; 404 `published_page.not_found` once it's down or out of reach. */
+    unpublish(orgId: string, pageId: string): Promise<void>;
     /** To the trash for 30 days (403 `artifact.delete_forbidden`). */
     remove(orgId: string, id: string): Promise<void>;
     trash(orgId: string): Promise<TrashedArtifact[]>;

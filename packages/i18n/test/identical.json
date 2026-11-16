@@ -570,6 +570,7 @@
       "settings.import.agents",
       "settings.import.setorAgents",
       "settings.import.countRoutines",
+      "share.publicVersion",
       "channel.tooLong.fileName",
       "calendar.moreRuns",
       "devices.cpus",

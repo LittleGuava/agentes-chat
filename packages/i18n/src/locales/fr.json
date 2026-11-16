@@ -5134,6 +5134,7 @@
         "draft": "Enregistrer un brouillon"
       },
       "vault_make_password": "Créer un mot de passe",
+      "publish_page": "Publier une page sur internet (version {{version}})",
       "pg_query": "Interroger {{target}}",
       "request_approval": {
         "merge": "Faire le merge de {{target}}",
@@ -14538,6 +14539,7 @@
       "request_folder_access": "Demander l'accès à un dossier",
       "create_artifact": "Créer un fichier dans Drive",
       "update_artifact": "Modifier un fichier dans Drive",
+      "publish_page": "Publier une page sur internet",
       "read_artifact": "Lire un fichier dans Drive",
       "list_artifacts": "Lister les fichiers Drive",
       "share_artifact": "Partager un fichier",
@@ -17155,6 +17157,10 @@
         "connection_changed": "A modifié la connexion d'un gestionnaire de mots de passe",
         "connection_removed": "A déconnecté un gestionnaire de mots de passe du Vault"
       },
+      "artifact": {
+        "page_published": "A publié une page sur internet (version {{version}})",
+        "page_unpublished": "A retiré une page d'internet (version {{version}})"
+      },
       "verb": {
         "created": "A créé",
         "deleted": "A supprimé",
@@ -18288,6 +18294,7 @@
         "readingIssues": "A consulté les tâches",
         "readingDrive": "A lu le Drive",
         "writingDrive": "A écrit dans le Drive",
+        "publishingPage": "A publié une page",
         "searchingMemory": "A cherché dans l'historique",
         "updatingMemory": "L'a noté en mémoire",
         "checkingCalendar": "A consulté l'agenda",
@@ -18408,6 +18415,7 @@
       "readingIssues": "consultation des tâches",
       "readingDrive": "lecture du Drive",
       "writingDrive": "écriture dans le Drive",
+      "publishingPage": "publie une page",
       "searchingMemory": "recherche dans l'historique",
       "updatingMemory": "prise de notes",
       "checkingCalendar": "consultation de l'agenda",
@@ -18764,6 +18772,10 @@
     "update_artifact": {
       "label": "Mettre à jour un fichier",
       "description": "Enregistre une nouvelle version d'un fichier."
+    },
+    "publish_page": {
+      "label": "Publier une page",
+      "description": "Met une page qu'il a faite à une adresse publique que toute personne ayant le lien ouvre, après l'accord d'une personne. Seulement sur les serveurs qui publient des pages."
     },
     "list_issues": {
       "label": "Voir les tâches",
@@ -20889,6 +20901,12 @@
     "onlyHere": "Les personnes hors de cette conversation n'ouvriront pas le lien.",
     "choosePeople": "Choisir des personnes",
     "readOnly": "Seules les personnes de la conversation changent qui le voit.",
+    "publicPage": "Page publique",
+    "publicVersion": "version {{version}}",
+    "publicNote": "Toute personne ayant ce lien ouvre la page, sans compte.",
+    "copyPublicLink": "Copier le lien public",
+    "unpublish": "Dépublier",
+    "unpublished": "La page n'est plus en ligne. Son lien ne s'ouvre plus.",
     "open": "Tout l'espace de travail voit ce fichier.",
     "openPersonal": "Tout le monde ici voit ce fichier.",
     "savedEveryone": "Tout l'espace de travail voit maintenant le fichier.",

@@ -5414,6 +5414,7 @@ export const en = {
         draft: "Save a draft",
       },
       vault_make_password: "Make a password",
+      publish_page: "Publish a page on the internet (version {{version}})",
       pg_query: "Query {{target}}",
       request_approval: {
         merge: "Merge {{target}}",
@@ -14353,6 +14354,7 @@ export const en = {
       request_folder_access: "Ask for a folder",
       create_artifact: "Create file in Drive",
       update_artifact: "Change file in Drive",
+      publish_page: "Publish page on the internet",
       read_artifact: "Read file in Drive",
       list_artifacts: "List Drive files",
       share_artifact: "Share file",
@@ -16994,6 +16996,10 @@ export const en = {
         connection_changed: "Changed a password manager's connection",
         connection_removed: "Disconnected a password manager from the Vault",
       },
+      artifact: {
+        page_published: "Put a page on the internet (version {{version}})",
+        page_unpublished: "Took a page off the internet (version {{version}})",
+      },
       verb: {
         created: "Created",
         deleted: "Deleted",
@@ -18175,6 +18181,7 @@ export const en = {
         readingIssues: "Looked at the tasks",
         readingDrive: "Read the Drive",
         writingDrive: "Wrote to the Drive",
+        publishingPage: "Published a page",
         searchingMemory: "Searched the history",
         updatingMemory: "Noted it in memory",
         checkingCalendar: "Checked the calendar",
@@ -18296,6 +18303,7 @@ export const en = {
       readingIssues: "looking at the tasks",
       readingDrive: "reading the Drive",
       writingDrive: "writing to the Drive",
+      publishingPage: "publishing a page",
       searchingMemory: "searching the history",
       updatingMemory: "taking notes",
       checkingCalendar: "checking the calendar",
@@ -18691,6 +18699,11 @@ export const en = {
     update_artifact: {
       label: "Update file",
       description: "Saves a new version of a file.",
+    },
+    publish_page: {
+      label: "Publish page",
+      description:
+        "Puts a page it made at a public address anyone with the link opens, after a person approves. Only on servers that publish pages.",
     },
     list_issues: {
       label: "View tasks",
@@ -20791,6 +20804,13 @@ export const en = {
     onlyHere: "People outside this conversation won't open the link.",
     choosePeople: "Choose people",
     readOnly: "Only who's in the conversation changes who sees it.",
+    /** A page an agent published at a public address (ADR 0211). */
+    publicPage: "Public page",
+    publicVersion: "version {{version}}",
+    publicNote: "Anyone with this link opens the page, without an account.",
+    copyPublicLink: "Copy public link",
+    unpublish: "Unpublish",
+    unpublished: "The page is down. Its link no longer opens.",
     open: "Everyone in the workspace sees this file.",
     openPersonal: "Everyone here sees this file.",
     savedEveryone: "Everyone in the workspace sees the file now.",

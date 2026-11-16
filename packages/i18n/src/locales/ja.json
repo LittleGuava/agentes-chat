@@ -4807,6 +4807,7 @@
         "draft": "下書きを保存"
       },
       "vault_make_password": "パスワードを作成",
+      "publish_page": "ページをインターネットに公開(バージョン {{version}})",
       "pg_query": "{{target}}を照会",
       "request_approval": {
         "merge": "{{target}}をマージ",
@@ -13541,6 +13542,7 @@
       "request_folder_access": "フォルダへのアクセスを依頼",
       "create_artifact": "Driveにファイルを作成",
       "update_artifact": "Driveのファイルを更新",
+      "publish_page": "ページをインターネットに公開",
       "read_artifact": "Driveのファイルを読み取り",
       "list_artifacts": "Driveのファイルを一覧表示",
       "share_artifact": "ファイルを共有",
@@ -16054,6 +16056,10 @@
         "connection_changed": "パスワードマネージャーの接続を変更",
         "connection_removed": "Vaultからパスワードマネージャーを切断"
       },
+      "artifact": {
+        "page_published": "ページをインターネットに公開しました(バージョン {{version}})",
+        "page_unpublished": "ページの公開を停止しました(バージョン {{version}})"
+      },
       "verb": {
         "created": "作成",
         "deleted": "削除",
@@ -17124,6 +17130,7 @@
         "readingIssues": "タスクを確認しました",
         "readingDrive": "Driveを読みました",
         "writingDrive": "Driveに書き込みました",
+        "publishingPage": "ページを公開しました",
         "searchingMemory": "履歴を検索しました",
         "updatingMemory": "メモリに記録しました",
         "checkingCalendar": "カレンダーを確認しました",
@@ -17244,6 +17251,7 @@
       "readingIssues": "タスクを確認中",
       "readingDrive": "Driveを読み込み中",
       "writingDrive": "Driveに書き込み中",
+      "publishingPage": "ページを公開中",
       "searchingMemory": "履歴を検索中",
       "updatingMemory": "メモを取っています",
       "checkingCalendar": "カレンダーを確認中",
@@ -17591,6 +17599,10 @@
     "update_artifact": {
       "label": "ファイルを更新",
       "description": "ファイルの新しいバージョンを保存します。"
+    },
+    "publish_page": {
+      "label": "ページを公開",
+      "description": "作ったページを、リンクを知っている人なら誰でも開ける公開アドレスに置きます。人の承認後のみ。ページを公開するサーバーでのみ使えます。"
     },
     "list_issues": {
       "label": "タスクを見る",
@@ -19536,6 +19548,12 @@
     "onlyHere": "この会話にいない人はリンクを開けません。",
     "choosePeople": "人を選ぶ",
     "readOnly": "閲覧できる人を変えられるのは、会話にいる人だけです。",
+    "publicPage": "公開ページ",
+    "publicVersion": "バージョン {{version}}",
+    "publicNote": "このリンクを知っている人は誰でも、アカウントなしでページを開けます。",
+    "copyPublicLink": "公開リンクをコピー",
+    "unpublish": "公開を停止",
+    "unpublished": "ページの公開を停止しました。リンクはもう開けません。",
     "open": "ワークスペース全体がこのファイルを見られます。",
     "openPersonal": "ここにいる全員がこのファイルを見られます。",
     "savedEveryone": "ワークスペース全体がファイルを見られるようになりました。",
