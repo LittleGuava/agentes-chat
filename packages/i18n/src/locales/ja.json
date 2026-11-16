@@ -10309,6 +10309,17 @@
       "invalid": "保存されたキーはこのサーバーでは開けません。もう一度貼り付けてください。"
     }
   },
+  "voiceCall": {
+    "start": "{{name}}に通話",
+    "region": "{{name}}との音声通話",
+    "listening": "聞いています…",
+    "sending": "送信中…",
+    "waiting": "{{name}}が考えています…",
+    "speaking": "{{name}}が話しています…",
+    "done": "完了",
+    "interrupt": "中断",
+    "hangUp": "通話を終了"
+  },
   "media": {
     "word": {
       "gif": "GIF",

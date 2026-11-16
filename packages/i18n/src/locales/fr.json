@@ -11157,6 +11157,17 @@
       "invalid": "La clé enregistrée ne s'ouvre pas sur ce serveur. Collez-la à nouveau."
     }
   },
+  "voiceCall": {
+    "start": "Appeler {{name}}",
+    "region": "Appel vocal avec {{name}}",
+    "listening": "À l’écoute…",
+    "sending": "Envoi…",
+    "waiting": "{{name}} réfléchit…",
+    "speaking": "{{name}} parle…",
+    "done": "Terminé",
+    "interrupt": "Interrompre",
+    "hangUp": "Raccrocher"
+  },
   "media": {
     "word": {
       "gif": "GIF",

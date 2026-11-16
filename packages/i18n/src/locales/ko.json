@@ -10303,6 +10303,17 @@
       "invalid": "저장된 키를 이 서버에서 열 수 없어요. 다시 붙여넣어 주세요."
     }
   },
+  "voiceCall": {
+    "start": "{{name}}에게 전화",
+    "region": "{{name}}와(과) 음성 통화",
+    "listening": "듣는 중…",
+    "sending": "보내는 중…",
+    "waiting": "{{name}} 생각 중…",
+    "speaking": "{{name}} 말하는 중…",
+    "done": "완료",
+    "interrupt": "끼어들기",
+    "hangUp": "통화 종료"
+  },
   "media": {
     "word": {
       "gif": "GIF",

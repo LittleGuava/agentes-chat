@@ -11175,6 +11175,17 @@
       "invalid": "La chiave salvata non si apre su questo server. Incollala di nuovo."
     }
   },
+  "voiceCall": {
+    "start": "Chiama {{name}}",
+    "region": "Chiamata vocale con {{name}}",
+    "listening": "In ascolto…",
+    "sending": "Invio…",
+    "waiting": "{{name}} sta pensando…",
+    "speaking": "{{name}} sta parlando…",
+    "done": "Fatto",
+    "interrupt": "Interrompi",
+    "hangUp": "Riattacca"
+  },
   "media": {
     "word": {
       "gif": "GIF",

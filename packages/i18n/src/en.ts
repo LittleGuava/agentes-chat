@@ -11136,6 +11136,21 @@ export const en = {
       invalid: "The saved key doesn't open on this server. Paste it again.",
     },
   },
+  /** Voice calls with an agent, by turns (ADR 0198): the bar in the composer's place. */
+  voiceCall: {
+    /** The phone button beside the microphone in a DM with an agent. */
+    start: "Call {{name}}",
+    region: "Voice call with {{name}}",
+    listening: "Listening…",
+    sending: "Sending…",
+    waiting: "{{name}} is thinking…",
+    speaking: "{{name}} is speaking…",
+    /** Ends the person's turn now, without waiting for the silence. */
+    done: "Done",
+    /** Stops the agent's reply (or the wait for it) and listens. */
+    interrupt: "Interrupt",
+    hangUp: "Hang up",
+  },
   media: {
     word: { gif: "GIF", sticker: "Sticker" },
     gifMark: "GIF",

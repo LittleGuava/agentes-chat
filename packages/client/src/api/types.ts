@@ -2546,6 +2546,8 @@ export interface OrgSettings {
   welcomePeople?: boolean;
   /** Read only: this server has a speech engine. */
   voiceAvailable: boolean;
+  /** Read only: this server reads agents' replies aloud for voice calls (ADR 0198). Absent from an older server: no. */
+  voiceCallAvailable?: boolean;
   /** Read only: this server can search GIFs (it has a GIF provider). */
   gifsAvailable: boolean;
   /** Read only: this server can decide when agents send one (agents send none on their own without it). */
@@ -2557,7 +2559,12 @@ export interface OrgSettings {
 }
 
 /** `OrgSettings` the server works out itself, or sets through its own call: never in a PATCH. */
-export type ReadOnlyOrgSettings = "gifsAvailable" | "agentMediaAvailable" | "voiceAvailable" | "approvalsLevel";
+export type ReadOnlyOrgSettings =
+  | "gifsAvailable"
+  | "agentMediaAvailable"
+  | "voiceAvailable"
+  | "approvalsLevel"
+  | "voiceCallAvailable";
 
 /** Automático's sizes: quick tasks, everyday work, hard work. */
 export type ModelTier = "small" | "medium" | "large";

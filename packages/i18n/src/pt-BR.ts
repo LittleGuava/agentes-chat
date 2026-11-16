@@ -11146,6 +11146,18 @@ export const ptBR = {
       invalid: "A chave salva não abre neste servidor. Cole de novo.",
     },
   },
+  /** Voice calls with an agent, by turns (ADR 0198): the bar in the composer's place. */
+  voiceCall: {
+    start: "Ligar para {{name}}",
+    region: "Chamada de voz com {{name}}",
+    listening: "Ouvindo…",
+    sending: "Enviando…",
+    waiting: "{{name}} está pensando…",
+    speaking: "{{name}} está falando…",
+    done: "Pronto",
+    interrupt: "Interromper",
+    hangUp: "Encerrar",
+  },
   /** GIFs and the agents' stickers in chat (ADR 0091). */
   media: {
     /** What stands for a message's GIF or sticker where its text would show (lists, quotes, the inbox). */

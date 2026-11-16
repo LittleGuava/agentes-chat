@@ -10361,6 +10361,17 @@
       "invalid": "Kunci yang tersimpan tidak bisa dibuka di server ini. Tempel lagi."
     }
   },
+  "voiceCall": {
+    "start": "Telepon {{name}}",
+    "region": "Panggilan suara dengan {{name}}",
+    "listening": "Mendengarkan…",
+    "sending": "Mengirim…",
+    "waiting": "{{name}} sedang berpikir…",
+    "speaking": "{{name}} sedang berbicara…",
+    "done": "Selesai",
+    "interrupt": "Sela",
+    "hangUp": "Tutup"
+  },
   "media": {
     "word": {
       "gif": "GIF",

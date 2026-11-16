@@ -1076,6 +1076,7 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         if (input.language) form.set("language", input.language);
         return files.upload<{ text: string }>(`${org(orgId)}/channels/${enc(channelId)}/voice/dictation`, form);
       },
+      speech: (orgId, messageId) => files.blob(`${org(orgId)}/messages/${enc(messageId)}/speech`, "POST"),
     },
     chat: {
       channels: async (orgId) => (await request<{ channels: Channel[] }>(`${org(orgId)}/channels`)).channels,

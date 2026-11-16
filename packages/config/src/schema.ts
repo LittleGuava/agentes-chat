@@ -662,6 +662,29 @@ export const envVars = {
     description: "agentes.chat's own servers: the least a workspace's limit above may be, however few its members.",
     section: "Chat",
   },
+  VOICE_CALL_SPEECH_URL: {
+    schema: z.url().optional(),
+    description:
+      "Voice calls with an agent (ADR 0198): the base of a text-to-speech server in the OpenAI format, which reads the agent's replies aloud; requests go to `/audio/speech` under it. OpenAI itself (`https://api.openai.com/v1`, the replies' words go to OpenAI) or one of your own (Kokoro-FastAPI, Speaches: the words stay with you). Unset: no calls. Calls also need voice messages (a speech engine above).",
+    section: "Chat",
+    example: "http://tts:8880/v1",
+  },
+  VOICE_CALL_SPEECH_API_KEY: {
+    schema: z.string().optional(),
+    description: "The key that text-to-speech server asks for, if it asks for one (sent as `Authorization: Bearer`).",
+    section: "Chat",
+    secret: true,
+  },
+  VOICE_CALL_SPEECH_MODEL: {
+    schema: z.string().optional(),
+    description: "The model that text-to-speech server reads with (default `tts-1`).",
+    section: "Chat",
+  },
+  VOICE_CALL_SPEECH_VOICE: {
+    schema: z.string().max(100).optional(),
+    description: "The voice it reads in, a name that server knows (default `alloy`).",
+    section: "Chat",
+  },
   CONNECTOR_GITHUB_CLIENT_ID: {
     schema: z.string().optional(),
     description:

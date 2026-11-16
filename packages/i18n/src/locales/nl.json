@@ -10804,6 +10804,17 @@
       "invalid": "De opgeslagen sleutel opent niet op deze server. Plak hem opnieuw."
     }
   },
+  "voiceCall": {
+    "start": "{{name}} bellen",
+    "region": "Spraakgesprek met {{name}}",
+    "listening": "Luistert…",
+    "sending": "Verzenden…",
+    "waiting": "{{name}} denkt na…",
+    "speaking": "{{name}} spreekt…",
+    "done": "Klaar",
+    "interrupt": "Onderbreken",
+    "hangUp": "Ophangen"
+  },
   "media": {
     "word": {
       "gif": "GIF",

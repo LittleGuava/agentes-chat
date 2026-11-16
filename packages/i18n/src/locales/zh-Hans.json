@@ -10375,6 +10375,17 @@
       "invalid": "保存的密钥无法在这台服务器上打开。请重新粘贴。"
     }
   },
+  "voiceCall": {
+    "start": "呼叫 {{name}}",
+    "region": "与 {{name}} 的语音通话",
+    "listening": "正在听…",
+    "sending": "正在发送…",
+    "waiting": "{{name}} 正在思考…",
+    "speaking": "{{name}} 正在说话…",
+    "done": "完成",
+    "interrupt": "打断",
+    "hangUp": "挂断"
+  },
   "media": {
     "word": {
       "gif": "动图",

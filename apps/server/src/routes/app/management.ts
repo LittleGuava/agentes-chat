@@ -242,6 +242,10 @@ const Settings = z
     voiceAvailable: z.boolean().openapi({
       description: "Read only: this server has a speech engine now, from its environment or from its owner's Settings.",
     }),
+    voiceCallAvailable: z.boolean().openapi({
+      description:
+        "Read only: this server can read agents' replies aloud for voice calls (ADR 0198, `VOICE_CALL_SPEECH_URL`) and has a speech engine. A call also needs `voiceMessages`.",
+    }),
     gifsAvailable: z.boolean().openapi({
       description:
         "Read only: this server has a GIF provider with a key now (`GIPHY_API_KEY`, or the one the installation's owner added in Settings). Without it there are no GIFs at all.",
@@ -608,6 +612,7 @@ export function managementRoutes(deps: AppDeps) {
     // The provider follows the installation's key, which its owner may add or remove at any time.
     gifsAvailable: adapters.gifs?.available() ?? false,
     voiceAvailable: deps.extras?.speech?.available() ?? false,
+    voiceCallAvailable: Boolean(deps.extras?.voice?.callVoice) && (deps.extras?.speech?.available() ?? false),
     agentMediaAvailable: Boolean((await deps.extras?.jevKey?.view())?.source),
   });
 

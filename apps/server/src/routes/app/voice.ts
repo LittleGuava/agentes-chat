@@ -1,4 +1,4 @@
-import { SPEECH_PROVIDERS } from "@agenteschat/adapters";
+import { SPEECH_PROVIDERS, SpeechError } from "@agenteschat/adapters";
 import {
   acceptVoiceClip,
   dictateVoice,
@@ -8,6 +8,7 @@ import {
   pinnedOwner,
   requirePermission,
   type SpeechSettings,
+  speakReply,
   ValidationError,
   VOICE_MAX_BYTES,
   type VoiceDeps,
@@ -27,6 +28,7 @@ const tags = ["Chat"];
 /** Multipart overhead allowed on top of the recording. */
 const MULTIPART_SLACK_BYTES = 64 * 1024;
 const SENDS_PER_PERSON = { limit: 30, windowMs: 60_000 };
+const SPEECH_PER_PERSON = { limit: 30, windowMs: 60_000 };
 /** Limits checking keys through this server, so it can't test keys in bulk. */
 const KEY_WRITES = { limit: 10, windowMs: 60_000 };
 
@@ -34,6 +36,7 @@ const ChannelParams = OrgParams.extend({ channelId: z.uuid() });
 const ClipParams = OrgParams.extend({ clipId: z.uuid() });
 // The count is the engine's to refuse (`message.too_many_attachments`), as for a typed message.
 const AttachmentIds = z.array(z.uuid());
+const MessageParams = OrgParams.extend({ messageId: z.uuid() });
 
 function audioResponse(c: Context, audio: Uint8Array, contentType: string) {
   return rangedResponse(audio, c.req.header("range"), {
@@ -282,6 +285,60 @@ export function voiceRoutes(deps: AppDeps) {
       if ("expired" in audio) return apiError(c, 410, "voice.expired", "This recording is no longer kept");
       if ("url" in audio) return c.redirect(audio.url, 302);
       return audioResponse(c, audio.body, audio.contentType);
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "post",
+      path: "/organizations/{orgId}/messages/{messageId}/speech",
+      tags,
+      security,
+      summary: "An agent's reply read aloud, for a voice call",
+      description:
+        "ADR 0198. Made when asked and never kept: the audio comes back in the answer. Only an agent's reply, for " +
+        "someone who can read its channel, and only the words a person reads (no code, tables or headings).",
+      request: { params: MessageParams },
+      responses: {
+        200: { description: "The audio" },
+        ...errors,
+        409: errorResponse("Voice calls are off on this server (`voice_call.unavailable`)"),
+        422: errorResponse("Not an agent's reply (`voice_call.not_agent`), or nothing to read (`voice_call.no_words`)"),
+        429: errorResponse("Too many (`rate_limited`)"),
+        502: errorResponse("The text-to-speech server refused (`voice_call.failed`)"),
+        503: errorResponse("The text-to-speech server is busy (`voice_call.busy`)"),
+      },
+    }),
+    async (c) => {
+      const { orgId, messageId } = c.req.valid("param");
+      const user = c.get("user");
+      if (!(await adapters.rateLimiter.consume(`voice-call:${user.id}`, SPEECH_PER_PERSON)).allowed) {
+        return apiError(c, 429, "rate_limited", "Slow down");
+      }
+      try {
+        const v = deps.extras?.voice;
+        const { audio, contentType } = await speakReply(
+          { db: deps.db, voice: v?.callVoice ?? null },
+          user.id,
+          orgId,
+          messageId,
+        );
+        return new Response(audio, {
+          status: 200,
+          headers: { "content-type": contentType, "cache-control": "no-store", "x-content-type-options": "nosniff" },
+        });
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          if (error.code === "voice_call.unavailable") return apiError(c, 409, error.code, error.message);
+          if (error.code.startsWith("voice_call.")) return apiError(c, 422, error.code, error.message);
+        }
+        if (error instanceof SpeechError) {
+          return error.reason === "busy"
+            ? apiError(c, 503, "voice_call.busy", "The voice is busy. Try again.")
+            : apiError(c, 502, "voice_call.failed", "The voice couldn't read this reply");
+        }
+        throw error;
+      }
     },
   );
 

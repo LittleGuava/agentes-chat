@@ -1,6 +1,7 @@
 import {
   type Adapters,
   type BrainTurnRequest,
+  createCallVoice,
   type ErrorReporter,
   type S3Fetch,
   type SpeechFetch,
@@ -770,6 +771,16 @@ export function buildEngine(o: EngineOptions) {
     engines: speech.chain,
     judge: context.judge,
     retentionDays: config.VOICE_RETENTION_DAYS,
+    // Voice calls (ADR 0198): their own switch, so a key set for voice messages never reads replies anywhere.
+    callVoice: createCallVoice(
+      {
+        baseUrl: config.VOICE_CALL_SPEECH_URL,
+        apiKey: config.VOICE_CALL_SPEECH_API_KEY,
+        model: config.VOICE_CALL_SPEECH_MODEL,
+        voice: config.VOICE_CALL_SPEECH_VOICE,
+      },
+      { fetch: o.speechFetch },
+    ),
     // Fair use is for what we pay for: a self-hosted server has no limit.
     limits: isAgentesCloud(config.PUBLIC_URL)
       ? {

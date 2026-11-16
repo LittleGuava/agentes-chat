@@ -10681,6 +10681,17 @@
       "invalid": "Kayıtlı anahtar bu sunucuda açılmıyor. Tekrar yapıştırın."
     }
   },
+  "voiceCall": {
+    "start": "{{name}} ile ara",
+    "region": "{{name}} ile sesli arama",
+    "listening": "Dinleniyor…",
+    "sending": "Gönderiliyor…",
+    "waiting": "{{name}} düşünüyor…",
+    "speaking": "{{name}} konuşuyor…",
+    "done": "Bitti",
+    "interrupt": "Böl",
+    "hangUp": "Kapat"
+  },
   "media": {
     "word": {
       "gif": "GIF",

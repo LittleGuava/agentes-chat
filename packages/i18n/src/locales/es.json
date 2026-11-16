@@ -11088,6 +11088,17 @@
       "invalid": "La clave guardada no se puede abrir en este servidor. Pégala de nuevo."
     }
   },
+  "voiceCall": {
+    "start": "Llamar a {{name}}",
+    "region": "Llamada de voz con {{name}}",
+    "listening": "Escuchando…",
+    "sending": "Enviando…",
+    "waiting": "{{name}} está pensando…",
+    "speaking": "{{name}} está hablando…",
+    "done": "Listo",
+    "interrupt": "Interrumpir",
+    "hangUp": "Colgar"
+  },
   "media": {
     "word": {
       "gif": "GIF",

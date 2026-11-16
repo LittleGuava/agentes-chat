@@ -26171,6 +26171,33 @@
   "voice.settings.invalid": {
     "value": "The saved key doesn't open on this server. Paste it again."
   },
+  "voiceCall.start": {
+    "value": "Call {{name}}"
+  },
+  "voiceCall.region": {
+    "value": "Voice call with {{name}}"
+  },
+  "voiceCall.listening": {
+    "value": "Listening…"
+  },
+  "voiceCall.sending": {
+    "value": "Sending…"
+  },
+  "voiceCall.waiting": {
+    "value": "{{name}} is thinking…"
+  },
+  "voiceCall.speaking": {
+    "value": "{{name}} is speaking…"
+  },
+  "voiceCall.done": {
+    "value": "Done"
+  },
+  "voiceCall.interrupt": {
+    "value": "Interrupt"
+  },
+  "voiceCall.hangUp": {
+    "value": "Hang up"
+  },
   "media.word.gif": {
     "value": "GIF"
   },

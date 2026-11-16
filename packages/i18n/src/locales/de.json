@@ -10738,6 +10738,17 @@
       "invalid": "Der gespeicherte Schlüssel lässt sich auf diesem Server nicht öffnen. Füge ihn noch mal ein."
     }
   },
+  "voiceCall": {
+    "start": "{{name}} anrufen",
+    "region": "Sprachanruf mit {{name}}",
+    "listening": "Hört zu…",
+    "sending": "Wird gesendet…",
+    "waiting": "{{name}} denkt nach…",
+    "speaking": "{{name}} spricht…",
+    "done": "Fertig",
+    "interrupt": "Unterbrechen",
+    "hangUp": "Auflegen"
+  },
   "media": {
     "word": {
       "gif": "GIF",

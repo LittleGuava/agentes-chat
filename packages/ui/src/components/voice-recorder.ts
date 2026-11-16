@@ -24,7 +24,8 @@ const HOLD_MS = 350;
 const PEAKS = 48;
 /** Below this the whole recording was silence. */
 const SILENCE = 0.05;
-const LEVEL_MS = 45;
+/** The microphone's level is read this often. */
+export const VOICE_LEVEL_MS = 45;
 /** Prefers what also plays on an iPhone. */
 const TYPES = ["audio/mp4;codecs=mp4a.40.2", "audio/mp4", "audio/webm;codecs=opus", "audio/webm"];
 
@@ -49,8 +50,8 @@ export function peaksOf(levels: readonly number[], n = PEAKS): number[] {
   });
 }
 
-/** One recording: the microphone, what it heard, and listening back while paused. */
-class Recording {
+/** One recording: the microphone, what it heard, and listening back while paused. A voice call (ADR 0198) drives one itself. */
+export class VoiceRecording {
   readonly levels: number[] = [];
   paused = false;
   /** Paused: where listening is, from 0 to 1. */
@@ -93,7 +94,7 @@ class Recording {
     ac.createMediaStreamSource(stream).connect(analyser);
     const mimeType = bestType();
     const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
-    return new Recording(stream, ac, analyser, recorder);
+    return new VoiceRecording(stream, ac, analyser, recorder);
   }
 
   elapsed() {
@@ -102,7 +103,7 @@ class Recording {
 
   /** Reads the microphone's level, on a steady beat. */
   listen(now: number) {
-    if (this.paused || now - this.lastLevel < LEVEL_MS) return;
+    if (this.paused || now - this.lastLevel < VOICE_LEVEL_MS) return;
     this.lastLevel = now;
     this.analyser.getFloatTimeDomainData(this.buf);
     let sum = 0;
@@ -249,7 +250,7 @@ export function useVoiceRecorder(options: VoiceRecorderOptions | undefined, wave
   const [hold, setHold] = useState(false);
   const [listening, setListening] = useState(false);
   const [seconds, setSeconds] = useState(0);
-  const current = useRef<Recording | null>(null);
+  const current = useRef<VoiceRecording | null>(null);
   const opening = useRef(false);
   const released = useRef(false);
   /** Dropped while the microphone was still opening (another conversation, the composer gone): nothing to keep. */
@@ -306,7 +307,7 @@ export function useVoiceRecorder(options: VoiceRecorderOptions | undefined, wave
           return;
         }
         stopVoicePlayback();
-        const rec = await Recording.open();
+        const rec = await VoiceRecording.open();
         // Let go, or dropped, while the browser asked for the microphone: nothing to record, and no mic left on.
         if (dropped.current || (holding && released.current)) {
           rec.cancel();

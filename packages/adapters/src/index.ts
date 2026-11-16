@@ -16,6 +16,7 @@ import type { WebPushSender } from "./web-push";
 export * from "./blob";
 export * from "./blob-disk";
 export * from "./blob-postgres";
+export * from "./call-voice";
 export * from "./command-policy";
 export * from "./composio";
 export { parseAddressList } from "./composio-mail";

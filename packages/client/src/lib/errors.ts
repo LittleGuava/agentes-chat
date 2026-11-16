@@ -546,6 +546,7 @@ const KNOWN = {
   "mail.imap_disabled": "errors.said.offHere",
   "secret.computer_changed": "errors.said.offHere",
   "voice.unavailable": "errors.said.offHere",
+  "voice_call.unavailable": "errors.said.offHere",
   "reminder.agent_not_here": "errors.said.notInConversation",
   "reminder.person_not_here": "errors.said.notInConversation",
   "account.begin_failed": "errors.said.accountStart",

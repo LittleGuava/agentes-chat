@@ -11536,6 +11536,17 @@
       "invalid": "Zapisany klucz nie otwiera się na tym serwerze. Wklej go ponownie."
     }
   },
+  "voiceCall": {
+    "start": "Zadzwoń do {{name}}",
+    "region": "Rozmowa głosowa z {{name}}",
+    "listening": "Słucham…",
+    "sending": "Wysyłanie…",
+    "waiting": "{{name}} myśli…",
+    "speaking": "{{name}} mówi…",
+    "done": "Gotowe",
+    "interrupt": "Przerwij",
+    "hangUp": "Rozłącz"
+  },
   "media": {
     "word": {
       "gif": "GIF",
