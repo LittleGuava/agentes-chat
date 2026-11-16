@@ -7,6 +7,7 @@ export const keys = {
   instance: ["instance"] as const,
   telemetry: ["telemetry"] as const,
   serverUpdate: ["server-update"] as const,
+  serverUpdater: ["server-updater"] as const,
   jev: ["jev"] as const,
   /** The installation's GIPHY key (ADR 0091), not a workspace's: it stays when switching organizations. */
   gifKey: ["gif-key"] as const,

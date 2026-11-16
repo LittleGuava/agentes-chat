@@ -91,6 +91,7 @@ import type {
   SecretRequest,
   ServerTelemetry,
   ServerUpdate,
+  ServerUpdaterStatus,
   SidebarItem,
   SidebarItems,
   SidebarSection,
@@ -396,6 +397,8 @@ export interface FakeState {
   telemetry?: ServerTelemetry;
   /** `system.serverUpdate`: a newer release; unset = I'm not the installation's owner (null). */
   serverUpdate?: ServerUpdate;
+  /** `system.serverUpdater`: updates from the app (ADR 0200); unset = I'm not the owner or there is no updater (null). */
+  serverUpdater?: ServerUpdaterStatus;
   /** `system.jev`: the installation's Jev key; unset = I'm not its owner on a self-hosted server (null). */
   jev?: JevKey;
   /**
@@ -1451,6 +1454,14 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         if (!state.telemetry) throw new ApiError(404, "not_found", "Not found");
         state.telemetry = { ...state.telemetry, enabled };
         return state.telemetry;
+      },
+      serverUpdater: async () => state.serverUpdater ?? null,
+      updateServer: async () => {
+        log("system.updateServer");
+        if (!state.serverUpdater) throw new ApiError(404, "not_found", "Not found");
+        if (!state.serverUpdater.canUpdate) throw new ApiError(409, "update_in_progress", "Conflict");
+        state.serverUpdater = { ...state.serverUpdater, requested: true, canUpdate: false };
+        return state.serverUpdater;
       },
       sendFeedback: async (input) => {
         log("system.sendFeedback", input);

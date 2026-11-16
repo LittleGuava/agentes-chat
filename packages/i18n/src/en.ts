@@ -17217,6 +17217,27 @@ export const en = {
       /** Above the command, for a server run without Docker. */
       native: "To update, extract the new package beside the current one, then run:",
     },
+    /** Updates from the app (ADR 0200), for the installation's owner on a server with the updater service. */
+    serverUpdater: {
+      title: "Server updates",
+      label: "Update this server to the newest version",
+      help: "The server stops for a few minutes and a copy of its data is made first. If the new version doesn't start, the previous one and its data come back on their own.",
+      button: "Update server",
+      confirmTitle: "Update the server?",
+      confirmText:
+        "The server stops for a few minutes, and what agents are doing stops with it. The apps reconnect on their own when it's back.",
+      confirm: "Update now",
+      absent:
+        "The updater isn't running on this server: start it with the updater profile (docker compose --profile updater up -d).",
+      requested: "Update requested. It starts within a few minutes.",
+      running: "Updating the server…",
+      updated: "Updated to the newest version.",
+      current: "This server already runs the newest version.",
+      pinned: "This server is held on one version (AGENTES_IMAGE in .env), so it isn't updated from here.",
+      rolledBack: "The new version didn't start, so the previous one and its data came back.",
+      failed: "The last update didn't finish. The updater's log says why: docker compose logs updater",
+      interrupted: "The last update was interrupted, and the previous version came back.",
+    },
     tileState: {
       members_one: "{{count}} member",
       members_other: "{{count}} members",

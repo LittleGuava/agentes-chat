@@ -16899,6 +16899,24 @@
       "dialogTitle": "Wat er wordt verstuurd",
       "dialogText": "Eén keer per dag. Dit is precies het volgende rapport."
     },
+    "serverUpdater": {
+      "title": "Serverupdates",
+      "label": "Deze server bijwerken naar de nieuwste versie",
+      "help": "De server stopt een paar minuten en eerst wordt er een kopie van de gegevens gemaakt. Start de nieuwe versie niet, dan komen de vorige en de gegevens ervan vanzelf terug.",
+      "button": "Server bijwerken",
+      "confirmTitle": "Server bijwerken?",
+      "confirmText": "De server stopt een paar minuten, en wat de agents aan het doen zijn stopt mee. De apps maken vanzelf weer verbinding als hij terug is.",
+      "confirm": "Nu bijwerken",
+      "absent": "De updater draait niet op deze server: start hem met het profiel updater (docker compose --profile updater up -d).",
+      "requested": "Update aangevraagd. Hij begint binnen een paar minuten.",
+      "running": "Server wordt bijgewerkt…",
+      "updated": "Bijgewerkt naar de nieuwste versie.",
+      "current": "Deze server draait al de nieuwste versie.",
+      "pinned": "Deze server staat vast op één versie (AGENTES_IMAGE in .env), dus hij wordt hier niet bijgewerkt.",
+      "rolledBack": "De nieuwe versie startte niet, dus de vorige en de gegevens ervan zijn terug.",
+      "failed": "De laatste update is niet afgerond. Het log van de updater zegt waarom: docker compose logs updater",
+      "interrupted": "De laatste update is onderbroken, en de vorige versie is terug."
+    },
     "serverUpdate": {
       "title": "agentes.chat {{version}} is beschikbaar",
       "current": "Deze server draait {{version}}.",

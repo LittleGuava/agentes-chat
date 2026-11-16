@@ -1790,6 +1790,47 @@ only when a release's compose file moves that pin. The new file, `docker compose
 volume. That covers Postgres 18 minor releases and pgvector updates; a new Postgres major version
 can't open the old data directory, so moving to one takes a dump and a restore into a new volume.
 
+#### Updating from the app
+
+The installation's owner (its first account) can update the app from **Settings › General › Server
+updates**, with a copy of the database first and the way back when the new version never gets
+healthy (ADR 0200). It takes the optional `updater` service: the only container that gets the Docker
+socket, which is root on this machine. It has no network and shares nothing with the app but two
+volumes: one where the app leaves a request that says nothing, and one it reads the status from. The
+updater can't be told which image, version or flag to use: it moves the `agentes` service to whatever
+`AGENTES_IMAGE` points at in the registry now, and never moves a reference pinned by digest.
+
+Its image isn't published yet, so build it here first (from a checkout of this repository, or its
+`deploy/updater` folder), then add it to `.env`:
+
+```sh
+docker build -t agentes-updater:local deploy/updater
+```
+
+```sh
+COMPOSE_PROFILES=tailscale,updater        # keep the profiles you had, and add updater
+AGENTES_UPDATER_IMAGE=agentes-updater:local
+SERVER_UPDATER_DIR=/updater
+```
+
+```sh
+docker compose up -d
+```
+
+One update pulls the app's image (nothing more happens when it's the one running), stops the app,
+dumps the database into the updater's own `update-backups` volume (the three newest stay), starts the
+new version and waits up to 5 minutes (`UPDATER_WAIT_SECONDS` on the service) for its health check.
+If it never gets healthy, the updater drops the database, restores the dump into it and starts the
+previous image again. Whatever asks, it runs one update at a time and waits 4 minutes after each one. If the updater itself stops halfway (the machine restarts), it takes the update
+back when it starts again. Uploaded files aren't copied: an update doesn't change them.
+
+The card says how the last update went. When it says one didn't finish:
+
+```sh
+docker compose logs updater                                       # what it did, step by step
+docker compose run --rm --entrypoint ls updater /var/lib/agentes-updater/backups   # the copies
+```
+
 </details>
 
 <details>

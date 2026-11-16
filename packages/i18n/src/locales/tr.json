@@ -16771,6 +16771,24 @@
       "dialogTitle": "Ne gönderiliyor",
       "dialogText": "Günde bir kez. Bir sonraki rapor tam olarak bu."
     },
+    "serverUpdater": {
+      "title": "Sunucu güncellemeleri",
+      "label": "Bu sunucuyu en yeni sürüme güncelle",
+      "help": "Sunucu birkaç dakika durur ve önce verilerinin bir kopyası alınır. Yeni sürüm açılmazsa önceki sürüm ve verileri kendiliğinden geri gelir.",
+      "button": "Sunucuyu güncelle",
+      "confirmTitle": "Sunucu güncellensin mi?",
+      "confirmText": "Sunucu birkaç dakika durur ve ajanların yaptığı işler de onunla birlikte durur. Sunucu geri geldiğinde uygulamalar kendiliğinden yeniden bağlanır.",
+      "confirm": "Şimdi güncelle",
+      "absent": "Güncelleyici bu sunucuda çalışmıyor: updater profiliyle başlatın (docker compose --profile updater up -d).",
+      "requested": "Güncelleme istendi. Birkaç dakika içinde başlar.",
+      "running": "Sunucu güncelleniyor…",
+      "updated": "En yeni sürüme güncellendi.",
+      "current": "Bu sunucu zaten en yeni sürümü çalıştırıyor.",
+      "pinned": "Bu sunucu tek bir sürüme sabitlenmiş (.env içinde AGENTES_IMAGE), bu yüzden buradan güncellenmez.",
+      "rolledBack": "Yeni sürüm açılmadı, bu yüzden önceki sürüm ve verileri geri geldi.",
+      "failed": "Son güncelleme tamamlanmadı. Nedenini güncelleyicinin günlüğü söylüyor: docker compose logs updater",
+      "interrupted": "Son güncelleme yarıda kaldı ve önceki sürüm geri geldi."
+    },
     "serverUpdate": {
       "title": "agentes.chat {{version}} kullanılabilir",
       "current": "Bu sunucu {{version}} sürümünde çalışıyor.",

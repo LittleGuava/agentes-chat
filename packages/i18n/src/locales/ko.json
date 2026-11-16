@@ -16259,6 +16259,24 @@
       "dialogTitle": "보내는 내용",
       "dialogText": "하루에 한 번 보내요. 다음 보고서의 실제 내용이에요."
     },
+    "serverUpdater": {
+      "title": "서버 업데이트",
+      "label": "이 서버를 최신 버전으로 업데이트",
+      "help": "서버가 몇 분 동안 멈추고, 그 전에 데이터 사본을 만들어요. 새 버전이 시작되지 않으면 이전 버전과 그 데이터가 자동으로 돌아와요.",
+      "button": "서버 업데이트",
+      "confirmTitle": "서버를 업데이트할까요?",
+      "confirmText": "서버가 몇 분 동안 멈추고, 에이전트가 하던 일도 함께 멈춰요. 서버가 돌아오면 앱이 자동으로 다시 연결돼요.",
+      "confirm": "지금 업데이트",
+      "absent": "이 서버에서 업데이트 도우미가 실행되고 있지 않아요. updater 프로필로 시작하세요 (docker compose --profile updater up -d).",
+      "requested": "업데이트를 요청했어요. 몇 분 안에 시작돼요.",
+      "running": "서버를 업데이트하는 중…",
+      "updated": "최신 버전으로 업데이트했어요.",
+      "current": "이 서버는 이미 최신 버전이에요.",
+      "pinned": "이 서버는 한 버전에 고정되어 있어서(.env의 AGENTES_IMAGE) 여기서 업데이트되지 않아요.",
+      "rolledBack": "새 버전이 시작되지 않아서 이전 버전과 그 데이터가 돌아왔어요.",
+      "failed": "마지막 업데이트가 끝나지 않았어요. 이유는 업데이트 도우미의 로그에 있어요: docker compose logs updater",
+      "interrupted": "마지막 업데이트가 중단되어 이전 버전이 돌아왔어요."
+    },
     "serverUpdate": {
       "title": "agentes.chat {{version}}을(를) 사용할 수 있습니다",
       "current": "이 서버는 {{version}}에서 실행 중입니다.",

@@ -26,6 +26,7 @@ import {
   createPostgresSearchResolver,
   createRelayPushSender,
   createS3BlobStore,
+  createServerUpdater,
   createSmtpEmailSender,
   createWebPushSender,
   type EmailSender,
@@ -285,6 +286,8 @@ async function boot(
         source,
       ]),
     ),
+    // Updates from the app (ADR 0200), only with SERVER_UPDATER_DIR: the updater service holds the Docker socket.
+    serverUpdater: createServerUpdater(config.SERVER_UPDATER_DIR),
   };
   log.info("platform file storage", { kind: defaults.platformBlobs.kind });
   log.info("transactional email", { sender: defaults.email.id });

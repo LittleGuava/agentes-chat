@@ -204,6 +204,55 @@ describe("Configurações do workspace", () => {
     expect(screen().queryByRole("region", { name: "Estatísticas de uso" })).toBeNull();
   });
 
+  test("server updates: the installation's owner asks for one after saying yes, and the card follows it", async () => {
+    const { state } = await go(
+      seedState({
+        serverUpdater: {
+          helper: "ready",
+          requested: false,
+          canUpdate: true,
+          run: {
+            state: "rolled_back",
+            step: null,
+            reason: "unhealthy",
+            startedAt: "2026-11-15T12:00:00Z",
+            finishedAt: "2026-11-15T12:05:00Z",
+            from: "sha256:0123456789ab",
+            to: "sha256:ba9876543210",
+          },
+        },
+      }),
+    );
+    const card = screen().getByRole("region", { name: "Atualizações do servidor" });
+    expect(card.querySelector(".settings-row__status")?.textContent).toBe(
+      "A versão nova não subiu, então a anterior e os dados dela voltaram.",
+    );
+    await click(within(card).getByRole("button", { name: "Atualizar servidor" }));
+    const dialog = screen().getByRole("dialog", { name: "Atualizar o servidor?" });
+    // Nothing is asked until the person says yes.
+    expect(state.calls.some((c) => c.method === "system.updateServer")).toBe(false);
+    await click(within(dialog).getByRole("button", { name: "Atualizar agora" }));
+    await settle(4);
+    expect(state.calls.filter((c) => c.method === "system.updateServer")).toHaveLength(1);
+    expect(screen().queryByRole("dialog", { name: "Atualizar o servidor?" })).toBeNull();
+    expect(card.querySelector(".settings-row__status")?.textContent).toBe(
+      "Atualização pedida. Ela começa em poucos minutos.",
+    );
+    expect(within(card).getByRole("button", { name: "Atualizar servidor" }).hasAttribute("disabled")).toBe(true);
+  });
+
+  test("server updates: an updater that isn't running says how to start it; others never see the card", async () => {
+    await go(seedState({ serverUpdater: { helper: "absent", requested: false, canUpdate: false, run: null } }));
+    const card = screen().getByRole("region", { name: "Atualizações do servidor" });
+    expect(card.querySelector(".settings-row__status")?.textContent).toContain(
+      "docker compose --profile updater up -d",
+    );
+    expect(within(card).getByRole("button", { name: "Atualizar servidor" }).hasAttribute("disabled")).toBe(true);
+    cleanup();
+    await go(seedState());
+    expect(screen().queryByRole("region", { name: "Atualizações do servidor" })).toBeNull();
+  });
+
   test("Notificações: no phone gets them yet, so the row opens the phone app with a code", async () => {
     await go(seedState(), "settings/notifications");
     const row = document.getElementById("notice-phone-status")?.closest(".settings-row") as HTMLElement;

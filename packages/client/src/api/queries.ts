@@ -55,6 +55,7 @@ import { firstVisitOf, teamAnswered } from "../lib/right-hand";
 import { type LodiPrefs, type LodiPrefsPatch, legacyPatch } from "../lib/right-hand-prefs";
 import { usagePauseRefetchMs } from "../lib/routine-view";
 import { withRead } from "../lib/seen";
+import { SERVER_UPDATE_POLL_MS, serverUpdateBusy } from "../lib/server-updater";
 import {
   knownToolOrder,
   sidebarDefaults,
@@ -349,6 +350,30 @@ export const useServerUpdate = () => {
   const api = useApi();
   return useQuery({ queryKey: keys.serverUpdate, queryFn: () => api.system.serverUpdate(), staleTime: 3600_000 });
 };
+
+/**
+ * Updates from the app (ADR 0200): `null` for everyone but the installation's owner on a server with the updater.
+ * Asked again every few seconds while a request waits or a run goes on, and while the server is away restarting.
+ */
+export const useServerUpdater = () => {
+  const api = useApi();
+  return useQuery({
+    queryKey: keys.serverUpdater,
+    queryFn: () => api.system.serverUpdater(),
+    refetchInterval: (query) => (serverUpdateBusy(query.state.data ?? null) ? SERVER_UPDATE_POLL_MS : false),
+  });
+};
+
+export function useUpdateServer() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.system.updateServer(),
+    onSuccess: (view) => qc.setQueryData(keys.serverUpdater, view),
+    // Refused (the updater went away, another request got there first): show what is true now.
+    onError: () => qc.invalidateQueries({ queryKey: keys.serverUpdater }),
+  });
+}
 
 /** The installation's Jev key: `null` for everyone but its owner on a self-hosted server. */
 export const useJevKey = () => {

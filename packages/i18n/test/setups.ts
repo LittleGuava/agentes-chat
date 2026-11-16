@@ -142,6 +142,7 @@ export const SHOWN_ONLY: Record<Condition, readonly string[]> = {
     "outage.dialog.none",
     "settings.platformAvailable",
     "settings.serverUpdate.",
+    "settings.serverUpdater.",
     "settings.telemetry.",
     "skills.unavailable",
     "storage.server",

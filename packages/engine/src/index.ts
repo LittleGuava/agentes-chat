@@ -307,6 +307,7 @@ export * from "./screen-recordings";
 export * from "./search";
 export * from "./secrets";
 export * from "./server-update";
+export * from "./server-updater";
 export * from "./session-screening";
 export * from "./settings-proposals";
 export * from "./setup-checklist";

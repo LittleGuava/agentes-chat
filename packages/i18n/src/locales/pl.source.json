@@ -41470,6 +41470,54 @@
   "settings.telemetry.dialogText": {
     "value": "Once a day. This is the next report, exactly."
   },
+  "settings.serverUpdater.title": {
+    "value": "Server updates"
+  },
+  "settings.serverUpdater.label": {
+    "value": "Update this server to the newest version"
+  },
+  "settings.serverUpdater.help": {
+    "value": "The server stops for a few minutes and a copy of its data is made first. If the new version doesn't start, the previous one and its data come back on their own."
+  },
+  "settings.serverUpdater.button": {
+    "value": "Update server"
+  },
+  "settings.serverUpdater.confirmTitle": {
+    "value": "Update the server?"
+  },
+  "settings.serverUpdater.confirmText": {
+    "value": "The server stops for a few minutes, and what agents are doing stops with it. The apps reconnect on their own when it's back."
+  },
+  "settings.serverUpdater.confirm": {
+    "value": "Update now"
+  },
+  "settings.serverUpdater.absent": {
+    "value": "The updater isn't running on this server: start it with the updater profile (docker compose --profile updater up -d)."
+  },
+  "settings.serverUpdater.requested": {
+    "value": "Update requested. It starts within a few minutes."
+  },
+  "settings.serverUpdater.running": {
+    "value": "Updating the server…"
+  },
+  "settings.serverUpdater.updated": {
+    "value": "Updated to the newest version."
+  },
+  "settings.serverUpdater.current": {
+    "value": "This server already runs the newest version."
+  },
+  "settings.serverUpdater.pinned": {
+    "value": "This server is held on one version (AGENTES_IMAGE in .env), so it isn't updated from here."
+  },
+  "settings.serverUpdater.rolledBack": {
+    "value": "The new version didn't start, so the previous one and its data came back."
+  },
+  "settings.serverUpdater.failed": {
+    "value": "The last update didn't finish. The updater's log says why: docker compose logs updater"
+  },
+  "settings.serverUpdater.interrupted": {
+    "value": "The last update was interrupted, and the previous version came back."
+  },
   "settings.serverUpdate.title": {
     "value": "agentes.chat {{version}} is available"
   },

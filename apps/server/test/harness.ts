@@ -11,6 +11,7 @@ import {
   createMemoryPubSub,
   createMemoryRateLimiter,
   createPostgresSearchResolver,
+  createServerUpdater,
   type DatabaseDriver,
   type ErrorReporter,
   type GifProvider,
@@ -166,6 +167,7 @@ export async function createTestServer(
     databases: options.databases ?? null,
     humanCheck: options.humanCheck ?? null,
     gifs,
+    serverUpdater: createServerUpdater(config.SERVER_UPDATER_DIR),
   };
   const provider = createFakeProvider(options.reply);
   const embeddings = createFakeEmbeddings();

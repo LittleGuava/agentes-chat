@@ -17101,6 +17101,26 @@ export const ptBR = {
       docker: "Para atualizar, rode isto na pasta do docker-compose.yml:",
       native: "Para atualizar, extraia o pacote novo ao lado do atual e rode:",
     },
+    serverUpdater: {
+      title: "Atualizações do servidor",
+      label: "Atualizar este servidor para a versão mais nova",
+      help: "O servidor para por alguns minutos e antes é feita uma cópia dos dados. Se a versão nova não subir, a anterior e os dados dela voltam sozinhos.",
+      button: "Atualizar servidor",
+      confirmTitle: "Atualizar o servidor?",
+      confirmText:
+        "O servidor para por alguns minutos, e o que os agentes estiverem fazendo para junto. Os apps se reconectam sozinhos quando ele voltar.",
+      confirm: "Atualizar agora",
+      absent:
+        "O atualizador não está rodando neste servidor: ligue-o com o perfil updater (docker compose --profile updater up -d).",
+      requested: "Atualização pedida. Ela começa em poucos minutos.",
+      running: "Atualizando o servidor…",
+      updated: "Atualizado para a versão mais nova.",
+      current: "Este servidor já roda a versão mais nova.",
+      pinned: "Este servidor está preso a uma versão (AGENTES_IMAGE no .env), então não é atualizado por aqui.",
+      rolledBack: "A versão nova não subiu, então a anterior e os dados dela voltaram.",
+      failed: "A última atualização não terminou. O log do atualizador diz por quê: docker compose logs updater",
+      interrupted: "A última atualização foi interrompida, e a versão anterior voltou.",
+    },
     tileState: {
       members_one: "{{count}} membro",
       members_other: "{{count}} membros",

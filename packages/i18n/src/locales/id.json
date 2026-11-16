@@ -16322,6 +16322,24 @@
       "dialogTitle": "Apa yang dikirim",
       "dialogText": "Sekali sehari. Ini laporan berikutnya, persis apa adanya."
     },
+    "serverUpdater": {
+      "title": "Pembaruan server",
+      "label": "Perbarui server ini ke versi terbaru",
+      "help": "Server berhenti beberapa menit dan salinan datanya dibuat lebih dulu. Kalau versi baru tidak berjalan, versi sebelumnya dan datanya kembali dengan sendirinya.",
+      "button": "Perbarui server",
+      "confirmTitle": "Perbarui server?",
+      "confirmText": "Server berhenti beberapa menit, dan apa yang sedang dikerjakan agen ikut berhenti. Aplikasi tersambung lagi dengan sendirinya saat server kembali.",
+      "confirm": "Perbarui sekarang",
+      "absent": "Pembaru tidak berjalan di server ini: jalankan dengan profil updater (docker compose --profile updater up -d).",
+      "requested": "Pembaruan diminta. Dimulai dalam beberapa menit.",
+      "running": "Memperbarui server…",
+      "updated": "Sudah diperbarui ke versi terbaru.",
+      "current": "Server ini sudah menjalankan versi terbaru.",
+      "pinned": "Server ini dikunci pada satu versi (AGENTES_IMAGE di .env), jadi tidak diperbarui dari sini.",
+      "rolledBack": "Versi baru tidak berjalan, jadi versi sebelumnya dan datanya kembali.",
+      "failed": "Pembaruan terakhir tidak selesai. Log pembaru menjelaskan alasannya: docker compose logs updater",
+      "interrupted": "Pembaruan terakhir terputus, dan versi sebelumnya kembali."
+    },
     "serverUpdate": {
       "title": "agentes.chat {{version}} sudah tersedia",
       "current": "Server ini menjalankan {{version}}.",

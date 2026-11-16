@@ -304,6 +304,7 @@ import type {
   SeriesScope,
   ServerTelemetry,
   ServerUpdate,
+  ServerUpdaterStatus,
   SetupStep,
   ShareDmTarget,
   SidebarItem,
@@ -393,6 +394,10 @@ export interface ApiClient {
     setTelemetry(enabled: boolean): Promise<ServerTelemetry>;
     /** `null` unless I am the installation's owner, on a server that looks for new releases. */
     serverUpdate(): Promise<ServerUpdate | null>;
+    /** `null` unless I am the installation's owner on a server with the updater (ADR 0200). */
+    serverUpdater(): Promise<ServerUpdaterStatus | null>;
+    /** Asks the updater for one update; the server restarts. */
+    updateServer(): Promise<ServerUpdaterStatus>;
     /** By email to whoever runs the server; only where it takes feedback (`AuthConfig.feedback`). */
     sendFeedback(input: FeedbackInput): Promise<void>;
     /** A picture or a video for the feedback being written: kept an hour unless it is sent. */

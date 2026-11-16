@@ -17364,6 +17364,24 @@
       "dialogTitle": "Ce qui est envoyé",
       "dialogText": "Une fois par jour. Voici exactement le prochain rapport."
     },
+    "serverUpdater": {
+      "title": "Mises à jour du serveur",
+      "label": "Mettre ce serveur à jour vers la version la plus récente",
+      "help": "Le serveur s'arrête quelques minutes et une copie de ses données est faite d'abord. Si la nouvelle version ne démarre pas, la précédente et ses données reviennent d'elles-mêmes.",
+      "button": "Mettre à jour le serveur",
+      "confirmTitle": "Mettre à jour le serveur ?",
+      "confirmText": "Le serveur s'arrête quelques minutes, et ce que font les agents s'arrête avec lui. Les apps se reconnectent d'elles-mêmes à son retour.",
+      "confirm": "Mettre à jour maintenant",
+      "absent": "Le programme de mise à jour ne tourne pas sur ce serveur : lancez-le avec le profil updater (docker compose --profile updater up -d).",
+      "requested": "Mise à jour demandée. Elle commence dans quelques minutes.",
+      "running": "Mise à jour du serveur…",
+      "updated": "Mis à jour vers la version la plus récente.",
+      "current": "Ce serveur utilise déjà la version la plus récente.",
+      "pinned": "Ce serveur est fixé sur une version (AGENTES_IMAGE dans .env), il n'est donc pas mis à jour d'ici.",
+      "rolledBack": "La nouvelle version n'a pas démarré : la précédente et ses données sont revenues.",
+      "failed": "La dernière mise à jour ne s'est pas terminée. Le journal du programme de mise à jour dit pourquoi : docker compose logs updater",
+      "interrupted": "La dernière mise à jour a été interrompue, et la version précédente est revenue."
+    },
     "serverUpdate": {
       "title": "agentes.chat {{version}} est disponible",
       "current": "Ce serveur exécute la {{version}}.",

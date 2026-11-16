@@ -127,6 +127,13 @@ export const envVars = {
     section: "Server",
     example: "2026.10.31.4",
   },
+  SERVER_UPDATER_DIR: {
+    schema: z.string().min(1).optional(),
+    description:
+      "Updates from the app (ADR 0200): the folder where the `updater` service of docker-compose.yml and this server meet, `/updater` there. The server leaves a request in its `requests` folder and reads `status/status.json`; the updater pulls the app's image, copies the database, starts the new version and goes back when it isn't healthy. With it, the installation's owner gets Update server in Settings › General (never on agentes.chat itself). Set it only with `updater` in COMPOSE_PROFILES (SELF_HOSTING.md, Updating from the app). Unset (default): no updates from the app.",
+    section: "Server",
+    example: "/updater",
+  },
   // Mirror: PUBLIC_SOURCE_URL in packages/client/src/lib/about.ts.
   SOURCE_URL: {
     schema: z.url().default("https://github.com/agentes-chat/agentes-chat"),

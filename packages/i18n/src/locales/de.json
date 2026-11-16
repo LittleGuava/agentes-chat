@@ -16835,6 +16835,24 @@
       "dialogTitle": "Was gesendet wird",
       "dialogText": "Einmal am Tag. Das ist genau der nächste Bericht."
     },
+    "serverUpdater": {
+      "title": "Server-Updates",
+      "label": "Diesen Server auf die neueste Version aktualisieren",
+      "help": "Der Server stoppt für ein paar Minuten, und vorher wird eine Kopie seiner Daten gemacht. Startet die neue Version nicht, kommen die vorherige und ihre Daten von selbst zurück.",
+      "button": "Server aktualisieren",
+      "confirmTitle": "Server aktualisieren?",
+      "confirmText": "Der Server stoppt für ein paar Minuten, und was die Agenten gerade tun, stoppt mit ihm. Die Apps verbinden sich von selbst wieder, wenn er zurück ist.",
+      "confirm": "Jetzt aktualisieren",
+      "absent": "Der Updater läuft auf diesem Server nicht: Starte ihn mit dem Profil updater (docker compose --profile updater up -d).",
+      "requested": "Update angefordert. Es beginnt in wenigen Minuten.",
+      "running": "Server wird aktualisiert…",
+      "updated": "Auf die neueste Version aktualisiert.",
+      "current": "Dieser Server läuft schon mit der neuesten Version.",
+      "pinned": "Dieser Server ist auf eine Version festgelegt (AGENTES_IMAGE in .env) und wird deshalb nicht von hier aktualisiert.",
+      "rolledBack": "Die neue Version ist nicht gestartet, deshalb sind die vorherige und ihre Daten zurück.",
+      "failed": "Das letzte Update wurde nicht abgeschlossen. Das Log des Updaters sagt, warum: docker compose logs updater",
+      "interrupted": "Das letzte Update wurde unterbrochen, und die vorherige Version ist zurück."
+    },
     "serverUpdate": {
       "title": "agentes.chat {{version}} ist verfügbar",
       "current": "Dieser Server läuft mit {{version}}.",

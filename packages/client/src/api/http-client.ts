@@ -224,6 +224,7 @@ import type {
   SecretRequest,
   ServerTelemetry,
   ServerUpdate,
+  ServerUpdaterStatus,
   SidebarItem,
   SidebarItems,
   SidebarSection,
@@ -606,6 +607,8 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       telemetry: () => nullOn(404, () => request<ServerTelemetry>("/api/app/telemetry")),
       setTelemetry: (enabled) => request<ServerTelemetry>("/api/app/telemetry", { method: "PUT", json: { enabled } }),
       serverUpdate: () => nullOn(404, () => request<ServerUpdate>("/api/app/server-update")),
+      serverUpdater: () => nullOn(404, () => request<ServerUpdaterStatus>("/api/app/server-updater")),
+      updateServer: () => request<ServerUpdaterStatus>("/api/app/server-updater", { method: "POST", json: {} }),
       sendFeedback: (input) => request<void>("/api/app/feedback", { json: input }),
       uploadFeedbackFile: (file) => {
         const form = new FormData();

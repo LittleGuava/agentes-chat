@@ -39,6 +39,28 @@ export interface ServerUpdate {
   command: string | null;
 }
 
+/** The updater's last run, as it wrote it (ADR 0200). */
+export interface ServerUpdateRun {
+  state: "running" | "updated" | "current" | "pinned" | "rolled_back" | "failed" | "interrupted";
+  step: "pulling" | "stopping" | "backing_up" | "starting" | "rolling_back" | null;
+  reason: "pull" | "backup" | "unhealthy" | "rollback" | "no_app" | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  /** The app's image id before the run, and the one the registry had. */
+  from: string | null;
+  to: string | null;
+}
+
+/** Updates from the app, for the installation's owner on a server with the updater (`GET /api/app/server-updater`). */
+export interface ServerUpdaterStatus {
+  /** `absent`: the updater service isn't running. */
+  helper: "ready" | "absent";
+  /** A request is waiting for the updater. */
+  requested: boolean;
+  canUpdate: boolean;
+  run: ServerUpdateRun | null;
+}
+
 /** The installation's Jev key, for its pinned owner on a self-hosted server (`GET /api/app/jev`, ADR 0073). */
 export interface JevKey {
   /** `env`: `TYPESAFE_API_KEY`, read-only here. `settings`: added in Settings. Null: none. */
