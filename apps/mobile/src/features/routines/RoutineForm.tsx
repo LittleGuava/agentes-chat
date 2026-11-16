@@ -968,6 +968,20 @@ function Form({ routine }: { routine: Routine | undefined }) {
               />
             ))}
           </GroupedList>
+          {schedule && !once ? (
+            <GroupedList>
+              <GroupedRow
+                label={t("routines.form.retryOnce")}
+                labelLines={2}
+                hint={{
+                  name: t("common.about", { label: t("routines.form.retryOnce") }),
+                  text: t("routines.form.retryOnceHint"),
+                }}
+                toggle={d.retryOnce}
+                onPress={() => set({ retryOnce: !d.retryOnce })}
+              />
+            </GroupedList>
+          ) : null}
           {routineReachWarnings(d.prompt, dir.agents, {
             agentId: d.agentId || null,
             creatorUserId: creator === me ? null : creator,

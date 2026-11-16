@@ -226,6 +226,11 @@ export const routines = pgTable(
     pausedReason: text(),
     /** Failed runs in a row since its last good one: after a few it pauses itself. */
     failuresInRow: integer().notNull().default(0),
+    /**
+     * "Tentar de novo uma vez se falhar" (ADR 0177 addendum 2026-11-16): a scheduled run that fails for a cause
+     * outside the routine is tried once more shortly after, with or without the right hand. Off by default.
+     */
+    retryOnce: boolean().notNull().default(false),
     nextRunAt: timestamp({ withTimezone: true }),
     lastRunAt: timestamp({ withTimezone: true }),
     createdByUserId: text().references(() => users.id, { onDelete: "set null" }),

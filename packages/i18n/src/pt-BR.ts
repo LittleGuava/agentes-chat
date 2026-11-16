@@ -8977,6 +8977,9 @@ export const ptBR = {
       required: "Diga o que o agente deve fazer.",
       noAgents: "Crie um agente antes de criar uma rotina.",
       report: "Quando posta",
+      retryOnce: "Tentar de novo uma vez se falhar",
+      retryOnceHint:
+        "Se uma execução falhar por um motivo passageiro (o provedor de IA, o computador, um reinício), ela roda de novo uma vez 2 minutos depois. Você só fica sabendo se falhar de novo.",
       parseError: {
         schedule_unreadable: "Não entendi o período. Tente “a cada 2 semanas na segunda às 9h”.",
         schedule_never: "Esse período nunca acontece.",

@@ -8577,6 +8577,8 @@
       "required": "Sag, was der Agent tun soll.",
       "noAgents": "Erstelle einen Agenten, bevor du eine Routine erstellst.",
       "report": "Wann sie postet",
+      "retryOnce": "Bei Fehlschlag einmal erneut versuchen",
+      "retryOnceHint": "Schlägt ein Durchlauf aus einem vorübergehenden Grund fehl (der KI-Anbieter, der Computer, ein Neustart), läuft er 2 Minuten später noch einmal. Du erfährst es nur, wenn auch das fehlschlägt.",
       "parseError": {
         "schedule_unreadable": "Der Zeitraum ließ sich nicht lesen. Versuch „alle 2 Wochen montags um 9 Uhr“.",
         "schedule_never": "Dieser Zeitplan tritt nie ein.",

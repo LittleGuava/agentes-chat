@@ -8983,6 +8983,10 @@ export const en = {
       required: "Say what the agent should do.",
       noAgents: "Create an agent before creating a routine.",
       report: "When it posts",
+      /** A switch on a scheduled routine, off by default (ADR 0177 addendum 2026-11-16). */
+      retryOnce: "Try again once if it fails",
+      retryOnceHint:
+        "When a run fails for a passing reason (the AI provider, the computer, a restart), it runs once more 2 minutes later. You hear of it only if that fails too.",
       parseError: {
         schedule_unreadable: "Couldn't read the period. Try “every 2 weeks on Monday at 9am”.",
         schedule_never: "This schedule never happens.",

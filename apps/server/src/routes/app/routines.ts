@@ -277,6 +277,10 @@ const Routine = z
     access: Access,
     report: Report,
     ownActions: OwnActions,
+    retryOnce: z.boolean().openapi({
+      description:
+        '"Tentar de novo uma vez se falhar": a scheduled run that fails for a cause outside the routine (its provider, its computer, a restart) is tried once more two minutes later, never a retry of a retry. Default off.',
+    }),
     pausedReason: z.string().nullable().openapi({
       description:
         "Why it paused itself (`creator_left`, `creator_no_access`, `agent_archived`, `agent_not_in_channel`, `audience`, `failing`); null when a person paused it.",
@@ -694,6 +698,7 @@ export function routineRoutes(deps: AppDeps) {
             access: Access.optional().openapi({ description: "Ignored: every routine acts (ADR 0109)." }),
             report: Report.optional().openapi({ description: "Default `when_new`." }),
             ownActions: OwnActions.optional(),
+            retryOnce: z.boolean().optional().openapi({ description: "Default off." }),
           }),
         ),
       },
@@ -736,6 +741,7 @@ export function routineRoutes(deps: AppDeps) {
               description:
                 "Replaces the list. Adding an action takes its creator, when they decide the agent's approvals; any of its editors may take actions away.",
             }),
+            retryOnce: z.boolean().optional(),
           }),
         ),
       },

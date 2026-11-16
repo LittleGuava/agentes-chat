@@ -382,3 +382,34 @@ change in how its outcome is counted and told.
 Left as they are: no retry without the right hand's switch, the 15 minutes, the hour of room, routines started by an
 event, a webhook or "Rodar agora", and the causes outside the routine (`OUTSIDE_RUN_ERRORS`). Changing any of them is
 a decision on §1 itself.
+
+## Addendum (2026-11-16): "Tentar de novo uma vez se falhar", a routine's own switch
+
+What §1 decided, and why: a routine's retry is one of the right hand's fixes, so it happens only where a workspace
+turned "Cuidar da equipe" on, 15 minutes after the first outside failure since a good run, for a scheduled routine
+whose next slot is over an hour away, and once between two good runs. The reasons are cost and noise: a run is
+paid for on the agent's budget, a routine that keeps failing must not be retried in a loop, and nobody should be
+told of a failure that may heal by itself. None of them is about security or privacy.
+
+What the switch adds: each routine has `retry_once` (migration 0277), off by default, turned on and off by whoever
+may edit the routine, in the routine's editor on the web and the phone ("Tentar de novo uma vez se falhar", shown
+for a repeating schedule). With it on, any run of the scheduled routine that fails for a cause outside it (the same
+`OUTSIDE_RUN_ERRORS`, or a run that never started) is queued once more 2 minutes later, with or without the right
+hand, when its next slot is over 10 minutes away (closer, the slot itself is the retry) and the failure doesn't pause
+it. It uses the 2026-11-15 rules as they are: the retry is marked by `dedupe_key = retry:<failed run>`, so a failed
+run gets one retry however often it is closed, a retry is never retried, its failure is the failure it retried in
+`failures_in_row`, and the streak's first failure is told once, when the retry fails too, saying it was tried again.
+The streak's first failure held for the switch's retry carries the same mark as one the right hand holds
+(`routineRetryKey`, written with the retry in one transaction), so it is told at the streak's next failure whichever
+run that is: the retry, a run a person started in its place, or the next slot when the retry never ran.
+
+Why off by default keeps §1: with the switch off, nothing above runs and a routine behaves exactly as §1 and the
+2026-11-15 addendum say, which their tests keep describing. Turning it on is a person's choice for one routine,
+made where they see it, so the cost of one more run per failed slot is theirs to take. The loop §1 guards against
+still can't happen: one retry per slot, never a retry of a retry, and the fifth failed slot in a row still pauses
+the routine as `failing`. With the switch on and "Cuidar da equipe" on too, the switch's retry comes first and the
+right hand's is not added to it.
+
+Still not done: a retry of a failure of the routine's own (a refused key, no credit, a budget used up, a tool loop,
+no report), more than one retry per slot, and a retry of a routine started by an event, a webhook or an email, or of
+a one-off.

@@ -8533,6 +8533,8 @@
       "required": "Ajanın ne yapması gerektiğini yazın.",
       "noAgents": "Rutin oluşturmadan önce bir ajan oluşturun.",
       "report": "Ne zaman paylaşır",
+      "retryOnce": "Başarısız olursa bir kez daha dene",
+      "retryOnceHint": "Bir çalışma geçici bir nedenle (yapay zekâ sağlayıcısı, bilgisayar, yeniden başlatma) başarısız olursa 2 dakika sonra bir kez daha çalışır. Yalnızca o da başarısız olursa haberin olur.",
       "parseError": {
         "schedule_unreadable": "Süre okunamadı. “2 haftada bir pazartesi saat 9'da” gibi deneyin.",
         "schedule_never": "Bu zamanlama hiçbir zaman gerçekleşmiyor.",

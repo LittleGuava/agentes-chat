@@ -117,6 +117,7 @@ import {
   SearchField,
   Segmented,
   Select,
+  SettingRow,
   Switch,
   TabPanel,
   Tabs,
@@ -1997,6 +1998,27 @@ function RoutineStrip({
             </InfoHint>
           </span>
         )}
+        {/* One more try for a run that fails for a passing reason: a repeating schedule's, off by default. */}
+        {r.trigger.type === "schedule" && !isWidgetRoutine(r) && (edits || r.retryOnce) && (
+          <span className="routine-props__report">
+            {edits ? (
+              // The words are the switch's label: a press on them toggles it.
+              <label className="ac-props__switch" htmlFor={`rt-retry-${r.id}`}>
+                <Switch
+                  id={`rt-retry-${r.id}`}
+                  checked={r.retryOnce ?? false}
+                  onCheckedChange={(on) => update({ retryOnce: on })}
+                />
+                {t("routines.form.retryOnce")}
+              </label>
+            ) : (
+              <span className="ac-props__value">{t("routines.form.retryOnce")}</span>
+            )}
+            <InfoHint name={t("common.about", { label: t("routines.form.retryOnce") })}>
+              {t("routines.form.retryOnceHint")}
+            </InfoHint>
+          </span>
+        )}
         {runsOn && value(t("routines.panel.runsOn"), <Icon name="computer" size={16} />, runsOn)}
         {r.widget && isWidgetRoutine(r) && (
           <Link
@@ -2443,6 +2465,8 @@ function RoutineDialog({
   );
   // When it posts.
   const [report, setReport] = useState<RoutineReport>(routine?.report ?? "when_new");
+  // One more try when a run fails for a passing reason (off by default).
+  const [retryOnce, setRetryOnce] = useState(routine?.retryOnce ?? false);
   const say = useSay();
   const [touched, setTouched] = useState(false);
   // One source of truth for "when": the rule (the picker), with the phrase kept in step.
@@ -2577,6 +2601,7 @@ function RoutineDialog({
                 : r.trigger.type !== "schedule" || JSON.stringify(toApiRule(rule)) !== savedRule;
     if (triggerChanged) patch.trigger = trigger();
     if (report !== r.report) patch.report = report;
+    if (retryOnce !== (r.retryOnce ?? false)) patch.retryOnce = retryOnce;
     return patch;
   };
   // A routine on someone's computer that runs hourly or more often: say how often it wakes that computer.
@@ -2656,6 +2681,7 @@ function RoutineDialog({
           target: targetValue(),
           trigger: trigger(),
           report,
+          ...(retryOnce ? { retryOnce } : {}),
         },
       },
       {
@@ -2904,6 +2930,18 @@ function RoutineDialog({
                     }))}
                   />
                 </Field>
+                {kind === "schedule" && !once && (
+                  <SettingRow
+                    title={t("routines.form.retryOnce")}
+                    hint={{
+                      name: t("common.about", { label: t("routines.form.retryOnce") }),
+                      text: t("routines.form.retryOnceHint"),
+                    }}
+                    htmlFor="nr-retry-once"
+                  >
+                    <Switch id="nr-retry-once" checked={retryOnce} onCheckedChange={setRetryOnce} />
+                  </SettingRow>
+                )}
                 <div className="ac-field">
                   <HintLine
                     name={t("common.about", { label: t("routines.panel.ownActions") })}

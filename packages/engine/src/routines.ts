@@ -303,6 +303,8 @@ export interface RoutineView {
   report: RoutineReport;
   /** Connected-app actions its runs do without asking (`routines.own_actions`): the job its creator set it up for. */
   ownActions: string[];
+  /** "Tentar de novo uma vez se falhar" (`routines.retry_once`, ADR 0177 addendum 2026-11-16). */
+  retryOnce: boolean;
   /** Why it paused itself (a coded reason the app translates); null when a person paused it, or it runs. */
   pausedReason: string | null;
   failuresInRow: number;
@@ -362,6 +364,8 @@ export interface RoutineInput {
   report?: RoutineReport;
   /** Connected-app actions its job needs, done without asking (`ownActionsOf`); only who decides the agent's approvals sets them. */
   ownActions?: string[];
+  /** A scheduled run that fails for an outside cause is tried once more shortly after (default off). */
+  retryOnce?: boolean;
   /** Created paused: no next run, so the active-routine cap doesn't apply. */
   paused?: boolean;
 }
@@ -1044,6 +1048,7 @@ async function views(
       access: routineAccessOf(r.access),
       report: routineReportOf(r.report),
       ownActions: r.ownActions,
+      retryOnce: r.retryOnce,
       pausedReason: r.active ? null : r.pausedReason,
       failuresInRow: r.failuresInRow,
       state,
@@ -1398,6 +1403,7 @@ export async function createRoutine(
       access: routineAccessOf(input.access),
       report: routineReportOf(input.report),
       ownActions,
+      retryOnce: input.retryOnce === true,
       createdByUserId: actorId,
     })
     .returning();
@@ -1423,6 +1429,7 @@ export async function createRoutine(
       access: row.access,
       report: row.report,
       ownActions: row.ownActions,
+      retryOnce: row.retryOnce,
     },
   });
   await publishListChanged(deps.pubsub, orgId, "routines");
@@ -1597,6 +1604,7 @@ export interface RoutinePatch {
    * approvals; any editor may take them away.
    */
   ownActions?: string[];
+  retryOnce?: boolean;
 }
 
 /**
@@ -1627,7 +1635,8 @@ export async function updateRoutine(
       patch.trigger !== undefined ||
       patch.target !== undefined ||
       patch.report !== undefined ||
-      patch.ownActions !== undefined)
+      patch.ownActions !== undefined ||
+      patch.retryOnce !== undefined)
   ) {
     throw new ForbiddenError(WIDGET_ROUTINE_FIXED, "routine.widget_fixed");
   }
@@ -1658,6 +1667,7 @@ export async function updateRoutine(
   }
   if (patch.access !== undefined) set.access = routineAccessOf(patch.access);
   if (patch.report !== undefined) set.report = routineReportOf(patch.report);
+  if (patch.retryOnce !== undefined) set.retryOnce = patch.retryOnce;
   if (patch.ownActions !== undefined) {
     const ownActions = ownActionsOf(patch.ownActions);
     if (JSON.stringify(ownActions) !== JSON.stringify(current.ownActions)) {

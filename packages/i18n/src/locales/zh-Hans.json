@@ -8324,6 +8324,8 @@
       "required": "请说明智能体要做什么。",
       "noAgents": "请先创建智能体，再创建例行工作。",
       "report": "何时发布",
+      "retryOnce": "失败时重试一次",
+      "retryOnceHint": "如果某次运行因临时原因（AI 提供商、电脑、重启）失败，会在 2 分钟后再运行一次。只有再次失败时才会通知你。",
       "parseError": {
         "schedule_unreadable": "无法识别这个周期。试试“每 2 周的周一上午 9 点”。",
         "schedule_never": "这个时间安排永远不会发生。",

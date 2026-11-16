@@ -8820,6 +8820,8 @@
       "required": "Di qué debe hacer el agente.",
       "noAgents": "Crea un agente antes de crear una rutina.",
       "report": "Cuándo publica",
+      "retryOnce": "Reintentar una vez si falla",
+      "retryOnceHint": "Si una ejecución falla por un motivo pasajero (el proveedor de IA, el ordenador, un reinicio), se vuelve a ejecutar una vez 2 minutos después. Solo te enteras si vuelve a fallar.",
       "parseError": {
         "schedule_unreadable": "No se pudo leer el período. Prueba “cada 2 semanas el lunes a las 9”.",
         "schedule_never": "Este horario nunca ocurre.",

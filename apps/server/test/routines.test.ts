@@ -120,3 +120,30 @@ test("the schedule parsers need org membership even when a timezone is given", a
   });
   expect(r.status).toBe(401);
 });
+
+test("trying again once if it fails: off unless asked, set on create and edit (ADR 0177 addendum 2026-11-16)", async () => {
+  const owner = browser(t);
+  await signUp(owner, "owner@example.com");
+  const { orgId, channelId, agentId } = await seedOrg(owner);
+  const api = (path: string, init?: Parameters<typeof owner>[1]) =>
+    owner(`/api/app/organizations/${orgId}${path}`, init);
+  const make = (extra: Record<string, unknown>) =>
+    api("/routines", {
+      json: {
+        agentId,
+        prompt: "Resuma o dia",
+        target: { type: "channel", channelId },
+        trigger: { type: "schedule", phrase: "dias úteis às 9h" },
+        ...extra,
+      },
+    });
+  const plain = (await (await make({})).json()) as { id: string; retryOnce: boolean };
+  expect(plain.retryOnce).toBe(false);
+  const asked = (await (await make({ name: "De novo", retryOnce: true })).json()) as { retryOnce: boolean };
+  expect(asked.retryOnce).toBe(true);
+  const on = await api(`/routines/${plain.id}`, { method: "PATCH", json: { retryOnce: true } });
+  expect(await on.json()).toMatchObject({ retryOnce: true });
+  const listed = (await (await api("/routines")).json()) as { routines: { id: string; retryOnce: boolean }[] };
+  expect(listed.routines.find((r) => r.id === plain.id)?.retryOnce).toBe(true);
+  expect((await api(`/routines/${plain.id}`, { method: "PATCH", json: { retryOnce: "sim" } })).status).toBe(400);
+});

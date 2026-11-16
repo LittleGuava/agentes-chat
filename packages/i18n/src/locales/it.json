@@ -8877,6 +8877,8 @@
       "required": "Indica cosa deve fare l'agente.",
       "noAgents": "Crea un agente prima di creare una routine.",
       "report": "Quando pubblica",
+      "retryOnce": "Riprova una volta se non riesce",
+      "retryOnceHint": "Se un’esecuzione non riesce per un motivo passeggero (il fornitore di IA, il computer, un riavvio), viene rieseguita una volta 2 minuti dopo. Lo saprai solo se non riesce di nuovo.",
       "parseError": {
         "schedule_unreadable": "Non sono riuscito a capire il periodo. Prova con “ogni 2 settimane il lunedì alle 9”.",
         "schedule_never": "Questo programma non si verifica mai.",

@@ -4179,6 +4179,11 @@ export interface Routine {
   report: RoutineReport;
   /** Connected-app actions its runs do without asking: the job its creator set it up for. Absent from older servers. */
   ownActions?: string[];
+  /**
+   * "Tentar de novo uma vez se falhar" (ADR 0177 addendum 2026-11-16): a scheduled run that fails for a passing cause
+   * is tried once more shortly after. Absent from older servers.
+   */
+  retryOnce?: boolean;
   /** A coded reason (`RoutinePausedReason`); anything else is shown as a plain pause. */
   pausedReason: string | null;
   failuresInRow: number;
@@ -4297,6 +4302,8 @@ export interface RoutineInput {
   access?: RoutineAccess;
   /** Default `when_new` ("Só quando tiver novidade"). */
   report?: RoutineReport;
+  /** Default off ("Tentar de novo uma vez se falhar"). */
+  retryOnce?: boolean;
 }
 
 /** `PATCH …/routines/{id}`: only what changed (`active: true` also clears a pause reason and a failure streak). */

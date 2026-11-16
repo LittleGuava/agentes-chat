@@ -329,6 +329,23 @@ describe("the form", () => {
     expect(draftChanges(hidden, draftOf(hidden, SP, today), saved)).toEqual({});
   });
 
+  test("trying again once if it fails: off unless turned on, sent only when on or changed", () => {
+    const d = draftOf(undefined, SP, today);
+    expect(d.retryOnce).toBe(false);
+    const base = { ...d, agentId: "dev", target: "c1", prompt: "x" };
+    expect(draftInput(base).retryOnce).toBeUndefined();
+    expect(draftInput({ ...base, retryOnce: true }).retryOnce).toBe(true);
+    const r = routine({ id: "r", retryOnce: true });
+    const saved = JSON.stringify(toApiRule(ruleOf(r, SP, today)));
+    const editing = draftOf(r, SP, today);
+    expect(editing.retryOnce).toBe(true);
+    expect(draftChanges(r, editing, saved)).toEqual({});
+    expect(draftChanges(r, { ...editing, retryOnce: false }, saved)).toEqual({ retryOnce: false });
+    // An older server says nothing: off.
+    const older = routine({ id: "o" });
+    expect(draftChanges(older, { ...draftOf(older, SP, today), retryOnce: true }, saved)).toEqual({ retryOnce: true });
+  });
+
   test("a chat-made routine keeps its conversation", () => {
     const chat = routine({ id: "k", target: { type: "conversation", channelId: "c1", threadId: "t1" } });
     const saved = JSON.stringify(toApiRule(ruleOf(chat, SP, today)));
