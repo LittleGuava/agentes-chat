@@ -857,6 +857,11 @@ export const agentQuestionStatusEnum = pgEnum("agent_question_status", [
   "dismissed",
 ]);
 
+/** One of a question card's questions (ADR 0008 addendum 2026-11-15): its choices, and whether several may be picked. */
+export type QuestionItem = { question: string; choices: string[] | null; multiSelect?: true };
+/** What a person said to one of a card's questions, in its place: the choices picked, and what was written. */
+export type QuestionItemAnswer = { choices: string[]; text: string | null };
+
 /**
  * A question an agent asked a person (`ask_user`). The run waits
  * (`waiting_input`) until someone answers in the thread or through the API,
@@ -882,6 +887,10 @@ export const agentQuestions = pgTable(
     toolUseId: text().notNull(),
     text: text().notNull(),
     choices: text().array(),
+    /** Several questions, or one where several may be picked; null: the one question in `text` and `choices`. */
+    items: jsonb().$type<QuestionItem[]>(),
+    /** The answer to each of `items`, in order, when it came from the card; a reply in words leaves it null. */
+    answers: jsonb().$type<QuestionItemAnswer[]>(),
     /** The one person it is for: only they answer it, and it waits on nobody else. Null: anyone in the conversation. */
     requestedForUserId: text(),
     status: agentQuestionStatusEnum().notNull().default("open"),
@@ -1271,4 +1280,33 @@ export const runToolTokens = pgTable(
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index().on(t.runId), index().on(t.taskId)],
+);
+
+/**
+ * A tool's JSON answer too long for the model (ADR 0015, addendum on long results): kept whole for a short while,
+ * for that run's agent only, which reads parts of it with `query_result`. Swept once past `expiresAt`.
+ */
+export const toolResults = pgTable(
+  "tool_results",
+  {
+    id: uuid()
+      .primaryKey()
+      .$defaultFn(() => Bun.randomUUIDv7()),
+    orgId: uuid()
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    runId: uuid()
+      .notNull()
+      .references(() => agentRuns.id, { onDelete: "cascade" }),
+    agentId: uuid().notNull(),
+    /** The tool that answered, as the model called it. */
+    tool: text().notNull(),
+    /** Its text came from outside the org (an `external` or `readsOutside` tool): what is read from it is too. */
+    outside: boolean().notNull().default(false),
+    /** The whole answer, as the tool gave it. */
+    content: text().notNull(),
+    expiresAt: timestamp({ withTimezone: true }).notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index().on(t.runId), index().on(t.expiresAt)],
 );

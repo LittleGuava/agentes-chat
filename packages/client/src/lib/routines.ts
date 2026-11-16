@@ -1,4 +1,12 @@
-import type { AgentMailbox, Routine, RoutineHookOutcome, ScopeGrant } from "../api/types";
+import type {
+  AgentMailbox,
+  Routine,
+  RoutineConnectorTrigger,
+  RoutineHookOutcome,
+  RoutineMeetingTriggerInput,
+  RoutineReport,
+  ScopeGrant,
+} from "../api/types";
 import { clockHour } from "./format";
 
 /** A plain reminder the agent posted (`meta.reminder`): shown as the agent's message with a "Reminder" label. */
@@ -286,6 +294,136 @@ export function triggerChoices<T extends { id: string }>(
 export const mailboxReader = (levels: AgentMailbox[]) => (accountId: string) =>
   levels.some((m) => m.accountId === accountId && m.level !== "none");
 
-/** Whether the agent reads a connection's tools, from its grants (a custom connection's `custom:<id>:read`). */
+/**
+ * Whether the agent reads a connection's tools, from its grants, as the server checks it: the connection's read scope,
+ * the whole connection (`connector:*`, what its Access switch grants) or every tool (`*`). Write alone reads nothing.
+ */
 export const connectionReader = (grants: ScopeGrant[]) => (connectionId: string) =>
-  grants.some((g) => g.connectionId === connectionId && g.scope === `custom:${connectionId}:read`);
+  grants.some((g) =>
+    g.connectionId === null
+      ? g.scope === "*"
+      : g.connectionId === connectionId && (g.scope === `custom:${connectionId}:read` || g.scope === "connector:*"),
+  );
+
+/** What starts a routine, as its form offers it: a one-off and a schedule are both "schedule" (its picker says which). */
+export type RoutineFormKind = "schedule" | "event" | "email" | "webhook" | "connector" | "meeting";
+
+/** The kind a routine opens as in its form: what starts it, so saving it unchanged never turns it into another kind. */
+export const formKindOf = (r: Pick<Routine, "trigger"> | undefined): RoutineFormKind =>
+  !r || r.trigger.type === "schedule" || r.trigger.type === "once" ? "schedule" : r.trigger.type;
+
+/** When a new routine of this kind posts, until the person picks: a meeting's prep always does (ADR 0190 §6). */
+export const defaultReportFor = (kind: RoutineFormKind): RoutineReport => (kind === "meeting" ? "always" : "when_new");
+
+/** "Antes de uma reunião" (ADR 0190): the minutes before each meeting a routine may run, as the server takes them. */
+export const MEETING_LEAD = { min: 5, max: 240, default: 15 } as const;
+
+/** What the form holds for a meeting trigger: the calendar (a connection's id) and the minutes as typed. */
+export interface MeetingDraft {
+  connectionId: string;
+  lead: string;
+}
+
+/** A routine's meeting trigger as its form starts (new, or another kind: no calendar picked yet, 15 minutes). */
+export const meetingDraftOf = (r: Pick<Routine, "trigger"> | undefined): MeetingDraft =>
+  r?.trigger.type === "meeting"
+    ? { connectionId: r.trigger.connectionId, lead: String(r.trigger.leadMinutes) }
+    : { connectionId: "", lead: String(MEETING_LEAD.default) };
+
+/** The minutes typed, or null when they aren't a whole number from 5 to 240. */
+export function meetingLeadOf(text: string): number | null {
+  const typed = text.trim();
+  if (!/^\d{1,3}$/.test(typed)) return null;
+  const minutes = Number(typed);
+  return minutes >= MEETING_LEAD.min && minutes <= MEETING_LEAD.max ? minutes : null;
+}
+
+/** The trigger as the API takes it; null while it lacks a calendar or minutes it can keep (the form doesn't save). */
+export function meetingTriggerOf(d: MeetingDraft): RoutineMeetingTriggerInput | null {
+  const leadMinutes = meetingLeadOf(d.lead);
+  return d.connectionId && leadMinutes !== null ? { type: "meeting", connectionId: d.connectionId, leadMinutes } : null;
+}
+
+/** Whether saving sends the meeting trigger: the routine had another kind, or another calendar or minutes. */
+export function meetingTriggerChanged(r: Pick<Routine, "trigger">, d: MeetingDraft): boolean {
+  return (
+    r.trigger.type !== "meeting" ||
+    r.trigger.connectionId !== d.connectionId ||
+    r.trigger.leadMinutes !== meetingLeadOf(d.lead)
+  );
+}
+
+/** The connections a meeting routine can watch: the server names them (`meetings`), never their address. */
+export const meetingCalendars = <T extends { meetings?: boolean }>(servers: T[]): T[] =>
+  servers.filter((s) => s.meetings === true);
+
+/** Slack's new message, through Composio (ADR 0196). */
+export const SLACK_MESSAGE: RoutineConnectorTrigger["event"] = "slack.message.received";
+
+/**
+ * A routine's connector event in the person's words (ADR 0130, 0196): an email names its inbox when it has one, else
+ * the service; a Slack message names Slack.
+ */
+export function connectorWhenWords(
+  trigger: RoutineConnectorTrigger,
+):
+  | { key: "mail.routine.when"; values: { address: string } }
+  | { key: "mail.routine.whenMillionSend" | "mail.routine.whenSlack" } {
+  if (trigger.event === SLACK_MESSAGE) return { key: "mail.routine.whenSlack" };
+  const to = trigger.filter.to;
+  return to ? { key: "mail.routine.when", values: { address: to } } : { key: "mail.routine.whenMillionSend" };
+}
+
+/** The routine form's name for a connector event's kind: "Email no MillionSend" or "Mensagem no Slack". */
+export const connectorKindKey = (
+  event: RoutineConnectorTrigger["event"],
+): "routines.form.kind.connectorSlack" | "routines.form.kind.connector" =>
+  event === SLACK_MESSAGE ? "routines.form.kind.connectorSlack" : "routines.form.kind.connector";
+
+type ConnectorEvent = RoutineConnectorTrigger["event"];
+
+/** The connector events a routine can wait on, in the order the When picker shows them (ADR 0130, 0196). */
+const CONNECTOR_TRIGGER_EVENTS: readonly ConnectorEvent[] = ["millionsend.email.received", SLACK_MESSAGE];
+
+/**
+ * The connector events the When picker offers: each one a connection of the workspace brings, and the routine's own
+ * (`current`) even when its connection is gone, so it can still be read and moved.
+ */
+export function connectorEventChoices(
+  servers: readonly { events?: readonly ConnectorEvent[] }[],
+  current?: ConnectorEvent,
+): ConnectorEvent[] {
+  return CONNECTOR_TRIGGER_EVENTS.filter((e) => e === current || servers.some((s) => s.events?.includes(e)));
+}
+
+/** A connector event's own choice in the When picker, beside "schedule", "email" and the rest. */
+export const connectorChoiceKey = (event: ConnectorEvent): `connector:${ConnectorEvent}` => `connector:${event}`;
+
+/** The connector event a When choice stands for, else null (a schedule, an email, an unknown event). */
+export function connectorEventOfChoice(key: string): ConnectorEvent | null {
+  return CONNECTOR_TRIGGER_EVENTS.find((e) => connectorChoiceKey(e) === key) ?? null;
+}
+
+/** The connector part of a routine form (web and phone): its connection, event and filter. */
+export interface ConnectorDraftShape {
+  connectionId: string;
+  event: ConnectorEvent;
+  filter: RoutineConnectorTrigger["filter"];
+}
+
+/**
+ * The form's connector part after picking `event`: another event starts over (its own connections, its own filter
+ * fields: a Slack channel never goes out as an email's filter); the same one is kept as it is.
+ */
+export function connectorDraftFor(draft: ConnectorDraftShape, event: ConnectorEvent): ConnectorDraftShape {
+  return draft.event === event ? draft : { ...draft, connectionId: "", event, filter: {} };
+}
+
+/** Only the filters that say something, for any connector event, as the server keeps them. */
+export const cleanConnectorFilter = (f: RoutineConnectorTrigger["filter"]): RoutineConnectorTrigger["filter"] => ({
+  ...(f.to?.trim() ? { to: f.to.trim().toLowerCase() } : {}),
+  ...(f.from?.length ? { from: f.from } : {}),
+  ...(f.subject?.trim() ? { subject: f.subject.trim() } : {}),
+  ...(f.channel?.trim() ? { channel: f.channel.trim().toUpperCase() } : {}),
+  ...(f.text?.trim() ? { text: f.text.trim() } : {}),
+});

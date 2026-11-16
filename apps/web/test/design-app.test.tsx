@@ -370,6 +370,8 @@ describe("composer in a DM", () => {
       expect.stringContaining("/rotina"),
       expect.stringContaining("/pc"),
       expect.stringContaining("/mission"),
+      // Ada's skill, after the commands (the fake turns "Revisão de PR" on for her).
+      expect.stringContaining("Revisão de PR"),
     ]);
     await act(async () => fireEvent.keyDown(composer, { key: "Enter" }));
     expect(composer.value).toBe("monte um relatório sobre ");

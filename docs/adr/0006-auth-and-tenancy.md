@@ -22,3 +22,29 @@
 - No external identity provider; self-host stays one container + Postgres.
 - Composite foreign keys `(org_id, id)` keep channel memberships, messages, runs and usage from pointing across organizations.
 - Later: Better Auth `jwt` + `oauthProvider` for MCP clients.
+
+## Addendum (2026-11-15): where an account is signed in
+
+A person sees every session of their account that still works and signs any other one out, or all of them but the one
+they are using (Configurações › Sua conta › Sessões ativas). The app API serves it, never Better Auth's own endpoints:
+
+- `GET /api/app/account/sessions` lists them, the request's own first (`current`), named by id. Each carries the device
+  its sign-in came from, read from the user agent Better Auth stored with it (`sessionDevice` in
+  `packages/engine/src/account-sessions.ts`): a browser and its system, the phone app (its requests carry CFNetwork's
+  user agent on iOS and OkHttp's on Android), or `unknown`. The desktop app's window sends its system web view's user
+  agent, the same as a browser's, so it shows as one. The address is the one Better Auth kept (behind
+  `TRUSTED_PROXIES`), shown as it is. `lastActiveAt` is the session's `updatedAt`, which Better Auth moves only when it
+  renews a session, at most once a day (`updateAge`), so the apps show a day, never a moment.
+- `DELETE /api/app/account/sessions/{sessionId}` ends one of the person's sessions, matched by id and owner in one
+  statement, so someone else's answers 404 like one that doesn't exist. The request's own is refused
+  (`session.current`): signing out is `POST /api/auth/sign-out`, which also clears the browser's cookies.
+- `POST /api/app/account/sessions/sign-out-others` ends every other one.
+
+An ended session stops at once: every request reads its session from the database (no cookie cache), an open socket
+closes on its next check, and the browser pushes it turned on go with it (`push_devices.session_id` cascades, ADR
+0071). Phones' push devices belong to the person, not to a session, so signing a phone's session out here stops its
+requests and leaves its pushes until it signs out itself or its token is moved.
+
+Better Auth's `/list-sessions` answers every session's token, and `/revoke-session`, `/revoke-sessions` and
+`/revoke-other-sessions` take tokens: they are off over HTTP (`disabledPaths`), so no session token reaches a client.
+No app called them.

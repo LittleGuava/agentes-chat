@@ -28,17 +28,38 @@ const KNOWN = {
   "webhook.github_failed": "errors.webhook.githubFailed",
   "webhook.invalid_secret": "errors.webhook.invalidSecret",
   "webhook.invalid_repo": "errors.webhook.invalidRepo",
+  // Outgoing webhooks (ADR 0212).
+  "outgoing_webhook.no_events": "errors.outgoingWebhook.noEvents",
+  "outgoing_webhook.no_channels": "errors.outgoingWebhook.noChannels",
+  "outgoing_webhook.channel": "errors.outgoingWebhook.channel",
+  "outgoing_webhook.disabled": "errors.outgoingWebhook.disabled",
+  "outgoing_webhook.limit": "errors.outgoingWebhook.limit",
+  "outgoing_webhook.name": "errors.said.fillIn",
+  "outgoing_webhook.event": "errors.said.changed",
+  "outgoing_webhook.too_many_channels": "errors.said.tooMany",
   "github_event.answered": "errors.githubEvent.answered",
   "github_event.not_found": "errors.said.gone",
   "github_event.agent_not_here": "errors.routine.agentNotInChannel",
+  "meeting.ended": "errors.said.alreadyDone",
+  "meeting.not_found": "errors.said.gone",
   "channel.post_denied": "channel.perms.readOnlyComposer",
+  // Sharing a DM with an agent (ADR 0151, addendum 2026-11-15).
+  "dm_share.not_agent_dm": "dmShare.errors.notAgentDm",
+  "dm_share.target": "dmShare.errors.target",
+  "dm_share.empty": "dmShare.errors.empty",
   "channel.permission_forbidden": "channel.perms.forbidden",
   "agent.handle_taken": "newAgent.errors.handleTaken",
   "agent.right_hand_permanent": "errors.rightHand.permanent",
   "agent.not_owner": "errors.agent.ownerOrAdmin",
+  // An agent's API keys (ADR 0210): its card offers them only to who manages the agent, and only while it is active.
+  "agent_api.not_manager": "errors.agent.ownerOrAdmin",
+  "agent_api.agent_archived": "dashboards.errors.agentArchived",
+  "agent_api.key_limit": "errors.agentApi.keyLimit",
   "usage_queue.cancel_forbidden": "errors.agent.ownerOrAdmin",
   "agent.details_hidden": "errors.agent.detailsHidden",
   "brain.extra_owner_only": "errors.agent.extraOwnerOnly",
+  "brain.not_allowed": "errors.agent.brainNotAllowed",
+  "brain_policy.invalid": "errors.agent.brainPolicyInvalid",
   "action.not_allowed": "errors.agent.undoForbidden",
   "action.skills_admins": "errors.agent.undoSkillsAdmins",
   "account.not_owner": "errors.account.notOwner",
@@ -89,6 +110,7 @@ const KNOWN = {
   "machine.target_paused": "errors.machine.targetPaused",
   "machine.pause_past": "errors.machine.pausePast",
   "machine.not_owner": "errors.machine.notOwner",
+  "machine.local_config_unsupported": "errors.machine.localConfigUnsupported",
   "machine.ask_self": "errors.machine.askSelf",
   "admin_ask.self": "errors.machine.adminAskSelf",
   // A computer that can't take the request now (`MachineOfflineError`, `MachinePausedError`: `name`), or its own
@@ -191,12 +213,19 @@ const KNOWN = {
   "connector.gone": "errors.connector.gone",
   "connector.unfinished": "errors.connector.unfinished",
   "connector.unavailable": "errors.connector.unavailable",
+  "connector.not_per_person": "errors.connector.notPerPerson",
+  "connector.per_person_unsupported": "errors.connector.perPersonUnsupported",
   "connector.misconfigured": "errors.connector.misconfigured",
   // Facts only (the phone shows this one): the web's onboarding says `standing.createUnpaid` beside the way to pay.
   "org.create_unpaid": "standing.createInactive",
   "credentials.plan_hold": "connectAi.key.closed",
   "machine.managed": "computerSetup.managedNotRemovable",
   "machine.managed_access": "computerSetup.managedAccess",
+  "join_domain.invalid": "errors.joinDomain.invalid",
+  "join_domain.public": "errors.joinDomain.public",
+  "join_domain.not_yours": "errors.joinDomain.notYours",
+  "join_domain.too_many": "errors.joinDomain.tooMany",
+  "join_domain.not_allowed": "errors.joinDomain.notAllowed",
   "join.link_closed": "errors.join.linkClosed",
   "join.link_full": "errors.join.linkFull",
   "join.link_full_approval": "errors.join.linkFullApproval",
@@ -277,6 +306,9 @@ const KNOWN = {
   "github.unreachable": "errors.github.unreachable",
   "wiki.github_no_notes": "errors.wiki.githubNoNotes",
   "wiki.github_too_large": "errors.wiki.githubTooLarge",
+  "sidebar_link.url": "errors.sidebarLink.url",
+  "sidebar_link.title": "errors.sidebarLink.title",
+  "sidebar_link.full": "errors.sidebarLink.full",
   "skill.no_skill_md": "errors.skill.noSkillMd",
   "skill.too_many_skills": "errors.skill.tooManySkills",
   "skill.invalid_name": "errors.skill.invalidName",
@@ -306,10 +338,25 @@ const KNOWN = {
   // GIFs and stickers (ADR 0091): off in the workspace (or no GIF search on this server), a GIF gone, or the GIF
   // search not answering.
   "message.reply_not_found": "errors.replyGone",
+  // Editing a message (ADR 0207).
+  "message.edit_not_yours": "errors.messageEdit.notYours",
+  "message.edit_expired": "errors.messageEdit.expired",
+  "message.not_editable": "errors.messageEdit.notEditable",
+  "message.edit_answered": "errors.messageEdit.answered",
+  "message.redo_not_latest": "errors.messageEdit.notLatest",
   "message.media_off": "errors.media.off",
   "message.media_not_found": "errors.media.notFound",
   "gifs.off": "errors.media.gifsOff",
   "gifs.unavailable": "errors.media.gifsUnavailable",
+  // `/burst N <request>` (ADR 0192): refused before anything is posted.
+  "burst.attempts": "errors.burst.attempts",
+  "burst.no_request": "errors.burst.noRequest",
+  "burst.needs_agent": "errors.burst.needsAgent",
+  "burst.agent_unreachable": "errors.burst.agentUnreachable",
+  "burst.computer_brain": "errors.burst.computerBrain",
+  "burst.over_budget": "errors.burst.overBudget",
+  "burst.plain_only": "errors.burst.plainOnly",
+  "burst.mission_thread": "errors.burst.missionThread",
   // Boards and widgets (ADR 0135).
   "dashboard.not_found": "dashboards.errors.notFound",
   "dashboard.forbidden": "dashboards.errors.forbidden",
@@ -334,6 +381,9 @@ const KNOWN = {
   // Worded with its wait by `knownErrorText` (`widgetWaitText`); this line only names its family.
   "widget.waiting": "widgets.wait.planUnknown",
   // The Vault (ADR 0144): what a person typed, who may see or use an item, an import, a card's "Save to the Vault".
+  // The phone app answering an agent's request that already ended or is gone (ADR 0205).
+  "phone.job_closed": "errors.phone.jobClosed",
+  "phone.job_not_found": "errors.phone.jobNotFound",
   "vault.invalid": "errors.vault.invalid",
   "vault.not_found": "errors.vault.notFound",
   "vault.title_required": "errors.vault.titleRequired",
@@ -440,6 +490,7 @@ const KNOWN = {
   "action.changed_since": "errors.said.tooLateUndo",
   "action.expired": "errors.said.tooLateUndo",
   "action.not_undoable": "errors.said.tooLateUndo",
+  "action.busy": "errors.said.agentWorkingHere",
   "right_hand.changed_since": "errors.said.tooLateUndo",
   "right_hand.undo_expired": "errors.said.tooLateUndo",
   "approval_cover.ends_past": "errors.said.futureTime",
@@ -511,6 +562,7 @@ const KNOWN = {
   "account.runner_old": "errors.said.updateComputerApp",
   "machine.access_outdated": "errors.said.updateComputerApp",
   "machine.cli_outdated": "errors.said.updateComputerApp",
+  "machine.local_config_outdated": "errors.said.updateComputerApp",
   "machine.outdated": "errors.said.updateComputerApp",
   "machine.updates_itself": "errors.said.computerUpdatesItself",
   "database.disabled": "errors.said.offHere",
@@ -518,6 +570,7 @@ const KNOWN = {
   "mail.imap_disabled": "errors.said.offHere",
   "secret.computer_changed": "errors.said.offHere",
   "voice.unavailable": "errors.said.offHere",
+  "voice_call.unavailable": "errors.said.offHere",
   "reminder.agent_not_here": "errors.said.notInConversation",
   "reminder.person_not_here": "errors.said.notInConversation",
   "account.begin_failed": "errors.said.accountStart",
@@ -546,6 +599,7 @@ const KNOWN = {
   "reminder.no_agent": "errors.said.noAgentToRemind",
   "routine.connector_agent_cannot_read": "errors.said.agentCantRead",
   "routine.mail_agent_cannot_read": "errors.said.agentCantRead",
+  "routine.meeting_lead_invalid": "errors.said.meetingLead",
   "schedule.never": "errors.said.neverHappens",
   sole_owner: "errors.said.soleOwner",
   "storage.test_first": "errors.said.testFirst",
@@ -568,6 +622,38 @@ const KNOWN = {
   "github_app.owner_unknown": "githubApp.ownerUnknown",
   "github_app.misconfigured": "githubApp.misconfigured",
   github_app_env: "githubApp.server.line.env",
+  // An export of chosen agents names one that is gone (ADR 0055).
+  "agent.not_found": "errors.said.gone",
+  // An agent's own API keys (ADR 0210).
+  "announcement.period": "errors.announcement.period",
+  // What an agent thinks with: an ACP agent (ADR 0216), its reserves, a model for one conversation.
+  "brain.invalid_engine": "errors.agent.acpEngine",
+  "brain.reserve_invalid": "errors.agent.reserveInvalid",
+  "brain.right_hand": "errors.agent.rightHandModel",
+  // A browser profile's site to sign out of that isn't a host (ADR 0110).
+  "browser_profile.site": "errors.said.checkAddress",
+  "connector.client_id_required": "errors.said.fillIn",
+  // A connection on each person's own account (ADR 0195).
+  "dm_share.note": "dmShare.errors.note",
+  // Pictures agents make (ADR 0213).
+  "images.per_day": "errors.images.perDay",
+  "images.per_run": "errors.images.perRun",
+  "memory.invalid_until": "errors.memory.invalidUntil",
+  "memory.past_until": "errors.memory.pastUntil",
+  // Public pages (ADR 0211).
+  "published_page.not_a_page": "errors.publishedPage.notAPage",
+  "published_page.not_found": "errors.said.gone",
+  "published_page.person_cannot_read": "errors.publishedPage.personCannotRead",
+  "published_page.too_many": "errors.publishedPage.tooMany",
+  // Replies read aloud (ADR 0209).
+  "read_aloud.limit": "readAloud.limit",
+  "read_aloud.no_words": "errors.readAloud.noWords",
+  "read_aloud.not_agent": "errors.readAloud.notAgent",
+  "read_aloud.unavailable": "errors.said.offHere",
+  "routine.connector_channel_invalid": "errors.routine.connectorChannelInvalid",
+  // A recording turned into text (ADR 0100).
+  "voice.busy": "errors.voice.busy",
+  "voice.no_words": "errors.voice.noWords",
 } as const;
 
 /** Better Auth's code when a blocked account tries to sign in (the server's `session.create.before` hook). */

@@ -177,3 +177,7 @@ Composio bills each tool call to our project, and its limits are per project, sh
 - An action Composio renames in a new version arrives, after the version moves, as a new tool waiting in "Precisam da sua decisão", like a preset's new tool.
 - A sign-in finished at Composio whose return never reached us stays there as an unused account; it is never stored here.
 - Tests run on PGlite with the fake Composio client (`mail-fake.ts` gains `listTools`, `executeTool` and `fetchFile`): `packages/engine/test/composio-connectors.test.ts`, the connector routes in `apps/server/test/connectors.test.ts`, the purge, the client's and the apps' pieces.
+
+## Addendum (2026-11-15): Composio triggers for connectors
+
+Amended by ADR 0196. A connector routine can make a Composio trigger on its connection's account (the first: a new message in a Slack channel), so the first item of §11 is no longer out of scope, and §7's "Trigger events aren't counted" no longer holds: each delivery is counted once for the workspace in ADR 0103's daily usage (`composio_usage_days.events`). It doesn't count against `COMPOSIO_CALLS_PER_MONTH`, which stays a cap on tool calls. The one tool call a Slack trigger costs when it is made (`SLACK_TEST_AUTH`, who the account is) is a tool call, counted and capped as such.

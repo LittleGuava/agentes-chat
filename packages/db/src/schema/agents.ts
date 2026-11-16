@@ -225,6 +225,17 @@ export const agents = pgTable(
      * the plan stays lent if that person leaves.
      */
     brainAccountLentBy: text(),
+    /**
+     * The `acp` brain (ADR 0216): the id of the ACP agent its computer declares (`machines.executors.acp`); null for
+     * every other brain. Cleared when the agent changes computer or brain kind.
+     */
+    brainEngine: text(),
+    /**
+     * Its reserve AIs, in order (ADR 0118 addendum 2026-11-15): accounts on its computer that answer a conversation
+     * while the plan it thinks with is at its limit or signed out. Validated in code (`brain-settings.ts`); an entry
+     * whose account is gone or on another computer is skipped, never an error. `model` null = that brain's default.
+     */
+    brainFallbackChain: jsonb().$type<{ accountId: string; model?: string | null }[]>().notNull().default([]),
     /** How hard its computer brain thinks (`low`…`max`, ADR 0041); null = the CLI's default. */
     brainEffort: text(),
     /**
@@ -237,6 +248,8 @@ export const agents = pgTable(
      * `organization_settings.agent_media` allows. Off: never.
      */
     mediaReplies: boolean().notNull().default(true),
+    /** The voice its replies are read aloud in (ADR 0209): the engine's voice id; null = the server's default. */
+    readAloudVoice: text(),
     /**
      * The most context its model reads, in tokens (`200000`, `400000`, `1000000`; validated in code): the API
      * brain compacts past it, Claude Code and Codex compact there too. Null = the model's own window.
@@ -381,6 +394,11 @@ export const organizationSettings = pgTable("organization_settings", {
   /** People can send voice messages (ADR 0100): needs a speech engine on the server too. */
   voiceMessages: boolean().notNull().default(true),
   /**
+   * Agents may join online meetings to take notes (ADR 0199 §6): other people's voices, maybe outside the workspace,
+   * under recording and data laws that differ by place. Off until whoever configures the workspace turns it on.
+   */
+  meetingNotes: boolean().notNull().default(false),
+  /**
    * "Agentes melhoram as skills sozinhos": an agent's fix to a skill a person made applies at once (a new version,
    * with Desfazer) instead of waiting as a proposal; scripts still wait for a person (ADR 0120). A skill's own
    * `skills.agents_improve` wins.
@@ -403,6 +421,16 @@ export const organizationSettings = pgTable("organization_settings", {
   teamWatch: boolean().notNull().default(true),
   /** "Dar boas-vindas a quem entra": the right hand greets each person who joins, once. On without a row too. */
   welcomePeople: boolean().notNull().default(true),
+  /**
+   * What agents may think with (ADR 0191): `{ brains, providers, models }`, each a list or null for all. Null: nothing
+   * restricted. Validated and read through `packages/engine/src/brain-policy.ts`.
+   */
+  allowedBrains: jsonb().$type<Record<string, unknown>>(),
+  /**
+   * "Cuidar das falhas" (ADR 0177 addendum 2026-11-15): a task that failed for a cause that may pass becomes an incident
+   * in the right hand's DM with the person behind it, which may try it again (`retry_run`). On without a row too.
+   */
+  incidents: boolean().notNull().default(true),
   updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
 

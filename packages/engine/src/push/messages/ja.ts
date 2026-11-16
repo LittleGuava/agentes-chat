@@ -15,7 +15,10 @@ export const strings: Partial<PushStrings> = {
   replyTitle: (a) => `${a} が返信しました`,
   missionStoppedTitle: "ミッションが止まりました",
   routineFailedTitle: "ルーティンが完了しませんでした",
+  routineFailedRetriedTitle: "ルーティンが再試行しても完了しませんでした",
   runFailedTitle: (a) => `${a} が作業を完了できませんでした`,
+  needsAiTitle: (a) => `${a} にAIが接続されていません`,
+  needsAiBody: (p) => `${p} が呼びかけましたが応答がありませんでした。応答できるようにAIを接続してください。`,
   routineFailedBody: "タップして何が起きたかを確認",
   routinePausedTitle: "ルーティンが一時停止されました",
   routinePausedBody: "タップして理由を確認",
@@ -41,6 +44,7 @@ export const strings: Partial<PushStrings> = {
   secretTitle: (a) => `${a} がシークレットの入力を求めています`,
   secretBody: "タップして安全に送信",
   widgetAlertTitle: (a, w) => (w ? `${a}: ${w}` : `${a} がウィジェットでアラートを出しました`),
+  mailImportantTitle: (m) => `${m} に重要なメール`,
   widgetFailedTitle: (w) => (w ? `「${w}」が更新されませんでした` : "ウィジェットが更新されませんでした"),
   widgetFailedReasons: {
     no_update: "前回の更新はデータなしで終わりました。",

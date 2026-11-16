@@ -3,7 +3,7 @@ import type { BlobStore } from "@agenteschat/adapters";
 import { and, asc, type Database, type Executor, eq, inArray, isNull, like, schema, sql } from "@agenteschat/db";
 import { recordAudit } from "../audit";
 import { caches } from "../cache";
-import { type ConnectorEventId, connectorEventsOf } from "../connector-triggers";
+import { type ConnectorEventId, connectorEventsOf, isMeetingCalendar } from "../connector-triggers";
 import { randomToken, sealSecret, sha256 } from "../crypto";
 import { ConflictError, isUniqueViolation, NotFoundError, ValidationError } from "../errors";
 import type { Judge } from "../judge";
@@ -44,16 +44,28 @@ import {
 } from "./connections";
 import type { McpCallResult, McpConnect, McpSession, McpTool } from "./mcp";
 import {
+  type AdminOAuthApp,
+  adminOAuthApp,
+  adminOAuthAppFor,
   authServerMetadata,
   ensureOAuthClient,
   type McpOAuthDeps,
   oauthScope,
   probeMcpServer,
+  saveAdminOAuthApp,
   serverKey,
 } from "./oauth-mcp";
 import { oauthReturnTo } from "./oauth-return";
+import { myPersonalAccounts, type PersonalAccountView } from "./personal";
 import { seedToolPins } from "./pins";
-import { composioToolkitOf, composioToolName, type McpPreset, presetForServer, serverUrlShown } from "./presets";
+import {
+  composioToolkitOf,
+  composioToolName,
+  type McpPreset,
+  presetForServer,
+  serverUrlShown,
+  takesKey,
+} from "./presets";
 import { type McpServerInfo, refreshServerIcon } from "./server-icon";
 
 const { connectorConnections, customTools, oauthStates, agentScopes, agents } = schema;
@@ -183,6 +195,12 @@ export interface CustomServerView {
   tools: CustomToolView[];
   /** What routines can wait on from it (ADR 0130): MillionSend's received email. */
   events: ConnectorEventId[];
+  /** Whether a meeting routine can watch it (ADR 0190): a Google Calendar. */
+  meetings: boolean;
+  /** Each person uses their own account here (ADR 0195). */
+  perPerson: boolean;
+  /** The caller's own account on it, when it is per person and they connected one (nobody else's). */
+  mine: PersonalAccountView | null;
   reviewedAt: string | null;
   createdAt: string;
 }
@@ -250,7 +268,12 @@ function toolView(t: ToolRow, prefix: string | null): CustomToolView {
 }
 
 /** `whole`: the reader manages connectors, so sees the address as it was typed. */
-function view(c: ConnectorConnection, tools: ToolRow[], whole = true): CustomServerView {
+function view(
+  c: ConnectorConnection,
+  tools: ToolRow[],
+  whole = true,
+  own: ReadonlyMap<string, PersonalAccountView> = new Map(),
+): CustomServerView {
   const mine = tools.filter((t) => t.connectionId === c.id);
   const prefix = sharedPrefix(mine.map((t) => t.name));
   return {
@@ -265,6 +288,9 @@ function view(c: ConnectorConnection, tools: ToolRow[], whole = true): CustomSer
     toolsError: c.status === "needs_reconnect" ? null : c.lastError,
     tools: mine.map((t) => toolView(t, prefix)),
     events: connectorEventsOf(c.serverUrl),
+    perPerson: c.perPerson,
+    mine: c.perPerson ? (own.get(c.id) ?? null) : null,
+    meetings: isMeetingCalendar(c.serverUrl),
     reviewedAt: c.reviewedAt ? c.reviewedAt.toISOString() : null,
     createdAt: c.createdAt.toISOString(),
   };
@@ -303,7 +329,8 @@ export async function listCustomServers(db: Database, actorId: string, orgId: st
     db,
     rows.map((r) => r.id),
   );
-  return rows.map((r) => view(r, tools, whole));
+  const mine = await myPersonalAccounts(db, actorId, orgId);
+  return rows.map((r) => view(r, tools, whole, mine));
 }
 
 type AccountSpec = NonNullable<McpPreset["account"]>;
@@ -353,8 +380,8 @@ async function askAccount(session: McpSession, spec: AccountSpec | undefined) {
 }
 
 /** The account a fresh sign-in, key or Composio account reached, asked before anything is stored. */
-async function providerAccount(
-  deps: CustomDeps,
+export async function providerAccount(
+  deps: Pick<CustomDeps, "connect">,
   spec: AccountSpec | undefined,
   connection: Parameters<McpConnect>[0],
   headers: Record<string, string>,
@@ -671,6 +698,7 @@ export async function syncCustomTools(deps: CustomDeps, c: ConnectorConnection) 
     judge: deps.judge,
     readTools: preset?.readTools,
     writeTools,
+    askTools: preset?.askTools,
     cached,
   });
   const seen = new Set<string>();
@@ -678,7 +706,8 @@ export async function syncCustomTools(deps: CustomDeps, c: ConnectorConnection) 
     seen.add(tool.name);
     const old = byName.get(tool.name);
     const description = (tool.description ?? "").slice(0, 2000);
-    const cls = classes.get(tool.name) ?? classifyByRules(tool, preset?.readTools, writeTools) ?? UNKNOWN_CLASS;
+    const cls =
+      classes.get(tool.name) ?? classifyByRules(tool, preset?.readTools, writeTools, preset?.askTools) ?? UNKNOWN_CLASS;
     const suggestion = {
       suggestedAccess: cls.level,
       suggestionSource: cls.source,
@@ -742,15 +771,24 @@ async function serverView(db: Database, orgId: string, id: string) {
 /**
  * Connects an https MCP server by URL (admins): a new account, or with `connectionId` a new sign-in for that one
  * ("Reconectar", same address only). With an API key: stored and connected. Without: if it answers openly,
- * connected; if it speaks MCP OAuth with dynamic registration, the authorize URL comes back; otherwise `needs_key`.
+ * connected; if it speaks MCP OAuth with dynamic registration, or `oauthClient` brings an app the admin registered
+ * with its authorization server, the authorize URL comes back; otherwise `needs_key`.
  */
 export async function connectCustomServer(
   deps: CustomDeps,
   actorId: string,
   orgId: string,
-  input: { serverUrl: string; apiKey?: string; label?: string; returnTo?: string; connectionId?: string },
+  input: {
+    serverUrl: string;
+    apiKey?: string;
+    label?: string;
+    returnTo?: string;
+    connectionId?: string;
+    oauthClient?: AdminOAuthApp;
+  },
 ): Promise<CustomConnectStart> {
   await requirePermission(deps.db, actorId, orgId, "manage_connectors");
+  const app = input.oauthClient ? adminOAuthApp(input.oauthClient) : undefined;
   // A service through Composio signs in on Composio's page: its address is never fetched.
   if (composioToolkitOf(input.serverUrl.trim())) return beginComposioConnect(deps, actorId, orgId, input);
   const url = await assertPublicHttpsUrl(input.serverUrl.trim(), deps.resolveHost);
@@ -778,13 +816,13 @@ export async function connectCustomServer(
   };
   if (apiKey) {
     if (apiKey.length < 8) throw new ValidationError("The key looks too short", "connector.key_too_short");
-    // The vendor's terms forbid asking for a token: on the Cloud it signs in only (ADR 0107).
-    if (presetForServer(serverUrl)?.cloudOAuthOnly && isAgentesCloud(deps.publicUrl)) {
+    // Its server takes no key, or on the Cloud the vendor's terms forbid asking for one (ADR 0016).
+    if (!takesKey(presetForServer(serverUrl), isAgentesCloud(deps.publicUrl))) {
       throw new ValidationError("This service connects by signing in", "connector.oauth_only");
     }
     return stored("api_key", { apiKey });
   }
-  const probe = await probeMcpServer(deps, serverUrl);
+  const probe = await probeMcpServer(deps, serverUrl, { ownApp: app !== undefined });
   if (probe.kind === "open") return stored("none", null);
   if (probe.kind === "needs_key") return { status: "needs_key" };
   return beginMcpOAuth(deps, actorId, orgId, {
@@ -796,14 +834,16 @@ export async function connectCustomServer(
     scopes: probe.scopes,
     returnTo: input.returnTo,
     connectionId: input.connectionId,
+    app,
   });
 }
 
 /**
  * Starts an MCP-native OAuth authorization: authorization server metadata,
- * a registered client (DCR), state + PKCE S256 + `resource`. `needs_key` when
- * the server can't do it, with `not_approved` when it only registers clients
- * it approved.
+ * a client (the admin's app: the one typed now, else the one this server
+ * already signs in with; otherwise ours by DCR), state + PKCE S256 +
+ * `resource`. `needs_key` when the server can't do it, with `not_approved`
+ * when it only registers clients it approved.
  */
 export async function beginMcpOAuth(
   deps: McpOAuthDeps,
@@ -819,15 +859,21 @@ export async function beginMcpOAuth(
     returnTo?: string;
     /** "Reconectar": the connection whose sign-in this replaces. */
     connectionId?: string;
+    /** An app the admin registered with the authorization server (checked by `adminOAuthApp`). */
+    app?: AdminOAuthApp;
   },
 ): Promise<Exclude<CustomConnectStart, { status: "connected" }>> {
   const meta = await authServerMetadata(deps, input.issuer);
   if (!meta) return { status: "needs_key" };
   const redirectUri = oauthRedirectUri(deps.publicUrl);
+  const own = input.app
+    ? await saveAdminOAuthApp(deps, orgId, input.issuer, meta, input.app)
+    : await adminOAuthAppFor(deps.db, orgId, input.issuer, input.serverUrl, input.connectionId);
+  if (input.app && !own) return { status: "needs_key" };
   // Worked out again each time: a client still in use keeps the scope it was registered with, maybe without
-  // offline_access.
-  const scope = oauthScope(meta, input.scopes);
-  const client = await ensureOAuthClient(deps, orgId, input.issuer, meta, { redirectUri, scope });
+  // offline_access. The admin's app asks for the scopes they typed instead of the server's.
+  const scope = oauthScope(meta, own?.scope ? own.scope.split(" ") : input.scopes);
+  const client = own ?? (await ensureOAuthClient(deps, orgId, input.issuer, meta, { redirectUri, scope }));
   if (client && "notApproved" in client) {
     return { status: "needs_key", reason: "not_approved", ...(client.detail ? { detail: client.detail } : {}) };
   }

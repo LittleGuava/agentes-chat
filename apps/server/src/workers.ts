@@ -11,6 +11,7 @@ import {
   enqueue,
   enqueueAccountContacts,
   enqueueAutonomyReport,
+  enqueueHealthScan,
   enqueueIdleReflections,
   enqueueOverdueAccountDeletions,
   enqueueOverdueDeletions,
@@ -36,8 +37,10 @@ import {
   listenForRunCancels,
   type MachineCaller,
   type MailDeps,
+  type MeetingPollDeps,
   type OutboxJob,
   pollMailWatches,
+  pollMeetingWatches,
   postAutonomyDigests,
   pruneDeletionCodes,
   pruneEmailChanges,
@@ -49,6 +52,8 @@ import {
   purgeDeletedArtifacts,
   purgeDeletedWikiPages,
   queueApprovalDigests,
+  queueAwayEmails,
+  type ReadAloudDeps,
   reapRoutineRuns,
   recheckStuckPlans,
   reconcileComposioAccounts,
@@ -58,8 +63,10 @@ import {
   refreshPlanModels,
   releaseJobs,
   sweepEndedInboxes,
+  sweepExpiredToolResults,
   sweepExpiredVoice,
   sweepFeedbackFiles,
+  sweepReadAloud,
   sweepWidgetDrafts,
   type VoiceDeps,
   wakeSnoozedNotifications,
@@ -123,10 +130,16 @@ export interface WorkerDeps {
   feedbackFiles?: FeedbackFileDeps;
   /** Voice recordings (deleting them past their retention, ADR 0100). */
   voice?: VoiceDeps;
+  /** Replies read aloud (deleting the cache past its days, ADR 0209). */
+  readAloud?: ReadAloudDeps;
   /** Approval reminder emails. */
   approvalDigest?: { publicUrl: string; afterHours: number };
+  /** The email of what people missed while away (ADR 0069, addendum 2026-11-15); absent where no email goes out. */
+  awayEmail?: { publicUrl: string };
   /** People's mailboxes (ADR 0038): IMAP polling for routines, and Composio account checks. */
   mail?: { deps: MailDeps; pollSeconds: number };
+  /** Routines before each meeting (ADR 0190): calendars looked at by code; absent without Composio. */
+  meetings?: MeetingPollDeps["connectors"];
   /** The agent browser's live view (ADR 0040): expired handoffs are told to its viewers. */
   browserLive?: BrowserLive;
   /** Connected computers: plans stuck at their limit are read again there (`recheckStuckPlans`). */
@@ -161,6 +174,8 @@ export const WORKER_INTERVALS_MS = {
   partitions: 24 * 3600_000,
   approvals: 60_000,
   approvalDigest: 15 * 60_000,
+  /** A third of the shortest wait (15 minutes): an email goes at most 5 minutes after it is due. */
+  awayEmail: 5 * 60_000,
   reflections: 10 * 60_000,
   consolidation: 24 * 3600_000,
   /** Often enough that the routines of one minute fire as the ramp their offsets make (`fireDueRoutines`). */
@@ -178,12 +193,17 @@ export const WORKER_INTERVALS_MS = {
   /** Wiki pages in the trash past 30 days are removed with their history. */
   wikiPurge: 6 * 3600_000,
   voiceExpiry: 24 * 3600_000,
+  readAloudExpiry: 3600_000,
   /** How often watched IMAP folders are looked at (each is checked every `MAIL_POLL_SECONDS`). */
   mailPoll: 30_000,
+  /** Meeting routines due a look (ADR 0190): each calendar every 15 minutes, and at each meeting's moment. */
+  meetings: 60_000,
   /** Composio accounts' state: mailboxes (expired → "Reconnect") and connectors marked to reconnect (working again → active). */
   mailReconcile: 15 * 60_000,
   /** Workspaces past their deletion's date that nothing keeps any more (a hold lifted, a job lost): also at boot. */
   deletions: 3600_000,
+  /** Failures grouped into the workspaces' health issues (ADR 0214): queued once per five-minute window (its dedupe key). */
+  healthScan: 5 * 60_000,
   /** Yesterday's stall-and-noise report, queued for an hour after the UTC day ended (once per day: its dedupe key). */
   opsReport: 3600_000,
   /** AI apps' expired requests, tokens and unused registrations (ADR 0119). */
@@ -192,6 +212,8 @@ export const WORKER_INTERVALS_MS = {
   autonomyDigest: 10 * 60_000,
   /** Widget tests nobody confirmed within a day go, with their routines (ADR 0135 §16). */
   widgetDrafts: 3600_000,
+  /** Long tool answers kept for an hour (ADR 0015, addendum on long results) go once past it. */
+  toolResults: 10 * 60_000,
   /** Skills that update by themselves: each workspace queued once a day (the date in the job's dedupe key). */
   skillUpdates: 3600_000,
   /** Vault connections last read over 10 minutes ago, queued once per 10-minute window (ADR 0144). */
@@ -420,6 +442,11 @@ export function startWorkers(deps: WorkerDeps) {
     if (swept > 0) log.info("unconfirmed widget tests deleted", { swept });
   });
 
+  every("toolResults", WORKER_INTERVALS_MS.toolResults, async () => {
+    const swept = await sweepExpiredToolResults(db);
+    if (swept > 0) log.info("long tool results past their hour deleted", { swept });
+  });
+
   every("autonomyDigest", WORKER_INTERVALS_MS.autonomyDigest, async () => {
     const posted = await postAutonomyDigests({ db, pubsub: deps.pubsub });
     if (posted > 0) log.info("noise digests posted", { posted });
@@ -430,6 +457,14 @@ export function startWorkers(deps: WorkerDeps) {
     every("voiceExpiry", WORKER_INTERVALS_MS.voiceExpiry, async () => {
       const { swept, failed } = await sweepExpiredVoice(voice);
       if (swept + failed > 0) log.info("expired voice recordings deleted", { swept, failed });
+    });
+  }
+
+  const readAloud = deps.readAloud;
+  if (readAloud) {
+    every("readAloudExpiry", WORKER_INTERVALS_MS.readAloudExpiry, async () => {
+      const swept = await sweepReadAloud(readAloud);
+      if (swept > 0) log.info("replies read aloud deleted from the cache", { swept });
     });
   }
 
@@ -457,6 +492,16 @@ export function startWorkers(deps: WorkerDeps) {
       } else if (r.failed > 0) log.warn("mail polls failed", r);
     });
   }
+  const meetings = deps.meetings;
+  if (meetings) {
+    every("meetings", WORKER_INTERVALS_MS.meetings, async () => {
+      const r = await pollMeetingWatches({ db, connectors: meetings });
+      if (r.fired > 0) {
+        log.info("meeting routines fired", r);
+        void ticks.get("outbox")?.();
+      } else if (r.failed > 0) log.warn("meeting looks failed", r);
+    });
+  }
   const composio = mail?.deps.mail?.composio;
   if (mail && composio) {
     every("mailReconcile", WORKER_INTERVALS_MS.mailReconcile, async () => {
@@ -469,6 +514,7 @@ export function startWorkers(deps: WorkerDeps) {
   }
 
   const ops = deps.opsReport;
+  every("healthScan", WORKER_INTERVALS_MS.healthScan, () => enqueueHealthScan(db));
   if (ops) every("opsReport", WORKER_INTERVALS_MS.opsReport, () => enqueueAutonomyReport(db, ops));
 
   const digest = deps.approvalDigest;
@@ -476,6 +522,14 @@ export function startWorkers(deps: WorkerDeps) {
     every("approvalDigest", WORKER_INTERVALS_MS.approvalDigest, async () => {
       const queued = await queueApprovalDigests(db, digest.publicUrl, digest.afterHours);
       if (queued > 0) log.info("approval reminder emails queued", { queued });
+    });
+  }
+
+  const away = deps.awayEmail;
+  if (away) {
+    every("awayEmail", WORKER_INTERVALS_MS.awayEmail, async () => {
+      const queued = await queueAwayEmails(db, away.publicUrl);
+      if (queued > 0) log.info("away emails queued", { queued });
     });
   }
 

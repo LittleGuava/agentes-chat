@@ -1,6 +1,5 @@
-import { type ComposioClient, composioFile, FileTooLargeError } from "@agenteschat/adapters";
+import { type ComposioClient, composioFile, FileTooLargeError, MailAuthError } from "@agenteschat/adapters";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { FetchLike, Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import type { jsonSchemaValidator } from "@modelcontextprotocol/sdk/validation/types.js";
 import { ARTIFACT_LIMITS, type ArtifactDeps, createFileArtifact, fileReach } from "../artifacts";
@@ -39,6 +38,8 @@ import {
   syncCustomTools,
   type ToolAccess,
 } from "./custom";
+import { openHttpSession } from "./mcp-sse";
+import { markPersonalToReconnect, personalAccountFor, personalServiceLabel } from "./personal";
 import { applyToolPins } from "./pins";
 import { presetForServer } from "./presets";
 import type { McpServerInfo } from "./server-icon";
@@ -72,7 +73,7 @@ export interface McpSession {
 }
 
 /**
- * Opens a session to a connection's server (or one not stored yet). Default: streamable HTTP; tests: in-process. A
+ * Opens a session to a connection's server (or one not stored yet). Default: over HTTP (`connectOverHttp`); tests: in-process. A
  * service through Composio is opened by its workspace and Composio account (`withComposio`).
  */
 export type McpConnect = (
@@ -100,49 +101,67 @@ export async function mcpSessionOver(transport: Transport): Promise<McpSession> 
       let cursor: string | undefined;
       for (let page = 0; page < 20; page++) {
         const res = await client.listTools(cursor ? { cursor } : undefined);
-        for (const t of res.tools) {
-          tools.push({
-            name: t.name,
-            description: t.description,
-            inputSchema: t.inputSchema as Record<string, unknown>,
-            readOnlyHint: (t.annotations as { readOnlyHint?: boolean } | undefined)?.readOnlyHint ?? null,
-            destructiveHint: (t.annotations as { destructiveHint?: boolean } | undefined)?.destructiveHint ?? null,
-          });
-        }
+        for (const t of res.tools) tools.push(mcpToolOf(t));
         cursor = res.nextCursor;
         if (!cursor) break;
       }
       return tools;
     },
     async callTool(name, args, meta) {
-      const res = (await client.callTool({ name, arguments: args, ...(meta ? { _meta: meta } : {}) })) as {
-        content?: { type: string; text?: string; resource?: { text?: unknown } }[];
-        isError?: boolean;
-        structuredContent?: unknown;
-      };
-      // GitHub's `get_file_contents` sends the file itself as an embedded resource next to a one-line text block.
-      const parts = (res.content ?? []).map((c) =>
-        c.type === "text"
-          ? (c.text ?? "")
-          : c.type === "resource" && typeof c.resource?.text === "string"
-            ? c.resource.text
-            : `[${c.type}]`,
-      );
-      if (parts.length === 0 && res.structuredContent !== undefined) parts.push(JSON.stringify(res.structuredContent));
-      return { content: parts.join("\n"), isError: res.isError === true };
+      const res = await client.callTool({ name, arguments: args, ...(meta ? { _meta: meta } : {}) });
+      return mcpCallResultOf(res as McpCallPayload);
     },
     serverInfo: () => (client.getServerVersion() as McpServerInfo | undefined) ?? null,
     close: () => client.close(),
   };
 }
 
-export const connectOverHttp: McpConnect = (connection, headers) =>
-  mcpSessionOver(
-    new StreamableHTTPClientTransport(new URL(connection.serverUrl), {
-      requestInit: { headers },
-      fetch: tolerantMcpFetch(outboundFetch({ ownRedirects: true })),
-    }),
+/** A tool as MCP lists it, in our shape: the same for every transport (ADR 0215). */
+export function mcpToolOf(t: {
+  name: string;
+  description?: string;
+  inputSchema: unknown;
+  annotations?: { readOnlyHint?: boolean; destructiveHint?: boolean };
+}): McpTool {
+  return {
+    name: t.name,
+    description: t.description,
+    inputSchema: t.inputSchema as Record<string, unknown>,
+    readOnlyHint: t.annotations?.readOnlyHint ?? null,
+    destructiveHint: t.annotations?.destructiveHint ?? null,
+  };
+}
+
+/** The parts of a `tools/call` result `mcpCallResultOf` reads. */
+export interface McpCallPayload {
+  content?: { type: string; text?: string; resource?: { text?: unknown } }[];
+  isError?: boolean;
+  structuredContent?: unknown;
+}
+
+/** A `tools/call` result as the model reads it: the same for every transport (ADR 0215). */
+export function mcpCallResultOf(result: McpCallPayload): McpCallResult {
+  // GitHub's `get_file_contents` sends the file itself as an embedded resource next to a one-line text block.
+  const parts = (result.content ?? []).map((c) =>
+    c.type === "text"
+      ? (c.text ?? "")
+      : c.type === "resource" && typeof c.resource?.text === "string"
+        ? c.resource.text
+        : `[${c.type}]`,
   );
+  if (parts.length === 0 && result.structuredContent !== undefined)
+    parts.push(JSON.stringify(result.structuredContent));
+  return { content: parts.join("\n"), isError: result.isError === true };
+}
+
+/** Sessions over HTTP through `fetch`: Streamable HTTP, or the older HTTP+SSE transport for a server that has only it. */
+export function connectOverHttpVia(fetch: FetchLike, options: { sseOpenMs?: number } = {}): McpConnect {
+  const tolerant = tolerantMcpFetch(fetch);
+  return (connection, headers) =>
+    openHttpSession(new URL(connection.serverUrl), headers, tolerant, mcpSessionOver, options.sseOpenMs);
+}
+
+export const connectOverHttp: McpConnect = connectOverHttpVia(outboundFetch({ ownRedirects: true }));
 
 const JSONRPC_MEMBERS = ["jsonrpc", "id", "method", "params", "result", "error"];
 
@@ -380,8 +399,9 @@ export function createConnectorToolSource(
    * any tool that asks may be approved for good for one agent.
    */
   async function customToolsOf(connection: ConnectorConnection): Promise<ToolDefinition[]> {
-    // A sign-in that stopped working (a Composio account too) has no tools until it is reconnected.
-    if (connection.status === "needs_reconnect") return [];
+    // A sign-in that stopped working (a Composio account too) has no tools until it is reconnected. A per-person
+    // connection's own account only lists them: each call goes through the account of the person behind the run.
+    if (connection.status === "needs_reconnect" && !connection.perPerson) return [];
     let classified = await classifiedTools(deps.db, connection.id);
     if (classified.length === 0) return [];
     const before = reclassified;
@@ -397,6 +417,9 @@ export function createConnectorToolSource(
     const preset = presetForServer(connection.serverUrl)?.id;
     const composio = composioServiceOf(connection.serverUrl);
     const prefix = toolPrefixOfConnection(connection);
+    const perPerson = connection.perPerson && composio !== null;
+    // A per-person connection is named by its service: its own name may hold someone else's address.
+    const named = perPerson ? personalServiceLabel(connection) : connection.label;
     return classified.flatMap((row): ToolDefinition[] => {
       const tool = byName.get(row.name);
       const access = row.access as ToolAccess;
@@ -412,7 +435,7 @@ export function createConnectorToolSource(
       return [
         {
           name: exposedToolName(prefix, tool.name),
-          description: cutText(`[${connection.label}] ${row.label}: ${said}`, 1024),
+          description: cutText(`[${named}] ${row.label}: ${said}`, 1024),
           inputSchema: tool.inputSchema?.type === "object" ? tool.inputSchema : { type: "object" },
           scope: customScope(connection.id, access),
           connectionId: connection.id,
@@ -420,7 +443,7 @@ export function createConnectorToolSource(
           connector: composio
             ? { key: connectorKeyOf({ toolkit: composio.way.toolkit }), via: "composio", tool: tool.name }
             : { key: connectorKeyOf(connection), via: "mcp", tool: tool.name },
-          connectorLabel: connection.label,
+          connectorLabel: named,
           service: preset,
           serviceIcon: connection.icon ?? undefined,
           toolPrefix: prefix,
@@ -437,28 +460,62 @@ export function createConnectorToolSource(
           describe: (input) => {
             const actions = executor ? composioActions(input) : null;
             return {
-              title: `${connection.label}: ${actions ? actions.join(", ") : row.label}`,
+              title: `${named}: ${actions ? actions.join(", ") : row.label}`,
               detail: `${tool.name} · ${Object.entries(input)
                 .map(([k, v]) => `${k}=${typeof v === "object" ? JSON.stringify(v) : String(v)}`)
                 .join(" · ")}`,
             };
           },
+          // Whose account it goes through is settled before anyone is asked (ADR 0195 §3).
+          ...(perPerson
+            ? {
+                checkCall: async (_input: Record<string, unknown>, ctx: ToolContext) => {
+                  const found = await personalAccountFor(ctx.db, connection, ctx.runId);
+                  return "refused" in found
+                    ? { ok: false as const, message: found.refused.message, data: { code: found.refused.code } }
+                    : { ok: true as const };
+                },
+              }
+            : {}),
           execute: async (input, ctx) => {
             // Never through Composio: no server at its address ever reads a request of ours.
             const meta = composio ? undefined : await callerStatement(connection, ctx);
             let result: McpCallResult;
-            try {
-              result = await withSession(connection, (s) => s.callTool(tool.name, input, meta));
-            } catch (error) {
-              if (!composio) throw error;
-              return composioFailure(deps, connection, error);
+            if (perPerson) {
+              // Again at the call: an approval may come long after the check, and the account may have changed.
+              const found = await personalAccountFor(ctx.db, connection, ctx.runId);
+              if ("refused" in found) {
+                return { content: found.refused.message, isError: true, data: { code: found.refused.code } };
+              }
+              const mine = { ...connection, composioAccountId: found.account.composioAccountId };
+              try {
+                result = await withSession(mine, (s) => s.callTool(tool.name, input));
+              } catch (error) {
+                // A person's sign-in that stopped working is theirs alone (ADR 0195 §4).
+                if (!(error instanceof MailAuthError)) return composioFailure(deps, connection, error);
+                await markPersonalToReconnect(deps.db, found.account, error.message);
+                const again = await personalAccountFor(ctx.db, connection, ctx.runId);
+                const said = "refused" in again ? again.refused : null;
+                return {
+                  content: said?.message ?? error.message,
+                  isError: true,
+                  data: { code: said?.code ?? "connector.personal_needs_reconnect" },
+                };
+              }
+            } else {
+              try {
+                result = await withSession(connection, (s) => s.callTool(tool.name, input, meta));
+              } catch (error) {
+                if (!composio) throw error;
+                return composioFailure(deps, connection, error);
+              }
             }
             if (composio && deps.composio && !result.isError) {
               const kept = await keepComposioFiles(
                 { client: deps.composio.client, artifacts: deps.artifacts, resolveHost: deps.resolveHost },
                 ctx,
                 result,
-                connection.label,
+                named,
               );
               result = { ...result, content: kept };
             }

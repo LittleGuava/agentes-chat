@@ -896,3 +896,32 @@ describe("Add a workspace", () => {
     );
   });
 });
+
+describe("a link to a conversation on a server this app doesn't open", () => {
+  test("names the server in large type and says so, with Close only: nothing is checked or opened", () => {
+    let taken = false;
+    return firstRun(
+      "first",
+      async ({ el, until, button }) => {
+        await until(() => el.querySelector(".dk-fr__host")?.textContent === "other.example.com");
+        expect(el.querySelector(".dk-fr__question")?.textContent).toBe(
+          "This link opens a conversation on a server this app doesn't open.",
+        );
+        expect(el.querySelector(".dk-fr__sheet .dk-help")?.textContent).toBe(
+          "Add it in Servers › Add a server…, then open the link again.",
+        );
+        expect([...el.querySelectorAll(".dk-fr__acts button")].map((b) => b.textContent)).toEqual(["Close"]);
+        expect(button("Open")).toBeUndefined();
+      },
+      {
+        host: (host) => {
+          host.takeLink = async () => {
+            if (taken) return null;
+            taken = true;
+            return "agenteschat://chat?server=https%3A%2F%2Fother.example.com";
+          };
+        },
+      },
+    );
+  });
+});

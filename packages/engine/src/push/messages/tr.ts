@@ -15,7 +15,10 @@ export const strings: Partial<PushStrings> = {
   replyTitle: (a) => `${a} yanıt verdi`,
   missionStoppedTitle: "Bir misyon durdu",
   routineFailedTitle: "Bir rutin tamamlanamadı",
+  routineFailedRetriedTitle: "Bir rutin, yeniden denendikten sonra da tamamlanamadı",
   runFailedTitle: (a) => `${a} işi bitiremedi`,
+  needsAiTitle: (a) => `${a} için bağlı bir yapay zeka yok`,
+  needsAiBody: (p) => `${p} sordu ama yanıt alamadı. Yanıt verebilmesi için bir yapay zeka bağlayın.`,
   routineFailedBody: "Ne olduğunu görmek için dokunun.",
   routinePausedTitle: "Bir rutin duraklatıldı",
   routinePausedBody: "Nedenini görmek için dokunun.",
@@ -41,6 +44,7 @@ export const strings: Partial<PushStrings> = {
   secretTitle: (a) => `${a} sizden gizli bir bilgi istiyor`,
   secretBody: "Güvenle göndermek için dokunun.",
   widgetAlertTitle: (a, w) => (w ? `${a}: ${w}` : `${a} bir widget için uyardı`),
+  mailImportantTitle: (m) => `${m} adresinde önemli e-posta`,
   widgetFailedTitle: (w) => (w ? `“${w}” güncellenmedi` : "Bir widget güncellenmedi"),
   widgetFailedReasons: {
     no_update: "Son güncelleme veri olmadan bitti.",

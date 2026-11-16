@@ -39,6 +39,7 @@ describe("the list", () => {
       "Armazenamento",
       "Importar e exportar",
       "Auditoria",
+      "Saúde",
       "Sobre o agentes.chat",
     ]);
   });
@@ -56,7 +57,7 @@ describe("the list", () => {
       "Avançado",
     ]);
     await act(async () => fireEvent.click(within(nav()).getByRole("button", { name: "Avançado" })));
-    expect(rows().slice(8)).toEqual(["Armazenamento", "Importar e exportar", "Auditoria"]);
+    expect(rows().slice(8)).toEqual(["Armazenamento", "Importar e exportar", "Auditoria", "Saúde"]);
   });
 
   test("a member keeps the entries they open, each with only their tabs", async () => {
@@ -95,6 +96,7 @@ describe("every old address opens its new home", () => {
     ["storage", "Armazenamento", undefined],
     ["import", "Importar e exportar", undefined],
     ["audit", "Auditoria", undefined],
+    ["health", "Saúde", undefined],
     ["about", "Sobre o agentes.chat", undefined],
   ];
   for (const [section, entry, tab] of homes)

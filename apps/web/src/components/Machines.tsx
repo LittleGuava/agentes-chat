@@ -58,6 +58,7 @@ import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { AgentAvatar } from "@/components/AgentAvatar";
 import { useOpenComputer } from "@/components/computer/open";
+import { LocalSetupCard } from "@/components/devices/LocalSetupCard";
 import { MachineToolButton, useToolOneClick } from "@/components/devices/ToolOneClick";
 import { HelpLink } from "@/components/HelpLink";
 import { ErrorState, LoadingList } from "@/components/Loading";
@@ -581,6 +582,69 @@ function FoldersCard({ machine: m, onReduce }: { machine: Machine; onReduce: (r:
   );
 }
 
+/**
+ * Sites through this computer (ADR 0203): the sites it lends its connection for, and to which agents. Read only here:
+ * the person who connected it lends them in agentes.chat on it, and only a person's own computer lends.
+ */
+function SitesCard({ machine: m }: { machine: Machine }) {
+  const { t } = useTranslation();
+  const { org } = useOrg();
+  const agents = useAgents(org.id);
+  const sites = m.access?.relay ?? [];
+  if (!m.access || m.kind === "managed" || m.kind === "host" || m.mode === "system") return null;
+  const nameOf = (id: string) => agents.data?.find((a) => a.id === id)?.name ?? t("machines.access.formerAgent");
+  return (
+    <Card aria-labelledby="sec-machine-sites">
+      <CardHeader
+        id="sec-machine-sites"
+        icon="globe"
+        title={t("machines.access.sites")}
+        hint={{ name: t("common.about", { label: t("machines.access.sites") }), text: t("machines.access.sitesHint") }}
+      />
+      {sites.length === 0 ? (
+        <p className="small muted" style={{ margin: 0 }}>
+          {t("machines.access.noSites")}
+        </p>
+      ) : (
+        <List aria-label={t("machines.access.sites")}>
+          {sites.map((g) => {
+            const every = g.agents.includes("*");
+            const named = g.agents.filter((id) => id !== "*");
+            return (
+              <div key={g.site} className="ac-list__row machine-folder" data-relay-site={g.site}>
+                <span className="machine-row__icon">
+                  <Icon name="globe" />
+                </span>
+                <span className="list-col" style={{ flex: "1 1 220px", minWidth: 0 }}>
+                  <span className="machine-folder__name">{g.site}</span>
+                </span>
+                <span className="machine-folder__tail ac-captail">
+                  {every ? (
+                    <span className="small muted">{t("machines.access.everyAgent")}</span>
+                  ) : named.length > 0 ? (
+                    <span className="machine-folder__agents">
+                      <span className="ac-visually-hidden">
+                        {t("machines.access.siteUsedBy", { site: g.site })}: {joinNames(named.map(nameOf), t)}
+                      </span>
+                      <AvatarStack aria-hidden="true">
+                        {named.map((id) => (
+                          <AgentAvatar key={id} agentId={id} size="sm" name={nameOf(id)} />
+                        ))}
+                      </AvatarStack>
+                    </span>
+                  ) : (
+                    <span className="small muted">{t("machines.access.nobody")}</span>
+                  )}
+                </span>
+              </div>
+            );
+          })}
+        </List>
+      )}
+    </Card>
+  );
+}
+
 /** Ferramentas: on/off chips; the owner can turn one off (never on), except on the workspace's own computer. */
 function ToolsCard({ machine: m, onReduce }: { machine: Machine; onReduce: (r: Reduce) => void }) {
   const { t } = useTranslation();
@@ -822,10 +886,12 @@ export function MachineAccessCards({ machine: m }: { machine: Machine }) {
   return (
     <>
       <FoldersCard machine={m} onReduce={setReduce} />
+      <SitesCard machine={m} />
       <ToolsCard machine={m} onReduce={setReduce} />
       <MachineBrowserCard machine={m} onTurnOff={() => setReduce({ kind: "tool", tool: "browser" })} />
       {profilesApply(m) && <BrowserProfilesCard machine={m} />}
       <MachineDesktopUseCard machine={m} />
+      <LocalSetupCard machine={m} />
       <GrantCard machine={m} />
       <ReduceDialog machine={m} reduce={reduce} onClose={() => setReduce(null)} />
     </>

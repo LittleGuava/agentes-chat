@@ -57,6 +57,8 @@ export interface MachineExecutors {
   antigravity?: { version: string; models?: { id: string; label?: string }[] };
   /** GitHub's Copilot CLI (protocol 67, ADR 0186). */
   copilot?: { version: string; models?: { id: string; label?: string }[] };
+  /** ACP agents the computer's owner declared (protocol 71, ADR 0216), with the models each offered; never a command. */
+  acp?: { id: string; name: string; models?: { id: string; label?: string }[] }[];
   /** A CLI that is there and can't start (`--version` keeps failing), with its own error line; `git_missing`: see `CLI_GIT_MISSING`. */
   broken?: Partial<Record<"claude" | "codex" | "cursor" | "opencode" | "grok" | "antigravity" | "copilot", string>>;
   /** `hello.browser` (ADR 0040): whether the agent browser can run there; absent = not reported. */
@@ -75,6 +77,10 @@ export interface MachineExecutors {
   terminal?: { available: boolean; reason?: string; code?: string };
   /** `hello.desktopUse` (ADR 0062): whether agents can use their desktops there; absent = not reported. */
   desktopUse?: { available: boolean; reason?: string; code?: string };
+  /** `hello.hostDesktop` (ADR 0201): whether agents can use the person's own desktop there; absent = not there. */
+  hostDesktop?: { available: boolean; reason?: string; code?: string };
+  /** `hello.meetingAudio` (ADR 0199 §4): whether it can hear a meeting an agent joined; absent = not reported. */
+  meetingAudio?: { available: boolean; reason?: string; code?: string };
   /** `hello.mode` (ADR 0058 §10): each agent works as its own OS user; absent = all as the runner's user. */
   mode?: "system";
   /** `hello.claudeLoginMethods` (protocol 50): what a new Claude sign-in for all agents can use there; absent: older. */
@@ -85,6 +91,11 @@ export interface MachineExecutors {
   authEgressGroup?: true;
   /** `hello.toolchains` (bring your own devices): what it can build and drive phones with, by tool, its version. */
   toolchains?: Record<string, string>;
+  /**
+   * `hello.myChrome` and `mychrome.changed` (protocol 82, ADR 0202): the agents the person who connected it lent their
+   * own Chrome, and until when. Absent or empty: none.
+   */
+  myChrome?: { agentId: string; expiresAt: string }[];
   /** The usage of the computer's own sign-ins (protocol 19), by brain; kept across reconnects. */
   ownUsage?: {
     claude_code?: MachinePlanUsage;
@@ -152,6 +163,8 @@ export interface MachineAccess {
     desktop?: boolean;
     terminal?: boolean;
   };
+  /** The sites it lends its connection for, and to which agents (ADR 0203). */
+  relay?: { site: string; agents: string[] }[];
 }
 
 /**

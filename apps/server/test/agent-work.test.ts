@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
-import { schema } from "@agenteschat/db";
-import { insertMessage, openAgentDm } from "@agenteschat/engine";
+import { eq, schema } from "@agenteschat/db";
+import { insertMessage, openAgentDm, openPersonAgentDm, queueOnRun } from "@agenteschat/engine";
 import { browser, createTestServer, joinByInvitation, seedOrg, signUp, type TestServer } from "./harness";
 
 let t: TestServer;
@@ -129,4 +129,74 @@ test("work handed to an agent in two agents' DM shows where it was handed off, b
   expect(here.consults).toMatchObject([{ consultedAgentId: infra.id, kind: "note", threadId: root.id }]);
   const thread = (await (await api(`/threads/${root.id}`)).json()) as { working: boolean; wait: string | null };
   expect(thread).toMatchObject({ working: true, wait: null });
+});
+
+test("the agents' status names who waits for an agent, only to who reads where they asked (ADR 0084 addendum)", async () => {
+  const owner = browser(t);
+  await signUp(owner, "ana@example.com");
+  const { orgId, agentId, channelId } = await seedOrg(owner);
+  const bia = await joinByInvitation(t, owner, orgId, "bia@example.com");
+  const [biaUser] = await t.db.select().from(schema.users).where(eq(schema.users.email, "bia@example.com"));
+  if (!biaUser) throw new Error("no bia");
+  await bia(`/api/app/organizations/${orgId}/channels/${channelId}/join`, { method: "POST" });
+
+  // Dev works in #general on Ana's ask; Bia writes meanwhile, and her message waits in its run.
+  const [ana] = await t.db.select().from(schema.users).where(eq(schema.users.email, "ana@example.com"));
+  if (!ana) throw new Error("no ana");
+  const ask = await insertMessage(t.db, {
+    orgId,
+    channelId,
+    author: { type: "person", userId: ana.id },
+    body: "@dev olha os bugs",
+  });
+  const [run] = await t.db
+    .insert(schema.agentRuns)
+    .values({
+      orgId,
+      agentId,
+      channelId,
+      threadRootId: ask.id,
+      triggerMessageId: ask.id,
+      trigger: "mention",
+      hop: 1,
+      status: "running",
+      startedAt: new Date(),
+      heartbeatAt: new Date(),
+    })
+    .returning();
+  if (!run) throw new Error("no run");
+  const later = await insertMessage(t.db, {
+    orgId,
+    channelId,
+    author: { type: "person", userId: biaUser.id },
+    body: "e o deploy?",
+  });
+  await queueOnRun(t.db, run.id, later.id);
+  // Bia also asked Dev in her DM: that run is in line.
+  const dm = await openPersonAgentDm(t.db, orgId, biaUser.id, agentId);
+  const private_ = await insertMessage(t.db, {
+    orgId,
+    channelId: dm.id,
+    author: { type: "person", userId: biaUser.id },
+    body: "me ajuda com a carta",
+  });
+  await t.db.insert(schema.agentRuns).values({
+    orgId,
+    agentId,
+    channelId: dm.id,
+    threadRootId: private_.id,
+    triggerMessageId: private_.id,
+    trigger: "dm",
+    hop: 1,
+    status: "queued",
+  });
+
+  const queueOf = async (b: typeof owner) => {
+    const { agents } = (await (await b(`/api/app/organizations/${orgId}/agent-status`)).json()) as {
+      agents: { agentId: string; queue?: unknown }[];
+    };
+    return agents.find((a) => a.agentId === agentId)?.queue;
+  };
+  expect(await queueOf(owner)).toEqual({ count: 1, askers: [{ type: "person", id: biaUser.id }] });
+  expect(await queueOf(bia)).toEqual({ count: 2, askers: [{ type: "person", id: biaUser.id }] });
 });

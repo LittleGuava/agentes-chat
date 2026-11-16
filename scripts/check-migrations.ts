@@ -16,8 +16,11 @@ export const CHECKED_AFTER = 119;
 /**
  * Merged without their markers and already applied: a server refuses to start on a migration whose text changed
  * (packages/db/src/migration-guard.ts), so the markers can't be added now. 0130 (ADR 0085) turns "admin" into a role.
+ * 0288 (ADR 0016, an OAuth app the admin registered) drops `oauth_clients_org_issuer` and makes it again in the same
+ * migration, partial on `not preregistered`: the version before it writes only such rows (the new column defaults to
+ * false) and its insert names no conflict target, so the uniqueness it relies on and its writes hold throughout.
  */
-const SHIPPED_UNMARKED = new Set(["0130_roles.sql"]);
+const SHIPPED_UNMARKED = new Set(["0130_roles.sql", "0288_mcp_oauth_preregistered_apps.sql"]);
 
 const MARKER = /^--\s*deploy-safe:\s*\S/;
 

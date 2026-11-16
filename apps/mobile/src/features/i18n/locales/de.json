@@ -875,6 +875,7 @@
   "activity": {
     "title": "Aktivität",
     "chooseModel": "Anderes Modell wählen",
+    "connectAi": "KI verbinden",
     "filter": {
       "all": "Alle",
       "waiting": "Anfragen",
@@ -919,6 +920,8 @@
       "routine_finished_other": "Routinen abgeschlossen",
       "routine_failed_one": "Routine fehlgeschlagen",
       "routine_failed_other": "Routinen fehlgeschlagen",
+      "routine_failed_retried_one": "Routine auch nach erneutem Versuch fehlgeschlagen",
+      "routine_failed_retried_other": "Routinen auch nach erneutem Versuch fehlgeschlagen",
       "run_failed_one": "Ließ sich nicht abschließen",
       "run_failed_other": "Ließen sich nicht abschließen",
       "admin_ask_channel_agent": "{{names}} bittet dich, {{agent}} zu #{{label}} hinzuzufügen",
@@ -980,6 +983,8 @@
       "desktop_taken_other": "{{names}} haben den Bildschirm des Computers von {{agent}} übernommen",
       "desktop_taken_female_one": "{{names}} hat den Bildschirm des Computers von {{agent}} übernommen",
       "desktop_taken_female_other": "{{names}} haben den Bildschirm des Computers von {{agent}} übernommen",
+      "agent_needs_ai_one": "{{names}} hat {{agent}} angesprochen, aber dort ist keine KI zum Antworten verbunden",
+      "agent_needs_ai_other": "{{names}} haben {{agent}} angesprochen, aber dort ist keine KI zum Antworten verbunden",
       "plan_lent_one": "{{names}} hat dein {{plan}}-Abo mit {{agent}} verbunden",
       "plan_lent_other": "{{names}} haben dein {{plan}}-Abo mit {{agent}} verbunden",
       "plan_lent_female_one": "{{names}} hat dein {{plan}}-Abo mit {{agent}} verbunden",
@@ -2880,5 +2885,13 @@
       "title": "Nichts zu prüfen",
       "text": "Wenn ein Agent außerhalb des Gesprächs etwas tut, erscheint es hier."
     }
+  },
+  "phoneTools": {
+    "title": "Kontakte auf dem Telefon",
+    "contacts": "Agenten dürfen meine Kontakte durchsuchen",
+    "help": "Nur in diesem Workspace und nur auf diesem Telefon. Wenn ein Agent, mit dem du sprichst, die Daten einer Person braucht, sucht er in deinen Kontakten nach dem Namen: Bis zu 5 Treffer gehen an den Agenten, jeweils nur mit Name, Telefonnummern und E-Mails.",
+    "deniedTitle": "Kontaktzugriff ist aus",
+    "deniedSub": "Erlaube ihn für agentes.chat in den Einstellungen des Telefons.",
+    "failed": "Speichern hat nicht geklappt. Versuch es noch einmal."
   }
 }

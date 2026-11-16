@@ -46,6 +46,7 @@ export const SETTINGS_OPEN_WHILE_DELETING: ReadonlySet<string> = new Set([
   "approvals",
   "usage",
   "audit",
+  "health",
   "import",
   "billing",
   "about",

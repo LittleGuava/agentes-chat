@@ -31,7 +31,9 @@ import {
   targetChoice,
   targetIcon,
   toastParts,
+  triggerReady,
   whenIcon,
+  withKind,
   zoneOf,
 } from "../../src/features/routines/logic";
 import {
@@ -363,6 +365,49 @@ describe("the form", () => {
     expect(draftChanges(mail, { ...d, email: { ...d.email, filter: { subject: "fatura" } } }, saved)).toEqual({
       trigger: { type: "email", accountId: "m1", folder: "INBOX", filter: { subject: "fatura" } },
     });
+  });
+
+  test("a meeting routine (ADR 0190) opens as one in the form and keeps what starts it until its calendar or minutes change", () => {
+    const prep = routine({
+      id: "p",
+      trigger: { type: "meeting", connectionId: "c1", leadMinutes: 15, status: "active", lastError: null },
+    });
+    const saved = JSON.stringify(toApiRule(ruleOf(prep, SP, today)));
+    const d = draftOf(prep, SP, today);
+    expect(d.kind).toBe("meeting");
+    expect(d.meeting).toEqual({ connectionId: "c1", lead: "15" });
+    expect(draftChanges(prep, d, saved)).toEqual({});
+    expect(draftChanges(prep, { ...d, name: "Preparar reuniões" }, saved)).toEqual({ name: "Preparar reuniões" });
+    expect(draftChanges(prep, { ...d, meeting: { connectionId: "c1", lead: "45" } }, saved)).toEqual({
+      trigger: { type: "meeting", connectionId: "c1", leadMinutes: 45 },
+    });
+    // Switched to a time on purpose: the schedule goes.
+    expect(draftChanges(prep, { ...d, kind: "schedule" }, saved)).toEqual({
+      trigger: { type: "schedule", rule: toApiRule(d.rule) },
+    });
+    expect(isEventDriven(prep)).toBe(true);
+    expect(nextLine(prep, NOW)).toEqual({ kind: "meeting", week: 0 });
+    expect(
+      mailTrouble({ trigger: { ...prep.trigger, status: "error", lastError: "gone" } as Routine["trigger"] }),
+    ).toBe("error");
+  });
+
+  test("a new meeting routine: its calendar and minutes, ready only when both are right, and it always posts", () => {
+    const d = draftOf(undefined, SP, today);
+    expect(d.meeting).toEqual({ connectionId: "", lead: "15" });
+    const meeting = withKind({ ...d, agentId: "dev", target: "dm", prompt: "Prepare." }, "meeting", false);
+    expect([meeting.kind, meeting.report]).toEqual(["meeting", "always"]);
+    expect(triggerReady(meeting)).toBe(false);
+    const picked = { ...meeting, meeting: { connectionId: "cal", lead: "30" } };
+    expect(triggerReady(picked)).toBe(true);
+    expect(triggerReady({ ...picked, meeting: { connectionId: "cal", lead: "300" } })).toBe(false);
+    expect(draftInput(picked)).toMatchObject({
+      trigger: { type: "meeting", connectionId: "cal", leadMinutes: 30 },
+      report: "always",
+    });
+    // A "Quando posta" the person picked stays; back to a time, a new routine posts only with news again.
+    expect(withKind({ ...picked, report: "when_new" }, "meeting", true).report).toBe("when_new");
+    expect(withKind(picked, "schedule", false).report).toBe("when_new");
   });
 
   test("a one-off that already ran, saved as it was, sends no time: the server's instant has seconds", () => {

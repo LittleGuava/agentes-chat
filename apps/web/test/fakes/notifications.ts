@@ -32,6 +32,8 @@ const DEFAULT_PREFS: NoticePrefs = {
     { id: "reactions", on: false },
   ],
   phones: 0,
+  awayEmail: 60,
+  emails: true,
 };
 
 const counts = (items: AppNotification[], now: number): NotificationCounts =>
@@ -153,6 +155,12 @@ export function createFakeNotifications(
       log("notifications.setPref", orgId, category, on);
       inbox.prefs ??= structuredClone(DEFAULT_PREFS);
       inbox.prefs.categories = inbox.prefs.categories.map((c) => (c.id === category ? { ...c, on } : c));
+      return structuredClone(inbox.prefs);
+    },
+    setAwayEmail: async (orgId, minutes) => {
+      log("notifications.setAwayEmail", orgId, minutes);
+      inbox.prefs ??= structuredClone(DEFAULT_PREFS);
+      inbox.prefs.awayEmail = minutes;
       return structuredClone(inbox.prefs);
     },
     askAdmins: async (orgId, ask) => {

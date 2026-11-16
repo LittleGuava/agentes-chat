@@ -875,6 +875,7 @@
   "activity": {
     "title": "Activiteit",
     "chooseModel": "Ander model kiezen",
+    "connectAi": "Een AI koppelen",
     "filter": {
       "all": "Alles",
       "waiting": "Verzoeken",
@@ -919,6 +920,8 @@
       "routine_finished_other": "Routines klaar",
       "routine_failed_one": "Routine mislukt",
       "routine_failed_other": "Routines mislukt",
+      "routine_failed_retried_one": "Routine ook na een nieuwe poging mislukt",
+      "routine_failed_retried_other": "Routines ook na een nieuwe poging mislukt",
       "run_failed_one": "Kon niet afronden",
       "run_failed_other": "Kon niet afronden",
       "admin_ask_channel_agent": "{{names}} vraagt je {{agent}} toe te voegen aan #{{label}}",
@@ -980,6 +983,8 @@
       "desktop_taken_other": "{{names}} hebben het scherm van de computer van {{agent}} overgenomen",
       "desktop_taken_female_one": "{{names}} heeft het scherm van de computer van {{agent}} overgenomen",
       "desktop_taken_female_other": "{{names}} hebben het scherm van de computer van {{agent}} overgenomen",
+      "agent_needs_ai_one": "{{names}} heeft {{agent}} aangesproken, maar er is geen AI gekoppeld om te antwoorden",
+      "agent_needs_ai_other": "{{names}} hebben {{agent}} aangesproken, maar er is geen AI gekoppeld om te antwoorden",
       "plan_lent_one": "{{names}} heeft je {{plan}}-abonnement aan {{agent}} gekoppeld",
       "plan_lent_other": "{{names}} hebben je {{plan}}-abonnement aan {{agent}} gekoppeld",
       "plan_lent_female_one": "{{names}} heeft je {{plan}}-abonnement aan {{agent}} gekoppeld",
@@ -2880,5 +2885,13 @@
       "title": "Niets te controleren",
       "text": "Als een agent iets buiten het gesprek doet, verschijnt het hier."
     }
+  },
+  "phoneTools": {
+    "title": "Contacten op je telefoon",
+    "contacts": "Agents mogen mijn contacten doorzoeken",
+    "help": "Alleen in deze werkruimte en alleen op deze telefoon. Als een agent met wie je praat iemands gegevens nodig heeft, zoekt hij op naam in je contacten: maximaal 5 resultaten gaan naar de agent, elk met alleen een naam, telefoonnummers en e-mailadressen.",
+    "deniedTitle": "Toegang tot contacten staat uit",
+    "deniedSub": "Sta het toe voor agentes.chat in de Instellingen van je telefoon.",
+    "failed": "Opslaan lukte niet. Probeer het opnieuw."
   }
 }

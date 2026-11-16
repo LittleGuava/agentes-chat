@@ -306,6 +306,41 @@ describe("listing a connection's tools", () => {
   });
 });
 
+describe("a preset's tools that call, buy or write to people under other words", () => {
+  test("AgentPhone: calling and buying a number always ask, like a send; its other tools keep our usual rules", async () => {
+    f = await setup();
+    const connect: McpConnect = async () => {
+      const server = new McpServer({ name: "agentphone", version: "1" });
+      for (const name of ["make_call", "buy_number", "send_message", "list_calls", "create_agent"]) {
+        server.registerTool(name, { description: name }, async () => ({ content: [{ type: "text", text: "ok" }] }));
+      }
+      const [client, end] = InMemoryTransport.createLinkedPair();
+      await server.connect(end);
+      return mcpSessionOver(client);
+    };
+    const started = await connectCustomServer(depsOf(f, { connect }), f.owner.id, f.org.id, {
+      serverUrl: "https://mcp.agentphone.ai/mcp",
+      apiKey: "agentphone_secret_12345",
+    });
+    if (started.status !== "connected") throw new Error(`expected connected, got ${started.status}`);
+    const row = (name: string) => {
+      const t = started.server.tools.find((x) => x.name === name);
+      return [t?.level, t?.suggestionReason, t?.sensitive];
+    };
+    expect(row("make_call")).toEqual(["approval", "reaches_people", true]);
+    expect(row("buy_number")).toEqual(["approval", "spends_money", true]);
+    expect(row("send_message")).toEqual(["approval", "verb_sensitive", true]);
+    expect(row("list_calls")).toEqual(["read", "verb_read", false]);
+    expect(row("create_agent")).toEqual(["write", "verb_write", false]);
+    // Another server's tool of the same name keeps the rule of its words, and our verb's reason comes first.
+    expect(classifyByRules({ name: "make_call" })).toBeNull();
+    expect(classifyByRules({ name: "send_draft" }, [], [], { send_draft: "reaches_people" })).toMatchObject({
+      reason: "verb_sensitive",
+      sensitive: true,
+    });
+  });
+});
+
 describe("the person's choices", () => {
   test("saved per tool: off is hidden, approval asks, change runs and is audited; confirming ends 'pending'", async () => {
     f = await setup();

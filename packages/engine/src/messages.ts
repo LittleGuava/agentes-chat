@@ -10,6 +10,7 @@ import {
   isNull,
   lt,
   ne,
+  notInArray,
   or,
   rowsOf,
   type SQL,
@@ -17,12 +18,14 @@ import {
   sql,
 } from "@agenteschat/db";
 import { mentionsEveryone } from "@agenteschat/i18n/everyone";
+import { IMAGE_MODELS } from "@agenteschat/providers";
 import { CHANNEL_REF } from "@agenteschat/ui/channel-refs";
 import { plainLine } from "@agenteschat/ui/markdown";
 import { type AgentActionView, actionsFor } from "./agent-actions";
 import { currentHandles } from "./agents";
 import { withDeletedArtifacts } from "./artifacts";
 import { audienceSql, notifyBlocked } from "./audience";
+import { parseBurstCommand, postBurst } from "./best-of";
 import { postRefusal, requireChannelAccess } from "./channels";
 import { ConflictError, NotFoundError, ValidationError } from "./errors";
 import {
@@ -42,6 +45,7 @@ import { type MessageMemory, memoriesFor } from "./message-memories";
 import { readableBody, voiceOf } from "./message-preview";
 import { quietNoticeSql } from "./notices";
 import { can } from "./organizations";
+import { webhookDeliveriesInsert, webhookDeliveryJobsSelect } from "./outgoing-webhooks";
 import { maySql } from "./permissions";
 import { afterReplyAnswered } from "./questions";
 import { rightHandReaches } from "./right-hand";
@@ -103,6 +107,8 @@ export interface MessageView {
   actions?: AgentActionView[];
   /** On a long work's anchor (`meta.longWork`, ADR 0121): its line, live via `agent.work`. */
   longWork?: WorkView;
+  /** When its author last edited it (ADR 0207); absent: never edited. Live via `message.edited`. */
+  editedAt?: string;
   createdAt: string;
 }
 
@@ -184,6 +190,7 @@ export const messageView = (m: Message): MessageView => ({
   agentRunId: m.agentRunId,
   meta: m.meta,
   clientId: typeof m.meta.clientId === "string" ? m.meta.clientId : null,
+  ...(m.editedAt ? { editedAt: m.editedAt.toISOString() } : {}),
   createdAt: m.createdAt.toISOString(),
 });
 
@@ -1048,6 +1055,15 @@ export async function insertMessageWithRuns(
           and an.agent_id not in (select agent_id from steered)
         on conflict do nothing
         returning id, agent_id
+      ), hooked as (
+        -- The workspace's outgoing webhooks on this channel (ADR 0212): one indexed lookup, nothing written when none.
+        ${webhookDeliveriesInsert({
+          orgId: sql`${input.orgId}`,
+          event: "message.posted",
+          subjectId: sql`${id}`,
+          channelId: sql`${input.channelId}`,
+          when: sql`exists (select 1 from m)`,
+        })}
       ), jobs as (
         insert into ${outbox} (id, org_id, kind, payload, dedupe_key, max_attempts)
         select gen_random_uuid(), ${input.orgId}::uuid, 'agent_run.execute', jsonb_build_object('runId', r.id),
@@ -1075,6 +1091,8 @@ export async function insertMessageWithRuns(
             or m.agent_run_id is not null or m.meta -> 'routine' is not null
             or (m.author_type = 'person' and exists (
               select 1 from ${channels} dc where dc.id = ${input.channelId}::uuid and dc.kind = 'dm')))
+        union all
+        ${webhookDeliveryJobsSelect("hooked")}
         on conflict do nothing
         returning id
       ), assess as (
@@ -1261,6 +1279,22 @@ export async function postPersonMessage(
   // A resend found before the judge call (no cost again); a resend racing the first send is caught by the insert.
   const resent = clientId ? await sentWithClientId(deps.db, orgId, userId, clientId) : null;
   if (resent) return resendView(deps, orgId, resent);
+  // Best of N (ADR 0192): the message starts no run of its own; its attempts do, each in a room of its own.
+  const burst = parseBurstCommand(input.body);
+  if (burst) {
+    const posted = await postBurst(deps, {
+      userId,
+      orgId,
+      channel,
+      membership,
+      body: input.body,
+      threadId: input.threadId,
+      clientId,
+      command: burst,
+      withExtras: Boolean(input.replyTo || input.attachments?.length || input.media || input.openThread),
+    });
+    return posted.duplicate ? resendView(deps, orgId, posted.message) : messageView(posted.message);
+  }
   // Quote, files and media: checked and resolved here, so the run's context reads them from the meta (no query there).
   const [replyTo, files, media] = await Promise.all([
     input.replyTo ? replyRefFor(deps.db, orgId, channelId, input.replyTo, input.threadId) : null,
@@ -1887,6 +1921,8 @@ async function usageFor(db: Database, orgId: string, list: Message[]) {
         inArray(u.runId, runIds),
         eq(u.kind, "agent"),
         sql`${u.provider} <> ${WEB_USAGE_PROVIDER}`,
+        // A picture the run made (ADR 0213) is its own line in the usage pages, never the reply's model or tokens.
+        notInArray(u.requestedModel, Object.keys(IMAGE_MODELS)),
       ),
     )
     .groupBy(u.runId);

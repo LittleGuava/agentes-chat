@@ -899,6 +899,7 @@
   "activity": {
     "title": "Actividad",
     "chooseModel": "Elegir otro modelo",
+    "connectAi": "Conectar una IA",
     "filter": {
       "all": "Todo",
       "waiting": "Solicitudes",
@@ -958,6 +959,9 @@
       "routine_failed_one": "La rutina falló",
       "routine_failed_many": "Rutinas que fallaron",
       "routine_failed_other": "Rutinas que fallaron",
+      "routine_failed_retried_one": "La rutina falló tras un segundo intento",
+      "routine_failed_retried_many": "Rutinas que fallaron tras un segundo intento",
+      "routine_failed_retried_other": "Rutinas que fallaron tras un segundo intento",
       "run_failed_one": "No se pudo terminar",
       "run_failed_many": "No se pudo terminar",
       "run_failed_other": "No se pudo terminar",
@@ -1045,6 +1049,9 @@
       "desktop_taken_female_one": "{{names}} tomó el control de la pantalla del computador de {{agent}}",
       "desktop_taken_female_many": "{{names}} tomaron el control de la pantalla del computador de {{agent}}",
       "desktop_taken_female_other": "{{names}} tomaron el control de la pantalla del computador de {{agent}}",
+      "agent_needs_ai_one": "{{names}} llamó a {{agent}}, que no tiene una IA conectada para responder",
+      "agent_needs_ai_many": "{{names}} llamaron a {{agent}}, que no tiene una IA conectada para responder",
+      "agent_needs_ai_other": "{{names}} llamaron a {{agent}}, que no tiene una IA conectada para responder",
       "plan_lent_one": "{{names}} conectó tu plan de {{plan}} a {{agent}}",
       "plan_lent_many": "{{names}} conectaron tu plan de {{plan}} a {{agent}}",
       "plan_lent_other": "{{names}} conectaron tu plan de {{plan}} a {{agent}}",
@@ -2987,5 +2994,13 @@
       "title": "Nada que revisar",
       "text": "Cuando un agente haga algo fuera de la conversación, aparecerá aquí."
     }
+  },
+  "phoneTools": {
+    "title": "Contactos del teléfono",
+    "contacts": "Los agentes pueden buscar en mis contactos",
+    "help": "Solo en este espacio de trabajo y solo en este teléfono. Cuando un agente con el que hablas necesita los datos de alguien, busca el nombre en tus contactos: al agente le llegan hasta 5 resultados, cada uno solo con nombre, teléfonos y correos.",
+    "deniedTitle": "El acceso a los contactos está desactivado",
+    "deniedSub": "Permítelo para agentes.chat en los Ajustes del teléfono.",
+    "failed": "No se pudo guardar. Inténtalo de nuevo."
   }
 }

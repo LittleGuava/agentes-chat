@@ -730,6 +730,8 @@ export interface PauseRequests {
     toolUseId: string;
     text: string;
     choices: string[] | null;
+    /** Several questions, or one where several may be picked. */
+    items?: schema.QuestionItem[] | null;
     /** The person the agent said it is for; else `impliedAddressee` reads it from the run. */
     requestedForUserId?: string | null;
     why?: string;
@@ -904,6 +906,7 @@ export async function postPauseCards(tx: Executor, run: AgentRun, requests: Paus
         toolUseId: ask.toolUseId,
         text: ask.text,
         choices: ask.choices,
+        items: ask.items ?? null,
         requestedForUserId,
         expiresAt: new Date(Date.now() + QUESTION_TTL_MS),
       })
@@ -1058,6 +1061,7 @@ export async function suspendRunForTool(
                 toolUseId: call.id,
                 text: gated.text,
                 choices: gated.choices,
+                items: gated.items,
                 requestedForUserId: gated.requestedForUserId,
                 why: gated.why,
               },

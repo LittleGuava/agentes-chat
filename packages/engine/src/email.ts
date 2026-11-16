@@ -226,6 +226,21 @@ export type EmailTemplate =
       personal?: true;
     }
   /**
+   * What came in while the reader was away from a workspace (ADR 0069, addendum 2026-11-15): the mentions, DMs and
+   * finished work they haven't read, newest first, `more` past those shown. `minutes`: their wait, which the footer
+   * says.
+   */
+  | {
+      kind: "away_digest";
+      locale?: EmailLocale;
+      orgName: string;
+      items: AwayItem[];
+      more?: number;
+      url: string;
+      minutes?: number;
+      personal?: true;
+    }
+  /**
    * An owner deleted a workspace the reader is in, one email per member: it's read-only now and goes for good at
    * `dueAt` (ISO), shown in the reader's `timeZone`. Owners get a button to restore it. `url`: the workspace in the app.
    */
@@ -353,6 +368,20 @@ export type EmailTemplate =
       url: string;
     };
 
+/**
+ * One thing the away email lists: who (`name`; an agent's face in `agentColor`, else a person's initials), where
+ * (`place`: `#channel`, a mission's or routine's name) and the start of what they said, or the GIF, sticker or voice
+ * message it was. What people typed or agents wrote: inert when drawn.
+ */
+export interface AwayItem {
+  group: "mentions" | "dms" | "done";
+  name: string;
+  agentColor?: string;
+  place?: string;
+  text?: string;
+  media?: "gif" | "sticker" | "voice";
+}
+
 /** Pictures linked from this server's own `/email/`. */
 /** Who could talk to an agent, as the plan-owner email names it: everyone, only them, or them and these. */
 export interface PlanAudience {
@@ -436,6 +465,9 @@ const INVITE_NOTE_SHOWN = 300;
 const INVITE_NAMES_SHOWN = 5;
 /** A name typed on an invitation link's page, as the admins' email shows it (ADR 0068). */
 const JOIN_NAME_SHOWN = 60;
+/** A name or a place in the away email (ADR 0069, addendum 2026-11-15), and the start of what was said. */
+const AWAY_NAME_SHOWN = 60;
+const AWAY_TEXT_SHOWN = 160;
 /** An admin's reason for denying a request to join, as long as it is kept. */
 const JOIN_REASON_SHOWN = 300;
 
@@ -674,6 +706,42 @@ function docOf(t: EmailTemplate, sender: string | null): EmailDoc {
           { button: c.button(n), url: t.url },
         ],
         c.why(org, t.afterHours),
+      );
+    }
+    case "away_digest": {
+      const c = inMode(w.away, t.personal);
+      const org = inertText(t.orgName);
+      const n = t.items.length + (t.more ?? 0);
+      const groups = (["mentions", "dms", "done"] as const).flatMap((group): Block[] => {
+        const mine = t.items.filter((i) => i.group === group);
+        if (mine.length === 0) return [];
+        return [
+          { h2: c.groups[group] ?? group },
+          {
+            people: mine.map((i) => ({
+              name: inertText(i.name, AWAY_NAME_SHOWN) || (i.agentColor ? w.anAgent : w.someone),
+              agent: i.agentColor,
+              detail:
+                [i.place && inertText(i.place, AWAY_NAME_SHOWN), i.text && inertText(i.text, AWAY_TEXT_SHOWN)]
+                  .filter(Boolean)
+                  .join(" · ") ||
+                (i.media ? c.media[i.media] : undefined) ||
+                c.message,
+            })),
+          },
+        ];
+      });
+      return doc(
+        c.subject(n),
+        c.preheader,
+        c.headline(n),
+        [
+          { p: c.body(org) },
+          ...groups,
+          ...(t.more ? [{ small: c.more(t.more) }] : []),
+          { button: c.button, url: t.url },
+        ],
+        c.why(org, t.minutes ?? 60),
       );
     }
     case "computer_ready": {

@@ -25,3 +25,15 @@ Search took words only: one box over the hybrid index (full-text and vectors, AD
 - A future search backend must honour `messages`, `after`, `before` and `sort`; the visibility rule is unchanged.
 - No paging past 100 hits by date; add a cursor (`source_created_at`, id) when people ask for it.
 - `has:link` reads the text (a link a card shows without text in the body isn't found); the phone scrolls to a hit only when it is in the loaded pages (an older one opens at the end).
+
+## Addendum (2026-11-15): find in the conversation
+
+Code: client `lib/conversation-find.ts` (`isFindShortcut`, `findFilters`, `findIdsIn`, `stepFind`, `findPosition`); web `components/search/FindBar.tsx`, wired in `pages/ChannelPage.tsx`; strings `channel.find.*`.
+
+1. **Ctrl/⌘F opens a find bar on top of the conversation** (a channel, a DM, a thread page or the thread in the side panel). The conversation that takes the key is the one the focus is in, as for typing into the composer from anywhere in it; with the focus elsewhere on the page (the sidebar, nothing focused), the page's own (not the thread beside it). On a page with no conversation, over a dialog, from a text field outside a conversation, and from the bar itself (so pressing it twice reaches it), the key stays the browser's own find.
+2. **It is this search, not the browser's.** The page holds only the messages it has loaded, so a find over the page would miss most of a long conversation. The bar asks `GET …/search` for its words with `in` = the conversation's channel and `sort: "newest"` (text matches only, ADR 0123 §3), a beat after the last key, and never with no words (the channel filter alone would list its latest messages). Visibility is the search's as always.
+3. **The hits are the conversation's rows.** A channel's or DM's timeline keeps main-timeline messages (a thread's reply shows in its thread, not there); a thread keeps its root and replies, picked on the client since the search takes channels, not threads. Deleted messages have nowhere to go and are left out.
+4. **Stepping.** On new words it goes to the newest hit; Enter or ↑ to older ones, Shift+Enter or ↓ back to newer, wrapping at either end. Each step is the conversation's "go to message" (a message link's and the search panel's), which pages older history in up to its limit and highlights the message; no other step while it pages. The count reads "2 of 12", "2 of 12+" when the server's page (100) was full.
+5. Esc (from its field or its buttons) or × closes it and the focus goes back to the composer; its Esc is its own (`data-esc-own`), so no side panel closes and no agent stops with it. Where the count and buttons don't fit beside the field (a phone, the thread panel, a long translation) they go on a row under it.
+
+Later: a thread filter in the API (a busy channel's 100 newest hits may hold none of a thread's), the words marked inside the message shown, and the phone (its search tab already scopes to a conversation, §7).

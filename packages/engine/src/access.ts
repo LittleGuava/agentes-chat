@@ -1,7 +1,14 @@
 import { and, asc, type Database, type Executor, eq, inArray, isNull, schema } from "@agenteschat/db";
 import { getAgent } from "./agents";
 import { recordAudit } from "./audit";
-import { BROWSER_SCOPE, BROWSER_TOOL_INFO, BROWSER_TOOLS, DESKTOP_SCOPE, DESKTOP_TOOL_INFO } from "./browser/types";
+import {
+  BROWSER_SCOPE,
+  BROWSER_TOOL_INFO,
+  BROWSER_TOOLS,
+  DESKTOP_SCOPE,
+  DESKTOP_TOOL_INFO,
+  MY_CHROME_TOOL_INFO,
+} from "./browser/types";
 import { caches } from "./cache";
 import { CONNECTOR_CATALOG } from "./connectors/catalog";
 import { connectorGrantValidator, toolPrefixOfConnection } from "./connectors/connections";
@@ -43,7 +50,7 @@ export const BUILTIN_TOOLS: Record<string, string[]> = {
   "context:read": ["search_context", "get_summary", "expand"],
   "memory:write": ["remember", "update_memory", "forget", "save_how_to", "propose_instruction_change"],
   "drive:read": ["read_artifact", "list_artifacts", "share_artifact"],
-  "drive:write": ["create_artifact", "update_artifact"],
+  "drive:write": ["create_artifact", "update_artifact", "publish_page", "generate_image"],
   "issues:read": ["list_issues"],
   "issues:write": ["create_issue", "update_issue", "comment_issue"],
   "calendar:read": ["list_events", "find_free_time"],
@@ -106,6 +113,8 @@ export const BUILTIN_TOOLS: Record<string, string[]> = {
 const UNLISTED_TOOLS: Record<string, string[]> = {
   "context:read": ["read_conversation"],
   "schedule:write": ["delete_routine", "run_routine_now"],
+  // A person's lent Chrome (ADR 0202): the lending is the person's own, on their computer; the scope only bounds it.
+  [BROWSER_SCOPE]: Object.keys(MY_CHROME_TOOL_INFO),
 };
 
 /**
@@ -177,6 +186,16 @@ export const BUILTIN_TOOL_INFO: Record<string, { label: string; description: str
   },
   create_artifact: { label: "Create file", description: "Creates a document, table, diff, diagram or page." },
   update_artifact: { label: "Update file", description: "Saves a new version of a file." },
+  publish_page: {
+    label: "Publish page",
+    description:
+      "Puts a page it made at a public address anyone with the link opens, after a person approves. Only on servers that publish pages.",
+  },
+  generate_image: {
+    label: "Generate image",
+    description:
+      "Makes a picture from a description on the workspace's OpenAI or Gemini key and saves it to the Drive.",
+  },
   list_issues: { label: "View issues", description: "Lists and opens issues." },
   create_issue: { label: "Create issue", description: "Creates an issue with acceptance criteria." },
   update_issue: { label: "Update issue", description: "Changes status or priority, or links a PR." },
@@ -312,6 +331,7 @@ export const BUILTIN_TOOL_INFO: Record<string, { label: string; description: str
   },
   ...BROWSER_TOOL_INFO,
   ...DESKTOP_TOOL_INFO,
+  ...MY_CHROME_TOOL_INFO,
 };
 
 const humanize = (name: string) => {

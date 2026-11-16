@@ -23,7 +23,10 @@ import {
   type MachineOs,
   type MachineReplies,
   type MachineRequest,
+  type MyChromeSession,
   OWN_USAGE_ID,
+  parseRelayAgents,
+  type RelayAgent,
   type RunnerAccess,
   type RunnerFrame,
   type RunnerInfo,
@@ -42,12 +45,15 @@ import {
   type ControlEvent,
   type ControlJob,
   type ControlReplies,
+  type ControlScreen,
   type ControlStatus,
 } from "@agenteschat/adapters/runner-control";
 import {
   AccessRequests,
+  APP_ONLY_TOOLS,
   addFolder,
   allowedFor,
+  allowRelaySite,
   ControlError,
   checkFolder,
   parseAgents,
@@ -55,7 +61,9 @@ import {
   realFoldersFor,
   reduceAccess,
   removeFolder,
+  removeRelaySite,
   setFolderAgents,
+  setRelayAgents,
   setTool,
   TOOL_NAMES,
   writeAgents,
@@ -63,6 +71,7 @@ import {
 import { AccountBrains } from "./account-brains";
 import { accountSelfCheck, SELF_CHECK_EVERY_MS, SELF_CHECK_RETRY_MS } from "./account-check";
 import { AccountManager, grokSandboxFails, lchownTree, SYSTEM_ACCOUNTS_ROOT } from "./accounts";
+import { acpLookAll } from "./acp-engines";
 import { ActivityLog } from "./activity";
 import {
   AccountUsers,
@@ -81,6 +90,7 @@ import {
   systemLauncher,
   trustedNetworkLauncher,
 } from "./agent-users";
+import { useBinaries } from "./binaries";
 import { BrainManager } from "./brain";
 import { CodexAppServers } from "./brain-codex-app";
 import { BrowserManager } from "./browser";
@@ -88,6 +98,7 @@ import { ensureBrowserBindPolicy, prepareAgents } from "./browser-bind-policy";
 import { BrowserViews } from "./browser-views";
 import { CliInstaller, type CliInstallerOptions, gitBashPath } from "./cli-install";
 import {
+  type AcpEngineConfig,
   accessToStore,
   configPath,
   connectUrl,
@@ -113,12 +124,16 @@ import { cachedExecutors, EXECUTORS_TTL_MS, type ExecutorRun } from "./executors
 import { systemGitCache } from "./git";
 import type { HandlerContext, RequestObserver, RequestOutcome } from "./handlers";
 import { Holds } from "./holds";
+import { HostConsent, type HostDialect, windowsHost } from "./host-desktop";
 import { IphoneSetup, type IphoneSetupOptions } from "./iphone-setup";
 import { currentProcess, isCompiled, selfCommand } from "./launch";
+import { localConfigPaths, readLocalConfig } from "./local-config";
 import { tailLines } from "./logfile";
 import { adoptLoginPath } from "./login-path";
 import { LoopbackGuard, loopbackEndpoints, runnerEndpoints } from "./loopback-guard";
 import { McpBridge, type McpTaskInfo, mcpSocketPath } from "./mcp";
+import { MeetingAudio } from "./meeting-audio";
+import { MyChromes } from "./my-chrome";
 import {
   AgentNetworks,
   desktopUsesHostNetwork,
@@ -137,6 +152,7 @@ import { type CachedLogo, logoDataUrl, readCachedLogo, removeCachedLogo, syncOrg
 import { type DeviceGrant, devicePair, type FetchFn, LINK_CODE, PairingError, uniqueWorkspace } from "./pairing";
 import { agentId8, agentWorkspace } from "./paths";
 import { iphonesWifiFileOf, PhoneManager, type PhoneManagerOptions } from "./phones";
+import { RelayEntrance, RelayExits, RelayWants } from "./relay";
 import { agentSecrets, dropStoredSiteSecrets, secretValue } from "./secrets";
 import { AGENTS_CGROUP, systemdBooted } from "./service";
 import {
@@ -252,6 +268,9 @@ export function configFromGrant(
     ...(prev?.networkAuthRoute ? { networkAuthRoute: prev.networkAuthRoute } : {}),
     ...(prev?.claudeSharedLogin ? { claudeSharedLogin: prev.claudeSharedLogin } : {}),
     ...(prev?.agentTmpOnDisk ? { agentTmpOnDisk: prev.agentTmpOnDisk } : {}),
+    // The computer's own binaries (ADR 0187) are its, whatever server it pairs with; a grant never names any.
+    ...(prev?.binaries ? { binaries: prev.binaries } : {}),
+    ...(prev?.acpEngines ? { acpEngines: prev.acpEngines } : {}),
     ...(prev?.maxConcurrentTasks ? { maxConcurrentTasks: prev.maxConcurrentTasks } : {}),
     ...(prev?.taskMaxSeconds ? { taskMaxSeconds: prev.taskMaxSeconds } : {}),
     ...(prev?.brainIdleMinutes ? { brainIdleMinutes: prev.brainIdleMinutes } : {}),
@@ -335,8 +354,16 @@ interface Session {
   browser: BrowserManager;
   /** Desktop and terminal streams (ADR 0058): they end with the session. */
   streams: DataSockets;
+  /** Sites through a person's computer (ADR 0203): the agents' entrances on loopback; null in system mode. */
+  relayEntrance: RelayEntrance | null;
+  /** The tunnels this computer lends its connection to (ADR 0203); null in system mode. */
+  relayExits: RelayExits | null;
   /** The agents' use of their desktops (ADR 0062): its helpers end with the session, the desktops don't. */
   desktopUse: DesktopManager;
+  /** ADR 0201: the person's own desktop, on their own Windows computer in single-user mode; null elsewhere. */
+  hostUse: DesktopManager | null;
+  /** The meetings agents' browsers are in (ADR 0199 §4): their captures end with the session. */
+  meetingAudio: MeetingAudio;
   connection: RunnerConnection;
   /** System mode: the agents' workers, where all their work runs. */
   supervisor: Supervisor | null;
@@ -347,6 +374,11 @@ interface Session {
 export interface DaemonOptions {
   home: string;
   mode: "start" | "app";
+  /**
+   * Host computer use (ADR 0201): how the person's own desktop is reached. Default: the Windows helper on Windows in
+   * single-user mode (tests pass a dry one); `null`: never served.
+   */
+  hostDesktop?: HostDialect | null;
   log: (line: string) => void;
   /** App mode: events for the desktop app. */
   onEvent?: (event: ControlEvent) => void;
@@ -410,6 +442,17 @@ export interface DaemonOptions {
 const taskWhat = (job: Pick<ControlJob, "summary" | "said">): Record<string, string> =>
   job.said?.executor ? { executor: job.said.executor } : { what: job.summary };
 
+/** ADR 0202: the switches that let an agent run programs as the person; any of them on, no Chrome is lent. */
+const MY_CHROME_BLOCKERS = [
+  "commands",
+  "claude",
+  "codex",
+  "cursor",
+  "opencode",
+  "grok",
+  "antigravity",
+  "copilot",
+] as const;
 export class RunnerDaemon implements RequestObserver {
   private stored: StoredConfig | null = null;
   private config: RunnerConfig | null = null;
@@ -422,6 +465,8 @@ export class RunnerDaemon implements RequestObserver {
   private connState: ControlStatus["connection"] = "unpaired";
   private refused: { token: string; reason: ConnectionOutcome["reason"] } | null = null;
   private agents: MachineAgent[] = [];
+  /** The workspace's agents on other computers this one may lend a site to (ADR 0203), as the server last said. */
+  private lendable: RelayAgent[] | undefined;
   private egress = new EgressObservation();
   private probingEgress = false;
   private observeEgress = false;
@@ -470,6 +515,8 @@ export class RunnerDaemon implements RequestObserver {
   private logoSync: Promise<void> | null = null;
   private readonly self: { command: string[]; compiled: boolean };
   private readonly executors: () => NonNullable<RunnerInfo["executors"]>;
+  /** ADR 0216: the ACP agents `config.json` declares, read once at start; none in system mode (§7). */
+  private readonly acpEngines: readonly AcpEngineConfig[];
   /** False until the first look on a new install: `hello` then leaves the CLIs out, so the server keeps "unknown". */
   private readonly executorsKnown: () => boolean;
   private readonly executorsFresh: () => Promise<unknown>;
@@ -485,10 +532,14 @@ export class RunnerDaemon implements RequestObserver {
   private readonly swept = new Set<string>();
   /** The agents' desktops (ADR 0058): they outlive sessions and this process. */
   readonly desktops: DesktopSessions;
+  /** ADR 0202: a person's own Chrome, lent to one agent at a time from the app; kept across reconnections, never on disk. */
+  readonly myChromes: MyChromes;
   /** Terminals people open as an agent (ADR 0058 §6). */
   readonly terminals: Terminals;
   /** The refs each agent's desktop use gave out, across sessions: a number never comes back for another element. */
   private readonly desktopRefsGiven = new Map<string, { last: number }>();
+  /** The person's yes to an agent's use of their screen (ADR 0201): in memory only, answered only by the app. */
+  readonly hostConsent: HostConsent;
   /** The phones this computer reaches (single-user runners): their locks outlive a reconnect. */
   private phones: PhoneManager | null = null;
   /** The phones the last `hello` carried (JSON). */
@@ -519,13 +570,33 @@ export class RunnerDaemon implements RequestObserver {
     this.activity = new ActivityLog(opts.home);
     this.now = opts.now ?? Date.now;
     this.requests = new AccessRequests(opts.home, this.now);
+    this.hostConsent = new HostConsent({
+      emit: (event) => {
+        this.emit(event);
+        if (event.kind === "screen.changed") this.queueStatus();
+      },
+      // Only the desktop app answers: a runner started from a terminal has nobody to ask.
+      listening: () => this.opts.mode === "app",
+      record: (entry) => this.record(entry),
+      release: (agentId) => this.session?.hostUse?.release(agentId),
+      now: this.now,
+    });
     const proc = currentProcess();
     this.self = opts.self ?? { command: selfCommand(proc), compiled: isCompiled(proc) };
     this.refreshPath = opts.refreshPath ?? (process.platform === "win32" ? () => adoptLoginPath() : undefined);
+    let startConfig: StoredConfig | null = null;
+    try {
+      startConfig = readStoredConfig(opts.home);
+    } catch {
+      // an unreadable config starts unpaired
+    }
+    this.acpEngines = startConfig?.mode === "system" ? [] : (startConfig?.acpEngines ?? []);
+    const engines = this.acpEngines;
     const exec =
       opts.executors ??
       cachedExecutors({
         file: path.join(opts.home, "executors.json"),
+        ...(engines.length ? { acp: () => acpLookAll(engines) } : {}),
         ...(opts.executorRun ? { run: opts.executorRun } : {}),
         onChange: () => this.executorsChanged(),
         ...(process.platform === "win32"
@@ -587,6 +658,16 @@ export class RunnerDaemon implements RequestObserver {
         // One removed: its agents' workers close what still runs with it.
         this.session?.supervisor?.stateChanged();
       },
+    });
+    this.myChromes = new MyChromes({
+      ownPorts: () => this.session?.browser.ownPorts() ?? new Set<number>(),
+      systemMode: () => this.stored?.mode === "system" || this.session?.config.mode === "system",
+      record: (agent, line) => this.record({ agent: this.agentRef(agent), kind: "access", summary: line }),
+      log: opts.log,
+      now: this.now,
+      guard: () => this.myChromeGuard(),
+      // Who holds a lent Chrome reaches the server at once: its tools and its apps follow it (ADR 0202).
+      onChange: (lent) => void this.send({ type: "mychrome.changed", lent }),
     });
     const daemon = this;
     this.desktops = new DesktopSessions({
@@ -858,6 +939,7 @@ export class RunnerDaemon implements RequestObserver {
     this.stopWatch?.();
     for (const t of this.timers) clearInterval(t);
     if (this.sharedLoginRetry) clearTimeout(this.sharedLoginRetry);
+    this.myChromes.disconnect();
     this.desktops.close();
     if (this.resumeTimer) clearTimeout(this.resumeTimer);
     this.pairing?.abort();
@@ -959,6 +1041,11 @@ export class RunnerDaemon implements RequestObserver {
       });
     }
     this.armResume();
+    // Another binary for a brain (ADR 0187): every CLI started from now on runs it, and the CLIs are looked at again.
+    if (initial || JSON.stringify(prev?.binaries) !== JSON.stringify(next?.binaries) || prev?.mode !== next?.mode) {
+      useBinaries(next?.binaries ?? {}, { system: next?.mode === "system" });
+      if (!initial) void this.executorsFresh().catch(() => undefined);
+    }
     // The switch goes with its route, so a CLI left running would go out directly.
     if (!initial && prev?.claudeSharedLogin && !next?.claudeSharedLogin) {
       this.stopHosted("This computer's Claude login for all agents was turned off.");
@@ -979,7 +1066,13 @@ export class RunnerDaemon implements RequestObserver {
       for (const { summary, said } of this.describeAccessChange(prevAccess, nextAccess)) {
         this.record({ kind: "access", summary, said, result: "ok" });
       }
+      // Commands or a coding CLI went on: a person's lent Chrome is given back at once (ADR 0202).
+      if (this.myChromeGuard()) this.myChromes.disconnect(undefined, "given back: an agent here may run programs now");
       this.resolveSatisfied(nextAccess);
+      // ADR 0203: a site this computer stopped lending (or an agent it stopped lending to) closes its tunnels now.
+      if (JSON.stringify(prevAccess.relay ?? []) !== JSON.stringify(nextAccess.relay ?? [])) {
+        this.session?.relayExits?.recheck();
+      }
       // The browser (or desktop) switch went off: the agents' browsers (or desktops) close now, not when next used.
       if (prevAccess.tools.browser === true && nextAccess.tools.browser !== true) {
         void this.session?.browser.closeAll();
@@ -993,6 +1086,9 @@ export class RunnerDaemon implements RequestObserver {
       // Desktop use needs both: its helpers stop with either.
       const use = (a: RunnerAccess) => a.tools.desktop === true && a.tools.commands;
       if (use(prevAccess) && !use(nextAccess)) this.session?.desktopUse.stopAll();
+      // The person's screen needs both too: either off ends whoever's session, at once (ADR 0201 §3).
+      const host = (a: RunnerAccess) => a.tools.hostDesktop === true && a.tools.commands;
+      if (host(prevAccess) && !host(nextAccess)) this.hostConsent.stop("switch");
     }
 
     if (this.session && paired) {
@@ -1029,6 +1125,7 @@ export class RunnerDaemon implements RequestObserver {
         (this.session?.network ?? c)?.networkLauncher || (this.session?.network ?? c)?.networkMark,
       ),
       ...(c ? { commitHost: new URL(c.server).hostname } : {}),
+      ...(c?.binaries ? { binaries: c.binaries } : {}),
       limits: {
         maxConcurrentTasks: c?.maxConcurrentTasks ?? DEFAULT_LIMITS.maxConcurrentTasks,
         taskMaxSeconds: c?.taskMaxSeconds ?? DEFAULT_LIMITS.taskMaxSeconds,
@@ -1076,6 +1173,7 @@ export class RunnerDaemon implements RequestObserver {
       browser: "the browser",
       desktop: "the agents' desktops",
       terminal: "the terminal",
+      hostDesktop: "your screen",
     };
     for (const t of TOOL_NAMES)
       if ((a.tools[t] === true) !== (b.tools[t] === true)) {
@@ -1265,6 +1363,9 @@ export class RunnerDaemon implements RequestObserver {
         egress: this.egress.current,
       }),
       locale: (agent) => this.agents.find((a) => a.id === agent.id)?.locale,
+      relayPac: async (agentId) => relayEntrance?.pacFor(agentId) ?? null,
+      // No agent's own browser reaches a person's lent Chrome's debugging port (ADR 0202).
+      lentPorts: () => this.myChromes.lentPorts(),
     });
     // Browsers a previous run of this runner left open (a crash, a kill) close now.
     void browser.closeAll();
@@ -1278,10 +1379,48 @@ export class RunnerDaemon implements RequestObserver {
       numbered: this.desktopRefsGiven,
       log,
     });
+    // ADR 0201: the person's own desktop, only where the runner works as the person (never system mode).
+    const hostDialect =
+      config.mode === "system"
+        ? null
+        : this.opts.hostDesktop !== undefined
+          ? this.opts.hostDesktop
+          : process.platform === "win32"
+            ? windowsHost()
+            : null;
+    const hostUse = hostDialect
+      ? new DesktopManager({
+          desktops: this.desktops,
+          host: hostDialect,
+          secrets: (agent) => agentSecrets(secretsDir, agent),
+          numbered: this.desktopRefsGiven,
+          onLocked: (agentId) => this.hostConsent.stop("locked", agentId),
+          log,
+        })
+      : null;
     const streams = new DataSockets({
       url: connectUrl(config.server, "stream"),
       token: config.token,
       relayed: this.relayed,
+    });
+    // Sites through a person's computer (ADR 0203), on a single-user runner only (system mode is for later): as the
+    // agent's computer, an entrance per agent its Chrome reaches; as the person's, the tunnels it serves.
+    const single = config.mode !== "system";
+    const relayWants = new RelayWants((frame) => live?.send(frame) ?? false);
+    const relayEntrance = single
+      ? new RelayEntrance({
+          sitesOf: (agentId) => this.agents.find((a) => a.id === agentId)?.relay ?? [],
+          open: async (agentId, host) => streams.dial(await relayWants.want(agentId, host), "relay"),
+          log,
+        })
+      : null;
+    const relayExits = single ? new RelayExits({ log }) : null;
+    // ADR 0199 §4: the meetings agents' browsers are in, heard here (single-user runners only, for now).
+    const meetingAudio = new MeetingAudio({
+      system: config.mode === "system",
+      dial: (streamId) => streams.dial(streamId, "meetingAudio"),
+      chromePid: (agentId) => browser.chromePid(agentId),
+      log,
     });
     let supervisor: Supervisor | null = null;
     let agentUser: Session["agentUser"] = null;
@@ -1494,6 +1633,8 @@ export class RunnerDaemon implements RequestObserver {
       server: config.server,
       secretsDir,
       gitDir: path.join(home, "git"),
+      // Each work turn's folder recorded before and after it, as this process's user (ADR 0193).
+      checkpointsDir: path.join(home, "checkpoints"),
       // Agents here share the runner's user, so they share one cache (system mode: root's, through each worker).
       gitCache: path.join(home, "git-cache"),
       tasks,
@@ -1508,7 +1649,7 @@ export class RunnerDaemon implements RequestObserver {
       warmBrain: supervisor
         ? async (spare) => accountBrains?.warm(spare) || supervisor.warmBrain(spare)
         : async (spare) => brains.warm(spare),
-      codex: { runnerHome: home, mcp: mcpCommand, runs: codexRuns, app: codexApp },
+      codex: { runnerHome: home, mcp: mcpCommand, runs: codexRuns, app: codexApp, acpEngines: this.acpEngines },
       paused: () => this.stopping || this.pauseState().paused,
       setPause: (paused, until, by) => (paused ? this.pause(until, by) : this.resume()),
       // A config written later without the mode never turns a system session back into one that does agents' work.
@@ -1521,12 +1662,16 @@ export class RunnerDaemon implements RequestObserver {
         allow: (req) => this.accessAllow(req),
       },
       browser,
+      myChrome: this.myChromes,
       accounts: this.accounts,
       desktops: this.desktops,
       terminals: this.terminals,
       streams,
       browserViews: views,
+      ...(relayExits ? { relayExits } : {}),
+      meetingAudio,
       desktopUse,
+      ...(hostUse ? { hostDesktop: { manager: hostUse, consent: this.hostConsent } } : {}),
       desktopTaken: (agentId) => {
         if (supervisor) supervisor.desktopTaken(agentId);
         else {
@@ -1542,6 +1687,7 @@ export class RunnerDaemon implements RequestObserver {
         return { executors: this.executors() };
       },
       cliInstall: (req) => this.cliInstaller().handle(req),
+      localConfig: () => readLocalConfig(localConfigPaths()),
       xcodeOpen: () => this.iphoneSetup().open("xcode"),
     };
     // `hello` lists the accounts it already knows; a fresh look (each runs its CLI) never delays connecting:
@@ -1568,11 +1714,15 @@ export class RunnerDaemon implements RequestObserver {
           desktop: this.desktops.info(),
           terminal: this.terminals.info(),
           desktopUse: desktopUse.info(),
+          ...(hostUse ? { hostDesktop: hostUse.info() } : {}),
+          meetingAudio: meetingAudio.info(),
           ...(accounts ? { accounts } : {}),
           ...usage,
           // Who may control a desktop or open a terminal follows it (ADR 0058 §4).
           ...(agentUser ? { mode: "system" as const } : {}),
           ...(this.holds ? { holds: this.holds.report() } : {}),
+          // Always said, so a server never keeps a lending this runner no longer has (a restart ends them all).
+          myChrome: this.myChromes.lent(),
         };
       },
       executors: () => this.helloExecutors(),
@@ -1584,15 +1734,20 @@ export class RunnerDaemon implements RequestObserver {
       ...(supervisor ? { tasks: supervisor, mcp: supervisor.mcp } : { mcp }),
       log,
       observer: this,
-      onAgents: (raw, deleted) => this.setAgents(raw, deleted),
+      onAgents: (raw, deleted, lendable) => {
+        this.setLendable(lendable);
+        this.setAgents(raw, deleted);
+      },
       onBrowserHandoff: (frame) =>
         supervisor ? supervisor.handoff(frame) : browser.setHandoff(frame.agentId, frame.handoff),
+      onRelayReady: (frame) => relayWants.ready(frame),
       onState: (state) => {
         // Offline: frames have nowhere to go; the server starts the live view again when it is back.
         if (state !== "online") {
           this.observeEgress = false;
           browser.stopStreams();
           views.closeAll();
+          relayWants.failAll();
           // What it said about people's turns is stale; it says again on reconnect.
           browser.clearHandoffs();
         }
@@ -1644,7 +1799,11 @@ export class RunnerDaemon implements RequestObserver {
       mcp,
       browser,
       streams,
+      relayEntrance,
+      relayExits,
       desktopUse,
+      hostUse,
+      meetingAudio,
       connection,
       supervisor,
       agentUser,
@@ -1875,8 +2034,12 @@ export class RunnerDaemon implements RequestObserver {
     this.egressGeneration++;
     this.egress.reset();
     s.connection.stop();
+    await s.meetingAudio.stopAll();
     s.streams.closeAll();
+    await s.relayEntrance?.close();
     s.desktopUse.stopAll();
+    this.hostConsent.stop("switch");
+    s.hostUse?.stopAll();
     await s.supervisor?.close();
     s.tasks.close();
     s.brains.close();
@@ -2057,6 +2220,17 @@ export class RunnerDaemon implements RequestObserver {
     return { logo: this.config ? logoDataUrl(this.logo) : null };
   }
 
+  /**
+   * The workspace's agents on other computers (ADR 0203), whom the person may lend a site to from the app; an `agents`
+   * frame without them (an older server) leaves what was heard.
+   */
+  private setLendable(raw: unknown) {
+    const lendable = parseRelayAgents(raw);
+    if (!lendable || JSON.stringify(lendable) === JSON.stringify(this.lendable)) return;
+    this.lendable = lendable;
+    this.queueStatus();
+  }
+
   private setAgents(raw: unknown, deletedIds?: unknown) {
     const list = parseAgents(raw);
     // System mode: an account folder stays with an agent's user only while that agent thinks with it.
@@ -2121,7 +2295,14 @@ export class RunnerDaemon implements RequestObserver {
     void this.desktops.serve(list).catch(() => undefined);
     if (JSON.stringify(list) === JSON.stringify(this.agents)) return;
     const routeChanged = this.agents[0]?.id !== list[0]?.id;
+    const relayOf = (agents: MachineAgent[]) => JSON.stringify(agents.map((a) => [a.id, a.relay ?? []]));
+    const relayChanged = relayOf(list) !== relayOf(this.agents);
     this.agents = list;
+    // ADR 0203: the sites each agent is lent changed: tunnels of a site gone close, and its Chrome takes the new list.
+    if (relayChanged) {
+      this.session?.relayEntrance?.recheck();
+      this.session?.browser.relayChanged();
+    }
     if (routeChanged) {
       this.egressGeneration++;
       this.egress.clear();
@@ -2151,6 +2332,18 @@ export class RunnerDaemon implements RequestObserver {
   }
 
   // ── State ──────────────────────────────────────────────────────────────────
+
+  /**
+   * ADR 0202: why a person's Chrome can't be lent now, or null. Outside system mode every agent's commands and coding
+   * CLIs run as the person, and any of them reaches a debugging port directly, with no tab of its own: lending waits
+   * until none of them is on. The CLIs' switches are the whole computer's, so they count for every organization here.
+   */
+  myChromeGuard(): string | null {
+    const { tools } = this.access();
+    const on = MY_CHROME_BLOCKERS.filter((tool) => tools[tool] === true);
+    if (on.length === 0) return null;
+    return `Your Chrome can't be lent while agents here may run programs of their own (${on.join(", ")}): any of them could reach your whole Chrome. Turn those off first.`;
+  }
 
   access(): RunnerAccess {
     return withShared(effectiveAccess(this.stored), this.shared);
@@ -2208,8 +2401,10 @@ export class RunnerDaemon implements RequestObserver {
       ...(c ? { workspace: this.session?.workspaceReal ?? c.workspace } : {}),
       agents: this.agents.map((a) => ({ ...a })),
       access: this.access(),
+      ...(this.lendable ? { lendable: this.lendable.map((a) => ({ ...a })) } : {}),
       browsers,
       ...(this.phones ? { phones: this.phones.list() } : {}),
+      ...(this.session?.hostUse ? { screen: this.hostConsent.screen() } : {}),
       // In system mode each agent runs as a user of its own, not as the runner's.
       ...(OS_USER && c?.mode !== "system" && s?.mode !== "system" ? { user: OS_USER } : {}),
       seq: ++this.statusSeq,
@@ -2253,6 +2448,22 @@ export class RunnerDaemon implements RequestObserver {
    * The tray's "Parar": the agent's browser closes on this computer (its
    * profile and logins stay). A live view watching it is told it ended.
    */
+  /** Protocol 81 (ADR 0201): who holds the person's screen and who asks. */
+  screenGet(): ControlScreen {
+    return this.hostConsent.screen();
+  }
+
+  /** The person's yes or no to an agent's ask for their screen: only here, from the app. */
+  screenAnswer(requestId: string, decision: "granted" | "denied"): ControlScreen {
+    this.requirePaired();
+    return this.hostConsent.answer(requestId, decision);
+  }
+
+  /** The person's Stop: whoever holds the screen (or that agent) lets go of it at once. */
+  screenStop(agentId?: string): ControlScreen {
+    return this.hostConsent.stop("person", agentId);
+  }
+
   async browserStop(agentId: string): Promise<{ stopped: boolean }> {
     this.requirePaired();
     const s = this.session;
@@ -2262,6 +2473,38 @@ export class RunnerDaemon implements RequestObserver {
     const out = await s.browser.stop({ id: agentId, handle: agent?.handle ?? "agent" });
     this.browsersChanged();
     return out;
+  }
+
+  /**
+   * ADR 0202: the person, in the app on this computer, lends `agentId` the Chrome they started with remote debugging
+   * on `port`, for `minutes`. Only this channel lends one: the server can list and end it, never start it.
+   */
+  async myChromeConnect(input: {
+    agentId: string;
+    port: number;
+    minutes: number;
+    wsPath?: string;
+  }): Promise<{ session: MyChromeSession }> {
+    this.requirePaired();
+    const agent = this.agents.find((a) => a.id === input.agentId);
+    if (!agent) throw new RunnerError("not_found", "No agent by that id uses this computer.");
+    const session = await this.myChromes.connect({
+      agent: { id: agent.id, handle: agent.handle, name: agent.name },
+      port: input.port,
+      minutes: input.minutes,
+      ...(input.wsPath !== undefined ? { wsPath: input.wsPath } : {}),
+    });
+    return { session };
+  }
+
+  /** ADR 0202: who uses the person's Chrome now. */
+  myChromeList(): { sessions: MyChromeSession[] } {
+    return { sessions: this.myChromes.list() };
+  }
+
+  /** ADR 0202: ends one agent's use of the person's Chrome, or every one; the tabs stay. */
+  myChromeDisconnect(agentId?: string): { disconnected: number } {
+    return { disconnected: this.myChromes.disconnect(agentId) };
   }
 
   /** The desktop app's iPhone setup asking to look at the iPhone again now (`phone.look`). */
@@ -2558,6 +2801,24 @@ export class RunnerDaemon implements RequestObserver {
     return this.access();
   }
 
+  relayAdd(site: string, agents: string[]): RunnerAccess {
+    this.requirePaired();
+    this.writeAccess(allowRelaySite(this.access(), site, this.agentIds(agents)));
+    return this.access();
+  }
+
+  relayRemove(site: string, agentId?: string): RunnerAccess {
+    this.requirePaired();
+    this.writeAccess(removeRelaySite(this.access(), site, agentId || undefined));
+    return this.access();
+  }
+
+  relaySetAgents(site: string, agents: string[]): RunnerAccess {
+    this.requirePaired();
+    this.writeAccess(setRelayAgents(this.access(), site, this.agentIds(agents)));
+    return this.access();
+  }
+
   toolsSet(tool: keyof RunnerTools, on: boolean): RunnerAccess {
     this.requirePaired();
     if (typeof on !== "boolean") throw new ControlError("bad_request", "on must be true or false");
@@ -2657,6 +2918,10 @@ export class RunnerDaemon implements RequestObserver {
   async accessAllow(req: Extract<MachineRequest, { op: "access.allow" }>): Promise<MachineReplies["access.allow"]> {
     const tool = req.tool;
     if (!TOOL_NAMES.includes(tool)) throw new RunnerError("bad_request", `Unknown tool ${String(tool).slice(0, 40)}`);
+    // The person's screen is theirs to turn on, here (ADR 0201 §3).
+    if (APP_ONLY_TOOLS.has(tool)) {
+      throw new RunnerError("not_allowed", "This one is turned on only in the agentes.chat app on the computer itself");
+    }
     const before = this.access();
     if (before.tools[tool] !== true) {
       this.writeAccess(setTool(before, tool, true));

@@ -55,6 +55,12 @@ export type Channel = typeof channels.$inferSelect;
 
 export const CHANNEL_NAME_PATTERN = /^[a-z0-9][a-z0-9_-]{0,79}$/;
 
+/**
+ * How long a channel's instructions may be (ADR 0208): every run there reads them whole, so they stay a short brief,
+ * about a thousand tokens.
+ */
+export const CHANNEL_INSTRUCTIONS_MAX = 4000;
+
 /** The most departments or roles a channel is limited to (ADR 0125), as for an agent's audience. */
 export const CHANNEL_ROLES_MAX = 100;
 
@@ -243,6 +249,8 @@ export interface ChannelListItem {
   orgId: string;
   name: string;
   topic: string;
+  /** What every agent here follows (ADR 0208). */
+  instructions: string;
   visibility: "public" | "private";
   /** Private and limited to these roles (ADR 0125); empty otherwise. */
   audienceRoleIds: string[];
@@ -258,7 +266,7 @@ export interface ChannelListItem {
   /**
    * Messages since I last read it (from when I joined, if never), not mine;
    * a thread reply counts only in a thread I follow. At most
-   * `MAX_CHANNEL_UNREAD`; 0 when I'm not a member.
+   * `MAX_CHANNEL_UNREAD`, at least 1 while I marked it unread; 0 when I'm not a member.
    */
   unreadCount: number;
   /** Of those, the ones that mention me (the sidebar's number, even while muted). */
@@ -284,6 +292,7 @@ interface ChannelListRow {
   org_id: string;
   name: string;
   topic: string;
+  instructions: string;
   visibility: "public" | "private";
   audience_role_ids: string[] | string;
   created_by_user_id: string | null;
@@ -334,11 +343,13 @@ export async function listChannels(db: Database, userId: string, orgId: string):
     -- Nor one more unread (ADR 0091): it is silent.
     and u.meta->>'mediaAfter' is null`;
   const rows = rowsOf<ChannelListRow>(
-    await db.execute(sql`select c.id, c.org_id, c.name, c.topic, c.visibility, c.audience_role_ids, c.created_by_user_id, c.created_at,
-        c.category_id, c.position,
+    await db.execute(sql`select c.id, c.org_id, c.name, c.topic, c.instructions, c.visibility, c.audience_role_ids, c.created_by_user_id,
+        c.created_at, c.category_id, c.position,
         (cm.id is not null) as is_member,
         (cm.id is null and c.visibility <> 'public' and not ${channelAudienceSql("c", sql`${userId}`)}) as seen_as_admin,
-        coalesce(un.n, 0) as unread_count, coalesce(un.m, 0) as mention_count,
+        -- Marked unread by me (markChannelUnread): one at least.
+        greatest(coalesce(un.n, 0), case when cm.id is not null and cr.marked_unread then 1 else 0 end) as unread_count,
+        coalesce(un.m, 0) as mention_count,
         coalesce(cr.muted, false) as muted, coalesce(cr.last_read_at, cm.created_at) as last_read_at,
         lm.id as last_id, lm.body as last_body, lm.meta as last_meta, lm.created_at as last_at, lm.author_type as last_author_type,
         lm.author_user_id as last_user_id, lm.author_agent_id as last_agent_id,
@@ -384,6 +395,7 @@ export async function listChannels(db: Database, userId: string, orgId: string):
       orgId: r.org_id,
       name: r.name,
       topic: r.topic,
+      instructions: r.instructions,
       visibility: r.visibility,
       audienceRoleIds: uuidArray(r.audience_role_ids),
       createdByUserId: r.created_by_user_id,

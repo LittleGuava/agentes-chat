@@ -1,7 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useApi } from "../api/context";
 import { keys } from "../api/keys";
-import type { BrowserProfile, Machine, PageTarget } from "../api/types";
+import type { BrowserProfile, BrowserSite, Machine, PageTarget } from "../api/types";
 
 /** The live view's key of a browser profile (ADR 0110): watched where an agent's id would be. */
 export const profileLiveKey = (profileId: string) => `profile:${profileId}`;
@@ -25,6 +25,36 @@ export function useBrowserProfiles(orgId: string, enabled = true) {
     queryKey: keys.browserProfiles(orgId),
     queryFn: () => api.browserProfiles?.list(orgId) ?? Promise.resolve([] as BrowserProfile[]),
     enabled: enabled && Boolean(api.browserProfiles),
+  });
+}
+
+/**
+ * A profile's signed-in sites, asked only while `enabled` (the list is open): each ask may start the profile's Chrome
+ * on its computer. Not retried: a refusal (an outdated computer) says so at once.
+ */
+export function useProfileSites(orgId: string, profileId: string, enabled = true) {
+  const api = useApi();
+  return useQuery({
+    queryKey: keys.browserProfileSites(orgId, profileId),
+    queryFn: () => api.browserProfiles?.sites(orgId, profileId) ?? Promise.resolve([] as BrowserSite[]),
+    enabled: enabled && Boolean(api.browserProfiles),
+    retry: false,
+    meta: { quiet: true },
+  });
+}
+
+/**
+ * The viewer's own browser a run in their DM drives (ADR 0110 addendum 2026-11-15); null elsewhere. Asked at most
+ * twice: while the run's first browser command runs, and once it is done (`settled`), when it has surely made it.
+ */
+export function useRunPersonalBrowser(orgId: string, runId: string, settled: boolean, enabled = true) {
+  const api = useApi();
+  return useQuery({
+    queryKey: [...keys.runPersonalBrowser(orgId, runId), settled] as const,
+    queryFn: () => api.browserProfiles?.runPersonal?.(orgId, runId) ?? Promise.resolve(null),
+    enabled: enabled && Boolean(api.browserProfiles?.runPersonal),
+    staleTime: Number.POSITIVE_INFINITY,
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -94,6 +124,16 @@ export function useBrowserProfileMutations(orgId: string) {
     request: useMutation({
       mutationFn: (agentId: string) => profiles().request(orgId, agentId),
       meta: { silent: true },
+    }),
+    /** "Sair" from one site: the list becomes the one the computer answered after. */
+    signOutSite: useMutation({
+      mutationFn: ({ profileId, site }: { profileId: string; site: string }) =>
+        profiles().signOutSite(orgId, profileId, site),
+      meta: { silent: true },
+      onSuccess: (out, { profileId }) => {
+        qc.setQueryData<BrowserSite[]>(keys.browserProfileSites(orgId, profileId), out.sites);
+        void refresh();
+      },
     }),
   };
 }

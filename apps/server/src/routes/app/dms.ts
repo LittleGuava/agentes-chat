@@ -1,5 +1,15 @@
-import { dmReads, listDms, markChannelRead, openDm, setChannelMuted } from "@agenteschat/engine";
+import {
+  DM_SHARE_LIMITS,
+  dmReads,
+  listDms,
+  markChannelRead,
+  markChannelUnread,
+  openDm,
+  setChannelMuted,
+  shareDm,
+} from "@agenteschat/engine";
 import { createRoute, z } from "@hono/zod-openapi";
+import { apiError, errorResponse } from "../../http/errors";
 import {
   type AppDeps,
   body,
@@ -12,7 +22,7 @@ import {
   requireSession,
   security,
 } from "./context";
-import { MediaKind, PreviewMeta } from "./schemas";
+import { MediaKind, Message, PreviewMeta } from "./schemas";
 
 const tags = ["Chat"];
 
@@ -40,7 +50,8 @@ const Dm = z
           "The latest message (an agent's sticker or GIF after its own reply is part of that reply, so the reply shows).",
       }),
     unread: z.number().openapi({
-      description: "Messages since you last read it, not yours; an agent's sticker or GIF after its reply never.",
+      description:
+        "Messages since you last read it, not yours; an agent's sticker or GIF after its reply never. At least 1 while you marked it unread.",
     }),
     lastReadAt: z.string().nullable().openapi({
       description: "Where the unread starts: when you last read it; null when you never did.",
@@ -124,6 +135,25 @@ export function dmRoutes(deps: AppDeps) {
     },
   );
 
+  app.openapi(
+    createRoute({
+      method: "post",
+      path: "/organizations/{orgId}/channels/{channelId}/unread",
+      tags,
+      security,
+      summary: "Mark a channel or DM unread for you, until you read it again",
+      description:
+        "Members only. It counts as one unread at least (`unreadCount`, `unread`) for you alone; your other devices hear `channel.unread` on your own topic, and `POST …/read` clears it. Where you stopped reading stays, so a DM's \"Visto\" doesn't move. A DM you never read has nothing to mark.",
+      request: { params: OrgParams.extend({ channelId: z.uuid() }), body: body(z.object({})) },
+      responses: { 204: noContent[204], ...errors },
+    }),
+    async (c) => {
+      const { orgId, channelId } = c.req.valid("param");
+      await markChannelUnread(db, c.get("user").id, orgId, channelId, adapters.pubsub);
+      return c.body(null, 204);
+    },
+  );
+
   for (const [method, muted] of [
     ["put", true],
     ["delete", false],
@@ -166,6 +196,46 @@ export function dmRoutes(deps: AppDeps) {
     async (c) => {
       const { orgId, channelId } = c.req.valid("param");
       return c.json({ reads: await dmReads(db, c.get("user").id, orgId, channelId) }, 200);
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "post",
+      path: "/organizations/{orgId}/dms/{channelId}/share",
+      tags,
+      security,
+      summary: "Share your conversation with an agent: a read-only copy in a channel or with a person",
+      description:
+        "Your DM with an agent, as it stands now, posted by you with `note` in a channel you are a member of (`to.channelId`) or in your DM with a person (`to.userId`, opened if new). The copy is `meta.sharedDm` on that message; the DM stays closed to everyone else and keeps what the agent remembers there. Nothing deletes the copy, so `confirm` must be true. The copy wakes no agent and only `note` is searched. 400 `dm_share.not_agent_dm` (a DM between people), `dm_share.target` (not a channel, or the DM itself), `dm_share.empty`, `dm_share.note`; 404 when the DM isn't yours or you aren't a member of the channel.",
+      request: {
+        params: OrgParams.extend({ channelId: z.uuid() }),
+        body: body(
+          z.object({
+            to: z.union([z.object({ channelId: z.uuid() }), z.object({ userId: z.string() })]),
+            note: z.string().min(1).max(DM_SHARE_LIMITS.noteChars),
+            confirm: z.literal(true).openapi({ description: "The copy can't be taken back: say so." }),
+            clientId: z.string().max(64).optional(),
+          }),
+        ),
+      },
+      responses: {
+        201: json(z.object({ channelId: z.uuid(), message: Message }), "Created"),
+        ...errors,
+        429: errorResponse("Too many messages"),
+      },
+    }),
+    async (c) => {
+      const { orgId, channelId } = c.req.valid("param");
+      const { to, note, clientId } = c.req.valid("json");
+      const user = c.get("user");
+      // A copy is a post: it counts toward the same limit as a message.
+      const limit = await adapters.rateLimiter.consume(`post:${user.id}`, { limit: 30, windowMs: 10_000 });
+      if (!limit.allowed) return apiError(c, 429, "rate_limited", "Slow down");
+      const shared = await shareDm({ db, pubsub: adapters.pubsub }, user.id, orgId, channelId, { to, note, clientId });
+      // Notifications and indexing of the note now, instead of at the next poll.
+      deps.wakeWorkers?.();
+      return c.json(shared, 201);
     },
   );
 

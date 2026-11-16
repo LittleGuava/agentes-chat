@@ -7,7 +7,7 @@ import type { MergeDone } from "./command-policy";
  */
 
 /** Bumped on breaking changes; the server refuses runners older than `MIN_RUNNER_PROTOCOL`. */
-export const MACHINE_PROTOCOL_VERSION = 67;
+export const MACHINE_PROTOCOL_VERSION = 86;
 export const MIN_RUNNER_PROTOCOL = 1;
 /** From this protocol on, requests carry `agent` and each agent works in its own folder. */
 export const AGENT_FOLDERS_PROTOCOL = 2;
@@ -395,6 +395,14 @@ export const GITHUB_APP_TOKEN = /^ghs_[A-Za-z0-9._-]{36,4096}$/;
 export const BROWSER_PROFILE_PROTOCOL = 34;
 
 /**
+ * Protocol 70: a person's own browser of an agent (ADR 0110 addendum 2026-11-15). A `browser.*` op may carry
+ * `profile: { id, personal: true }` with the real `agent`: the session and its Chrome stay the profile's (its folder
+ * under the runner's home, headless), but the files it reads and writes (uploads, screenshots, PDFs, downloads) are in
+ * that agent's own folder, as in its own browser.
+ */
+export const PERSONAL_BROWSER_PROTOCOL = 70;
+
+/**
  * From this protocol on: `brain.turn` carries `contextTokens`, the most context the agent's model reads
  * (Claude Code compacts there, `CLAUDE_CODE_AUTO_COMPACT_WINDOW`; Codex too, `model_auto_compact_token_limit`).
  * An older runner never sees it.
@@ -705,6 +713,353 @@ export interface CliInstall {
  * The server never sends any of these to an older runner.
  */
 export const COPILOT_PROTOCOL = 67;
+/**
+ * From this protocol on (ADR 0201): an agent uses the person's own desktop on their own Windows computer.
+ * `hello.hostDesktop` says whether the runner can serve it (Windows, the runner's single-user mode, its helper
+ * there), and `access.tools.hostDesktop` is the person's switch, set only on that computer: `access.allow` never
+ * turns it on. `desktop.look`, `desktop.act`, `desktop.capture` and `desktop.apps` then reach the person's screen,
+ * each one only while the person said yes on that computer for that agent. `hello.desktopUse` stays unavailable
+ * there, so a server or app that knows nothing of this never offers it. The server never sends these to an older
+ * runner.
+ */
+export const HOST_DESKTOP_PROTOCOL = 81;
+/**
+ * From this protocol on (ADR 0193): the runner records a work turn's folder before and after it in a git repository of
+ * its own (never the folder's), a turn whose files changed says so on its `done` event (`checkpoint`), and
+ * `checkpoint.restore` puts those files back as they were before the turn (`undo`) or as it left them (`redo`). The
+ * server never sends `checkpoint.restore` to an older runner.
+ */
+export const CHECKPOINTS_PROTOCOL = 73;
+/** How many of a checkpoint's paths an answer lists, and the longest path it carries (characters). */
+export const CHECKPOINT_LIMITS = { paths: 20, path: 400 } as const;
+/** A checkpoint's id: 32 lower-case hex characters the runner chose (never a revision git would read). */
+export const isCheckpointId = (v: unknown): v is string => typeof v === "string" && /^[0-9a-f]{32}$/.test(v);
+/** What a turn changed in its folder (`done.checkpoint`): how many files, and the first of them relative to it. */
+export interface TurnCheckpoint {
+  id: string;
+  count: number;
+  paths: string[];
+}
+/** `checkpoint.restore` (protocol 73): the turn's files as before it (`undo`) or as it left them (`redo`). */
+export interface CheckpointRestoreRequest {
+  id: string;
+  direction: "undo" | "redo";
+}
+/**
+ * `restored`: done (`paths`, the first of the files written). `conflict`: a file differs from what the turn left
+ * (`undo`) or found (`redo`), nothing written (`paths`, those files). `busy`: a turn of the agent runs in that folder.
+ * `gone`: the computer no longer has it.
+ */
+export interface CheckpointRestoreReply {
+  status: "restored" | "conflict" | "busy" | "gone";
+  paths: string[];
+}
+/**
+ * From this protocol on (ADR 0215): `mcp.stdio`, one MCP operation (`tools/list` or `tools/call`) of a local stdio MCP
+ * program the request names, started for that call alone as the request's agent, under the command policy, and stopped
+ * before the answer. The server never sends it to an older runner.
+ */
+export const MCP_STDIO_PROTOCOL = 69;
+
+/** `MCP_STDIO_PROTOCOL`: the program, started with this argv and no shell. */
+export interface McpStdioServer {
+  command: string;
+  args: string[];
+  /** The only variables it gets besides the runner's short allow-list (ADR 0215 §3). */
+  env?: Record<string, string>;
+  /** Relative to the agent's folder (default: the agent's folder). */
+  cwd?: string;
+}
+
+/** `MCP_STDIO_PROTOCOL`: the one call made after the handshake. */
+export type McpStdioCall =
+  | { method: "tools/list" }
+  | { method: "tools/call"; name: string; arguments: Record<string, unknown>; meta?: Record<string, unknown> };
+
+/** A tool as the program listed it (MCP's own shape). */
+export interface McpStdioTool {
+  name: string;
+  description?: string;
+  inputSchema: Record<string, unknown>;
+  annotations?: { readOnlyHint?: boolean; destructiveHint?: boolean };
+}
+
+/**
+ * From this protocol on (ADR 0110, addendum 2026-11-15): a browser profile's signed-in sites. `browser.sites` lists
+ * them (hosts and counts only, never a cookie's name or value, never what a site stored) and `browser.sites.forget`
+ * signs the profile out of one: its cookies and every origin of it with stored data. Both only with `profile`: the
+ * agent's own browser answers `bad_request`. The server never sends either to an older runner.
+ */
+export const BROWSER_SITES_PROTOCOL = 68;
+
+/**
+ * One site a browser profile is signed in to: a host (no scheme, no port), as wide as a domain cookie that covers it
+ * says. `cookies`: how many it has; `storage`: how many of its origins keep data (local storage, IndexedDB, caches).
+ */
+export interface BrowserSite {
+  site: string;
+  cookies: number;
+  storage: number;
+}
+
+/** A site as the runner takes it in `browser.sites.forget`: a lowercase host name, at most 253 characters. */
+export const BROWSER_SITE_HOST =
+  /^(?=.{1,253}$)[a-z0-9_](?:[a-z0-9_-]{0,62}[a-z0-9_])?(?:\.[a-z0-9_](?:[a-z0-9_-]{0,62}[a-z0-9_])?)*$/;
+
+/**
+ * From this protocol on (ADR 0203): sites that refuse data centers open through a person's own computer.
+ * `access.relay` lists the sites the person lends their connection for, and to which agents; the `agents` frame's
+ * `relay` lists, per agent, the sites another computer of the workspace lends it; `relay.want` asks the server for
+ * a tunnel and `relay.ready` answers it; `relay.open` has the lending computer dial its end. The `agents` frame's
+ * `lendable` lists the workspace's agents that work on other computers, so the person picks by name whom this one
+ * lends to. The server sends none of these to an older runner.
+ */
+export const RELAY_PROTOCOL = 83;
+
+/**
+ * From this protocol on (ADR 0216): ACP agents the computer's owner declares in the runner's `config.json`
+ * (`acpEngines`). `hello.executors.acp` lists each one's id, name and the models it offered (never its command), and
+ * `brain.turn` takes `kind: "acp"` with the `engine` it runs. The server never sends one to an older runner.
+ */
+export const ACP_ENGINE_PROTOCOL = 71;
+
+/** What `hello.executors.acp` carries at most (ADR 0216 §2–§3). */
+export const ACP_ENGINE_LIMITS = { engines: 8, name: 60 } as const;
+
+/** An ACP engine's id as the computer declares it and `brain.turn` names it. */
+export const isAcpEngineId = (v: unknown): v is string => typeof v === "string" && /^[a-z0-9][a-z0-9-]{0,31}$/.test(v);
+
+/** An ACP agent the computer declares (ADR 0216), as `hello` reports it: never its command. */
+export interface RunnerAcpEngineInfo {
+  id: string;
+  name: string;
+  /** What the agent listed when a session opened (none: it didn't say, its own default model). */
+  models?: CursorModelInfo[];
+}
+
+/**
+ * From this protocol on (ADR 0055, addendum 2026-11-15): `local.config`, what the person who runs the computer set up
+ * for their own coding tools, read there only when they ask from the apps: the MCP servers at the top level of
+ * Claude Code's `.claude.json`, Cursor's `~/.cursor/mcp.json` and Codex's `config.toml`, and Claude Code's skills
+ * (`<config>/skills/*\/SKILL.md`). The request names no path: the runner holds the list. Of a server only its name,
+ * kind, address (no user, query or fragment, and a part of its path that looks like a key masked), program name and
+ * the names of its headers, env and query leave the computer; never a value, never an argument. A SKILL.md leaves
+ * with what looks like a key masked (`redactCommon`). A file that is a link is never read. Root answers
+ * `unsupported` in system mode (its home isn't the person's). The server never sends it to an older runner.
+ */
+export const LOCAL_CONFIG_PROTOCOL = 72;
+/** The tools whose settings `local.config` reads. */
+export const LOCAL_CONFIG_APPS = ["claude", "cursor", "codex"] as const;
+export type LocalConfigApp = (typeof LOCAL_CONFIG_APPS)[number];
+/** `http`: Streamable HTTP; `sse`: the older HTTP+SSE transport; `stdio`: a program the tool starts. */
+export const LOCAL_SERVER_KINDS = ["http", "sse", "stdio"] as const;
+export type LocalServerKind = (typeof LOCAL_SERVER_KINDS)[number];
+/** `link`: the file is a link, never followed. */
+export const LOCAL_FILE_STATES = ["read", "missing", "too_big", "unreadable", "link"] as const;
+/** `no_skill`: a folder without SKILL.md; `link`: never followed; `too_many`: past a cap of one answer. */
+export const LOCAL_SKIP_REASONS = ["link", "too_big", "too_many", "no_skill", "unreadable"] as const;
+export const LOCAL_CONFIG_LIMITS = {
+  /** A settings file larger than this isn't read (`too_big`): `.claude.json` also keeps every project's history. */
+  fileBytes: 16 * 1024 * 1024,
+  servers: 200,
+  skills: 100,
+  /** One SKILL.md, then all of them: the answer stays well inside `MAX_FRAME_BYTES`. */
+  skillBytes: 256 * 1024,
+  skillsBytes: 4 * 1024 * 1024,
+  name: 100,
+  url: 2000,
+  /** Header, env and query names of one server. */
+  names: 50,
+  skipped: 300,
+} as const;
+export interface LocalMcpServer {
+  app: LocalConfigApp;
+  name: string;
+  kind: LocalServerKind;
+  /** `http` and `sse`: the address without user, query or fragment. */
+  url?: string;
+  /** `stdio`: the program's file name alone (`npx`, `uvx`), never its folder or arguments. */
+  command?: string;
+  /** The names of the headers it sends (`Authorization`), never their values. */
+  headers: string[];
+  /** The names of the variables it reads (`GITHUB_TOKEN`), never their values. */
+  env: string[];
+  /** The names of the query parameters its address had (`token`), never their values. */
+  query: string[];
+  /** A part of the address's path looked like a key: it is masked (`***`), so this address can't be used as it is. */
+  keyInAddress?: true;
+}
+export interface LocalSkill {
+  /** The skill's folder name. */
+  name: string;
+  /** The whole SKILL.md, with what looks like a key masked. */
+  markdown: string;
+  /** Something in it looked like a key and was masked. */
+  masked?: true;
+}
+export interface LocalConfig {
+  /** Each place read, shown with `~` for the home (`$CLAUDE_CONFIG_DIR`, `$CODEX_HOME` when set). */
+  files: { app: LocalConfigApp; path: string; state: (typeof LOCAL_FILE_STATES)[number] }[];
+  servers: LocalMcpServer[];
+  skills: LocalSkill[];
+  skipped: { path: string; reason: (typeof LOCAL_SKIP_REASONS)[number] }[];
+  /** This runner can't read the person's settings (system mode). */
+  unsupported?: true;
+}
+
+/**
+ * A path part that may be a key (some services put the key in the address, `/s/<key>/mcp`): a known key format, or a
+ * long run of letters and digits with both. Conservative: a long id there is masked too, and the person types it.
+ */
+const PATH_KEY =
+  /^(?:sk-|gh[pousr]_|github_pat_|xox[abposr]-|AKIA|AIza|eyJ)|^(?=.*\d)(?=.*[A-Za-z])[A-Za-z0-9_-]{24,}$/;
+
+/**
+ * An address from a settings file, ready to leave the computer: no user, query or fragment, a path part that looks
+ * like a key masked (`keyInPath`); null if it isn't one.
+ */
+export function cleanServerUrl(raw: unknown): { url: string; query: string[]; keyInPath: boolean } | null {
+  if (typeof raw !== "string" || raw.length > 8 * LOCAL_CONFIG_LIMITS.url) return null;
+  let url: URL;
+  try {
+    url = new URL(raw.trim());
+  } catch {
+    return null;
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+  const query = [...new Set(url.searchParams.keys())].filter(isSettingName).slice(0, LOCAL_CONFIG_LIMITS.names);
+  url.username = "";
+  url.password = "";
+  url.search = "";
+  url.hash = "";
+  let keyInPath = false;
+  url.pathname = url.pathname
+    .split("/")
+    .map((part) => {
+      let plain = part;
+      try {
+        plain = decodeURIComponent(part);
+      } catch {
+        // A malformed escape is checked as written.
+      }
+      if (!PATH_KEY.test(plain)) return part;
+      keyInPath = true;
+      return "***";
+    })
+    .join("/");
+  const clean = url.toString();
+  return clean.length <= LOCAL_CONFIG_LIMITS.url ? { url: clean, query, keyInPath } : null;
+}
+
+/** A header, variable or query name as written in a settings file (`Authorization`, `GITHUB_TOKEN`, `api-key`). */
+export const isSettingName = (v: unknown): v is string => typeof v === "string" && /^[A-Za-z0-9_.-]{1,100}$/.test(v);
+/** A program's file name alone: the last part of a path, without `.exe`/`.cmd`. */
+export function programName(raw: unknown): string | undefined {
+  if (typeof raw !== "string") return undefined;
+  const base =
+    raw
+      .trim()
+      .split(/[\\/]/)
+      .pop()
+      ?.replace(/\.(exe|cmd|bat)$/i, "") ?? "";
+  return /^[\w.@+-]{1,100}$/.test(base) ? base : undefined;
+}
+
+const settingNames = (v: unknown) =>
+  Array.isArray(v) ? [...new Set(v.filter(isSettingName))].slice(0, LOCAL_CONFIG_LIMITS.names) : [];
+const oneOf = <T extends string>(list: readonly T[], v: unknown): T | undefined => list.find((x) => x === v);
+
+/**
+ * `local.config`'s answer, checked again where it lands (it comes from the person's computer): every field kept to
+ * the shapes above and cut to the caps, an address cleaned again, anything else dropped.
+ */
+export function parseLocalConfig(raw: unknown): LocalConfig {
+  const r = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const list = (v: unknown) => (Array.isArray(v) ? (v as unknown[]) : []);
+  const record = (v: unknown) => (v && typeof v === "object" ? (v as Record<string, unknown>) : {});
+  const text = (v: unknown, max: number) => (typeof v === "string" && v.trim() ? v.trim().slice(0, max) : undefined);
+  const files: LocalConfig["files"] = [];
+  for (const f of list(r.files).slice(0, 20).map(record)) {
+    const app = oneOf(LOCAL_CONFIG_APPS, f.app);
+    const path = text(f.path, 300);
+    const state = oneOf(LOCAL_FILE_STATES, f.state);
+    if (app && path && state) files.push({ app, path, state });
+  }
+  const servers: LocalMcpServer[] = [];
+  for (const s of list(r.servers).slice(0, LOCAL_CONFIG_LIMITS.servers).map(record)) {
+    const app = oneOf(LOCAL_CONFIG_APPS, s.app);
+    const kind = oneOf(LOCAL_SERVER_KINDS, s.kind);
+    const name = text(s.name, LOCAL_CONFIG_LIMITS.name);
+    if (!app || !kind || !name) continue;
+    const base = { app, name, kind, headers: settingNames(s.headers), env: settingNames(s.env) };
+    if (kind === "stdio") {
+      servers.push({ ...base, command: programName(s.command) ?? "?", query: [] });
+      continue;
+    }
+    const clean = cleanServerUrl(s.url);
+    if (!clean) continue;
+    const query = [...new Set([...settingNames(s.query), ...clean.query])].slice(0, LOCAL_CONFIG_LIMITS.names);
+    const masked = clean.keyInPath || s.keyInAddress === true;
+    servers.push({ ...base, url: clean.url, query, ...(masked ? { keyInAddress: true as const } : {}) });
+  }
+  const skills: LocalSkill[] = [];
+  let bytes = 0;
+  for (const s of list(r.skills).slice(0, LOCAL_CONFIG_LIMITS.skills).map(record)) {
+    const name = text(s.name, LOCAL_CONFIG_LIMITS.name);
+    const markdown = typeof s.markdown === "string" ? s.markdown : "";
+    if (!name || !markdown || markdown.length > LOCAL_CONFIG_LIMITS.skillBytes) continue;
+    bytes += markdown.length;
+    if (bytes > LOCAL_CONFIG_LIMITS.skillsBytes) break;
+    skills.push({ name, markdown, ...(s.masked === true ? { masked: true as const } : {}) });
+  }
+  const skipped: LocalConfig["skipped"] = [];
+  for (const s of list(r.skipped).slice(0, LOCAL_CONFIG_LIMITS.skipped).map(record)) {
+    const path = text(s.path, 400);
+    const reason = oneOf(LOCAL_SKIP_REASONS, s.reason);
+    if (path && reason) skipped.push({ path, reason });
+  }
+  return { files, servers, skills, skipped, ...(r.unsupported === true ? { unsupported: true as const } : {}) };
+}
+
+/**
+ * From this protocol on (ADR 0144, addendum of 2026-11-15): a login's one-time code from a connected password
+ * manager. `agentes:type_vault_code [ref, rule, boxJson, ...moreRefs]` types the code, sealed to one of the
+ * agent's `vault.key` keys for codes on that rule (`vaultAad` use `code`, so neither a password's box nor a
+ * code's opens as the other), only into text, number or one-time-code fields of frames the rule allows: the whole
+ * code into one field, or one character per field. Refusals answer a `code` (`VAULT_TYPE_REFUSALS`). The server
+ * never sends it to an older runner.
+ */
+export const VAULT_CODE_PROTOCOL = 86;
+
+/**
+ * From this protocol on (ADR 0199 §4): meeting audio. `hello.meetingAudio` says whether the computer can hear a
+ * meeting the agent's browser is in; `meeting.listen` starts that capture (a null sink of the agent's own, its
+ * Chrome's audio moved there, the sink's monitor recorded and cut at pauses) and sends each piece on the data socket
+ * `streamId` names (`encodeMeetingPiece`), its last text frame `{"type":"meeting.end"}` saying why it stopped;
+ * `meeting.stop` ends it. The server sends neither to an older runner.
+ */
+export const MEETING_PROTOCOL = 79;
+/** Meeting audio's shape and limits (ADR 0199 §4), the same on the computer and the server. */
+export const MEETING_AUDIO = {
+  /** 16 kHz mono 16-bit PCM: what speech engines take, a minute in under 2 MB. */
+  sampleRate: 16_000,
+  channels: 1,
+  /** A piece ends at a pause once it is this long… */
+  pieceMinMs: 5_000,
+  /** …or here at the latest, pause or not. */
+  pieceMaxMs: 30_000,
+  /** Quiet this long is a pause between sentences. */
+  pauseMs: 600,
+  /** A piece's WAV, at most (30 s at 16 kHz mono is 960 044 bytes). */
+  pieceBytesMax: 1 << 20,
+  /** No sound for this long: the call is over, or the bot is alone in it. */
+  silenceEndMs: 10 * 60_000,
+  /** The longest a capture runs (ADR 0199 §2's four hours). */
+  maxMs: 4 * 60 * 60_000,
+} as const;
+/** Why a capture ended, as the runner's `meeting.end` says. */
+export const MEETING_END_REASONS = ["stopped", "silence", "max", "failed"] as const;
+export type MeetingEndReason = (typeof MEETING_END_REASONS)[number];
 
 export type PhonePlatform = "android" | "ios";
 export type PhoneKind = "device" | "emulator" | "simulator";
@@ -1501,6 +1856,8 @@ export interface RunnerTerminalInfo {
 
 /** `hello.desktopUse` (protocol 21): whether agents can use their desktops here; `reason` says what is missing. */
 export type RunnerDesktopUseInfo = RunnerTerminalInfo;
+/** `hello.meetingAudio` (`MEETING_PROTOCOL`): whether this computer can hear a meeting an agent joined. */
+export type RunnerMeetingAudioInfo = RunnerTerminalInfo;
 
 /** Desktop and terminal streams (protocol 18): sizes, rates, caps and timeouts. */
 export const STREAM_LIMITS = {
@@ -1981,7 +2338,15 @@ export interface RunnerExecutorInfo {
    * Protocol 43, `grok`: the models `grok models` lists. Protocol 44, `antigravity`: the models `agy models` lists.
    */
   models?: CursorModelInfo[];
+  /**
+   * The computer's own binary it runs from instead of the PATH's, as whoever runs the computer set it there (ADR 0187);
+   * absent: the PATH's. An older server drops it.
+   */
+  binary?: string;
 }
+
+/** The longest `RunnerExecutorInfo.binary` kept. */
+export const CLI_BINARY_MAX = 4096;
 
 /** A model Cursor's CLI (`agent models`) or OpenCode's (`opencode models`) lists. */
 export interface CursorModelInfo {
@@ -2039,7 +2404,8 @@ export type WireBrainEvent =
       maxContext?: number;
     }
   | { type: "limit"; resetsAt?: string }
-  | { type: "done"; text: string; session?: { id: string }; timings?: BrainTurnTimings }
+  /** `checkpoint`: protocol 73, the turn changed files in its folder (ADR 0193). */
+  | { type: "done"; text: string; session?: { id: string }; timings?: BrainTurnTimings; checkpoint?: TurnCheckpoint }
   /**
    * `worked`: on a `plan_limit`, whether the turn used any tool before it was cut (an older runner leaves it out:
    * the engine counts that as worked).
@@ -2105,9 +2471,12 @@ export interface BrainTurnRequest {
   runId: string;
   /**
    * `cursor`: protocol 36 (`CURSOR_PROTOCOL`); `opencode`: protocol 39 (`OPENCODE_PROTOCOL`); `grok`: 43
-   * (`GROK_PROTOCOL`); `antigravity`: 44 (`ANTIGRAVITY_PROTOCOL`); `copilot`: 67 (`COPILOT_PROTOCOL`).
+   * (`GROK_PROTOCOL`); `antigravity`: 44 (`ANTIGRAVITY_PROTOCOL`); `copilot`: 67 (`COPILOT_PROTOCOL`); `acp`: 71
+   * (`ACP_ENGINE_PROTOCOL`, with `engine`).
    */
-  kind: "claude_code" | "codex" | "cursor" | "opencode" | "grok" | "antigravity" | "copilot";
+  kind: "claude_code" | "codex" | "cursor" | "opencode" | "grok" | "antigravity" | "copilot" | "acp";
+  /** `acp`: the id of the ACP agent the computer declares (`hello.executors.acp`) that runs the turn. */
+  engine?: string;
   /** The executor's session (a UUID, stable per thread); `resume`: the server knows it ran before (a hint). */
   session: { id: string; resume: boolean };
   /** Relative to the agent's folder ("" = the folder). */
@@ -2308,6 +2677,8 @@ export interface MachineAgent {
   look?: { color?: string; eyes?: string; accessory?: string };
   /** Protocol 33: language of the responsible person; absent falls back to English. */
   locale?: string;
+  /** `RELAY_PROTOCOL`: the sites another computer of the workspace opens for its browser (ADR 0203). */
+  relay?: string[];
   /** Protocol 20: the account on this machine it thinks with (system mode lends its folder to the agent's user). */
   account?: string;
   /** The other accounts here it thinks with: the team's right hand on people's own plans (ADR 0137 §11). */
@@ -2319,6 +2690,21 @@ export interface MachineAgent {
    */
   containers?: boolean;
 }
+
+/**
+ * `RELAY_PROTOCOL` (ADR 0203): an agent of the workspace that works on another computer, which a person's computer
+ * may lend its connection to; `machine` is that computer's name, so the person tells two agents of one name apart.
+ */
+export interface RelayAgent {
+  id: string;
+  handle: string;
+  name: string;
+  look?: { color?: string; eyes?: string; accessory?: string };
+  machine: string;
+}
+
+/** At most this many agents in an `agents` frame's `lendable`. */
+export const RELAY_LENDABLE_MAX = 500;
 
 /** The pause state (protocol 9). `until` null: paused until the owner resumes. */
 export interface RunnerPause {
@@ -2351,6 +2737,11 @@ export interface RunnerTools {
   desktop?: boolean;
   /** Protocol 18: terminals people open as an agent (ADR 0058). Absent = off. */
   terminal?: boolean;
+  /**
+   * Protocol 81: agents may ask to use the person's own screen on this computer (ADR 0201). Set only on the
+   * computer, never by `access.allow`. Absent = off.
+   */
+  hostDesktop?: boolean;
 }
 
 /** A folder allowed on the machine beyond the agents' own folders, and which agents use it (protocol 10). */
@@ -2372,10 +2763,20 @@ export const grantedTo = (grant: Pick<RunnerFolderGrant, "agents">, agentId: str
 export const sharedFolderOf = (access: Pick<RunnerAccess, "folders"> | null | undefined) =>
   access?.folders.find((f) => f.agents.includes(ALL_AGENTS))?.path ?? null;
 
+/** A site whose pages this computer's connection opens for some agents (`RELAY_PROTOCOL`, ADR 0203). */
+export interface RunnerRelayGrant {
+  /** A domain as `relaySite` normalizes it: it covers itself and every name under it. */
+  site: string;
+  /** Agent ids it serves; `ALL_AGENTS`: every agent; empty: listed, but no agent uses it yet. */
+  agents: string[];
+}
+
 /** What the machine allows (protocol 10). */
 export interface RunnerAccess {
   folders: RunnerFolderGrant[];
   tools: RunnerTools;
+  /** `RELAY_PROTOCOL`: the sites it lends its connection for (ADR 0203). Absent: none (older runners). */
+  relay?: RunnerRelayGrant[];
 }
 
 /** Largest pieces of access frames. */
@@ -2410,6 +2811,8 @@ export interface RunnerInfo {
     grok?: RunnerExecutorInfo;
     antigravity?: RunnerExecutorInfo;
     copilot?: RunnerExecutorInfo;
+    /** Protocol 71 (ADR 0216): the ACP agents the computer's owner declared, with the models each offered. */
+    acp?: RunnerAcpEngineInfo[];
     /**
      * `CLI_INSTALL_PROTOCOL`: a CLI that is there and whose `--version` keeps failing, with its own last line of
      * error. It is not listed above: it can't run turns, and it isn't missing either.
@@ -2430,6 +2833,10 @@ export interface RunnerInfo {
   terminal?: RunnerTerminalInfo;
   /** Protocol 21: whether agents can use their own desktops here (ADR 0062). */
   desktopUse?: RunnerDesktopUseInfo;
+  /** Protocol 81: whether agents can use the person's own desktop here (ADR 0201); absent: not here. */
+  hostDesktop?: RunnerDesktopUseInfo;
+  /** `MEETING_PROTOCOL`: whether this computer can hear a meeting an agent's browser is in (ADR 0199 §4). */
+  meetingAudio?: RunnerMeetingAudioInfo;
   /**
    * Protocol 18: `system` when each agent works as its own OS user (ADR 0058 §10); absent, every agent
    * works as the runner's own user. Who may control a desktop or open a terminal follows it (§4).
@@ -2453,6 +2860,8 @@ export interface RunnerInfo {
   authEgressGroup?: true;
   /** `KEEP_RUNNING_PROTOCOL`: the holds that live here, and those that ended lately with why (the server may not know). */
   holds?: RunnerHolds;
+  /** Protocol 82 (ADR 0202): who holds a person's lent Chrome; always sent, empty when nothing is lent. */
+  myChrome?: MyChromeLent[];
 }
 
 export interface RunnerHolds {
@@ -2484,6 +2893,62 @@ export interface AgentScope {
    * lines its commits end with. The runner hands them to git in the agent's own processes alone (`co-authors.ts`).
    */
   coAuthors?: string[];
+}
+
+/**
+ * From this protocol on (ADR 0202): the person's own Chrome. The person, on their own computer, lends one agent a
+ * Chrome they started with remote debugging (a loopback port) for a limited time, through the desktop app's control
+ * channel only: the server never connects one. While lent, `mychrome.act` opens and reads pages in tabs the runner
+ * opened for that agent (never the person's own tabs), and `mychrome.list` / `mychrome.disconnect` let the apps see
+ * and end it. Never in system mode. The server never sends these to an older runner.
+ */
+export const MY_CHROME_PROTOCOL = 82;
+/** Protocol 82: the longest one consent lasts, in minutes. */
+export const MY_CHROME_MAX_MINUTES = 8 * 60;
+/** Protocol 82: the most page text one `read` returns. */
+export const MY_CHROME_TEXT_MAX = 20_000;
+
+/** Protocol 82: what an agent does in the person's Chrome: open a web page in its own tab, or read that tab. */
+export type MyChromeAction = { kind: "open"; url: string } | { kind: "read" };
+
+/** Protocol 82: a tab the runner opened for the agent in the person's Chrome. */
+export interface MyChromeTab {
+  url: string;
+  title: string;
+}
+
+/**
+ * Protocol 82: who holds a person's lent Chrome now, as the server keeps it (`hello.myChrome`, `mychrome.changed`):
+ * the agent and when the consent ends. Never the port, the tabs or the pages.
+ */
+export interface MyChromeLent {
+  agentId: string;
+  expiresAt: string;
+}
+
+/** The lent Chromes a runner reports: real agent ids and dates only, at most one per agent. */
+export function parseMyChromeLent(v: unknown[]): MyChromeLent[] {
+  const out: MyChromeLent[] = [];
+  for (const item of v.slice(0, 100)) {
+    if (!isObject(item) || !isUuid(item.agentId) || !isString(item.expiresAt)) continue;
+    const at = Date.parse(item.expiresAt);
+    if (!Number.isFinite(at) || out.some((l) => l.agentId === item.agentId)) continue;
+    out.push({ agentId: item.agentId, expiresAt: new Date(at).toISOString() });
+  }
+  return out;
+}
+
+/** Protocol 82: one agent's use of the person's Chrome. */
+export interface MyChromeSession {
+  agentId: string;
+  /** The loopback port the person named. */
+  port: number;
+  /** Chrome's own product line (`Chrome/150.0.0.0`). */
+  browser: string;
+  connectedAt: string;
+  /** The consent ends here: the runner disconnects by itself. */
+  expiresAt: string;
+  tabs: MyChromeTab[];
 }
 
 /** What the server asks. Paths are always relative to the workspace (the agent's folder when `agent` is set). */
@@ -2521,6 +2986,8 @@ export type MachineRequest = (
   | ({ op: "brain.steer" } & BrainSteerRequest)
   /** Protocol 24: a plan picks who answers a message (ADR 0074); the request's agent is the one it is lent to. */
   | ({ op: "brain.route" } & BrainRouteRequest)
+  /** Protocol 73: a turn's files back as before it, or as it left them (ADR 0193). */
+  | ({ op: "checkpoint.restore" } & CheckpointRestoreRequest)
   /** Protocol 11: clone or update the agent's checkouts through our git proxy. */
   | ({ op: "git.sync" } & GitSyncRequest)
   /** Protocol 14: the mission's worktree (ADR 0044). */
@@ -2589,6 +3056,15 @@ export type MachineRequest = (
    * socket `streamId` names and answers once the server took it (`BROWSER_VIEW_PROTOCOL`).
    */
   | { op: "browser.view.open"; streamId: string }
+  /**
+   * `RELAY_PROTOCOL` (ADR 0203): this computer lends its connection to `agentId` for one tunnel: it dials the data
+   * socket `streamId` names and answers once the server took it; the `CONNECT` it serves comes through that socket.
+   */
+  | { op: "relay.open"; streamId: string; agentId: string }
+  /** `MEETING_PROTOCOL`: hear the meeting the agent's browser is in, its pieces on the data socket `streamId`. */
+  | { op: "meeting.listen"; meetingId: string; streamId: string }
+  /** `MEETING_PROTOCOL`: stop hearing it (what was captured goes first, then `meeting.end`). */
+  | { op: "meeting.stop"; meetingId: string }
   | { op: "browser.stream.stop" }
   /** Protocol 12: a person's input during a take over, in order. */
   | { op: "browser.input"; events: BrowserInputEvent[] }
@@ -2611,6 +3087,10 @@ export type MachineRequest = (
   | { op: "browser.warm"; desktop?: boolean }
   /** Protocol 34: stops a browser profile's Chrome and removes its folder (the profile was deleted). */
   | { op: "browser.profile.delete" }
+  /** `BROWSER_SITES_PROTOCOL`: the profile's signed-in sites (its Chrome starts when it isn't running). */
+  | { op: "browser.sites" }
+  /** `BROWSER_SITES_PROTOCOL`: the profile signs out of `site` (`BROWSER_SITE_HOST`): its cookies and stored data. */
+  | { op: "browser.sites.forget"; site: string }
   /** Protocol 18: starts the agent's desktop; when it runs already, only marks it used (idempotent). */
   | { op: "desktop.session.start" }
   /** Protocol 18: ends the agent's desktop, and its browser on it. */
@@ -2695,10 +3175,23 @@ export type MachineRequest = (
   | { op: "cli.install"; action: "start" | "status" | "cancel"; tool?: InstallableCli }
   /** `IPHONE_DEV_MODE_PROTOCOL`: open Xcode on this Mac (it shows Developer Mode on a plugged iPhone). */
   | { op: "xcode.open" }
+  /** `MCP_STDIO_PROTOCOL` (ADR 0215): one MCP operation of a stdio program, for the request's agent. */
+  | { op: "mcp.stdio"; server: McpStdioServer; call: McpStdioCall; timeoutSeconds: number }
+  /** Protocol 82 (ADR 0202): open or read a page in the request agent's tab of the person's Chrome. `allowedDomains`: its sites. */
+  | { op: "mychrome.act"; action: MyChromeAction; allowedDomains?: string[] }
+  /** Protocol 82: who uses the person's Chrome now. */
+  | { op: "mychrome.list" }
+  /** Protocol 82: end one agent's use of it (`agentId`), or every one. Its tabs stay, the person's. */
+  | { op: "mychrome.disconnect"; agentId?: string }
+  /** `LOCAL_CONFIG_PROTOCOL`: the MCP servers and skills its person set up for their coding tools, read now. */
+  | { op: "local.config" }
 ) & {
   agent?: AgentScope;
-  /** Protocol 34: a `browser.*` op in this browser profile's session instead of the agent's (ADR 0110). */
-  profile?: { id: string };
+  /**
+   * Protocol 34: a `browser.*` op in this browser profile's session instead of the agent's (ADR 0110). `personal`
+   * (protocol 70): a person's own browser of `agent`, whose files stay in that agent's folder.
+   */
+  profile?: { id: string; personal?: true };
 };
 
 /** One command of a `browser.batch` (protocol 17). */
@@ -2742,11 +3235,14 @@ export const MACHINE_OPS: readonly MachineOp[] = [
   "browser.capture",
   "browser.warm",
   "browser.profile.delete",
+  "browser.sites",
+  "browser.sites.forget",
   "desktop.session.start",
   "desktop.session.stop",
   "desktop.session.status",
   "stream.open",
   "browser.view.open",
+  "relay.open",
   "desktop.look",
   "desktop.act",
   "desktop.capture",
@@ -2775,6 +3271,14 @@ export const MACHINE_OPS: readonly MachineOp[] = [
   "clis.check",
   "cli.install",
   "xcode.open",
+  "mcp.stdio",
+  "checkpoint.restore",
+  "mychrome.act",
+  "mychrome.list",
+  "mychrome.disconnect",
+  "local.config",
+  "meeting.listen",
+  "meeting.stop",
 ];
 
 /** What each op answers with `ok: true`. */
@@ -2839,6 +3343,7 @@ export interface MachineReplies {
   "brain.turn": { runId: string; final: WireBrainEvent };
   "brain.steer": BrainSteerReply;
   "brain.route": BrainRouteReply;
+  "checkpoint.restore": CheckpointRestoreReply;
   "git.sync": { repos: GitSyncRepo[] };
   /** `remove` answers `{ removed }` (`false`: the folder was already gone). */
   "mission.worktree": Partial<MissionWorktreeEnsured> & { removed?: boolean };
@@ -2880,6 +3385,10 @@ export interface MachineReplies {
   /** `false`: nothing was started (it runs or starts already, a person has the browser, or no room). */
   "browser.warm": { started: boolean; setup?: BrowserSetup };
   "browser.profile.delete": { deleted: boolean };
+  /** Sorted by site. */
+  "browser.sites": { sites: BrowserSite[] };
+  /** What went (cookies deleted, origins cleared) and the sites after. */
+  "browser.sites.forget": { cookies: number; storage: number; sites: BrowserSite[] };
   /**
    * The page as a JPEG (base64), its size in pixels, the page's size in CSS
    * pixels, and its numbered elements with their boxes (CSS pixels).
@@ -2900,6 +3409,7 @@ export interface MachineReplies {
   "desktop.session.status": { running: boolean; startedAt?: string; lastUsedAt?: string; streams: number };
   "stream.open": { opened: true };
   "browser.view.open": { opened: true };
+  "relay.open": { opened: true };
   "desktop.look": DesktopLookReply;
   /** `look` with `settle`; `settled: false`: the screen kept changing until the wait's cap. */
   "desktop.act": { look?: DesktopLookReply; settled?: boolean };
@@ -2946,6 +3456,24 @@ export interface MachineReplies {
   "clis.check": { executors: NonNullable<RunnerInfo["executors"]> };
   "cli.install": { install: CliInstall | null };
   "xcode.open": { opened: boolean };
+  /**
+   * Who the program said it is in `initialize`, and the call's answer: every tool for `tools/list`, the MCP result
+   * (`content`, `isError`, `structuredContent`) for `tools/call`, with the agent's secret values redacted.
+   */
+  "mcp.stdio": {
+    serverInfo: { name?: string; title?: string; version?: string } | null;
+    tools?: McpStdioTool[];
+    result?: { content?: unknown[]; isError?: boolean; structuredContent?: unknown };
+  };
+  /** `open`: where the tab ended up; `read`: also its text (at most `MY_CHROME_TEXT_MAX` characters). */
+  "mychrome.act": MyChromeTab & { text?: string; truncated?: boolean };
+  "mychrome.list": { sessions: MyChromeSession[] };
+  "mychrome.disconnect": { disconnected: number };
+  "local.config": LocalConfig;
+  /** The capture runs; its pieces come on the data socket. */
+  "meeting.listen": { listening: true };
+  /** `false`: no capture of that meeting ran. */
+  "meeting.stop": { stopped: boolean };
 }
 
 /** An element numbered on a `browser.capture` image: its ref and box (CSS pixels). */
@@ -3017,6 +3545,8 @@ export type MachineErrorCode =
    * push to the default branch, a deploy); the message says why and what the agent can do. Nothing ran.
    */
   | "approval_needed"
+  /** `MCP_STDIO_PROTOCOL`: the program didn't answer before the call's deadline; it was stopped. Older servers read it like `internal`. */
+  | "timed_out"
   /**
    * Protocol 50: this runner can't do it the way it was asked (a Claude sign-in `method` it can't use here); the
    * message says why. Older servers read it like `internal`.
@@ -3071,7 +3601,7 @@ export type ServerFrame =
    * at it), sent after `welcome` and again whenever the list or a name/look
    * changes. The runner shows them in the desktop app.
    */
-  | { type: "agents"; agents: MachineAgent[]; deleted?: string[] }
+  | { type: "agents"; agents: MachineAgent[]; deleted?: string[]; lendable?: RelayAgent[] }
   /**
    * Protocol 12: a request for help or a person in control in an agent's
    * browser started, changed or ended (`handoff: null`); sent again on
@@ -3079,6 +3609,9 @@ export type ServerFrame =
    * runners ignore it.
    */
   | { type: "browser.handoff"; agentId: string; handoff: BrowserHandoffInfo | null }
+  /** `RELAY_PROTOCOL`: the answer to a `relay.want`: the data socket to dial for that tunnel, or why there is none. */
+  | { type: "relay.ready"; callId: string; ok: true; streamId: string }
+  | { type: "relay.ready"; callId: string; ok: false; error: { code: RelayRefusal; message: string } }
   /** The server closes after sending this (bad token, revoked, outdated runner). */
   | { type: "refused"; reason: "invalid_token" | "revoked" | "outdated" | "replaced"; message: string };
 
@@ -3145,6 +3678,8 @@ export type RunnerFrame =
   | { type: "executors.changed"; executors: NonNullable<RunnerInfo["executors"]> }
   /** What `hello.toolchains` said changed (an Apple team found, Xcode updated), whole. An older server drops it. */
   | { type: "toolchains.changed"; toolchains: RunnerToolchains }
+  /** Protocol 82 (ADR 0202): who holds a person's lent Chrome changed (lent, ended, ran out), whole. */
+  | { type: "mychrome.changed"; lent: MyChromeLent[] }
   /** `PHONES_PROTOCOL`: the phones it reaches changed (one came or went, a state or a holder changed), whole. */
   | { type: "phones.changed"; phones: RunnerPhone[] }
   /**
@@ -3170,7 +3705,9 @@ export type RunnerFrame =
   /** The same on the agent's desktop (ADR 0062), in the screen's pixels: desktop use, and its browser's window there. */
   | ({ type: "desktop.pointer"; agentId: string } & AgentPointer)
   /** `KEEP_RUNNING_PROTOCOL`: a hold ended on the computer by itself (the next `hello` says so again). */
-  | { type: "keep.ended"; holdId: string; reason: HoldEnd };
+  | { type: "keep.ended"; holdId: string; reason: HoldEnd }
+  /** `RELAY_PROTOCOL`: an agent's browser opens `host` through a person's computer: a tunnel, answered `relay.ready`. */
+  | { type: "relay.want"; callId: string; agentId: string; host: string };
 
 /** A tool as `mcp.tools` lists it (what MCP `tools/list` returns). */
 export interface McpToolInfo {
@@ -3370,7 +3907,8 @@ export function parseCursorModels(v: unknown): CursorModelInfo[] {
 
 /**
  * `hello.executors`: only `claude`, `codex`, `cursor`, `opencode`, `grok`, `antigravity` and `copilot`, each with a short version
- * line (and Claude Code's login), and `broken`: the error line of each of them that is there and can't start.
+ * line (and Claude Code's login, and the computer's own binary it runs from), and `broken`: the error line of each of
+ * them that is there and can't start.
  */
 export function parseExecutors(v: Record<string, unknown>): NonNullable<RunnerInfo["executors"]> {
   const out: NonNullable<RunnerInfo["executors"]> = {};
@@ -3380,11 +3918,20 @@ export function parseExecutors(v: Record<string, unknown>): NonNullable<RunnerIn
     if (!isObject(e) || !isString(e.version)) continue;
     const authMethod = word(e.authMethod);
     const plan = word(e.plan);
+    // A path as the runner's config holds it: absolute, one line, no control characters.
+    const binary =
+      isString(e.binary) &&
+      e.binary.length <= CLI_BINARY_MAX &&
+      ![...e.binary].some((c) => c.charCodeAt(0) < 0x20 || c.charCodeAt(0) === 0x7f) &&
+      /^(?:\/|[a-zA-Z]:[\\/]|\\\\)/.test(e.binary)
+        ? e.binary
+        : undefined;
     out[name] = {
       version: e.version.replace(/\s+/g, " ").trim().slice(0, 80),
       ...(typeof e.loggedIn === "boolean" ? { loggedIn: e.loggedIn } : {}),
       ...(authMethod ? { authMethod } : {}),
       ...(plan ? { plan } : {}),
+      ...(binary ? { binary } : {}),
     };
     const models = name === "claude" || name === "codex" ? [] : parseCursorModels(e.models);
     if (models.length) out[name] = { ...out[name], models } as RunnerExecutorInfo;
@@ -3396,6 +3943,22 @@ export function parseExecutors(v: Record<string, unknown>): NonNullable<RunnerIn
       if (!out[name] && isString(said)) broken[name] = said.replace(/\s+/g, " ").trim().slice(0, CLI_ERROR_MAX);
     }
     if (Object.keys(broken).length) out.broken = broken;
+  }
+  const acp = parseAcpEngines(v.acp);
+  if (acp.length) out.acp = acp;
+  return out;
+}
+
+/** `hello.executors.acp` (protocol 71): ids checked and unique, names cut, at most `ACP_ENGINE_LIMITS.engines`. */
+export function parseAcpEngines(v: unknown): RunnerAcpEngineInfo[] {
+  if (!Array.isArray(v)) return [];
+  const out: RunnerAcpEngineInfo[] = [];
+  for (const e of v) {
+    if (!isObject(e) || !isAcpEngineId(e.id) || out.some((x) => x.id === e.id)) continue;
+    const name = isString(e.name) ? e.name.replace(/\s+/g, " ").trim().slice(0, ACP_ENGINE_LIMITS.name) : "";
+    const models = parseCursorModels(e.models);
+    out.push({ id: e.id, name: name || e.id, ...(models.length ? { models } : {}) });
+    if (out.length >= ACP_ENGINE_LIMITS.engines) break;
   }
   return out;
 }
@@ -3496,6 +4059,17 @@ const cutJson = (v: unknown, max: number): unknown => {
 };
 
 /** One `brain.event` event, checked and cut; null when it isn't one. */
+/** A `done` event's `checkpoint` from the runner, checked and cut to `CHECKPOINT_LIMITS`; null when it isn't one. */
+export function parseTurnCheckpoint(v: unknown): TurnCheckpoint | null {
+  if (!isObject(v) || !isCheckpointId(v.id) || !Array.isArray(v.paths)) return null;
+  const count = finite(v.count);
+  if (count === undefined || count < 1) return null;
+  const paths = v.paths
+    .filter((p): p is string => isString(p) && p.length > 0 && p.length <= CHECKPOINT_LIMITS.path)
+    .slice(0, CHECKPOINT_LIMITS.paths);
+  return { id: v.id, count: Math.min(Math.round(count), 1_000_000), paths };
+}
+
 export function parseBrainEvent(v: unknown): WireBrainEvent | null {
   if (!isObject(v) || !isString(v.type)) return null;
   const num = (x: unknown) => Math.max(0, Math.round(finite(x) ?? 0));
@@ -3542,10 +4116,12 @@ export function parseBrainEvent(v: unknown): WireBrainEvent | null {
       const t = isObject(v.timings) && typeof v.timings.warm === "boolean" ? v.timings : null;
       const initMs = ms(t?.initMs);
       const firstEventMs = ms(t?.firstEventMs);
+      const checkpoint = parseTurnCheckpoint(v.checkpoint);
       return {
         type: "done",
         text: v.text.slice(0, BRAIN_LIMITS.doneText),
         ...(session ? { session } : {}),
+        ...(checkpoint ? { checkpoint } : {}),
         ...(t
           ? {
               timings: {
@@ -3654,6 +4230,8 @@ export function parseRunnerFrame(raw: string): RunnerFrame | null {
         ...(isObject(f.desktop) ? { desktop: parseDesktopInfo(f.desktop) } : {}),
         ...(isObject(f.terminal) ? { terminal: parseAvailability(f.terminal) } : {}),
         ...(isObject(f.desktopUse) ? { desktopUse: parseAvailability(f.desktopUse) } : {}),
+        ...(isObject(f.hostDesktop) ? { hostDesktop: parseAvailability(f.hostDesktop) } : {}),
+        ...(isObject(f.meetingAudio) ? { meetingAudio: parseAvailability(f.meetingAudio) } : {}),
         ...(f.mode === "system" ? { mode: "system" as const } : {}),
         ...(isObject(f.ownUsage) ? { ownUsage: parseOwnUsage(f.ownUsage) } : {}),
         ...(size ? { size } : {}),
@@ -3665,6 +4243,7 @@ export function parseRunnerFrame(raw: string): RunnerFrame | null {
         ...(Array.isArray(f.phones) ? { phones: parsePhones(f.phones) } : {}),
         ...(isObject(f.toolchains) ? { toolchains: parseToolchains(f.toolchains) } : {}),
         ...(isObject(f.holds) ? { holds: parseHolds(f.holds) } : {}),
+        ...(Array.isArray(f.myChrome) ? { myChrome: parseMyChromeLent(f.myChrome) } : {}),
       };
     }
     case "keep.ended": {
@@ -3734,6 +4313,8 @@ export function parseRunnerFrame(raw: string): RunnerFrame | null {
       return isObject(f.executors) ? { type: "executors.changed", executors: parseExecutors(f.executors) } : null;
     case "toolchains.changed":
       return isObject(f.toolchains) ? { type: "toolchains.changed", toolchains: parseToolchains(f.toolchains) } : null;
+    case "mychrome.changed":
+      return Array.isArray(f.lent) ? { type: "mychrome.changed", lent: parseMyChromeLent(f.lent) } : null;
     case "access.decided": {
       if (!isString(f.requestId)) return null;
       const decision = (["granted", "denied", "expired"] as const).find((d) => d === f.decision);
@@ -3857,6 +4438,11 @@ export function parseRunnerFrame(raw: string): RunnerFrame | null {
         ...(isRunToolToken(f.token) ? { token: f.token } : {}),
       };
     }
+    case "relay.want": {
+      const host = isString(f.host) ? relayHost(f.host) : null;
+      if (!isString(f.callId) || !f.callId || !isString(f.agentId) || !f.agentId || !host) return null;
+      return { type: "relay.want", callId: f.callId.slice(0, 64), agentId: f.agentId.slice(0, 64), host };
+    }
     case "mcp.list":
       if (!isString(f.callId) || !isString(f.taskId) || !isRunToolToken(f.token)) return null;
       return { type: "mcp.list", callId: f.callId.slice(0, 64), taskId: f.taskId.slice(0, 64), token: f.token };
@@ -3883,6 +4469,7 @@ const SERVER_FRAME_TYPES = [
   "mcp.tools",
   "agents",
   "browser.handoff",
+  "relay.ready",
 ];
 
 /** Parses a server frame (runner side); null when it isn't one. */
@@ -3904,6 +4491,7 @@ export function parseServerFrame(raw: string): ServerFrame | null {
   if ((f.type === "mcp.result" || f.type === "mcp.tools") && !isString(f.callId)) return null;
   if (f.type === "mcp.tools" && f.ok === true && !Array.isArray(f.tools)) return null;
   if (f.type === "agents" && !Array.isArray(f.agents)) return null;
+  if (f.type === "relay.ready" && (!isString(f.callId) || (f.ok === true && !isStreamId(f.streamId)))) return null;
   if (f.type === "browser.handoff" && (!isString(f.agentId) || (f.handoff !== null && !isObject(f.handoff)))) {
     return null;
   }
@@ -4307,8 +4895,10 @@ export function parseAccess(v: unknown): RunnerAccess | undefined {
       : [];
     folders.push({ path: f.path.slice(0, ACCESS_LIMITS.path), agents });
   }
+  const relay = parseRelayGrants(v.relay);
   return {
     folders,
+    ...(relay ? { relay } : {}),
     tools: {
       claude: t.claude === true,
       codex: t.codex === true,
@@ -4326,6 +4916,7 @@ export function parseAccess(v: unknown): RunnerAccess | undefined {
       ...(t.browser === true ? { browser: true } : {}),
       ...(t.desktop === true ? { desktop: true } : {}),
       ...(t.terminal === true ? { terminal: true } : {}),
+      ...(t.hostDesktop === true ? { hostDesktop: true } : {}),
     },
   };
 }
@@ -4650,4 +5241,238 @@ export function parseToolNotice(f: Record<string, unknown>): ToolNotice | null {
     outputFile,
     ...(moved === true ? { moved } : {}),
   };
+}
+
+/** A piece of meeting audio (`MEETING_PROTOCOL`): its order, where it starts in the call and how long it is. */
+export interface MeetingPieceHeader {
+  seq: number;
+  startMs: number;
+  ms: number;
+}
+
+const MEETING_PIECE_VERSION = 1;
+const MEETING_PIECE_HEADER_MAX = 1024;
+
+/**
+ * A piece as bytes on its data socket (ADR 0199 §4): a version byte (1), the header's length (4 bytes, big endian),
+ * the header as UTF-8 JSON, then the piece as a WAV file.
+ */
+export function encodeMeetingPiece(header: MeetingPieceHeader, wav: Uint8Array): Uint8Array {
+  const head = new TextEncoder().encode(JSON.stringify({ seq: header.seq, startMs: header.startMs, ms: header.ms }));
+  const out = new Uint8Array(5 + head.byteLength + wav.byteLength);
+  out[0] = MEETING_PIECE_VERSION;
+  new DataView(out.buffer).setUint32(1, head.byteLength);
+  out.set(head, 5);
+  out.set(wav, 5 + head.byteLength);
+  return out;
+}
+
+const count = (v: unknown, max = Number.MAX_SAFE_INTEGER) =>
+  typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= max ? v : undefined;
+
+/** A piece's bytes (`encodeMeetingPiece`), checked; null when they aren't one or pass `MEETING_AUDIO`'s limits. */
+export function decodeMeetingPiece(bytes: Uint8Array): (MeetingPieceHeader & { wav: Uint8Array }) | null {
+  if (bytes.byteLength < 6 || bytes[0] !== MEETING_PIECE_VERSION) return null;
+  const length = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(1);
+  if (length > MEETING_PIECE_HEADER_MAX || 5 + length >= bytes.byteLength) return null;
+  const wav = bytes.subarray(5 + length);
+  if (wav.byteLength > MEETING_AUDIO.pieceBytesMax) return null;
+  let f: unknown;
+  try {
+    f = JSON.parse(new TextDecoder().decode(bytes.subarray(5, 5 + length)));
+  } catch {
+    return null;
+  }
+  if (!isObject(f)) return null;
+  const seq = count(f.seq);
+  const startMs = count(f.startMs, MEETING_AUDIO.maxMs);
+  const ms = count(f.ms, MEETING_AUDIO.pieceMaxMs);
+  if (seq === undefined || startMs === undefined || ms === undefined) return null;
+  return { seq, startMs, ms, wav };
+}
+
+/** The runner's last text frame on a meeting's data socket: why its capture ended. Null for anything else. */
+export function parseMeetingEnd(raw: string): { reason: MeetingEndReason } | null {
+  if (raw.length > 1024) return null;
+  let f: unknown;
+  try {
+    f = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (!isObject(f) || f.type !== "meeting.end") return null;
+  const reason = MEETING_END_REASONS.find((r) => r === f.reason);
+  return reason ? { reason } : null;
+}
+
+// ── Sites through a person's computer (ADR 0203) ────────────────────────────
+
+/** The limits of what a computer lends its connection for, and of one tunnel. */
+export const RELAY_LIMITS = {
+  /** Sites one computer lends its connection for. */
+  sites: 50,
+  /** A site's length (a domain's). */
+  site: 253,
+  /** Agents per site. */
+  agentsPerSite: 100,
+  /** The head of a tunnel's request (`CONNECT host:443 HTTP/1.1` and its headers). */
+  headBytes: 8 * 1024,
+  /** How long the head may take to arrive. */
+  headTimeoutMs: 10_000,
+  /** How long the server keeps one end of a tunnel waiting for the other. */
+  pairTimeoutMs: 15_000,
+  /** Tunnels one computer serves at once. */
+  tunnels: 16,
+  /** Bytes one tunnel carries, both ways together. */
+  tunnelBytes: 512 * 1024 * 1024,
+  /** A tunnel with nothing sent either way for this long ends. */
+  idleMs: 5 * 60_000,
+  /** The only port a tunnel reaches: what goes through is TLS between the agent's browser and the site. */
+  port: 443,
+} as const;
+
+/** Why a `relay.want` got no tunnel. */
+export type RelayRefusal = "relay_none" | "relay_offline" | "relay_refused";
+
+/** Names that only mean something on a local network: never lent, whatever the person types. */
+const LOCAL_NAMES = ["localhost", "local", "localdomain", "internal", "intranet", "home.arpa", "lan", "home", "corp"];
+const LABEL = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+
+/**
+ * A host name as a tunnel names it: lower case, no trailing dot, two labels or more of letters, digits and hyphens.
+ * Null for anything else: an IP address, a local name (`localhost`, `printer.local`), a port or a path.
+ */
+export function relayHost(input: string): string | null {
+  const host = input.trim().toLowerCase().replace(/\.$/, "");
+  if (!host || host.length > RELAY_LIMITS.site) return null;
+  const labels = host.split(".");
+  if (labels.length < 2 || !labels.every((l) => LABEL.test(l))) return null;
+  // A last label of digits is an IPv4 address (or nothing a public site is named).
+  if (/^\d+$/.test(labels[labels.length - 1] as string)) return null;
+  if (LOCAL_NAMES.some((n) => host === n || host.endsWith(`.${n}`))) return null;
+  return host;
+}
+
+/**
+ * A site as a person types it (`https://www.example.com/jobs`, `*.example.com`, `Example.com.`), as stored:
+ * `www.example.com`, `example.com`. Null when it names no public site.
+ */
+export function relaySite(input: string): string | null {
+  let s = input.trim().toLowerCase();
+  s = s.replace(/^[a-z][a-z0-9+.-]*:\/\//, "");
+  s = s.split(/[/?#]/, 1)[0] ?? "";
+  if (s.includes("@") || s.includes("[")) return null;
+  s = s.replace(/:\d{1,5}$/, "");
+  if (s.startsWith("*.")) s = s.slice(2);
+  return relayHost(s);
+}
+
+/** Whether `host` is one of `sites` or a name under one at a dot (`example.com` covers `www.example.com`). */
+export function relayCovers(host: string, sites: readonly string[]): boolean {
+  const h = relayHost(host);
+  if (!h) return false;
+  return sites.some((site) => h === site || h.endsWith(`.${site}`));
+}
+
+/** The sites `access` lends to `agentId` (by its id, or to every agent). */
+export function relaySitesFor(access: Pick<RunnerAccess, "relay"> | null | undefined, agentId: string): string[] {
+  const out: string[] = [];
+  for (const g of access?.relay ?? []) if (grantedTo(g, agentId) && !out.includes(g.site)) out.push(g.site);
+  return out;
+}
+
+/** An `agents` frame's `lendable` as the server said it, checked and cut; undefined when it isn't a list. */
+export function parseRelayAgents(v: unknown): RelayAgent[] | undefined {
+  if (!Array.isArray(v)) return undefined;
+  const text = (x: unknown, max: number) => (isString(x) ? x.slice(0, max) : "");
+  const out: RelayAgent[] = [];
+  for (const a of v.slice(0, RELAY_LENDABLE_MAX)) {
+    if (!isObject(a) || !isString(a.id) || !a.id || out.some((x) => x.id === a.id)) continue;
+    const look = isObject(a.look)
+      ? Object.fromEntries(
+          (["color", "eyes", "accessory"] as const)
+            .filter((k) => text((a.look as Record<string, unknown>)[k], 40))
+            .map((k) => [k, text((a.look as Record<string, unknown>)[k], 40)]),
+        )
+      : {};
+    out.push({
+      id: a.id.slice(0, 64),
+      handle: text(a.handle, 64),
+      name: text(a.name, 100) || text(a.handle, 64),
+      ...(Object.keys(look).length > 0 ? { look } : {}),
+      machine: text(a.machine, 100),
+    });
+  }
+  return out;
+}
+
+/** `access.relay` as a runner said it, checked and cut; undefined when it isn't a list. */
+export function parseRelayGrants(v: unknown): RunnerRelayGrant[] | undefined {
+  if (!Array.isArray(v)) return undefined;
+  const out: RunnerRelayGrant[] = [];
+  for (const g of v) {
+    if (out.length >= RELAY_LIMITS.sites) break;
+    if (!isObject(g) || !isString(g.site)) continue;
+    const site = relaySite(g.site);
+    if (!site || out.some((x) => x.site === site)) continue;
+    const agents = Array.isArray(g.agents)
+      ? [...new Set(g.agents.filter(isString).map((a) => a.slice(0, 64)))].slice(0, RELAY_LIMITS.agentsPerSite)
+      : [];
+    out.push({ site, agents });
+  }
+  return out;
+}
+
+/**
+ * The proxy script for an agent's Chrome (`--proxy-pac-url`): `https` pages of `sites` go to the entrance on
+ * `127.0.0.1:<port>`, everything else straight. As a `data:` address, so no file or listener serves it.
+ */
+export function relayPac(sites: readonly string[], port: number): string {
+  const listed = sites.map((s) => relaySite(s)).filter((s): s is string => s !== null);
+  const script = [
+    "function FindProxyForURL(url, host) {",
+    '  if (url.substring(0, 6) !== "https:") return "DIRECT";',
+    "  host = host.toLowerCase();",
+    `  var sites = ${JSON.stringify(listed)};`,
+    "  for (var i = 0; i < sites.length; i++) {",
+    `    if (host === sites[i] || dnsDomainIs(host, "." + sites[i])) return "PROXY 127.0.0.1:${Math.trunc(port)}";`,
+    "  }",
+    '  return "DIRECT";',
+    "}",
+  ].join("\n");
+  return `data:application/x-ns-proxy-autoconfig;base64,${btoa(script)}`;
+}
+
+/** The head of a tunnel's request: still coming, refused, or a `CONNECT` to `host:port` that took `length` bytes. */
+export type ConnectHead =
+  | { status: "partial" }
+  | { status: "bad"; reason: string }
+  | { status: "ok"; host: string; port: number; length: number };
+
+const HEAD_END = [13, 10, 13, 10];
+
+/**
+ * Reads what arrived so far as an HTTP `CONNECT` request (RFC 9110 §9.3.6): only `CONNECT <name>:<port> HTTP/1.x`,
+ * a name as `relayHost` takes it (never an address), at most `RELAY_LIMITS.headBytes`.
+ */
+export function readConnectHead(bytes: Uint8Array): ConnectHead {
+  let end = -1;
+  for (let i = 0; i + 3 < bytes.length && i < RELAY_LIMITS.headBytes; i++) {
+    if (HEAD_END.every((b, k) => bytes[i + k] === b)) {
+      end = i;
+      break;
+    }
+  }
+  if (end < 0) {
+    return bytes.length >= RELAY_LIMITS.headBytes ? { status: "bad", reason: "head too long" } : { status: "partial" };
+  }
+  let line = "";
+  for (let i = 0; i < end && bytes[i] !== 13; i++) line += String.fromCharCode(bytes[i] as number);
+  const m = /^CONNECT ([^\s:]+):(\d{1,5}) HTTP\/1\.[01]$/.exec(line);
+  if (!m) return { status: "bad", reason: "not a CONNECT" };
+  const host = relayHost(m[1] as string);
+  if (!host) return { status: "bad", reason: "not a site's name" };
+  const port = Number(m[2]);
+  if (port < 1 || port > 65535) return { status: "bad", reason: "bad port" };
+  return { status: "ok", host, port, length: end + 4 };
 }

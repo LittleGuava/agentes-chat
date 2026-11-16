@@ -20,6 +20,7 @@ import { dropAgentRules } from "./approval-rules";
 import { answersOthers, audienceOf, canTalkTo, speakerFor } from "./audience";
 import { recordAudit } from "./audit";
 import { type AutonomySettings, autonomySettings, chosenAutonomy } from "./autonomy-settings";
+import { apiModelRefusal, orgBrainPolicy } from "./brain-policy";
 import { isComputerBrain } from "./brains/types";
 import { caches } from "./cache";
 import { modelInfoFor, usableCredentialRow } from "./credentials";
@@ -94,6 +95,8 @@ export interface AgentInput {
   monthlyBudgetNanoUsd?: number | null;
   /** It may follow a light reply with a sticker or a GIF (ADR 0091), as often as the workspace allows. */
   mediaReplies?: boolean;
+  /** The voice its replies are read aloud in (ADR 0209); null = the server's default. */
+  readAloudVoice?: string | null;
   /** Its autonomy brakes (ADR 0131), stored as `autonomySettings` reads them. */
   autonomyBrakes?: Partial<AutonomySettings>;
   /** How much it asks before acting (ADR 0173). */
@@ -125,6 +128,11 @@ export async function validateAgentFields(db: Database, orgId: string, input: Pa
     throw new ValidationError(
       `model must be ${AUTO_MODEL}, one of: ${Object.keys(MODEL_CATALOG).join(", ")}, or one OpenRouter lists`,
     );
+  }
+  // The workspace's rule on the API's providers and models (ADR 0191); Automático's pick is checked when it is made.
+  if (input.model !== undefined && model) {
+    const refused = apiModelRefusal(await orgBrainPolicy(db, orgId), input.model);
+    if (refused) throw refused;
   }
   if (input.monthlyBudgetNanoUsd != null && input.monthlyBudgetNanoUsd < 0) {
     throw new ValidationError("budget can't be negative");
@@ -164,11 +172,13 @@ export const NEW_AGENT_DEFAULTS = { model: AUTO_MODEL } as const;
  * An agent's "Quem pensa" and its Autonomia as new agents take them (ADR 0094). Who it answers stays out: a new agent
  * on a plan answers only its owner (ADR 0059 §5).
  */
-export function setupOfAgent(a: Agent): schema.AgentSetup {
+export function setupOfAgent(a: Agent): schema.AgentSetup | null {
   const autonomy = a.missionCommandApproval;
   if (!isComputerBrain(a.brain)) {
     return { brain: "model", model: a.model, key: a.credentialId, contextTokens: a.contextTokens, autonomy };
   }
+  // An ACP agent is one its computer declares (ADR 0216): no setup a new agent could start from.
+  if (a.brain === "acp") return null;
   return {
     brain: a.brain,
     model: a.brainModel,
@@ -204,7 +214,8 @@ export async function workspaceHomeId(db: Executor, orgId: string): Promise<stri
  * Only whoever creates agents sets it (they start from it), and one on the API only an admin: only admins change an
  * agent's API model and key.
  */
-export async function rememberAgentSetup(db: Executor, membership: Membership, setup: schema.AgentSetup) {
+export async function rememberAgentSetup(db: Executor, membership: Membership, setup: schema.AgentSetup | null) {
+  if (!setup) return;
   if (!can(membership, "create_agents") || (setup.brain === "model" && !can(membership, "manage_agents"))) return;
   await db
     .insert(schema.organizationSettings)
@@ -229,8 +240,11 @@ export async function createAgent(
     setup?: { role: string | null } & SetupExtras;
   },
   defaults: { model: string },
-  /** `via`: the agent whose card it was created from (the audit's "via"). */
-  options: { remember?: boolean; via?: string; pubsub?: PubSub } = {},
+  /**
+   * `via`: the agent whose card it was created from (the audit's "via"). `duplicateOf`: the agent it is a copy of
+   * ("Duplicar", `duplicateAgent`), in the audit's details.
+   */
+  options: { remember?: boolean; via?: string; duplicateOf?: string; pubsub?: PubSub } = {},
 ): Promise<Agent> {
   const membership = await requirePermission(db, actorId, orgId, "create_agents");
   const { autonomy, audienceMode, setup, ...fields } = input;
@@ -356,6 +370,7 @@ export async function createAgent(
         ...(autonomy ? { autonomy } : {}),
         ...(broad ? { access: "broad" } : {}),
         ...(options.via ? { via: options.via } : {}),
+        ...(options.duplicateOf ? { duplicateOf: options.duplicateOf } : {}),
       },
     });
     // A model or key the creator picked is their latest choice; "Automático" with the default key is no choice.
@@ -446,7 +461,8 @@ export async function updateAgent(
   orgId: string,
   agentId: string,
   patch: Partial<AgentInput>,
-  options: { remember?: boolean; pubsub?: PubSub } = {},
+  /** `audit`: added to the `agent.updated` row's details (`via: "setup"`, ADR 0094). */
+  options: { remember?: boolean; pubsub?: PubSub; audit?: Record<string, unknown> } = {},
 ): Promise<Agent> {
   const membership = await updateAgentMembership(db, actorId, orgId, agentId, patch);
   await refuseRightHandFields(db, orgId, agentId, patch);
@@ -501,7 +517,7 @@ export async function updateAgent(
         ? answersOthers(audienceOf(before), owner)
           ? { audienceMode: "owner" as const }
           : {}
-        : { brain: "model", brainAccountId: null }
+        : { brain: "model", brainAccountId: null, brainEngine: null }
       : {};
   // The handle it leaves joins the ones it had, so what names it there still reaches it; taking one back takes it out.
   const previous =
@@ -559,7 +575,7 @@ export async function updateAgent(
       actor: { type: "person", id: actorId },
       action: "agent.updated",
       target: { type: "agent", id: agentId },
-      details: { name: agent.name, changed, ...shown },
+      details: { name: agent.name, changed, ...shown, ...options.audit },
     });
   }
   if (input.monthlyBudgetNanoUsd !== undefined) {
@@ -707,6 +723,8 @@ export const agentView = (a: Agent) => ({
   appearance: (a.appearance ?? null) as AgentAppearance | null,
   /** It may follow a light reply with a sticker or a GIF (ADR 0091). */
   mediaReplies: a.mediaReplies,
+  /** The voice its replies are read aloud in (ADR 0209); null = the server's default. */
+  readAloudVoice: a.readAloudVoice ?? null,
   /** A built-in agent the product ships (ADR 0137): `right_hand`, the team's right hand. Null for the others. */
   builtin: a.builtin ?? null,
   /** "Responde a" (ADR 0148 addendum): the agent it reports to; null = its owner, else its setor's lead. */

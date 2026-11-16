@@ -14,7 +14,10 @@ export const ptBR: PushStrings = {
   replyTitle: (a) => `${a} respondeu`,
   missionStoppedTitle: "Uma missão parou",
   routineFailedTitle: "Uma rotina não terminou",
+  routineFailedRetriedTitle: "Uma rotina falhou após uma nova tentativa",
   runFailedTitle: (a) => `${a} não conseguiu terminar`,
+  needsAiTitle: (a) => `${a} está sem IA conectada`,
+  needsAiBody: (p) => `${p} chamou e ficou sem resposta. Conecte uma IA para responder.`,
   routineFailedBody: "Toque para ver o que aconteceu.",
   routinePausedTitle: "Uma rotina foi pausada",
   routinePausedBody: "Toque para ver o motivo.",
@@ -40,6 +43,7 @@ export const ptBR: PushStrings = {
   secretTitle: (a) => `${a} precisa de um segredo seu`,
   secretBody: "Toque para enviar com segurança.",
   widgetAlertTitle: (a, w) => (w ? `${a}: ${w}` : `${a} sinalizou um widget`),
+  mailImportantTitle: (m) => `E-mail importante em ${m}`,
   widgetFailedTitle: (w) => (w ? `“${w}” não atualizou` : "Um widget não atualizou"),
   widgetFailedReasons: {
     no_update: "A última atualização terminou sem dados.",

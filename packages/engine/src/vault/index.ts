@@ -9,6 +9,7 @@ export {
   listUnreachedConnections,
   listUsableVault,
   listVaultPlaces,
+  releaseVaultCode,
   releaseVaultKeys,
   releaseVaultLogin,
   restoreMadePassword,

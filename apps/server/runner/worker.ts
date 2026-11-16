@@ -17,10 +17,12 @@ import {
 import { realFoldersFor } from "./access";
 import { agentAccountHome, agentAccountsDir, grantOf, lentAccounts } from "./accounts";
 import { dropAgySignIns } from "./agy-home";
+import { useBinaries } from "./binaries";
 import { BrainManager, turnContext } from "./brain";
 import { CodexAppServers } from "./brain-codex-app";
 import { BrowserManager, type BrowserManagerOptions, launchChrome } from "./browser";
 import type { BrowserPorts } from "./browser-ports";
+import { parseBinaries } from "./config";
 import { type Dial, RunnerConnection, type SocketHandlers } from "./connection";
 import { DEFAULT_LIMITS, machineOs, prepareWorkspace } from "./daemon";
 import { type DelegatedBridge, DelegatedTools, delegatedTask, parseBridge, type ToolNotice } from "./delegated-tools";
@@ -108,6 +110,7 @@ function parseWorkerState(f: Record<string, unknown>): WorkerState | null {
   const host = typeof f.commitHost === "string" && /^[a-z0-9.-]{1,253}$/i.test(f.commitHost) ? f.commitHost : null;
   const commitHost = host ? { commitHost: host } : {};
   const locale = typeof f.locale === "string" && f.locale.length <= 32 ? { locale: f.locale } : {};
+  const binaries = parseBinaries(f.binaries);
   return access && paused
     ? {
         access,
@@ -120,6 +123,7 @@ function parseWorkerState(f: Record<string, unknown>): WorkerState | null {
         ...accounts,
         ...commitHost,
         ...locale,
+        ...(binaries ? { binaries } : {}),
       }
     : null;
 }
@@ -772,6 +776,8 @@ export async function runWorker(o: WorkerOptions): Promise<number> {
     fetch: link.fetch,
     secretsDir,
     gitDir: path.join(home, "git"),
+    // Each work turn's folder recorded before and after it, as this process's user (ADR 0193).
+    checkpointsDir: path.join(home, "checkpoints"),
     cloneSlot: link.cloneSlot,
     cacheFill: link.cacheFill,
     tasks,
@@ -831,6 +837,8 @@ export async function runWorker(o: WorkerOptions): Promise<number> {
     const use = (s: WorkerState) => s.access.tools.desktop === true && s.access.tools.commands;
     if (use(state) && !use(next)) desktopUse.stopAll();
     state = next;
+    // Root's choice of binaries (ADR 0187), checked here as root checks them; never read from a file of the worker's.
+    useBinaries(next.binaries ?? {}, { system: true });
     tasks.setLimits({ maxConcurrent: next.limits.maxConcurrentTasks, defaultMaxSeconds: next.limits.taskMaxSeconds });
     brains.setLimits(brainLimits());
     codexApp.setLimits(brainLimits());

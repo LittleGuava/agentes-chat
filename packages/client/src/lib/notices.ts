@@ -21,6 +21,12 @@ export const NOTICE_KINDS = [
   "run_stopped",
   "github_event",
   "work_follow_up",
+  "message_edited",
+  "burst_results",
+  "run_incident",
+  "run_retry",
+  "meeting_ended",
+  "meeting_joined",
 ] as const;
 export type NoticeKind = (typeof NOTICE_KINDS)[number];
 
@@ -50,6 +56,8 @@ export const AGENT_ONLY_NOTICES: ReadonlySet<string> = new Set<NoticeKind>([
   "poll_result",
   "work_check_in",
   "work_follow_up",
+  "burst_results",
+  "run_incident",
 ]);
 
 /** A message that is a notice only its agent reads: left out of the conversation. */
@@ -121,6 +129,8 @@ export interface NoticeView {
   detail: { words: { key: string; values: Record<string, string> } } | { content: string } | null;
   /** Someone the agent doesn't answer wrote it on GitHub: a person here may ask the agent to answer ("Pedir resposta"). */
   answer: boolean;
+  /** The meeting the agent is taking notes in (ADR 0199): a person here may make it leave ("Sair da reunião"). */
+  leave?: string;
 }
 
 /** A GitHub event's line (packages/engine/src/git/github-events.ts), by what happened and to which kind of item. */
@@ -207,6 +217,11 @@ export function noticeView(
     }
     case "wait_result":
       return line("chat.notice.waitResult", { name: names.author });
+    // The right hand asked the agent to try a failed task again (packages/engine/src/incidents.ts).
+    case "run_retry":
+      return notice.refs.byAgentName
+        ? line("chat.notice.runRetry", { name: names.author, by: notice.refs.byAgentName })
+        : line("chat.notice.runRetryAnon", { name: names.author });
     // What happened on GitHub: "Ver" opens what they wrote there and the link. Once someone asked the agent to answer
     // a stranger, the new notice says who asked.
     case "github_event": {
@@ -223,14 +238,33 @@ export function noticeView(
       if (r.answerFor) return line("chat.notice.github.asked", values, detail);
       return { ...line(githubLineKey(r), values, detail), answer: r.outside === "1" && !r.answeredBy };
     }
+    // A person edited a message the agent answered and asked it for another answer (ADR 0207): who, and which agent.
+    case "message_edited":
+      return line("chat.notice.messageEdited", {
+        person: notice.refs.personName ?? notice.from ?? "",
+        name: names.author,
+      });
+    // A meeting the agent took notes in ended (ADR 0199): the transcript is for the agent; its notes are its reply.
+    case "meeting_ended":
+      return line("chat.notice.meetingEnded", { name: names.author });
+    // The agent is in a meeting taking notes: the line people make it leave from. The server answers 409 once it ended.
+    case "meeting_joined": {
+      const meetingId = notice.refs?.meetingId;
+      return {
+        ...line("chat.notice.meetingJoined", { name: names.author }),
+        ...(meetingId ? { leave: meetingId } : {}),
+      };
+    }
     // A return's line is the bar's (`isReturnLine`), never one of the conversation's.
     case "follow_up":
     case "proposal_result":
     case "poll_result":
     case "work_check_in":
     case "work_follow_up":
+    case "burst_results":
     case "talker_reply":
     case "run_stopped":
+    case "run_incident":
       return line("chat.notice.other", { name: names.author });
     default:
       kind satisfies never;

@@ -4,14 +4,17 @@ import type {
   AgentBrain,
   AgentBrainInput,
   AiAccounts,
+  BrainKind,
   BrainMachine,
   MachineAccountKind,
   Model,
   PlanUsage,
 } from "../api/types";
+import { acpModelInput, acpModelRows } from "./acp";
 import { accountChoices, accountTitle, ownSignInReady } from "./ai-accounts";
 import { thinksWith } from "./brain";
 import { isClaudeAlias } from "./brain-advanced";
+import { modelMark } from "./endpoints";
 import { namesComputers } from "./machines";
 import {
   kindOf,
@@ -116,15 +119,18 @@ export const brainPickText = (o: Pick<BrainPickOption, "label" | "value" | "grou
 /** The API's models, as the agent's page lists them: each provider's under its name, a long list's good picks first. */
 export function apiPickOptions(t: TFunction, locale: string, choices: [string, ModelChoice[]][]): BrainPickOption[] {
   return choices.flatMap(([provider, list]) =>
-    list.map(({ model: m, available }) => ({
+    list.map(({ model: m, available, ruledOut }) => ({
       value: m.id,
       label: m.label,
       title: m.label,
       group: m.pick ? t("models.picks", { provider: providerLabel(provider) }) : providerLabel(provider),
-      mark: provider,
-      description: available
-        ? modelDescription(t, locale, m)
-        : t("newAgent.modelNeedsKey", { provider: providerLabel(provider) }),
+      // A group is an endpoint's name for its models (ADR 0146): the mark is the model's, never the name's.
+      mark: modelMark(m),
+      description: ruledOut
+        ? t("brain.ruledOut")
+        : available
+          ? modelDescription(t, locale, m)
+          : t("newAgent.modelNeedsKey", { provider: providerLabel(provider) }),
       disabled: !available,
       free: freeModel(m),
       keywords: freeModel(m) ? `free ${t("brain.free")}` : "",
@@ -280,6 +286,22 @@ export function brainPickOptions(
         ),
       );
     }
+    // The workspace's rule leaves this brain out (ADR 0191): one row says so, wherever a computer runs it.
+    if (on.length === 0 && machines.some((m) => m.options.some((o) => o.kind === kind && o.reason === "not_allowed")))
+      return [
+        {
+          value: `none:${choice}`,
+          label: planLabel(t, choice),
+          title: name,
+          group: name,
+          mark: planMark(choice),
+          description: t("brain.reasons.not_allowed", { program: name }),
+          disabled: true,
+          free: false,
+          keywords: planSearchNames(choice),
+          pick: { kind: "connect", choice },
+        },
+      ];
     if (on.length === 0) {
       // Cursor (ADR 0114), OpenCode (ADR 0132), Grok (ADR 0142), Gemini (ADR 0143) and Copilot (ADR 0186) only where a computer runs
       // them; Claude's and ChatGPT's plans say why they can't.
@@ -422,9 +444,12 @@ export interface ModelRow {
  */
 export function modelRows(
   t: TFunction,
-  view: Pick<AgentBrain, "brain" | "effectiveModel" | "options"> & Partial<Pick<AgentBrain, "account" | "accounts">>,
+  view: Pick<AgentBrain, "brain" | "effectiveModel" | "options"> &
+    Partial<Pick<AgentBrain, "account" | "accounts" | "engine" | "acp">>,
   plan: CodingPlan | undefined,
 ): ModelRow[] {
+  // An ACP agent (ADR 0216): its own default, then the models it offered; no Automático.
+  if (view.brain === "acp") return acpModelRows(t, view);
   const option = view.options.find((o) => o.kind === view.brain);
   const chosen = brainModelChoice(view.brain, plan, view.effectiveModel ?? option?.defaultModel ?? "");
   const provider = view.accounts?.find((a) => a.id === view.account)?.provider;
@@ -454,6 +479,7 @@ export function modelInput(
   value: string,
   view: Pick<AgentBrain, "effort" | "options" | "brain">,
 ): Pick<AgentBrainInput, "model" | "effort"> {
+  if (view.brain === "acp") return acpModelInput(value);
   if (isAuto(value)) return { model: AUTO, effort: AUTO };
   const defaultModel = view.options.find((o) => o.kind === view.brain)?.defaultModel;
   return { model: value === defaultModel ? null : value, ...(isAuto(view.effort) ? { effort: "medium" } : {}) };
@@ -575,7 +601,7 @@ export function modelPickerTiles(
   apiModel: string | null,
   models: readonly Model[],
 ): PickerTile[] {
-  const runs = (k: MachineAccountKind) => view.options.some((o) => o.kind === k && (o.available || view.brain === k));
+  const runs = (k: BrainKind) => view.options.some((o) => o.kind === k && (o.available || view.brain === k));
   const byChoice = new Map<PlanChoice, PickerAccount[]>();
   const add = (choice: PlanChoice, a: PickerAccount) => byChoice.set(choice, [...(byChoice.get(choice) ?? []), a]);
   for (const a of view.accounts) {
@@ -584,7 +610,7 @@ export function modelPickerTiles(
     add(planOfAccount(a), { id: a.id, label: accountTitle(a), usage: a.usage, provider: a.provider });
   }
   for (const o of view.options) {
-    if (o.kind === "model" || !runs(o.kind)) continue;
+    if (o.kind === "model" || o.kind === "acp" || !runs(o.kind)) continue;
     const k = o.kind as MachineAccountKind;
     const own = view.brain === k && view.account === null;
     if (own || (view.ownSignIn && o.available))
@@ -619,7 +645,7 @@ export function modelPickerTiles(
       ? [
           {
             key: `api:${provider}`,
-            mark: provider,
+            mark: list[0] ? modelMark(list[0].model) : provider,
             name: t("brain.picker.apiKey", { provider: providerLabel(provider) }),
             kind: "model",
             accounts: [],

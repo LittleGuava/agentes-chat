@@ -897,6 +897,51 @@ export async function answersOpen(db: Executor, run: Pick<AgentRun, "id" | "orgI
   return Boolean(row);
 }
 
+/** A question or note some runs sent, as a wait on their whole job reads it (`readTaskTree`, ADR 0119 addendum 2026-11-15). */
+export interface HeldHandOff {
+  id: string;
+  kind: "question" | "note";
+  status: "open" | "answered" | "expired" | "failed";
+  askerRunId: string;
+  targetAgentId: string;
+  targetRunId: string | null;
+  /** A heads-up: the sender neither waits for it nor carries it (`sentOpen`), so neither does a wait on its job. */
+  headsUp: boolean;
+  /**
+   * Closed, but what came of it hasn't reached the run that sent it yet (`closeConsultation` delivers after its own
+   * commit; `reportHandOffs` once the turn's siblings are done). Never from an agents' DM, where `handBack` folds it
+   * into the answer that run owes, which stays open itself; and not past ten minutes, so a report that never comes
+   * can't hold a job forever.
+   */
+  reportPending: boolean;
+}
+
+/** Every question and note the runs `askerRunIds` sent, oldest first. */
+export async function handOffsHeld(db: Executor, orgId: string, askerRunIds: string[]): Promise<HeldHandOff[]> {
+  if (askerRunIds.length === 0) return [];
+  const headsUp = headsUpSql(sql`${agentConsultations}`);
+  const rows = await db
+    .select({
+      id: agentConsultations.id,
+      kind: agentConsultations.kind,
+      status: agentConsultations.status,
+      askerRunId: agentConsultations.askerRunId,
+      targetAgentId: agentConsultations.targetAgentId,
+      targetRunId: agentConsultations.targetRunId,
+      headsUp,
+      reportPending: sql<boolean>`(${agentConsultations.status} <> 'open' and ${agentConsultations.reportedAt} is null
+        and ${agentConsultations.answeredAt} > now() - interval '10 minutes' and not ${headsUp}
+        and not exists (select 1 from ${agentRuns} ar join ${channels} ac on ac.id = ar.channel_id
+          where ar.id = ${agentConsultations}.asker_run_id and ac.kind = 'dm' and ac.dm_key is not null
+            and position('u:' in ac.dm_key) = 0))`,
+    })
+    .from(agentConsultations)
+    .where(and(eq(agentConsultations.orgId, orgId), inArray(agentConsultations.askerRunId, askerRunIds)))
+    .orderBy(agentConsultations.createdAt, agentConsultations.id);
+  const yes = (v: unknown) => v === true || v === "t";
+  return rows.map((r) => ({ ...r, headsUp: yes(r.headsUp), reportPending: yes(r.reportPending) }));
+}
+
 /** A question or a hand-off as `handOffsFrom` reads it, with where its colleague's run is. */
 export interface HandOff {
   id: string;

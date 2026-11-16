@@ -923,6 +923,7 @@
   "activity": {
     "title": "Aktywność",
     "chooseModel": "Wybierz inny model",
+    "connectAi": "Połącz AI",
     "filter": {
       "all": "Wszystko",
       "waiting": "Prośby",
@@ -997,6 +998,10 @@
       "routine_failed_few": "Rutyny się nie powiodły",
       "routine_failed_many": "Rutyny się nie powiodły",
       "routine_failed_other": "Rutyny się nie powiodły",
+      "routine_failed_retried_one": "Rutyna nie powiodła się po ponownej próbie",
+      "routine_failed_retried_few": "Rutyny nie powiodły się po ponownej próbie",
+      "routine_failed_retried_many": "Rutyny nie powiodły się po ponownej próbie",
+      "routine_failed_retried_other": "Rutyny nie powiodły się po ponownej próbie",
       "run_failed_one": "Nie udało się dokończyć",
       "run_failed_few": "Nie udało się dokończyć",
       "run_failed_many": "Nie udało się dokończyć",
@@ -1110,6 +1115,10 @@
       "desktop_taken_female_few": "Ekran komputera {{agent}} przejęty przez {{names}}",
       "desktop_taken_female_many": "Ekran komputera {{agent}} przejęty przez {{names}}",
       "desktop_taken_female_other": "Ekran komputera {{agent}} przejęty przez {{names}}",
+      "agent_needs_ai_one": "{{names}} wywołał(a) {{agent}}, ale nie ma podłączonej AI, która mogłaby odpowiedzieć",
+      "agent_needs_ai_few": "{{names}} wywołali {{agent}}, ale nie ma podłączonej AI, która mogłaby odpowiedzieć",
+      "agent_needs_ai_many": "{{names}} wywołali {{agent}}, ale nie ma podłączonej AI, która mogłaby odpowiedzieć",
+      "agent_needs_ai_other": "{{names}} wywołali {{agent}}, ale nie ma podłączonej AI, która mogłaby odpowiedzieć",
       "plan_lent_one": "Twój plan {{plan}} połączony z agentem {{agent}} przez {{names}}",
       "plan_lent_few": "Twój plan {{plan}} połączony z agentem {{agent}} przez {{names}}",
       "plan_lent_many": "Twój plan {{plan}} połączony z agentem {{agent}} przez {{names}}",
@@ -3120,5 +3129,13 @@
       "title": "Nic do sprawdzenia",
       "text": "Gdy agent zrobi coś poza rozmową, pojawi się to tutaj."
     }
+  },
+  "phoneTools": {
+    "title": "Kontakty w telefonie",
+    "contacts": "Agenci mogą przeszukiwać moje kontakty",
+    "help": "Tylko w tej przestrzeni roboczej i tylko na tym telefonie. Gdy agent, z którym rozmawiasz, potrzebuje czyichś danych, szuka nazwy w twoich kontaktach: do agenta trafia maksymalnie 5 wyników, każdy tylko z nazwą, numerami telefonów i e-mailami.",
+    "deniedTitle": "Dostęp do kontaktów jest wyłączony",
+    "deniedSub": "Zezwól na niego dla agentes.chat w Ustawieniach telefonu.",
+    "failed": "Nie udało się zapisać. Spróbuj ponownie."
   }
 }

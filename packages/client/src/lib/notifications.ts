@@ -214,6 +214,8 @@ export const askersOf = (n: Pick<AppNotification, "count" | "latest">) => ({
 export function workspaceHeadline(n: Pick<AppNotification, "kind" | "latest">) {
   if (n.kind === "computer_ready") return "computerSetup.notification.ready" as const;
   if (n.kind === "composio_limit") return "connectors.composio.limitNotice" as const;
+  if (n.kind === "webhook_disabled") return "webhooks.notice.disabled" as const;
+  if (n.kind === "mail_important") return "mail.triage.notice" as const;
   if (n.kind === "computer_disk_full") return "machines.shared.diskFullNotice" as const;
   if (n.kind === "computer_no_chrome") return "machines.chromeMissingNotice" as const;
   if (n.kind === "skill_update") {
@@ -409,7 +411,16 @@ export type OpenTarget =
   | {
       to: "/org/$orgId/settings/$section";
       params: {
-        section: "computers" | "members" | "invites" | "usage" | "connectors" | "billing" | "approvals" | "right_hand";
+        section:
+          | "computers"
+          | "members"
+          | "invites"
+          | "usage"
+          | "connectors"
+          | "billing"
+          | "approvals"
+          | "right_hand"
+          | "webhooks";
       };
     }
   | { to: "/org/$orgId/home"; search?: { widget: string } }
@@ -496,8 +507,12 @@ export function openTarget(n: AppNotification): OpenTarget | null {
       : s.routineId
         ? { to: "/org/$orgId/routines", search: { open: s.routineId } }
         : null;
+  // An outgoing webhook its failures turned off (ADR 0212): its list, where it is turned back on.
+  if (n.kind === "webhook_disabled") return { to: "/org/$orgId/settings/$section", params: { section: "webhooks" } };
   // The month's Composio calls are counted in Uso.
   if (n.kind === "composio_limit") return { to: "/org/$orgId/settings/$section", params: { section: "usage" } };
+  // An important email no routine took: the email is read in the mailbox itself; Conectores has the mailbox's triage.
+  if (n.kind === "mail_important") return { to: "/org/$orgId/settings/$section", params: { section: "connectors" } };
   // A person's limit (ADR 0141): who decides opens that person's month in Uso › Pessoas; the person, Seu uso.
   if (n.kind === "usage_limit") {
     const theirs = n.latest.statusTo === "reached" || n.latest.statusTo === "request";
@@ -507,6 +522,9 @@ export function openTarget(n: AppNotification): OpenTarget | null {
       ...(theirs && s.userId ? { search: { person: s.userId } } : {}),
     };
   }
+  // An agent someone couldn't reach for want of an AI, where "Conectar uma IA" isn't at hand: its page.
+  if (n.kind === "agent_needs_ai" && s.agentId)
+    return { to: "/org/$orgId/agents/$agentId", params: { agentId: s.agentId } };
   // The agent's model left its plan's list: its page, with "Quem pensa" open on its model to choose another.
   if (n.kind === "plan_model_dropped" && s.agentId)
     return {
@@ -623,13 +641,22 @@ export const opensOnComputer = (n: Pick<AppNotification, "kind" | "source" | "ac
     : null;
 
 /**
- * The workspace's computer is ready and its agents have no AI yet: opening it opens "Conectar uma IA" (the one
- * next step there is) instead of a page. `ai` unknown yet: the page.
+ * What "Conectar uma IA" opens on, when opening a notification opens it instead of a page: for an agent someone
+ * couldn't reach for want of an AI, that agent; when the workspace's computer is ready and its agents have no AI yet,
+ * the computer's plans (the one next step there is; `ai` unknown yet: the page). Null: the page.
  */
-export const opensConnectAi = (
-  n: Pick<AppNotification, "kind">,
+export function connectAiAsk(
+  n: Pick<AppNotification, "kind"> & Partial<Pick<AppNotification, "source">>,
   ai: Pick<AiStatus, "any" | "agents"> | undefined,
-): boolean => n.kind === "computer_ready" && ai !== undefined && !ai.any && ai.agents.length > 0;
+): { agentId: string } | { ready: true } | null {
+  if (n.kind === "agent_needs_ai") return n.source?.agentId ? { agentId: n.source.agentId } : null;
+  return n.kind === "computer_ready" && ai !== undefined && !ai.any && ai.agents.length > 0 ? { ready: true } : null;
+}
+
+export const opensConnectAi = (
+  n: Pick<AppNotification, "kind"> & Partial<Pick<AppNotification, "source">>,
+  ai: Pick<AiStatus, "any" | "agents"> | undefined,
+): boolean => connectAiAsk(n, ai) !== null;
 
 /** Mission and routine steps as strip cells: done, the one it stopped at, the rest to do. */
 export function stepCells(steps: { done: number; total: number; failedAt?: number }) {

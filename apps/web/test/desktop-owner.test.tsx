@@ -6,7 +6,7 @@ setupDom();
 import type { SignInOptions } from "@agenteschat/client";
 import { act, cleanup, fireEvent, within } from "@testing-library/react";
 import type { ThisMacStatus } from "@/lib/desktop";
-import { createFakeApi, ORG_ID, seedState } from "./fake-api";
+import { ADA_ID, createFakeApi, ENG_ID, ORG_ID, seedState } from "./fake-api";
 import { createFakeAuth } from "./fake-auth";
 import { renderApp, screen, settle } from "./render";
 
@@ -260,4 +260,19 @@ test("the app's “Show QR code” opens “Abrir no celular” over the page th
   expect(screen().getByRole("dialog", { name: "Abrir no celular" })).toBeTruthy();
   expect(router.state.location.pathname).toBe(`/org/${ORG_ID}/issues`);
   expect(state.calls.filter((c) => c.method === "account.phoneSignIn")).toHaveLength(1);
+});
+
+test("a chat link the app opens moves the page there, at its message (ADR 0138, addendum of 2026-11-15)", async () => {
+  inTheApp({ orgs: [], agentsHere: false, local: true });
+  const { router } = await renderApp(`/org/${ORG_ID}/issues`, { api: createFakeApi(seedState()) });
+  await settle(6);
+  const message = "00000000-0000-4000-8000-00000000f001";
+  await act(async () => win().__agentesNavigate?.(`/org/${ORG_ID}/c/${ENG_ID}?m=${message}`));
+  await settle(6);
+  expect(router.state.location.pathname).toBe(`/org/${ORG_ID}/c/${ENG_ID}`);
+  expect(router.state.location.search).toMatchObject({ m: message });
+  await act(async () => win().__agentesNavigate?.(`/org/${ORG_ID}/dm/agent/${ADA_ID}?m=${message}`));
+  await settle(6);
+  expect(router.state.location.pathname).toBe(`/org/${ORG_ID}/dm/agent/${ADA_ID}`);
+  expect(router.state.location.search).toMatchObject({ m: message });
 });

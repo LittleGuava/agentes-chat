@@ -52,3 +52,11 @@ Each new one is one entry in `CONNECTOR_EVENTS` (how to register, take back and 
 - **Polling the service through its MCP tools:** its tools answer text for a model, a poll per routine costs calls when nothing happens, and new mail would wait for the next poll.
 - **A mailbox per MillionSend inbox (ADR 0102):** withdrawn; it needed a key of its own beside the connector.
 - **A table per connector event:** one JSON column on the routine's address holds what each event needs, and the address is already the routine's way in.
+
+## Addendum (2026-11-15): Google Calendar's "event starting" is a look ahead by code
+
+ADR 0190 makes "before each meeting" a routine trigger of its own: the worker looks at the calendar through the connection by code and fires a run for each meeting whose chosen moment came, instead of a Composio trigger. In the table above, Google Calendar's "event starting" is now this look ahead; Calendly, and a booked Google Calendar event, still wait for Composio triggers.
+
+## Addendum (2026-11-16): reading a connection is what the Tool Gateway reads
+
+§4 named only the read scope (`custom:<connection>:read`). The Tool Gateway lets an agent call a connection's tools with that scope, with the whole connection (`connector:*`, what the agent's Access switch and connecting a service for everyone grant) or with every tool (`*`), so an agent given a connection whole was refused a routine on it although it read the mail itself. A routine may now wait on a connection's events when its agent has any of the three (`agentReadsConnection` in `connector-triggers.ts`, the routine forms' `connectionReader` in `packages/client/src/lib/routines.ts`); the write scope alone still reads nothing. Saving, changing the agent and every call that arrives check it the same way.

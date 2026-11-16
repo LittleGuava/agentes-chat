@@ -796,6 +796,13 @@ describe("a lone quick read that only fed the answer shows no card", () => {
     expect(saved && quietLine(saved)).toBe(true);
   });
 
+  test("the server's image tool reads as a picture being made, on every brain (ADR 0213)", () => {
+    expect(toolActivity("generate_image").kind).toBe("creatingImage");
+    expect(makingImage({ step: { tool: "generate_image" } })).toBe(true);
+    expect(quietWork(toolItemsLive([call("1", "generate_image", { ms: 20_000 })]))).toBe(true);
+    expect(quietWork(toolItemsLive([call("1", "generate_image", { ms: 20_000, failed: true })]))).toBe(false);
+  });
+
   test("while it makes a picture its live run says so (`makingImage`), until another step replaces it", () => {
     expect(makingImage({ step: { tool: "image_generation" } })).toBe(true);
     expect(makingImage({ step: { tool: "shell" } })).toBe(false);
@@ -888,5 +895,12 @@ describe("a call a rule approved for good", () => {
     );
     expect(hints).toHaveLength(2);
     expect(hints[1]).toBe('chat.work.autoApprovedReads|{"name":"Ana"}');
+  });
+});
+
+describe("the person's phone (ADR 0205)", () => {
+  test("searching their contacts isn't testing on a phone a computer drives", () => {
+    expect(toolActivity("phone_find_contact").kind).toBe("searchingContacts");
+    expect(toolActivity("phone_screenshot").kind).toBe("testingOnPhone");
   });
 });

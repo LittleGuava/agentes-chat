@@ -1,12 +1,36 @@
-import { ACCESS_ALLOW_PROTOCOL, type AgentScope, BROWSER_PROFILE_PROTOCOL, type PubSub } from "@agenteschat/adapters";
-import { and, asc, type Database, type Executor, eq, inArray, isNull, notInArray, schema, sql } from "@agenteschat/db";
+import {
+  ACCESS_ALLOW_PROTOCOL,
+  type AgentScope,
+  BROWSER_PROFILE_PROTOCOL,
+  BROWSER_SITE_HOST,
+  BROWSER_SITES_PROTOCOL,
+  type BrowserSite,
+  type MachineReplies,
+  PERSONAL_BROWSER_PROTOCOL,
+  type PubSub,
+} from "@agenteschat/adapters";
+import {
+  and,
+  asc,
+  type Database,
+  desc,
+  type Executor,
+  eq,
+  inArray,
+  isNull,
+  notInArray,
+  schema,
+  sql,
+} from "@agenteschat/db";
 import { recordAudit } from "../audit";
+import { requireChannelAccess } from "../channels";
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from "../errors";
 import { type MachineCaller, MachineRequestError } from "../machine-hub";
 import { MachineOfflineError } from "../machines";
 import { type NotificationDeps, notify } from "../notifications";
 import { can, requireActiveMembership, requireChangePermission, requirePermission } from "../organizations";
-import { BROWSER_HANDOFF_TOPIC, type PageMove, pageCommand } from "./handoff";
+import { isRightHand, soleReader } from "../right-hand";
+import { BROWSER_HANDOFF_TOPIC, browserOnDesktop, type PageMove, pageCommand } from "./handoff";
 
 const { agents, agentRuns, browserProfiles, browserProfileGrants, machines, organizationMembers, users } = schema;
 
@@ -33,7 +57,12 @@ export interface BrowserProfileView {
   /** Who has the turn now: an agent's run or a person in control; null while free. */
   holder: { type: "agent"; agentId: string; since: string } | { type: "person"; userId: string; since: string } | null;
   lastUsedAt: string | null;
+  /** A person's own browser of one agent (`agentIds` is that agent), shown to that person alone. */
+  personal: boolean;
 }
+
+/** A workspace profile, which the grants decide; a person's own browser of an agent (personal) is none of them. */
+const workspaceProfile = isNull(browserProfiles.personUserId);
 
 const iso = (d: Date | null) => (d ? d.toISOString() : null);
 
@@ -66,9 +95,10 @@ const viewOf = (p: BrowserProfileRow, agentIds: string[]): BrowserProfileView =>
   machineId: p.machineId,
   name: p.name,
   createdAt: p.createdAt.toISOString(),
-  agentIds,
+  agentIds: p.personUserId && p.agentId ? [p.agentId] : agentIds,
   holder: holderOf(p),
   lastUsedAt: iso(p.lastUsedAt),
+  personal: Boolean(p.personUserId),
 });
 
 /** A live profile of the workspace, or null. */
@@ -87,13 +117,18 @@ export async function getBrowserProfile(db: Executor, orgId: string, profileId: 
  */
 export const onSingleModeMachine = sql`not exists (select 1 from ${machines} m where m.id = ${browserProfiles.machineId} and (m.executors->>'mode' = 'system' or m.kind = 'managed'))`;
 
-/** The API's guard behind the hidden UI: anything about profiles on a system-mode computer is refused. */
-async function requireSingleMode(db: Executor, orgId: string, machineId: string) {
+/** Whether a computer runs each agent as its own OS user (or is a managed one, which does): no profiles there. */
+async function systemModeMachine(db: Executor, orgId: string, machineId: string) {
   const [m] = await db
     .select({ executors: machines.executors, kind: machines.kind })
     .from(machines)
     .where(and(eq(machines.id, machineId), eq(machines.orgId, orgId)));
-  if (m?.executors?.mode === "system" || m?.kind === "managed") {
+  return m?.executors?.mode === "system" || m?.kind === "managed";
+}
+
+/** The API's guard behind the hidden UI: anything about profiles on a system-mode computer is refused. */
+async function requireSingleMode(db: Executor, orgId: string, machineId: string) {
+  if (await systemModeMachine(db, orgId, machineId)) {
     throw new ValidationError(
       "Browser profiles work only on a computer where every agent runs as one user",
       "browser_profile.system_mode",
@@ -101,9 +136,13 @@ async function requireSingleMode(db: Executor, orgId: string, machineId: string)
   }
 }
 
-async function requireProfile(db: Executor, orgId: string, profileId: string) {
+/**
+ * A live profile on a single-mode computer. A person's own browser only with `personal` (watching, driving, handing
+ * back): renaming, granting, choosing and deleting know only the workspace's profiles, so it reads as not found there.
+ */
+async function requireProfile(db: Executor, orgId: string, profileId: string, personal = false) {
   const row = await getBrowserProfile(db, orgId, profileId);
-  if (!row) throw new NotFoundError("Browser profile not found");
+  if (!row || (row.personUserId && !personal)) throw new NotFoundError("Browser profile not found");
   await requireSingleMode(db, orgId, row.machineId);
   return row;
 }
@@ -124,6 +163,7 @@ export async function listBrowserProfiles(
       and(
         eq(browserProfiles.orgId, orgId),
         isNull(browserProfiles.deletedAt),
+        workspaceProfile,
         onSingleModeMachine,
         filter.machineId ? eq(browserProfiles.machineId, filter.machineId) : undefined,
       ),
@@ -138,7 +178,7 @@ export async function listBrowserProfiles(
 
 /** One profile as the list shows it. */
 export async function browserProfileView(db: Executor, orgId: string, profileId: string) {
-  const row = await requireProfile(db, orgId, profileId);
+  const row = await requireProfile(db, orgId, profileId, true);
   return viewOf(row, (await grantsOf(db, [row.id])).get(row.id) ?? []);
 }
 
@@ -157,6 +197,7 @@ async function requireFreeName(db: Executor, orgId: string, name: string, except
       and(
         eq(browserProfiles.orgId, orgId),
         isNull(browserProfiles.deletedAt),
+        workspaceProfile,
         sql`lower(${browserProfiles.name}) = lower(${name})`,
         except ? sql`${browserProfiles.id} <> ${except}` : undefined,
       ),
@@ -188,15 +229,16 @@ async function requireEditableAgents(
 }
 
 /**
- * Whether a single-mode computer can hold profiles now: its runner speaks `BROWSER_PROFILE_PROTOCOL`. An unknown or
- * older computer (offline since before the protocol) is refused as outdated. System mode is refused apart
- * (`requireSingleMode`): there the feature is hidden, not explained.
+ * Whether a single-mode computer can hold profiles now: its runner speaks `BROWSER_PROFILE_PROTOCOL` (or `need`, for
+ * what came later). An unknown or older computer (offline since before the protocol) is refused as outdated. System
+ * mode is refused apart (`requireSingleMode`): there the feature is hidden, not explained.
  */
 export async function profileMachineProblem(
   db: Executor,
   hub: Pick<MachineCaller, "status"> | undefined,
   orgId: string,
   machineId: string,
+  need = BROWSER_PROFILE_PROTOCOL,
 ): Promise<string | null> {
   const [m] = await db
     .select({ protocol: machines.protocol, deletedAt: machines.deletedAt })
@@ -205,7 +247,11 @@ export async function profileMachineProblem(
   if (!m || m.deletedAt) return "This computer no longer exists";
   const status = await hub?.status(machineId).catch(() => null);
   const protocol = status?.protocol ?? m.protocol ?? 0;
-  if (protocol < BROWSER_PROFILE_PROTOCOL) return "Update this computer to use browser profiles";
+  if (protocol < need) {
+    return need === BROWSER_SITES_PROTOCOL
+      ? "Update this computer to see the sites its profiles are signed in to"
+      : "Update this computer to use browser profiles";
+  }
   return null;
 }
 
@@ -451,11 +497,15 @@ export async function setAgentBrowserProfile(
   });
 }
 
+/** The agent may drive the profile: granted a workspace one, or the agent a person's own browser is of. */
+const usableBy = (agentId: string) =>
+  sql`(${browserProfiles.agentId} = ${agentId} or exists (select 1 from ${browserProfileGrants} g where g.profile_id = ${browserProfiles.id} and g.agent_id = ${agentId}))`;
+
 export async function isGranted(db: Executor, profileId: string, agentId: string) {
   const [g] = await db
-    .select({ agentId: browserProfileGrants.agentId })
-    .from(browserProfileGrants)
-    .where(and(eq(browserProfileGrants.profileId, profileId), eq(browserProfileGrants.agentId, agentId)));
+    .select({ id: browserProfiles.id })
+    .from(browserProfiles)
+    .where(and(eq(browserProfiles.id, profileId), usableBy(agentId)));
   return Boolean(g);
 }
 
@@ -570,7 +620,7 @@ export async function takeProfileTurn(
         eq(p.id, profileId),
         eq(p.orgId, orgId),
         isNull(p.deletedAt),
-        sql`exists (select 1 from ${browserProfileGrants} g where g.profile_id = ${p.id} and g.agent_id = ${agentId})`,
+        usableBy(agentId),
         sql`(${p.heldUntil} is null or ${p.heldUntil} < now() or ${p.heldByRunId} = ${runId})`,
       ),
     )
@@ -616,6 +666,8 @@ export async function takeProfileControl(
   profileId: string,
   userId: string,
   ms = PROFILE_CONTROL_MS,
+  /** False: not from an agent either (null while an agent's run holds it). */
+  overAgent = true,
 ) {
   const p = browserProfiles;
   const [row] = await db
@@ -633,6 +685,7 @@ export async function takeProfileControl(
         eq(p.orgId, orgId),
         isNull(p.deletedAt),
         sql`(${p.heldByUserId} is null or ${p.heldByUserId} = ${userId} or ${p.heldUntil} is null or ${p.heldUntil} < now())`,
+        overAgent ? undefined : sql`(${p.heldByAgentId} is null or ${p.heldUntil} is null or ${p.heldUntil} < now())`,
       ),
     )
     .returning();
@@ -694,6 +747,8 @@ export async function runBrowserProfile(
  * `control_browsers`, never in a workspace being deleted.
  */
 export async function requireProfileDriver(db: Database, userId: string, orgId: string, profileId: string) {
+  const own = await requirePersonsOwn(db, userId, orgId, profileId);
+  if (own) return own;
   const membership = await requireChangePermission(db, userId, orgId, "manage_connectors");
   if (!can(membership, "control_browsers")) throw new ForbiddenError();
   return requireProfile(db, orgId, profileId);
@@ -704,6 +759,8 @@ export async function requireProfileDriver(db: Database, userId: string, orgId: 
  * person behind a run: a profile shows a whole account, so the asker gets the agent's answer, not the screen.
  */
 export async function requireProfileWatcher(db: Database, userId: string, orgId: string, profileId: string) {
+  const own = await requirePersonsOwn(db, userId, orgId, profileId);
+  if (own) return own;
   const membership = await requireActiveMembership(db, userId, orgId);
   const row = await requireProfile(db, orgId, profileId);
   if (can(membership, "manage_connectors") && can(membership, "control_browsers")) return row;
@@ -716,6 +773,144 @@ export async function requireProfileWatcher(db: Database, userId: string, orgId:
     .limit(1);
   if (!owned) throw new ForbiddenError();
   return row;
+}
+
+/**
+ * A person's own browser of an agent is theirs alone to watch and drive (with `own_browsers`, as their own seat's,
+ * ADR 0175): never an admin's, nor the agent's owner's, since it holds that person's sign-ins. Null for a workspace
+ * profile (its own rules follow).
+ */
+async function requirePersonsOwn(db: Database, userId: string, orgId: string, profileId: string) {
+  const row = await getBrowserProfile(db, orgId, profileId);
+  if (!row?.personUserId) return null;
+  const membership = await requireActiveMembership(db, userId, orgId);
+  if (row.personUserId !== userId || !can(membership, "own_browsers")) throw new ForbiddenError();
+  return requireProfile(db, orgId, profileId, true);
+}
+
+// ── A person's own browser in their DM (ADR 0110 addendum 2026-11-15) ─────────────────────────────────────────────
+
+/**
+ * The person whose own browser this agent's run drives here: the one person who reads its DM with an agent others
+ * may talk to as well (`audience_mode` other than `owner`), so what one person signs in to there never opens signed
+ * in for another. Null in a channel, a group conversation, for an agent only its owner talks to, and for the right
+ * hand, whose seats already keep each person apart (ADR 0175).
+ */
+export async function personalBrowserReader(
+  db: Executor,
+  at: { orgId: string; agentId: string; channelId: string },
+): Promise<string | null> {
+  const [agent] = await db
+    .select({ audienceMode: agents.audienceMode, builtin: agents.builtin })
+    .from(agents)
+    .where(and(eq(agents.id, at.agentId), eq(agents.orgId, at.orgId)));
+  if (!agent || isRightHand(agent) || agent.audienceMode === "owner") return null;
+  return soleReader(db, at.channelId, at.agentId);
+}
+
+/**
+ * The person's own browser of the agent on `machineId`, made on first use (`make`): one per computer, so a mission's
+ * computer and the agent's own each keep theirs. Null where it can't be the agent's browser in full, stable facts on
+ * which the DM keeps the agent's own browser as before: a system-mode computer (phase 2), a runner older than
+ * `PERSONAL_BROWSER_PROTOCOL` (its files would not be the agent's), and a Chrome that shows on the agent's desktop
+ * (`browserOnDesktop`), where everyone who watches that desktop, and the agent's desktop tools in anyone's run, would
+ * see this person's signed-in window.
+ */
+export async function personalBrowserProfile(
+  db: Database,
+  hub: Pick<MachineCaller, "status" | "call"> | undefined,
+  at: { orgId: string; agentId: string; personUserId: string; machineId: string },
+  make = true,
+): Promise<{ id: string; name: string; machineId: string } | null> {
+  if (await systemModeMachine(db, at.orgId, at.machineId)) return null;
+  if (await profileMachineProblem(db, hub, at.orgId, at.machineId, PERSONAL_BROWSER_PROTOCOL)) return null;
+  if (await browserOnDesktop(db, at.orgId, at.agentId, at.machineId)) return null;
+  const live = () =>
+    db
+      .select({ id: browserProfiles.id, name: browserProfiles.name, machineId: browserProfiles.machineId })
+      .from(browserProfiles)
+      .where(
+        and(
+          eq(browserProfiles.orgId, at.orgId),
+          eq(browserProfiles.agentId, at.agentId),
+          eq(browserProfiles.personUserId, at.personUserId),
+          eq(browserProfiles.machineId, at.machineId),
+          isNull(browserProfiles.deletedAt),
+        ),
+      );
+  const [had] = await live();
+  if (had || !make) return had ?? null;
+  const [person] = await db.select({ name: users.name }).from(users).where(eq(users.id, at.personUserId));
+  // Two first commands at once: one row wins (the partial unique index), and both read it.
+  await db
+    .insert(browserProfiles)
+    .values({
+      orgId: at.orgId,
+      machineId: at.machineId,
+      name: (person?.name?.trim() || "Personal").slice(0, PROFILE_NAME_MAX),
+      createdBy: at.personUserId,
+      agentId: at.agentId,
+      personUserId: at.personUserId,
+    })
+    .onConflictDoNothing();
+  const [made] = await live();
+  return made ?? null;
+}
+
+/**
+ * The person's own browser a run's commands go to, for its card: only to whoever reads the run's conversation, and
+ * only while the run is in it (no workspace profile switched to or chosen as the agent's default). Null for the
+ * agent's own browser or a workspace profile, which the card already knows from its steps.
+ */
+export async function runPersonalBrowser(
+  db: Database,
+  userId: string,
+  orgId: string,
+  runId: string,
+): Promise<BrowserProfileView | null> {
+  const [run] = await db
+    .select({
+      agentId: agentRuns.agentId,
+      channelId: agentRuns.channelId,
+      own: agentRuns.browserProfileOwn,
+      profileId: agentRuns.browserProfileId,
+    })
+    .from(agentRuns)
+    .where(and(eq(agentRuns.id, runId), eq(agentRuns.orgId, orgId)));
+  if (!run) throw new NotFoundError("Run not found");
+  await requireChannelAccess(db, userId, orgId, run.channelId);
+  if (!run.own && run.profileId) return null;
+  if (!run.own) {
+    const [agent] = await db
+      .select({ profileId: agents.browserProfileId })
+      .from(agents)
+      .where(and(eq(agents.id, run.agentId), eq(agents.orgId, orgId)));
+    if (agent?.profileId) return null;
+  }
+  const person = await personalBrowserReader(db, { orgId, agentId: run.agentId, channelId: run.channelId });
+  if (person !== userId) return null;
+  // The one this run holds, else the one last used (a mission's computer has another).
+  const [row] = await db
+    .select()
+    .from(browserProfiles)
+    .where(
+      and(
+        eq(browserProfiles.orgId, orgId),
+        eq(browserProfiles.agentId, run.agentId),
+        eq(browserProfiles.personUserId, userId),
+        isNull(browserProfiles.deletedAt),
+        onSingleModeMachine,
+      ),
+    )
+    .orderBy(
+      sql`(${browserProfiles.heldByRunId} = ${runId}) desc nulls last`,
+      sql`${browserProfiles.lastUsedAt} desc nulls last`,
+      desc(browserProfiles.createdAt),
+    )
+    .limit(1);
+  // Back on its desktop since (granted it, or a computer that serves desktops): the runs went to the agent's own.
+  if (!row || (await browserOnDesktop(db, orgId, run.agentId, row.machineId))) return null;
+  return viewOf(row, []);
 }
 
 /** How a person's control of a profile drives its runner session: the profile's key stands for the agent. */
@@ -859,7 +1054,7 @@ async function profileRefusalError(
 
 /** Devolver: the person's control ends; agents granted it may use it again. */
 export async function endProfileControl(deps: ProfileControlDeps, userId: string, orgId: string, profileId: string) {
-  await requireProfile(deps.db, orgId, profileId);
+  await requireProfile(deps.db, orgId, profileId, true);
   await releaseProfileControl(deps.db, orgId, profileId, userId);
   await announceProfile(deps, orgId, profileId);
   return browserProfileView(deps.db, orgId, profileId);
@@ -897,4 +1092,90 @@ export async function openProfilePage(
   await touchProfileControl(deps.db, profileId, userId);
   await announceProfile(deps, orgId, profileId, true);
   if (!reply.success) throw new ValidationError(reply.error || "The page didn't open", "browser.open_failed");
+}
+
+/** A profile's signed-in sites as the apps show them (ADR 0110, addendum 2026-11-15). */
+export interface ProfileSites {
+  sites: BrowserSite[];
+}
+
+/** What "Sair" removed from one site, and the sites after. */
+export interface ProfileSiteSignOut extends ProfileSites {
+  site: string;
+  cookies: number;
+  storage: number;
+}
+
+/** How long listing or signing out may take on the computer: its Chrome may have to start first. */
+const SITES_TIMEOUT_MS = 90_000;
+
+/** The profile, its driver checked, on a computer whose runner speaks `BROWSER_SITES_PROTOCOL`. */
+async function requireSitesProfile(deps: ProfileDeps, userId: string, orgId: string, profileId: string) {
+  const row = await requireProfileDriver(deps.db, userId, orgId, profileId);
+  const problem = await profileMachineProblem(deps.db, deps.hub, orgId, row.machineId, BROWSER_SITES_PROTOCOL);
+  if (problem) throw new ValidationError(problem, "browser_profile.machine");
+  if (!deps.hub) throw new ValidationError("Connected computers are not available on this server");
+  return { row, hub: deps.hub };
+}
+
+/**
+ * The sites a profile is signed in to: hosts and counts, never a cookie or what a site stored. Its drivers only
+ * (`requireProfileDriver`); its Chrome starts on the computer when it isn't running, so the apps ask only when a person
+ * opens the list.
+ */
+export async function listProfileSites(
+  deps: ProfileDeps,
+  userId: string,
+  orgId: string,
+  profileId: string,
+): Promise<ProfileSites> {
+  const { row, hub } = await requireSitesProfile(deps, userId, orgId, profileId);
+  const reply = await hub.call<"browser.sites">(
+    row.machineId,
+    { op: "browser.sites", agent: profileScope(profileId), profile: { id: profileId } },
+    { timeoutMs: SITES_TIMEOUT_MS },
+  );
+  return { sites: reply.sites };
+}
+
+/**
+ * "Sair": the profile signs out of one site, its cookies and its stored data. Refused (409 `browser_profile.busy`)
+ * while an agent's run or another person has the profile; otherwise the person holds it for the moment it runs, so no
+ * agent's command lands meanwhile, and gives it back unless they were in control already.
+ */
+export async function signOutProfileSite(
+  deps: ProfileControlDeps,
+  userId: string,
+  orgId: string,
+  profileId: string,
+  site: string,
+): Promise<ProfileSiteSignOut> {
+  const host = site.trim().toLowerCase();
+  if (!BROWSER_SITE_HOST.test(host)) throw new ValidationError("Which site?", "browser_profile.site");
+  const { row, hub } = await requireSitesProfile(deps, userId, orgId, profileId);
+  const holder = holderOf(row);
+  const already = holder?.type === "person" && holder.userId === userId;
+  const taken = await takeProfileControl(deps.db, orgId, profileId, userId, PROFILE_CONTROL_MS, false);
+  if (!taken) throw new ConflictError("Someone else is using this profile", "browser_profile.busy");
+  let reply: MachineReplies["browser.sites.forget"];
+  try {
+    reply = await hub.call<"browser.sites.forget">(
+      row.machineId,
+      { op: "browser.sites.forget", site: host, agent: profileScope(profileId), profile: { id: profileId } },
+      { timeoutMs: SITES_TIMEOUT_MS },
+    );
+  } finally {
+    if (!already) {
+      await releaseProfileControl(deps.db, orgId, profileId, userId);
+      await announceProfile(deps, orgId, profileId);
+    }
+  }
+  await recordAudit(deps.db, {
+    orgId,
+    actor: { type: "person", id: userId },
+    action: "browser_profile.site_signed_out",
+    target: { type: "browser_profile", id: profileId },
+    details: { name: row.name, site: host, cookies: reply.cookies, storage: reply.storage },
+  });
+  return { site: host, cookies: reply.cookies, storage: reply.storage, sites: reply.sites };
 }

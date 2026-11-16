@@ -434,6 +434,12 @@ export type ChannelEvent =
    * are made out). Clients drop it after `ttlMs`.
    */
   | { type: "user.typing"; channelId: string; threadId: string | null; userId: string; ttlMs: number; kind?: "voice" }
+  /**
+   * Who has the conversation open changed (ADR 0084 addendum 2026-11-15): `userId` opened it on their first connection
+   * or closed it on their last. Ids only: its apps read `GET …/channels/{channelId}/viewers` again. Never sent for a
+   * hidden person, nor to that person's own sockets.
+   */
+  | { type: "channel.viewers"; channelId: string; userId: string }
   /** Who saw a message and who will answer (receipts). No router scores here. */
   | {
       type: "message.routed";
@@ -586,6 +592,18 @@ export type ChannelEvent =
     }
   /** A message was unpinned. */
   | { type: "message.unpinned"; channelId: string; messageId: string }
+  /**
+   * Its author edited a message (ADR 0207): its new text and when, changed in place. Not news: no unread, no
+   * notification, nothing new in the conversation.
+   */
+  | {
+      type: "message.edited";
+      channelId: string;
+      messageId: string;
+      threadId: string | null;
+      body: string;
+      editedAt: string;
+    }
   /** A person read this DM up to `lastReadAt` (DMs between people only: "Visto"). */
   | { type: "channel.read"; channelId: string; userId: string; lastReadAt: string }
   /** An agent saved something to memory from this person's message: its current memory marks. */

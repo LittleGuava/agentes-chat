@@ -15,7 +15,10 @@ export const strings: Partial<PushStrings> = {
   replyTitle: (a) => `${a} heeft geantwoord`,
   missionStoppedTitle: "Een missie is gestopt",
   routineFailedTitle: "Een routine is niet afgerond",
+  routineFailedRetriedTitle: "Een routine is niet afgerond, ook niet na een nieuwe poging",
   runFailedTitle: (a) => `${a} kon het niet afronden`,
+  needsAiTitle: (a) => `${a} heeft geen AI gekoppeld`,
+  needsAiBody: (p) => `${p} vroeg iets en kreeg geen antwoord. Koppel een AI zodat er geantwoord kan worden.`,
   routineFailedBody: "Tik om te zien wat er gebeurde.",
   routinePausedTitle: "Een routine is gepauzeerd",
   routinePausedBody: "Tik om te zien waarom.",
@@ -41,6 +44,7 @@ export const strings: Partial<PushStrings> = {
   secretTitle: (a) => `${a} heeft een geheim van je nodig`,
   secretBody: "Tik om het veilig te sturen.",
   widgetAlertTitle: (a, w) => (w ? `${a}: ${w}` : `${a} heeft een widget gemarkeerd`),
+  mailImportantTitle: (m) => `Belangrijke e-mail in ${m}`,
   widgetFailedTitle: (w) => (w ? `“${w}” is niet bijgewerkt` : "Een widget is niet bijgewerkt"),
   widgetFailedReasons: {
     no_update: "De laatste update eindigde zonder gegevens.",

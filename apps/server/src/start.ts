@@ -26,6 +26,7 @@ import {
   createPostgresSearchResolver,
   createRelayPushSender,
   createS3BlobStore,
+  createServerUpdater,
   createSmtpEmailSender,
   createWebPushSender,
   type EmailSender,
@@ -91,6 +92,7 @@ import { createApp } from "./app";
 import { createAuth } from "./auth";
 import { buildEngine } from "./engine";
 import { startFreezeWatch } from "./freeze-watch";
+import { frontDoor } from "./http/front-door";
 import { checkHumanCheckAtBoot, createHumanCheck } from "./http/human-check";
 import { createLogger, type Logger } from "./logger";
 import { OPERATOR_API_PREFIX, serveOperatorApi } from "./operator/app";
@@ -280,6 +282,8 @@ async function boot(
         source,
       ]),
     ),
+    // Updates from the app (ADR 0200), only with SERVER_UPDATER_DIR: the updater service holds the Docker socket.
+    serverUpdater: createServerUpdater(config.SERVER_UPDATER_DIR),
   };
   log.info("platform file storage", { kind: defaults.platformBlobs.kind });
   log.info("transactional email", { sender: defaults.email.id });
@@ -493,8 +497,13 @@ async function boot(
     artifacts: engine.artifacts,
     feedbackFiles: { db: database.db, blobs: adapters.platformBlobs },
     voice: engine.voice,
+    readAloud: engine.readAloud,
     approvalDigest: { publicUrl: config.PUBLIC_URL, afterHours: config.APPROVAL_REMINDER_HOURS },
+    // Only where emails really go out: a log of them would claim each person's wait for nothing.
+    ...(adapters.email.delivers ? { awayEmail: { publicUrl: config.PUBLIC_URL } } : {}),
     mail: { deps: engine.mail, pollSeconds: config.MAIL_POLL_SECONDS },
+    // Calendars go through Composio (ADR 0190): without it no meeting routine can look at one.
+    ...(engine.connectorDeps.composio ? { meetings: engine.connectorDeps } : {}),
     browserLive: engine.browserLive,
     desktops: engine.desktops,
     machines: engine.machineHub,
@@ -545,6 +554,8 @@ async function boot(
         githubApp: engine.githubApp,
         speech: engine.speech,
         voice: engine.voice,
+        readAloud: engine.readAloud,
+        meetings: engine.meetingAudio,
         gitProxy: engine.gitProxy,
         pushRelaySender: relayServeSender(direct),
       },
@@ -569,18 +580,11 @@ async function boot(
   const ownHosts = ownHostsOnly
     ? new Set([`127.0.0.1:${config.PORT}`, `localhost:${config.PORT}`, publicUrl.host])
     : null;
-  /**
-   * A 421 for a name not its own; and a page opened at another of its own names goes to `PUBLIC_URL`,
-   * the only origin that sign-in and saving accept. Temporary: `PUBLIC_URL` changes with Tailscale.
-   */
-  const ownHostAnswer = (req: Request) => {
-    const host = req.headers.get("host") ?? "";
-    if (!ownHosts || host === publicUrl.host) return null;
-    if (!ownHosts.has(host)) return new Response("This server answers only at its own address.\n", { status: 421 });
-    if (req.method !== "GET" || !req.headers.get("accept")?.includes("text/html")) return null;
-    const { pathname, search } = new URL(req.url);
-    return Response.redirect(new URL(pathname + search, publicUrl).href, 302);
-  };
+  const serveFetch = frontDoor<Bun.Server<SocketData>>(
+    { ownHosts, publicUrl, pagesUrl: config.PUBLISHED_PAGES_URL },
+    (req, srv, next) => realtime.fetch(req, srv, next),
+    (req) => app.fetch(req),
+  );
   // A worker answers its health check alone: the image's check reads it, and a deploy waits for it.
   const server = worker
     ? Bun.serve({
@@ -600,7 +604,7 @@ async function boot(
         // Bun's default (10 s) cuts a request still waiting on its answer: opening a site in an agent's
         // browser waits for the page, and a closed browser starts first (up to 90 s on the computer).
         idleTimeout: 120,
-        fetch: (req, srv) => ownHostAnswer(req) ?? realtime.fetch(req, srv, (r) => app.fetch(r)),
+        fetch: serveFetch,
         websocket: realtime.websocket,
         // What the HTTP app doesn't answer itself: a WebSocket upgrade that failed before the socket opened.
         error(error) {
@@ -740,7 +744,7 @@ function emailSender(config: Config, log: Logger): EmailSender {
 }
 
 /** Our bucket (S3_*) when configured, else a folder on this server (FILES_DIR), else Postgres. */
-function platformBlobStore(config: Config, db: Database) {
+export function platformBlobStore(config: Config, db: Database) {
   const { S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY } = config;
   if (!S3_ENDPOINT || !S3_BUCKET || !S3_ACCESS_KEY_ID || !S3_SECRET_ACCESS_KEY) {
     return config.FILES_DIR ? createDiskBlobStore(config.FILES_DIR) : createPostgresBlobStore(db);

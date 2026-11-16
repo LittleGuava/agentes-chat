@@ -67,3 +67,32 @@ test("where the unread starts is in the channel list, and reading moves it", asy
   const after = (await list()).find((c) => c.id === before.id);
   expect(Date.parse(after?.lastReadAt ?? "")).toBeGreaterThan(Date.parse(before.lastReadAt));
 });
+
+test("a conversation marked unread is unread to its person alone until they read it; only members mark one", async () => {
+  const owner = browser(t);
+  await signUp(owner, "owner@example.com");
+  const { orgId } = await seedOrg(owner);
+  const member = await joinByInvitation(t, owner, orgId, "member@example.com");
+  type Channels = { channels: { id: string; name: string; unreadCount: number; isMember: boolean }[] };
+  const general = async (b: typeof owner) =>
+    ((await (await b(`/api/app/organizations/${orgId}/channels`)).json()) as Channels).channels.find(
+      (c) => c.name === "general",
+    );
+  const channel = await general(owner);
+  if (!channel) throw new Error("no general");
+  const at = (action: "read" | "unread") => `/api/app/organizations/${orgId}/channels/${channel.id}/${action}`;
+
+  expect((await owner(at("read"), { method: "POST", json: {} })).status).toBe(204);
+  expect((await general(owner))?.unreadCount).toBe(0);
+  expect((await owner(at("unread"), { method: "POST", json: {} })).status).toBe(204);
+  expect((await general(owner))?.unreadCount).toBe(1);
+  expect((await general(member))?.unreadCount).toBe(0);
+  expect((await owner(at("read"), { method: "POST", json: {} })).status).toBe(204);
+  expect((await general(owner))?.unreadCount).toBe(0);
+
+  const stranger = browser(t);
+  await signUp(stranger, "stranger@example.com");
+  // As reading it: no channel for who is not in it.
+  expect((await stranger(at("unread"), { method: "POST", json: {} })).status).toBe(404);
+  expect((await stranger(at("read"), { method: "POST", json: {} })).status).toBe(404);
+});

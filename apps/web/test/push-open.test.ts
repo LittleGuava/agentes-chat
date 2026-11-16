@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readdirSync } from "node:fs";
 import type { AppNotification } from "@agenteschat/client";
-import { opensConnectAi, openTarget } from "@agenteschat/client/lib/notifications";
+import { connectAiAsk, opensConnectAi, openTarget } from "@agenteschat/client/lib/notifications";
 import {
   dispatchPushOpen,
   fallbackTarget,
@@ -357,6 +357,16 @@ describe("a ready computer whose agents have no AI", () => {
     expect(opensConnectAi(ready, { any: false, agents: [] })).toBe(false);
     expect(opensConnectAi(ready, undefined)).toBe(false);
     expect(opensConnectAi({ kind: "machine_connected" }, noAi)).toBe(false);
+  });
+});
+
+test("an agent someone couldn't reach for want of an AI: Conectar uma IA for it, else its page", () => {
+  const n = { kind: "agent_needs_ai" as const, source: { agentId: "a1", label: "Dev" } };
+  expect(connectAiAsk(n, undefined)).toEqual({ agentId: "a1" });
+  expect(connectAiAsk({ ...n, source: {} }, undefined)).toBeNull();
+  expect(openTarget(notification({ id: ID, ...n }))).toEqual({
+    to: "/org/$orgId/agents/$agentId",
+    params: { agentId: "a1" },
   });
 });
 

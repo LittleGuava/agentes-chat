@@ -90,6 +90,52 @@ describe("Compartilhar (ADR 0157)", () => {
     expect(copied[0]).not.toContain("/api/");
   });
 
+  test("a public page (ADR 0211): its address and version, Copiar link público, and Despublicar takes it down", async () => {
+    const { api, state, report } = await drive();
+    const url = `https://pages.example.net/p/${"A".repeat(43)}/`;
+    let pages = [
+      {
+        id: "page-1",
+        artifactId: report.id,
+        title: report.title,
+        version: 2,
+        url,
+        createdBy: { type: "agent" as const, id: ATLAS_ID },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    ];
+    api.artifacts.publishedPages = async (_orgId, artifactId) => pages.filter((p) => p.artifactId === artifactId);
+    const unpublish = api.artifacts.unpublish;
+    api.artifacts.unpublish = async (orgId, pageId) => {
+      await unpublish(orgId, pageId);
+      pages = pages.filter((p) => p.id !== pageId);
+    };
+    await fromDetails("Relatório de visitas", "Compartilhar");
+    await settle(4);
+    const dialog = shareDialog("Relatório de visitas");
+    const section = within(dialog).getByRole("region", { name: "Página pública" });
+    expect(section.textContent).toContain(url);
+    expect(section.textContent).toContain("versão 2");
+    await click(within(section).getByRole("button", { name: "Copiar link público" }));
+    await settle(2);
+    expect(copied).toEqual([url]);
+    await click(within(section).getByRole("button", { name: "Despublicar" }));
+    await settle(6);
+    expect(state.calls.filter((c) => c.method === "artifacts.unpublish").map((c) => c.args)).toEqual([
+      [ORG_ID, "page-1"],
+    ]);
+    expect(within(dialog).queryByRole("region", { name: "Página pública" })).toBeNull();
+    expect(screen().getByText("A página saiu do ar. O link não abre mais.")).toBeTruthy();
+  });
+
+  test("a file with no public page shows no such section", async () => {
+    await drive();
+    await fromDetails("Relatório de visitas", "Compartilhar");
+    await settle(4);
+    expect(within(shareDialog("Relatório de visitas")).queryByRole("region", { name: "Página pública" })).toBeNull();
+  });
+
   test("Todos no workspace: saved at once, with Desfazer; the warning goes", async () => {
     const { state, report } = await drive();
     await fromDetails("Relatório de visitas", "Compartilhar");

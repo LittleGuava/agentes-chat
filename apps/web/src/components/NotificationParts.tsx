@@ -101,6 +101,18 @@ export function SystemFace({ n, className = "nt-av24" }: { n: AppNotification; c
         <Icon name="plug" size={16} />
       </span>
     );
+  if (n.kind === "webhook_disabled")
+    return (
+      <span className={cx("nt-sys", className)} aria-hidden="true">
+        <Icon name="send" size={16} />
+      </span>
+    );
+  if (n.kind === "mail_important")
+    return (
+      <span className={cx("nt-sys", className)} aria-hidden="true">
+        <Icon name="mail" size={16} />
+      </span>
+    );
   if (n.kind === "skill_update")
     return (
       <span className={cx("nt-sys", className)} aria-hidden="true">
@@ -159,7 +171,9 @@ type WhatKey =
   | "missionStopped"
   | "routineFinished"
   | "routineFailed"
+  | "routineFailedRetried"
   | "runFailed"
+  | "agentNeedsAi"
   | "runFailedMany"
   | "runFailedManyAny"
   | "routinePaused"
@@ -282,7 +296,7 @@ export function Headline({
     case "routine_finished":
       return k("routineFinished", { name });
     case "routine_failed":
-      return k("routineFailed", { name });
+      return k(n.latest.retried ? "routineFailedRetried" : "routineFailed", { name });
     case "run_failed": {
       // Agents that failed for one cause close together: one line for all of them.
       const group = runFailedGroupOf(n);
@@ -299,6 +313,10 @@ export function Headline({
       return k("agentUnreached", { name });
     case "browser_profile_request":
       return k("browserProfileRequest", { name, agent: n.source.label ?? "" });
+    case "agent_needs_ai": {
+      const agent = n.source.label ?? "";
+      return k("agentNeedsAi", { name, agent, context: agentGrammar(agent).context });
+    }
     case "desktop_taken": {
       const agent = n.source.label ?? "";
       return k("desktopTaken", { name, agent, context: agentGrammar(agent).context });

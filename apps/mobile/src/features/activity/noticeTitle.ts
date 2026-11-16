@@ -45,7 +45,9 @@ export function useNoticeTitle(n: AppNotification) {
             ? `approval_cover_${n.latest.statusTo}`
             : n.kind === "admin_ask"
               ? `admin_ask_${n.latest.reason ?? "create_agents"}`
-              : n.kind;
+              : n.kind === "routine_failed" && n.latest.retried
+                ? "routine_failed_retried"
+                : n.kind;
   const device = deviceNoticeOf(n);
   const person = useNoticePerson(n);
   const orgName = useOrg().org?.name ?? "";
@@ -62,7 +64,7 @@ export function useNoticeTitle(n: AppNotification) {
           ? appCreatedLine(t, n)
           : isDashboardNotice(n.kind)
             ? t(`mobile.dashboards.notice.${n.kind}`, { names: NAMES, count: who.total, defaultValue: NAMES })
-            : n.kind === "skill_update"
+            : n.kind === "skill_update" || n.kind === "mail_important"
               ? t(workspaceHeadline(n) ?? "skills.notice.updated", { name: n.source.label ?? "" })
               : t(`mobile.activity.kind.${kind}`, {
                   names: NAMES,
@@ -81,8 +83,9 @@ export function useNoticeTitle(n: AppNotification) {
                   // `usage_limit`: the limit (who decides only) and the share used.
                   amount: n.latest.limitUsd !== undefined ? formatUsd(i18n.language, n.latest.limitUsd) : "",
                   percent: Math.round(n.latest.percent ?? 0),
-                  // `desktop_taken`: whose computer, said with its name's gender; `plan_lent`: the agent given the plan.
-                  ...(n.kind === "desktop_taken" || n.kind === "plan_lent"
+                  // `desktop_taken`: whose computer, said with its name's gender; `plan_lent`: the agent given the plan;
+                  // `agent_needs_ai`: the agent with no AI.
+                  ...(n.kind === "desktop_taken" || n.kind === "plan_lent" || n.kind === "agent_needs_ai"
                     ? { agent: n.source.label ?? "", context: agentGrammar(n.source.label ?? "").context }
                     : {}),
                   // `admin_ask`: the agent to add and where, or the service whose webhook.

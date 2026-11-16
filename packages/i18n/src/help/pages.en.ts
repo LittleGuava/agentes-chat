@@ -343,6 +343,7 @@ export const helpEn: Record<HelpSlug, HelpDocument> = {
               "Usage, costs and activity history",
             ],
           },
+          "To take only some departments or agents, choose **Departments or agents** and pick them: the file holds those agents and what they use (the skills they have on, the public channels they're in, their routines and their own memory), with a preview before the download.",
           "To use the file, open **Settings\u00a0›\u00a0Import and export** in the other workspace and drop the .json.",
         ],
       },
@@ -616,10 +617,12 @@ export const helpEn: Record<HelpSlug, HelpDocument> = {
           {
             list: [
               "`send_to_agent`: sends a message from you to an agent, in your private conversation with it or in a channel, and waits for the reply. Only with **Read and send tasks to agents** access.",
-              "`wait_for_reply`: keeps waiting for a task's reply.",
+              "`wait_for_reply`: keeps waiting for a task's reply. With the whole job (`scope: tree`), it also waits for the agents it handed work to, and a cursor picks the wait up again without missing a change.",
+              "`stop_task`: stops an agent's work on a task, yours or one of an agent you own (an admin stops any). Only with **Read and send tasks to agents** access.",
               "`list_agents`: the agents you see.",
               "`list_channels`: the channels you read.",
               "`read_conversation`: recent messages of a channel, a thread or a task.",
+              "`search_messages`: searches the messages you can read, your own direct conversations included.",
               "`list_recent_tasks`: the tasks you sent from apps and what agents are doing now.",
             ],
           },

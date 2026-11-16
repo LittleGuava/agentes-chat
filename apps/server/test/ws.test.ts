@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { listenResumedTopic, orgTopic } from "@agenteschat/adapters";
-import { schema } from "@agenteschat/db";
+import { eq, schema } from "@agenteschat/db";
 import { createLogger } from "../src/logger";
 import {
   authorizeSubscription,
@@ -221,6 +221,53 @@ function answersLater<T extends object>(target: T): T {
     },
   });
 }
+
+test("an open socket keeps marking its person active, so the away email knows they're here (ADR 0069)", async () => {
+  const owner = browser(t);
+  await signUp(owner, "owner@example.com");
+  const { orgId } = await seedOrg(owner);
+  const realtime = createRealtime({
+    db: t.db,
+    auth: t.auth,
+    config: t.config,
+    log: createLogger("error"),
+    ...t.adapters,
+    sessionRecheckMs: 5,
+    activeMarkMs: 20,
+  });
+  const fast = Bun.serve<SocketData>({
+    port: 0,
+    hostname: "127.0.0.1",
+    fetch: (req, srv) => realtime.fetch(req, srv, (r) => t.app.fetch(r)),
+    websocket: realtime.websocket,
+  });
+  const member = async () => {
+    const [m] = await t.db
+      .select({ activeAt: schema.organizationMembers.activeAt, lastSeenAt: schema.organizationMembers.lastSeenAt })
+      .from(schema.organizationMembers)
+      .where(eq(schema.organizationMembers.orgId, orgId));
+    return m;
+  };
+  try {
+    const c = connect(`ws://127.0.0.1:${fast.port}/api/ws?orgId=${orgId}`, { origin: ORIGIN, cookie: owner.cookie() });
+    await c.opened;
+    await c.next((f) => f.type === "ready");
+    const opened = await member();
+    expect(opened?.activeAt).toBeInstanceOf(Date);
+    const deadline = Date.now() + 5000;
+    let now = opened;
+    while (Date.now() < deadline && now?.activeAt?.getTime() === opened?.activeAt?.getTime()) {
+      await Bun.sleep(10);
+      now = await member();
+    }
+    expect(now?.activeAt?.getTime()).toBeGreaterThan(opened?.activeAt?.getTime() ?? Number.POSITIVE_INFINITY);
+    // What others may see moves only when a socket opens or closes.
+    expect(now?.lastSeenAt).toEqual(opened?.lastSeenAt ?? null);
+    c.ws.close();
+  } finally {
+    await Promise.race([fast.stop(true), Bun.sleep(500)]);
+  }
+}, 30_000);
 
 test("a channel subscribed while the periodic membership check runs stays subscribed", async () => {
   const owner = browser(t);

@@ -36,7 +36,8 @@ export const voiceClips = pgTable(
     peaks: jsonb().$type<number[]>().notNull(),
     /** The language the person's app is in (`pt`, `en`). */
     language: text(),
-    status: text().$type<"pending" | "sent" | "dropped">().notNull().default("pending"),
+    /** `dictated`: words given back to the person's box (ADR 0100 addendum), never posted, its audio never kept. */
+    status: text().$type<"pending" | "sent" | "dropped" | "dictated">().notNull().default("pending"),
     messageId: uuid(),
     /** Which engine made the words, and what they cost us. Never shown. */
     engine: text(),

@@ -23,6 +23,7 @@ import {
   signInOf,
 } from "@agenteschat/client/lib/ai-accounts";
 import { computerNameOf } from "@agenteschat/client/lib/computer";
+import { credentialMark } from "@agenteschat/client/lib/endpoints";
 import { errorText, keyRefusal } from "@agenteschat/client/lib/errors";
 import { joinNames, relativeTime } from "@agenteschat/client/lib/format";
 import { agentGrammar } from "@agenteschat/client/lib/grammar";
@@ -491,7 +492,7 @@ function KeysSection({ locale }: { locale: string }) {
             return (
               <GroupedRow
                 key={k.id}
-                leading={<ProviderLogo id={k.provider} size="sm" />}
+                leading={<ProviderLogo id={credentialMark(k)} size="sm" />}
                 label={k.label}
                 sub={[
                   keyNamedAfterProvider(k) ? null : keySource(k),

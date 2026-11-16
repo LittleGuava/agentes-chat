@@ -139,6 +139,8 @@ export const SHOWN_ONLY: Record<Condition, readonly string[]> = {
     "openOnPhone.stepTailscale",
     "outage.dialog.none",
     "settings.platformAvailable",
+    "settings.serverUpdate.",
+    "settings.serverUpdater.",
     "settings.telemetry.",
     "skills.unavailable",
     "storage.server",

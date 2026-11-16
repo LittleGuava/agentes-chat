@@ -371,6 +371,33 @@
   "tray.allowedUndone": {
     "value": "Off again: {{tool}}"
   },
+  "tray.screenWants": {
+    "value": "{{agent}} wants to use your screen"
+  },
+  "tray.screenWantsBody": {
+    "value": "It sees what's on your screen and clicks and types for you, for up to 30 minutes. Moving your mouse or keyboard pauses it, and it never types in a password field."
+  },
+  "tray.screenUsing": {
+    "value": "{{agent}} is using your screen"
+  },
+  "tray.screenUsingBody": {
+    "value": "Until {{time}}. Moving your mouse or keyboard pauses it."
+  },
+  "tray.screenStop": {
+    "value": "Stop"
+  },
+  "tray.screenStopped": {
+    "value": "{{agent}} stopped using your screen"
+  },
+  "tray.screenDenied": {
+    "value": "Declined. {{agent}} won't use your screen."
+  },
+  "tray.screenNotifTitle": {
+    "value": "{{agent}} wants to use your screen"
+  },
+  "tray.screenNotifBody": {
+    "value": "Allow or decline in the agentes.chat icon within 90 seconds."
+  },
   "tray.quitTitle": {
     "value": "Quit agentes.chat?"
   },
@@ -781,6 +808,12 @@
   },
   "link.notALink": {
     "value": "This link isn't from an agentes.chat server."
+  },
+  "link.elsewhere": {
+    "value": "This link opens a conversation on a server this app doesn't open."
+  },
+  "link.elsewhereHelp": {
+    "value": "Add it in Servers › Add a server…, then open the link again."
   },
   "link.chipTailnet": {
     "value": "Tailscale"
@@ -1328,11 +1361,11 @@
   "tools.grokName": {
     "value": "Grok Build"
   },
-  "tools.copilotName": {
-    "value": "Copilot CLI"
-  },
   "tools.grokDesc": {
     "value": "Writes and changes code in the allowed folders, with your Grok account."
+  },
+  "tools.copilotName": {
+    "value": "Copilot CLI"
   },
   "tools.copilotDesc": {
     "value": "Writes and changes code in the allowed folders, with your GitHub Copilot account."
@@ -1415,6 +1448,9 @@
   "tools.cantStartChip": {
     "value": "Won't start"
   },
+  "tools.ownBinary": {
+    "value": "Runs its own program:"
+  },
   "tools.installedNotFound": {
     "value": "The installer finished, but {{tool}} still isn't found."
   },
@@ -1429,6 +1465,57 @@
   },
   "tools.browserLogins": {
     "value": "Logins an agent makes stay on this {{device}}, in its folder. Use only test accounts or the agent's own."
+  },
+  "myChrome.title": {
+    "value": "Your Chrome"
+  },
+  "myChrome.lendName": {
+    "value": "Lend your Chrome to an agent"
+  },
+  "myChrome.lendAbout": {
+    "value": "Start Chrome with remote debugging on a port, with a profile folder of yours signed in to the sites the agent needs. The agent opens pages in a tab of its own, as you, and never sees your other tabs. While Chrome runs that way, any program on this {{device}} can reach it."
+  },
+  "myChrome.blocked": {
+    "value": "Turn off Commands and the coding programs first. While any of them is on, an agent could reach your whole Chrome."
+  },
+  "myChrome.agent": {
+    "value": "Agent"
+  },
+  "myChrome.port": {
+    "value": "Port"
+  },
+  "myChrome.minutes": {
+    "value": "Minutes"
+  },
+  "myChrome.lend": {
+    "value": "Lend"
+  },
+  "myChrome.lent": {
+    "value": "{{agent}} can use your Chrome until {{time}}"
+  },
+  "myChrome.until": {
+    "value": "Until {{time}} · port {{port}}"
+  },
+  "myChrome.disconnect": {
+    "value": "Disconnect"
+  },
+  "myChrome.disconnectOf": {
+    "value": "Disconnect {{agent}}"
+  },
+  "myChrome.badPort": {
+    "value": "Give the port Chrome listens on, from 1 to 65535."
+  },
+  "myChrome.badMinutes": {
+    "value": "Lend it for 1 to {{max}} minutes."
+  },
+  "myChrome.noAnswer": {
+    "value": "Chrome didn't answer on port {{port}}. Start it with remote debugging on that port and try again."
+  },
+  "tools.screenName": {
+    "value": "Your screen"
+  },
+  "tools.screenDesc": {
+    "value": "Agents can ask to see and use this {{device}}'s screen in a task you gave them. You allow it each time, here. Moving your mouse or keyboard pauses them, and Stop ends it."
   },
   "notch.label": {
     "value": "Agents in the notch"
@@ -1478,6 +1565,9 @@
   "prefs.nav.folders": {
     "value": "Folders"
   },
+  "prefs.nav.sites": {
+    "value": "Sites"
+  },
   "prefs.nav.tools": {
     "value": "Tools"
   },
@@ -1489,6 +1579,9 @@
   },
   "prefs.nav.advanced": {
     "value": "Advanced"
+  },
+  "prefs.nav.sync": {
+    "value": "Agents' files"
   },
   "prefs.general.title": {
     "value": "General"
@@ -1717,6 +1810,84 @@
   },
   "prefs.folders.invalid": {
     "value": "This folder can't be allowed. Choose one of your folders, not a system one."
+  },
+  "prefs.sites.title": {
+    "value": "Sites"
+  },
+  "prefs.sites.lead": {
+    "value": "Sites that block servers open through this {{device}}'s connection, for the agents you choose."
+  },
+  "prefs.sites.how": {
+    "value": "The site sees this {{device}}'s address. Agents only open the sites listed here through it, and nothing else of your network."
+  },
+  "prefs.sites.add": {
+    "value": "Add site"
+  },
+  "prefs.sites.addTitle": {
+    "value": "Lend this {{device}}'s connection to a site"
+  },
+  "prefs.sites.site": {
+    "value": "Site"
+  },
+  "prefs.sites.addConfirm": {
+    "value": "Add"
+  },
+  "prefs.sites.invalid": {
+    "value": "That isn't a public site. Type a name like example.com."
+  },
+  "prefs.sites.added": {
+    "value": "Choose which agents open {{site}} through this {{device}}"
+  },
+  "prefs.sites.agents": {
+    "value": "Agents"
+  },
+  "prefs.sites.whoUses": {
+    "value": "Who opens {{site}} here"
+  },
+  "prefs.sites.every": {
+    "value": "Every agent"
+  },
+  "prefs.sites.everyAgent": {
+    "value": "Every agent of {{org}}"
+  },
+  "prefs.sites.noAgents": {
+    "value": "No agent uses it yet"
+  },
+  "prefs.sites.unknownAgent": {
+    "value": "An agent no longer listed"
+  },
+  "prefs.sites.offline": {
+    "value": "Connect this {{device}} to see the agents by name."
+  },
+  "prefs.sites.noLendable": {
+    "value": "No agent of {{org}} works on another computer yet."
+  },
+  "prefs.sites.agentsFailed": {
+    "value": "Couldn't change who opens this site. Try again."
+  },
+  "prefs.sites.noneTitle": {
+    "value": "No site through this {{device}} in {{org}}"
+  },
+  "prefs.sites.noneBody": {
+    "value": "Agents open every site from the computer they work on."
+  },
+  "prefs.sites.outdatedTitle": {
+    "value": "Update agentes.chat to lend sites"
+  },
+  "prefs.sites.outdatedBody": {
+    "value": "This version can't open sites for agents of other computers."
+  },
+  "prefs.sites.removeLabel": {
+    "value": "Remove {{site}}"
+  },
+  "prefs.sites.removeTitle": {
+    "value": "Stop lending {{site}}?"
+  },
+  "prefs.sites.removeBody": {
+    "value": "Agents stop opening it through this {{device}} right away, and what they have open there closes."
+  },
+  "prefs.sites.removed": {
+    "value": "Site removed"
   },
   "prefs.tools.title": {
     "value": "Tools"
@@ -2053,6 +2224,33 @@
   },
   "prefs.activity.said.tools.terminal": {
     "value": "the terminal"
+  },
+  "prefs.activity.said.tools.hostDesktop": {
+    "value": "your screen"
+  },
+  "prefs.activity.said.screenAsked": {
+    "value": "asked to use your screen"
+  },
+  "prefs.activity.said.screenOn": {
+    "value": "started using your screen"
+  },
+  "prefs.activity.said.screenNotNow": {
+    "value": "not now: your screen"
+  },
+  "prefs.activity.said.screenExpired": {
+    "value": "screen request expired"
+  },
+  "prefs.activity.said.screenStopped": {
+    "value": "stopped using your screen: you stopped it"
+  },
+  "prefs.activity.said.screenSwitchedOff": {
+    "value": "stopped using your screen: the switch went off"
+  },
+  "prefs.activity.said.screenLocked": {
+    "value": "stopped using your screen: it locked"
+  },
+  "prefs.activity.said.screenEnded": {
+    "value": "stopped using your screen: its 30 minutes ended"
   },
   "prefs.activity.said.folderAllowed": {
     "value": "allowed {{path}} for {{agents}}"
@@ -2395,5 +2593,50 @@
   },
   "menu.downloaded": {
     "value": "Download complete"
+  },
+  "folderSync.dmFolder": {
+    "value": "Direct messages"
+  },
+  "folderSync.title": {
+    "value": "Agents' files"
+  },
+  "folderSync.lead": {
+    "value": "What agents make in the conversations you choose, downloaded to a folder on this {{device}}."
+  },
+  "folderSync.on": {
+    "value": "Download agents' files"
+  },
+  "folderSync.onHint": {
+    "value": "New versions come down as agents save them. A file you changed stays as it is, and the new version goes next to it. Nothing is deleted."
+  },
+  "folderSync.folder": {
+    "value": "Folder"
+  },
+  "folderSync.last": {
+    "value": "Last download"
+  },
+  "folderSync.notYet": {
+    "value": "Not yet"
+  },
+  "folderSync.someFailed": {
+    "value": "Some files didn't come down. They're tried again in a few minutes."
+  },
+  "folderSync.unreachable": {
+    "value": "The server couldn't be reached. Trying again in a few minutes."
+  },
+  "folderSync.conversations": {
+    "value": "Conversations"
+  },
+  "folderSync.loading": {
+    "value": "Reading the conversations"
+  },
+  "folderSync.loadFailed": {
+    "value": "Couldn't read the conversations."
+  },
+  "folderSync.none": {
+    "value": "No conversations here yet."
+  },
+  "folderSync.noWorkspace": {
+    "value": "Sign in to a workspace first."
   }
 }

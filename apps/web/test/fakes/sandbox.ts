@@ -3,7 +3,7 @@
  * `GET …/agents/{id}/computer` and `PUT …/computer/target`
  * (apps/server/src/routes/app/sandboxes.ts, routes/machines.ts).
  */
-import type { ApiClient, ComputerTarget, SandboxSettings } from "@agenteschat/client";
+import type { AgentRelaySite, ApiClient, ComputerTarget, SandboxSettings } from "@agenteschat/client";
 import { clone, type MockContext } from "./context";
 import type { FakeMachines } from "./machines";
 
@@ -19,6 +19,28 @@ export function createFakeSandbox(
     const m = id ? machines?.peek(id) : undefined;
     return m ? { kind: "machine", machineId: m.id, name: m.name, online: m.online } : { kind: "none" };
   };
+  /**
+   * As `agentRelaySites` (packages/engine/src/relay.ts): the sites a person's other computer lends this agent, by
+   * site; an agent with no computer has none. `online` is whether that computer answers now.
+   */
+  const relayOf = (agentId: string): AgentRelaySite[] => {
+    const home = targets.get(agentId);
+    if (!home || !machines) return [];
+    return machines
+      .all()
+      .filter((m) => m.id !== home && m.kind !== "managed" && m.kind !== "host" && m.mode !== "system")
+      .flatMap((m) =>
+        (m.access?.relay ?? [])
+          .filter((g) => g.agents.includes("*") || g.agents.includes(agentId))
+          .map((g) => ({
+            site: g.site,
+            machine: { id: m.id, name: m.name },
+            by: m.pairedBy,
+            online: m.online && !m.paused,
+          })),
+      )
+      .sort((a, b) => a.site.localeCompare(b.site) || a.machine.name.localeCompare(b.machine.name));
+  };
   let settings: SandboxSettings = {
     enabled: true,
     execTimeoutSeconds: 120,
@@ -32,7 +54,7 @@ export function createFakeSandbox(
       settings = { ...settings, ...input };
       return clone(settings);
     },
-    computer: async (_orgId, agentId) => clone({ target: targetOf(agentId) }),
+    computer: async (_orgId, agentId) => clone({ target: targetOf(agentId), relay: relayOf(agentId) }),
     setTarget: async (orgId, agentId, machineId) => {
       log("sandbox.setTarget", orgId, agentId, machineId);
       const before = targets.get(agentId);

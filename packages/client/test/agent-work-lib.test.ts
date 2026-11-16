@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { resources } from "@agenteschat/i18n";
 import i18next, { type TFunction } from "i18next";
-import type { AgentStatus, AgentWork, PendingReturn, RunConsultation } from "../src/api/types";
+import type { AgentQueue, AgentStatus, AgentWork, PendingReturn, RunConsultation } from "../src/api/types";
 import {
   activitySentence,
   barConsultTime,
@@ -13,6 +13,7 @@ import {
 import {
   agentWork,
   handoffAsk,
+  queueLine,
   returnClock,
   returnFaces,
   returnSentence,
@@ -111,6 +112,44 @@ describe("an agent's list line (ADR 0084 addendum)", () => {
     });
     expect(agentWork(status(work({ state: "you", ask: "approval" })), { channelId: "c-x" }, NOW)?.state).toBe("you");
     expect(agentWork(status(work({ state: "queued" })), null, NOW)?.state).toBe("queued");
+  });
+});
+
+describe("an agent's queue, by who asked (ADR 0084 addendum of 2026-11-15)", () => {
+  const people: Record<string, string> = { me: "Ana", tom: "Tom", bia: "Bia", rui: "Rui" };
+  const who = {
+    me: "me",
+    personName: (id: string) => people[id],
+    agentName: (id: string) => ({ atlas: "Atlas" })[id],
+  };
+  const person = (id: string) => ({ type: "person" as const, id });
+  const q = (count: number, ...askers: AgentQueue["askers"]): AgentQueue => ({ count, askers });
+
+  test("names who asked, the reader as themselves, and how many wait", () => {
+    expect(queueLine(t, null, who)).toBeNull();
+    expect(queueLine(t, q(0), who)).toBeNull();
+    expect(queueLine(t, q(1, person("tom")), who)).toBe("Na fila: pedido de Tom");
+    expect(queueLine(t, q(3, person("tom")), who)).toBe("Na fila: 3 pedidos de Tom");
+    expect(queueLine(t, q(2, person("tom"), person("bia")), who)).toBe("Na fila: 2 pedidos de Tom e Bia");
+    expect(queueLine(t, q(5, person("tom"), person("bia"), person("rui")), who)).toBe(
+      "Na fila: 5 pedidos de Tom e mais 2",
+    );
+    expect(queueLine(t, q(1, person("me")), who)).toBe("Na fila: seu pedido");
+    expect(queueLine(t, q(2, person("me")), who)).toBe("Na fila: 2 pedidos seus");
+    expect(queueLine(t, q(2, person("tom"), person("me")), who)).toBe("Na fila: 2 pedidos de Tom e você");
+    expect(queueLine(t, q(1, { type: "agent", id: "atlas" }), who)).toBe("Na fila: pedido de Atlas");
+    expect(queueLine(en, q(1, person("tom")), who)).toBe("Queued: Tom's request");
+    expect(queueLine(en, q(2, person("tom"), person("me")), who)).toBe("Queued: 2 requests from Tom and you");
+  });
+
+  test("someone no longer in the directory goes unnamed; nobody named says only how many", () => {
+    expect(queueLine(t, q(2, person("gone"), person("tom")), who)).toBe("Na fila: 2 pedidos de Tom");
+    expect(queueLine(t, q(1, person("gone")), who)).toBe("Na fila: 1 pedido");
+    expect(queueLine(t, q(4, person("gone")), who)).toBe("Na fila: 4 pedidos");
+  });
+
+  test("names come marked for the bar's ink", () => {
+    expect(queueLine(t, q(1, person("tom")), who, (n) => `*${n}*`)).toBe("Na fila: pedido de *Tom*");
   });
 });
 

@@ -1900,7 +1900,7 @@
       "breakpoints": true
     },
     {
-      "idx": 273,
+      "idx": 275,
       "version": "7",
       "when": 1794756900000,
       "tag": "0275_view_all_agents",
@@ -1911,6 +1911,216 @@
       "version": "7",
       "when": 1794757000000,
       "tag": "0276_skill_source_by_folder",
+      "breakpoints": true
+    },
+    {
+      "idx": 275,
+      "version": "7",
+      "when": 1794778566528,
+      "tag": "0277_allowed_brains",
+      "breakpoints": true
+    },
+    {
+      "idx": 276,
+      "version": "7",
+      "when": 1794778776000,
+      "tag": "0278_channel_instructions",
+      "breakpoints": true
+    },
+    {
+      "idx": 277,
+      "version": "7",
+      "when": 1794778826668,
+      "tag": "0279_join_domains",
+      "breakpoints": true
+    },
+    {
+      "idx": 278,
+      "version": "7",
+      "when": 1794778893118,
+      "tag": "0280_sidebar_links",
+      "breakpoints": true
+    },
+    {
+      "idx": 279,
+      "version": "7",
+      "when": 1794779007032,
+      "tag": "0281_mark_unread",
+      "breakpoints": true
+    },
+    {
+      "idx": 280,
+      "version": "7",
+      "when": 1794779053962,
+      "tag": "0282_memory_valid_until",
+      "breakpoints": true
+    },
+    {
+      "idx": 281,
+      "version": "7",
+      "when": 1794779113673,
+      "tag": "0283_read_aloud",
+      "breakpoints": true
+    },
+    {
+      "idx": 282,
+      "version": "7",
+      "when": 1794779165743,
+      "tag": "0284_question_items",
+      "breakpoints": true
+    },
+    {
+      "idx": 283,
+      "version": "7",
+      "when": 1794779293568,
+      "tag": "0285_agent_api_keys",
+      "breakpoints": true
+    },
+    {
+      "idx": 284,
+      "version": "7",
+      "when": 1794779365578,
+      "tag": "0286_published_pages",
+      "breakpoints": true
+    },
+    {
+      "idx": 285,
+      "version": "7",
+      "when": 1794779459843,
+      "tag": "0287_announcements",
+      "breakpoints": true
+    },
+    {
+      "idx": 286,
+      "version": "7",
+      "when": 1794779516549,
+      "tag": "0288_mcp_oauth_preregistered_apps",
+      "breakpoints": true
+    },
+    {
+      "idx": 287,
+      "version": "7",
+      "when": 1794779617537,
+      "tag": "0289_tool_results",
+      "breakpoints": true
+    },
+    {
+      "idx": 288,
+      "version": "7",
+      "when": 1794779668574,
+      "tag": "0290_outgoing_webhooks",
+      "breakpoints": true
+    },
+    {
+      "idx": 289,
+      "version": "7",
+      "when": 1794779745182,
+      "tag": "0291_image_generations",
+      "breakpoints": true
+    },
+    {
+      "idx": 290,
+      "version": "7",
+      "when": 1794779857274,
+      "tag": "0292_screen_recipes",
+      "breakpoints": true
+    },
+    {
+      "idx": 291,
+      "version": "7",
+      "when": 1794779970828,
+      "tag": "0293_mail_triage",
+      "breakpoints": true
+    },
+    {
+      "idx": 292,
+      "version": "7",
+      "when": 1794780023339,
+      "tag": "0294_meeting_watches",
+      "breakpoints": true
+    },
+    {
+      "idx": 293,
+      "version": "7",
+      "when": 1794780085717,
+      "tag": "0295_import_written_hash",
+      "breakpoints": true
+    },
+    {
+      "idx": 294,
+      "version": "7",
+      "when": 1794780490305,
+      "tag": "0296_health_issues",
+      "breakpoints": true
+    },
+    {
+      "idx": 295,
+      "version": "7",
+      "when": 1794780891913,
+      "tag": "0297_right_hand_incidents",
+      "breakpoints": true
+    },
+    {
+      "idx": 296,
+      "version": "7",
+      "when": 1794780951467,
+      "tag": "0298_away_email",
+      "breakpoints": true
+    },
+    {
+      "idx": 297,
+      "version": "7",
+      "when": 1794781003253,
+      "tag": "0299_per_person_connections",
+      "breakpoints": true
+    },
+    {
+      "idx": 298,
+      "version": "7",
+      "when": 1794781122141,
+      "tag": "0300_agent_meetings",
+      "breakpoints": true
+    },
+    {
+      "idx": 299,
+      "version": "7",
+      "when": 1794781170916,
+      "tag": "0301_phone_tools",
+      "breakpoints": true
+    },
+    {
+      "idx": 300,
+      "version": "7",
+      "when": 1794783813651,
+      "tag": "0302_personal_browser_profiles",
+      "breakpoints": true
+    },
+    {
+      "idx": 301,
+      "version": "7",
+      "when": 1794783907226,
+      "tag": "0303_conversation_models",
+      "breakpoints": true
+    },
+    {
+      "idx": 302,
+      "version": "7",
+      "when": 1794783982611,
+      "tag": "0304_agent_brain_engine",
+      "breakpoints": true
+    },
+    {
+      "idx": 303,
+      "version": "7",
+      "when": 1794784134478,
+      "tag": "0305_brain_fallback_chain",
+      "breakpoints": true
+    },
+    {
+      "idx": 304,
+      "version": "7",
+      "when": 1794834668165,
+      "tag": "0306_meeting_audio",
       "breakpoints": true
     }
   ]

@@ -5,6 +5,7 @@ import { approvalCardThreads, approvalOriginOf, notifiedIds } from "./approvals"
 import { accountablePerson, runAuthorityById } from "./authority";
 import { autonomyNoteFor, proposalCardOf } from "./brakes";
 import { readableChannelIds } from "./channels";
+import { isAgentKeyRoom } from "./dms";
 import { threadFollowChoices } from "./follows";
 import { type TaskEnd, taskEndLine } from "./machine-task-text";
 import { isMediaAfterReply } from "./media";
@@ -151,10 +152,13 @@ export async function notifyMessage(deps: NotificationDeps, orgId: string, messa
   // A long work's progress line (ADR 0121) never pushes: it counts as unread only for who follows its thread.
   if (meta.workUpdate) return;
   const [channel] = await db
-    .select({ kind: channels.kind, name: channels.name, visibility: channels.visibility })
+    .select({ kind: channels.kind, name: channels.name, visibility: channels.visibility, dmKey: channels.dmKey })
     .from(channels)
     .where(and(eq(channels.id, message.channelId), eq(channels.orgId, orgId)));
   if (!channel) return;
+  // An agent API key's room (ADR 0210): the caller reads the agent's words through the API, so they ring nobody; its
+  // cards (questions, approvals) still ring the key's creator through their own flows.
+  if (isAgentKeyRoom(channel.dmKey) && message.authorType === "agent") return;
   // A task's conversation (ADR 0145): whoever sees the task, as its comments did.
   if (channel.kind === "task") return notifyTaskMessage(deps, message);
   const actor = message.authorType === "person" ? person(message.authorUserId) : agent(message.authorAgentId);
@@ -814,7 +818,7 @@ async function routineAudience(deps: Pick<NotificationDeps, "db">, orgId: string
  */
 export async function notifyRoutineFailed(
   deps: NotificationDeps,
-  input: { orgId: string; routineId: string; streakKey: string; reason?: string | null },
+  input: { orgId: string; routineId: string; streakKey: string; reason?: string | null; retried?: boolean },
 ) {
   const r = await routineAudience(deps, input.orgId, input.routineId);
   if (!r) return;
@@ -825,7 +829,7 @@ export async function notifyRoutineFailed(
     groupKey: `routine_failed:${input.routineId}:${input.streakKey}`,
     actor: agent(r.agentId),
     source: { routineId: input.routineId, label: r.name },
-    latest: { title: r.name, reason: input.reason ?? undefined },
+    latest: { title: r.name, reason: input.reason ?? undefined, ...(input.retried ? { retried: true } : {}) },
   });
 }
 
@@ -1160,6 +1164,56 @@ export async function resolveRunFailed(
   run: { orgId: string; agentId: string; channelId: string; threadRootId: string },
 ) {
   await dropRunFailure(deps, run.orgId, runFailedGroup(run));
+}
+
+/**
+ * Why a run had no AI that means nothing is connected for it: no key, no computer, no such program there, or the
+ * computer's own sign-in of that program never made (`own`). An account's sign-in that ended is told by the right hand
+ * (`team_watch`, `sign_in`); waits, limits and plans that serve someone else are the card's alone.
+ */
+const NOTHING_CONNECTED: ReadonlySet<string> = new Set(["no_key", "no_computer", "cli_missing"]);
+
+const needsAiGroup = (agentId: string) => `agent_needs_ai:${agentId}:`;
+
+/**
+ * A person's message couldn't start the agent's run for want of an AI (ADR 0061 addendum): who can connect one for it
+ * (its owner and whoever manages agents or keys, as the card's Connect) hears it once a day per agent
+ * (`agent_needs_ai:{agentId}:{UTC day}`), the person who asked as actor (never told: the card is theirs). Done once the
+ * agent thinks again (`resolveAgentNeedsAi`).
+ */
+export async function notifyAgentNeedsAi(
+  deps: NotificationDeps,
+  run: { id: string; orgId: string; agentId: string },
+  reason: string,
+  own?: string,
+) {
+  if (!NOTHING_CONNECTED.has(reason) && !(reason === "not_signed_in" && own)) return;
+  const asker = await humanBehindRun(deps, run.orgId, run.id);
+  if (!asker) return;
+  const [a] = await deps.db
+    .select({ name: agents.name, owner: agents.ownerUserId })
+    .from(agents)
+    .where(and(eq(agents.orgId, run.orgId), eq(agents.id, run.agentId)));
+  if (!a) return;
+  const day = (deps.now?.() ?? new Date()).toISOString().slice(0, 10);
+  await notify(deps, {
+    orgId: run.orgId,
+    userIds: [
+      a.owner,
+      ...(await adminsOf(deps, run.orgId, "manage_agents")),
+      ...(await adminsOf(deps, run.orgId, "manage_credentials")),
+    ],
+    kind: "agent_needs_ai",
+    groupKey: `${needsAiGroup(run.agentId)}${day}`,
+    actor: person(asker),
+    source: { agentId: run.agentId, label: a.name },
+    latest: { reason },
+  });
+}
+
+/** The agent thought again: its "no AI" notices are done. */
+export async function resolveAgentNeedsAi(deps: NotificationDeps, orgId: string, agentId: string) {
+  await resolveNotifications(deps, orgId, { groupKeyPrefix: needsAiGroup(agentId) });
 }
 
 /** A routine ran well again: its failure streak and computer outage notifications are done. */
@@ -1507,6 +1561,61 @@ export async function notifyComposioLimit(deps: NotificationDeps, orgId: string,
     groupKey: `composio_limit:${month}`,
     source: {},
     latest: { title: month, calls },
+  });
+}
+
+const webhookDisabledGroup = (webhookId: string) => `webhook-disabled:${webhookId}:`;
+
+/**
+ * An outgoing webhook was turned off by its failures (ADR 0212 §7): every member with `administrator` hears it, once
+ * each time it goes off, with the webhook's name and the last failure's code. Done once it is turned back on or deleted.
+ */
+export async function notifyWebhookDisabled(
+  deps: NotificationDeps,
+  input: { orgId: string; webhookId: string; name: string; reason: string; at: Date },
+) {
+  await notify(deps, {
+    orgId: input.orgId,
+    userIds: await adminsOf(deps, input.orgId, "administrator"),
+    kind: "webhook_disabled",
+    groupKey: `${webhookDisabledGroup(input.webhookId)}${input.at.getTime()}`,
+    source: { webhookId: input.webhookId, label: input.name },
+    latest: { title: input.name, reason: input.reason },
+  });
+}
+
+/** The webhook is on again or gone: its notice is done. */
+export async function resolveWebhookDisabled(deps: NotificationDeps, orgId: string, webhookId: string) {
+  await resolveNotifications(deps, orgId, { groupKeyPrefix: webhookDisabledGroup(webhookId) });
+}
+
+/**
+ * An email triage sorted as worth attention that no routine of its mailbox took (ADR 0038, addendum 2026-11-15): the
+ * person who connected the mailbox hears of it, one row per email, `source.label` the mailbox, `latest.title` the
+ * subject and `latest.text` who sent it and the subject.
+ */
+export async function notifyImportantMail(
+  deps: NotificationDeps,
+  input: {
+    orgId: string;
+    userId: string;
+    accountId: string;
+    address: string;
+    messageKey: string;
+    from: string;
+    subject: string;
+  },
+) {
+  await notify(deps, {
+    orgId: input.orgId,
+    userIds: [input.userId],
+    kind: "mail_important",
+    groupKey: `mail_important:${input.accountId}:${input.messageKey}`,
+    source: { label: input.address },
+    latest: {
+      title: input.subject,
+      text: [input.from, input.subject].filter(Boolean).join(" · ").slice(0, 280),
+    },
   });
 }
 

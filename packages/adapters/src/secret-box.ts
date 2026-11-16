@@ -71,7 +71,11 @@ export function secretAad(input: { requestId: string; orgId: string; name: strin
  * names (`exact:https://host[:port]` or `site:<registrable domain>`, see `vault/site.ts`), or given to one command
  * as one variable.
  */
-export type VaultUse = { kind: "fill"; rule: string } | { kind: "env"; name: string };
+export type VaultUse =
+  | { kind: "fill"; rule: string }
+  /** A login's one-time code from its password manager, typed only into code fields on the rule's sites. */
+  | { kind: "code"; rule: string }
+  | { kind: "env"; name: string };
 
 /**
  * What binds a Vault box to one in-memory key of one agent and to one use (ADR 0144). The runner rebuilds it from
@@ -79,9 +83,11 @@ export type VaultUse = { kind: "fill"; rule: string } | { kind: "env"; name: str
  * site rule or variable doesn't open.
  */
 export function vaultAad(input: { keyId: string; agentId: string; use: VaultUse }) {
-  const use = input.use.kind === "fill" ? `fill:${input.use.rule}` : `env:${input.use.name}`;
-  return `agentes-vault|v${SECRET_BOX_VERSION}|${input.keyId}|${input.agentId}|${use}`;
+  return `agentes-vault|v${SECRET_BOX_VERSION}|${input.keyId}|${input.agentId}|${vaultUseText(input.use)}`;
 }
+
+/** A use as a box's additional data names it: `fill:<rule>`, `code:<rule>` or `env:<NAME>`. */
+export const vaultUseText = (use: VaultUse) => (use.kind === "env" ? `env:${use.name}` : `${use.kind}:${use.rule}`);
 
 /** What binds a password an agent's computer made to the one request that asked for it (ADR 0144 §8). */
 export const madePasswordAad = (input: { requestId: string; agentId: string }) =>

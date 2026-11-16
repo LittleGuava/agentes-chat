@@ -24,6 +24,12 @@ export interface LodiPrefs {
   dayOff: boolean;
   /** 0–23, in the person's own time zone (the workspace's when they chose none). */
   dayHour: number;
+  /**
+   * The day ahead on the day's card ("Hoje"): their meetings, their agents' routines and their tasks due, from the
+   * slot to midnight. Off unless asked for: with it on, a day with only the calendar to say posts the card and rings
+   * (ADR 0177, addendum 2026-11-15).
+   */
+  agenda: boolean;
   /** The summary of approvals waiting on them. */
   digestOff: boolean;
   /** Reminders of what they and the right hand agreed on. */
@@ -41,6 +47,7 @@ export const LODI_PREFS_DEFAULTS: LodiPrefs = {
   weekHour: 17,
   dayOff: false,
   dayHour: 9,
+  agenda: false,
   digestOff: false,
   remindOff: false,
   muted: [],
@@ -81,6 +88,7 @@ export function lodiPrefsOf(raw: unknown): LodiPrefs {
     weekHour: whole(r.weekHour, 23) ?? (daily ? null : hour) ?? LODI_PREFS_DEFAULTS.weekHour,
     dayOff: flag(r.dayOff) ?? (before ? off || !daily : LODI_PREFS_DEFAULTS.dayOff),
     dayHour: whole(r.dayHour, 23) ?? (daily ? (hour ?? LEGACY_HOUR) : LODI_PREFS_DEFAULTS.dayHour),
+    agenda: flag(r.agenda) ?? LODI_PREFS_DEFAULTS.agenda,
     digestOff: flag(r.digestOff) ?? off,
     remindOff: flag(r.remindOff) ?? off,
     muted: stringsOf(r.muted).slice(-MUTED_MAX),
@@ -143,6 +151,9 @@ export const lodiPrefsSql = {
   ) as SQL<boolean>,
   remindOff: sql.raw(
     `(case when ${isFlag("remindOff")} then ${isTrue("remindOff")} else ${isTrue("off")} end)`,
+  ) as SQL<boolean>,
+  agenda: sql.raw(
+    `(case when ${isFlag("agenda")} then ${isTrue("agenda")} else ${LODI_PREFS_DEFAULTS.agenda} end)`,
   ) as SQL<boolean>,
   day: sql.raw(`coalesce(${wholeSql("day", 6)}, ${LODI_PREFS_DEFAULTS.day})`) as SQL<number>,
   weekHour: sql.raw(`coalesce(${wholeSql("weekHour", 23)},

@@ -94,6 +94,57 @@ describe("Configurações do workspace", () => {
     expect(state.calls.findLast((c) => c.method === "orgs.updateSettings")?.args[1]).toEqual({ actionCheck: false });
   });
 
+  test("a newer release: the installation's owner sees its notes and the command that installs it", async () => {
+    const notesUrl = "https://github.com/agentes-chat/agentes-chat/releases/tag/v1.5.0";
+    const command = [
+      "curl -fsSLO https://raw.githubusercontent.com/agentes-chat/agentes-chat/v1.5.0/docker-compose.yml",
+      "docker compose pull",
+      "docker compose up -d",
+    ].join("\n");
+    await go(
+      seedState({
+        serverUpdate: {
+          version: "1.4.2",
+          latest: { version: "1.5.0", publishedAt: "2026-11-13T00:00:00Z", notesUrl },
+          updateAvailable: true,
+          install: "docker",
+          command,
+        },
+      }),
+    );
+    const card = screen().getByRole("region", { name: "agentes.chat 1.5.0 está disponível" });
+    expect(card.textContent).toContain("Este servidor está na 1.4.2.");
+    const notes = within(card).getByRole("link", { name: "Notas da versão" });
+    expect(notes.getAttribute("href")).toBe(notesUrl);
+    expect(notes.getAttribute("target")).toBe("_blank");
+    expect(card.querySelector("pre")?.textContent).toBe(command);
+    expect(within(card).getByRole("button", { name: "Copiar" })).toBeTruthy();
+    cleanup();
+    // Up to date, or not the owner: no card.
+    await go(
+      seedState({
+        serverUpdate: { version: "1.5.0", latest: null, updateAvailable: false, install: "docker", command: null },
+      }),
+    );
+    expect(screen().queryByText(/está disponível/)).toBeNull();
+    cleanup();
+    await go();
+    expect(screen().queryByText(/está disponível/)).toBeNull();
+  });
+
+  test("meeting notes (ADR 0199 §6): off by default, their terms in the ⓘ, one switch turns them on", async () => {
+    const { state } = await go();
+    const toggle = screen().getByRole("switch", { name: "Agentes anotam reuniões" });
+    expect(toggle.getAttribute("aria-checked")).toBe("false");
+    const hint = hintOf("Agentes anotam reuniões");
+    expect(describedBy(toggle)).toEqual([hint.text]);
+    expect(hint.text).toContain("consentimento de todos os participantes");
+    expect(hint.hidden).toBe(true);
+    await click(toggle);
+    await settle(4);
+    expect(state.calls.findLast((c) => c.method === "orgs.updateSettings")?.args[1]).toEqual({ meetingNotes: true });
+  });
+
   test("usage statistics: the installation's owner gets the switch and sees exactly what is sent", async () => {
     const { state } = await go(
       seedState({ telemetry: { enabled: true, envOff: false, report: { report: 1, people: { total: 3 } } } }),
@@ -164,6 +215,55 @@ describe("Configurações do workspace", () => {
     cleanup();
     await go();
     expect(screen().queryByRole("region", { name: "Estatísticas de uso" })).toBeNull();
+  });
+
+  test("server updates: the installation's owner asks for one after saying yes, and the card follows it", async () => {
+    const { state } = await go(
+      seedState({
+        serverUpdater: {
+          helper: "ready",
+          requested: false,
+          canUpdate: true,
+          run: {
+            state: "rolled_back",
+            step: null,
+            reason: "unhealthy",
+            startedAt: "2026-11-15T12:00:00Z",
+            finishedAt: "2026-11-15T12:05:00Z",
+            from: "sha256:0123456789ab",
+            to: "sha256:ba9876543210",
+          },
+        },
+      }),
+    );
+    const card = screen().getByRole("region", { name: "Atualizações do servidor" });
+    expect(card.querySelector(".settings-row__status")?.textContent).toBe(
+      "A versão nova não subiu, então a anterior e os dados dela voltaram.",
+    );
+    await click(within(card).getByRole("button", { name: "Atualizar servidor" }));
+    const dialog = screen().getByRole("dialog", { name: "Atualizar o servidor?" });
+    // Nothing is asked until the person says yes.
+    expect(state.calls.some((c) => c.method === "system.updateServer")).toBe(false);
+    await click(within(dialog).getByRole("button", { name: "Atualizar agora" }));
+    await settle(4);
+    expect(state.calls.filter((c) => c.method === "system.updateServer")).toHaveLength(1);
+    expect(screen().queryByRole("dialog", { name: "Atualizar o servidor?" })).toBeNull();
+    expect(card.querySelector(".settings-row__status")?.textContent).toBe(
+      "Atualização pedida. Ela começa em poucos minutos.",
+    );
+    expect(within(card).getByRole("button", { name: "Atualizar servidor" }).hasAttribute("disabled")).toBe(true);
+  });
+
+  test("server updates: an updater that isn't running says how to start it; others never see the card", async () => {
+    await go(seedState({ serverUpdater: { helper: "absent", requested: false, canUpdate: false, run: null } }));
+    const card = screen().getByRole("region", { name: "Atualizações do servidor" });
+    expect(card.querySelector(".settings-row__status")?.textContent).toContain(
+      "docker compose --profile updater up -d",
+    );
+    expect(within(card).getByRole("button", { name: "Atualizar servidor" }).hasAttribute("disabled")).toBe(true);
+    cleanup();
+    await go(seedState());
+    expect(screen().queryByRole("region", { name: "Atualizações do servidor" })).toBeNull();
   });
 
   test("Notificações: no phone gets them yet, so the row opens the phone app with a code", async () => {

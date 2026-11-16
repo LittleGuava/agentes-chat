@@ -1,4 +1,5 @@
-import { useChannels } from "@agenteschat/client";
+import { useChannels, useDms, useMarkChannelRead, useMarkChannelUnread } from "@agenteschat/client";
+import { readToggleOf } from "@agenteschat/client/lib/unread";
 import { useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useOrg } from "@/providers/org";
@@ -15,17 +16,19 @@ const NO_CHANNELS: never[] = [];
 
 /** One of a row's long press actions: the app's sheet shows `icon`, iOS's own menu the SF Symbol `symbol`. */
 export interface RowAction {
-  key: "pin" | "move";
-  icon: "pin" | "list";
-  symbol: "pin" | "pin.slash" | "folder";
+  key: "pin" | "pin-up" | "pin-down" | "move" | "read";
+  icon: "pin" | "up" | "down" | "list" | "check" | "mail";
+  symbol: "pin" | "pin.slash" | "arrow.up" | "arrow.down" | "folder" | "envelope.open" | "envelope.badge";
   label: string;
   run: () => void;
 }
 
 /**
  * The home's long presses (ADR 0080), as short sheets: a row's "Fixar no topo" (a channel, an agent's or a person's
- * DM) and a channel's "Mover para…" (only where `movesChannel`), and a category header's Renomear, Categorias and
- * Nova categoria (admins; undefined otherwise, so the header has no long press at all).
+ * DM), "Marcar como lida" or "Marcar como não lida" (`readToggleOf`), a pinned row's Mover para cima and Mover para
+ * baixo among the pinned ones (ADR 0083, addendum of 2026-11-15) and a channel's "Mover para…" (only where
+ * `movesChannel`), and a category header's Renomear, Categorias and Nova categoria (admins; undefined otherwise, so
+ * the header has no long press at all).
  */
 export function useCategoryMenus() {
   const { t } = useTranslation();
@@ -34,6 +37,9 @@ export function useCategoryMenus() {
   const meId = useMeId();
   const sheet = useSheet();
   const channels = useChannels(orgId).data ?? NO_CHANNELS;
+  const dms = useDms(orgId).data;
+  const markRead = useMarkChannelRead(orgId).mutate;
+  const markUnread = useMarkChannelUnread(orgId).mutate;
   const admin = arrangesCategories(org);
   const dir = useDirectory();
   const pins = usePins();
@@ -56,6 +62,11 @@ export function useCategoryMenus() {
           : null;
     if (!pin || (r.kind === "channel" && !channel)) return [];
     const pinned = pins.isPinned(pin.kind, pin.id);
+    const toggle = channel
+      ? readToggleOf({ channel })
+      : r.kind === "dm"
+        ? readToggleOf({ dm: dms?.find((d) => d.channelId === r.channelId) })
+        : null;
     return [
       {
         key: "pin",
@@ -64,6 +75,49 @@ export function useCategoryMenus() {
         label: pinned ? t("sidebarPins.unpin") : t("sidebarPins.pin"),
         run: () => pins.toggle(pin.kind, pin.id),
       },
+      ...(pins.canStep(pin.kind, pin.id, -1)
+        ? [
+            {
+              key: "pin-up" as const,
+              icon: "up" as const,
+              symbol: "arrow.up" as const,
+              label: t("sidebarPins.moveUp"),
+              run: () => pins.step(pin.kind, pin.id, -1),
+            },
+          ]
+        : []),
+      ...(pins.canStep(pin.kind, pin.id, 1)
+        ? [
+            {
+              key: "pin-down" as const,
+              icon: "down" as const,
+              symbol: "arrow.down" as const,
+              label: t("sidebarPins.moveDown"),
+              run: () => pins.step(pin.kind, pin.id, 1),
+            },
+          ]
+        : []),
+      ...(toggle === "read"
+        ? [
+            {
+              key: "read" as const,
+              icon: "check" as const,
+              symbol: "envelope.open" as const,
+              label: t("contextMenu.markRead"),
+              run: () => markRead(r.channelId),
+            },
+          ]
+        : toggle === "unread"
+          ? [
+              {
+                key: "read" as const,
+                icon: "mail" as const,
+                symbol: "envelope.badge" as const,
+                label: t("contextMenu.markUnread"),
+                run: () => markUnread(r.channelId),
+              },
+            ]
+          : []),
       ...(channel && movesChannel(channel, meId, org)
         ? [
             {

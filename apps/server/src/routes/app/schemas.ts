@@ -498,6 +498,10 @@ export const Agent = z
       description:
         "It may send a sticker or a GIF (ADR 0091): when someone asks for one, and after a light reply as often as the workspace's `agentMedia` allows.",
     }),
+    readAloudVoice: z.string().nullable().openapi({
+      description:
+        "The voice its replies are read aloud in (ADR 0209): the engine's voice id (an ElevenLabs voice id, or a name the server's own engine knows); null = the server's default.",
+    }),
     approvalsLevel: ApprovalsLevel,
     builtin: z.enum(["right_hand"]).nullable().openapi({
       description:
@@ -514,12 +518,16 @@ export const Agent = z
     }),
     brain: z
       .object({
-        kind: z.enum(["model", "claude_code", "codex", "cursor", "opencode", "grok", "antigravity", "copilot"]),
+        kind: z.enum(["model", "claude_code", "codex", "cursor", "opencode", "grok", "antigravity", "copilot", "acp"]),
         model: z
           .string()
           .nullable()
           .openapi({ description: "A computer brain's model label (Sonnet); null = the agent's model." }),
         computer: z.string().optional().openapi({ description: "Its computer's name (admins and the agent's owner)." }),
+        engine: z.string().optional().openapi({
+          description:
+            "`acp` (ADR 0216): the ACP agent it thinks with, by the name its computer declares (its id once that computer no longer does).",
+        }),
         provider: z.string().optional().openapi({
           description: "A coding plan it thinks with through Claude Code (`zai`, `kimi`…): its maker's model.",
         }),
@@ -557,6 +565,9 @@ export const Channel = z
     id: z.uuid(),
     name: z.string(),
     topic: z.string(),
+    instructions: z.string().optional().openapi({
+      description: "What every agent working in the channel follows (ADR 0208); empty: none.",
+    }),
     visibility: z.enum(["public", "private"]),
     audienceRoleIds: z.array(z.uuid()).optional().openapi({
       description: "Private and limited to these roles (departments, ADR 0125); empty: public or invite only.",
@@ -579,7 +590,7 @@ export const Channel = z
     position: z.number().int().optional().openapi({ description: "Order inside its category, from 0." }),
     unreadCount: z.number().int().optional().openapi({
       description:
-        "Channel list only: messages since you last read it (since you joined, if never), not yours; a thread reply counts only in a thread you follow; an agent's sticker or GIF after its own reply never (ADR 0091). At most 100; 0 when you're not a member.",
+        "Channel list only: messages since you last read it (since you joined, if never), not yours; a thread reply counts only in a thread you follow; an agent's sticker or GIF after its own reply never (ADR 0091). At most 100, at least 1 while you marked it unread (`POST …/unread`); 0 when you're not a member.",
     }),
     mentionCount: z.number().int().optional().openapi({
       description: "Channel list only: of `unreadCount`, the messages that mention you (counted even while muted).",
@@ -645,6 +656,7 @@ export const AgentAction = z
         "role",
         "person",
         "workspace",
+        "files",
       ]),
       id: z.string(),
       number: z.number().optional().openapi({ description: "Issues." }),
@@ -800,7 +812,7 @@ const MessageBase = z.object({
     .openapi({ description: "People's messages: agents that saw it, picked it up, and how their runs ended." }),
   meta: z.record(z.string(), z.unknown()).openapi({
     description:
-      'Attachments, e.g. `{ approvalId }` on an approval card (see /approvals). `media` (ADR 0091): a GIF `{ kind: "gif", provider, id, title, width, height }` (load it with `GET …/gifs/{id}/media`) or a sticker `{ kind: "sticker", agentId, mood }`, and the body may be empty then. `mediaAfter`: on the sticker or GIF an agent added after its own reply, that reply\'s id.',
+      'Attachments, e.g. `{ approvalId }` on an approval card (see /approvals). `media` (ADR 0091): a GIF `{ kind: "gif", provider, id, title, width, height }` (load it with `GET …/gifs/{id}/media`) or a sticker `{ kind: "sticker", agentId, mood }`, and the body may be empty then. `mediaAfter`: on the sticker or GIF an agent added after its own reply, that reply\'s id. `sharedDm`: a read-only copy of the author\'s DM with an agent (`POST …/dms/{channelId}/share`): `{ agent: { id, name, handle }, count, omitted, lines: [{ author: { type, id, name }, at, body, inThread?, cut? }] }`.',
   }),
   usage: MessageUsage.optional(),
   reactions: z
@@ -842,6 +854,9 @@ const MessageBase = z.object({
   }),
   longWork: WorkView.optional().openapi({
     description: "A long work's anchor (`meta.longWork`, ADR 0121): its line; live via `agent.work`.",
+  }),
+  editedAt: z.string().optional().openapi({
+    description: "When its author last edited it (ADR 0207); absent: never edited. Live via `message.edited`.",
   }),
   createdAt: z.string(),
 });
@@ -908,7 +923,13 @@ export const Model = z
       description: "The size Automático uses it for on its provider's key, by default.",
     }),
     endpoint: z
-      .object({ credentialId: z.uuid(), name: z.string() })
+      .object({
+        credentialId: z.uuid(),
+        name: z.string(),
+        mark: z.string().optional().openapi({
+          description: "The maker's mark its address's host shows (`api.deepseek.com`: DeepSeek's); absent: generic.",
+        }),
+      })
       .optional()
       .openapi({ description: "A workspace endpoint's model (ADR 0146): whose credential, under what name." }),
     unpriced: z
@@ -920,7 +941,7 @@ export const Model = z
 
 /** ADR 0032: who thinks for an agent. */
 export const BrainKind = z
-  .enum(["model", "claude_code", "codex", "cursor", "opencode", "grok", "antigravity", "copilot"])
+  .enum(["model", "claude_code", "codex", "cursor", "opencode", "grok", "antigravity", "copilot", "acp"])
   .openapi("BrainKind");
 
 export const BrainUnavailable = z.enum([
@@ -933,13 +954,34 @@ export const BrainUnavailable = z.enum([
   "not_reported",
   "system",
   "cant_start",
+  "not_allowed",
 ]);
+
+/** ADR 0191: what a workspace's agents may think with. Each list restricts; null allows every one of its kind. */
+export const BrainPolicy = z
+  .object({
+    brains: z.array(BrainKind).max(20).nullable().openapi({ description: "The brains agents may think with." }),
+    providers: z
+      .array(z.string().max(40))
+      .max(20)
+      .nullable()
+      .openapi({ description: "The API brain's providers (`ProviderId`; `custom`: the workspace's own endpoints)." }),
+    models: z
+      .array(z.string().max(200))
+      .max(200)
+      .nullable()
+      .openapi({ description: "The API brain's models, each of an allowed provider; null: every model of those." }),
+  })
+  .openapi("BrainPolicy");
 
 export const BrainOption = z
   .object({
     kind: BrainKind,
     available: z.boolean(),
-    reason: BrainUnavailable.optional().openapi({ description: "Why it can't be chosen now (computer brains)." }),
+    reason: BrainUnavailable.optional().openapi({
+      description:
+        "Why it can't be chosen now (computer brains); `not_allowed`: the workspace's rule leaves it out (ADR 0191), the API brain included.",
+    }),
     models: z.array(
       z.object({
         value: z.string().openapi({ description: "What is stored and passed to the CLI (`opus`, `gpt-…`)." }),
@@ -964,6 +1006,18 @@ export const BrainOption = z
     defaultModel: z.string().nullable(),
   })
   .openapi("BrainOption");
+
+/** ADR 0216: the ACP agents a computer's owner declared, apart from `options` (whose readers take each kind for a plan's). */
+export const AcpBrainOption = BrainOption.extend({
+  kind: z.literal("acp"),
+  engines: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      models: z.array(z.object({ value: z.string(), label: z.string() })),
+    }),
+  ),
+}).openapi("AcpBrainOption");
 
 export const BrainEffort = z.enum(BRAIN_EFFORTS).openapi("BrainEffort", {
   description: "How hard a computer brain thinks (Claude Code `--effort`; Codex maps `xhigh` and `max` to `high`).",
@@ -1040,6 +1094,9 @@ export const BrainMachine = z
   .object({ machineId: z.uuid(), name: z.string(), online: z.boolean(), options: z.array(BrainOption) })
   .openapi("BrainMachine");
 
+/** One of an agent's reserve AIs: an account on its computer, and the model it runs (null: that brain's default). */
+export const BrainReserve = z.object({ accountId: z.uuid(), model: z.string().max(80).nullable().optional() });
+
 export const AgentBrain = z
   .object({
     agentId: z.uuid(),
@@ -1060,6 +1117,9 @@ export const AgentBrain = z
           "The team's right hand: the workspace's AI, `model` for an API key (`key`, by its provider and name; null with none), else the plan's brain and owner; `servesYou`, it thinks for the caller (a key, a plan whose owner lets it serve everyone, or theirs).",
       }),
     brain: BrainKind,
+    engine: z.string().optional().openapi({
+      description: "`acp` (ADR 0216): the id of the ACP agent its computer declares that it thinks with.",
+    }),
     model: z.string().nullable().openapi({ description: "As stored; null = the brain's default." }),
     effectiveModel: z.string().nullable(),
     fallback: z
@@ -1071,6 +1131,9 @@ export const AgentBrain = z
     }),
     computer: z.object({ machineId: z.uuid(), name: z.string(), online: z.boolean() }).nullable(),
     options: z.array(BrainOption),
+    acp: AcpBrainOption.optional().openapi({
+      description: "The ACP agents its computer declares (ADR 0216); not for the team's right hand.",
+    }),
     machines: z.array(BrainMachine).openapi({
       description:
         "Every computer the caller may give the agent (admins: all; its owner: the ones they connected), with what each offers.",
@@ -1081,6 +1144,10 @@ export const AgentBrain = z
       .nullable()
       .openapi({ description: "The account its computer brain runs with (ADR 0041); null = the computer's own." }),
     effort: BrainEffortSetting.nullable().openapi({ description: "`auto` = per run; null = the CLI's default." }),
+    fallbackChain: z.array(BrainReserve).openapi({
+      description:
+        "Its reserve AIs in order (ADR 0118 addendum 2026-11-15): accounts in `accounts` that answer a conversation while its own plan is at its limit or signed out; the reply says which (`meta.brainReserve`).",
+    }),
     speed: BrainSpeed,
     contextTokens: ContextLimit.nullable().openapi({
       description: "The most context it reads, any brain; null = its model's window (the smaller one wins).",
@@ -1152,6 +1219,10 @@ export const AgentSetup = z
       description:
         "Its Autonomia, set wherever the caller may set it by hand (an admin or the agent's owner), whatever the AI takes; omitted = each agent keeps its own.",
     }),
+    approvalsLevel: ApprovalsLevel.optional().openapi({
+      description:
+        "How much each agent asks (ADR 0173), set on every agent picked whatever the AI takes; only with Manage agents (403 otherwise, nothing changed); omitted = each agent keeps its own. Never part of what new agents start with.",
+    }),
   })
   .openapi("AgentSetup");
 
@@ -1165,6 +1236,9 @@ export const AgentSetupResult = z
     autonomy: z.object({ from: CommandApproval, to: CommandApproval }).optional().openapi({
       description:
         "Its Autonomia changes (in a preview: would), whatever its AI does: wherever the caller may set it by hand, `skipped` agents too.",
+    }),
+    approvalsLevel: z.object({ from: ApprovalsLevel, to: ApprovalsLevel }).optional().openapi({
+      description: "Its approvals level changes (in a preview: would), whatever its AI does, `skipped` agents too.",
     }),
     keeps: z.object({ account: z.string().nullable() }).optional().openapi({
       description: "It keeps the account it has (another person's plan): its name; null = its computer's own.",
@@ -1221,6 +1295,29 @@ export const NewAgentSetup = z
   .openapi("NewAgentSetup", {
     description: "What a new agent starts thinking with (ADR 0094): the last setup saved or used on other agents.",
   });
+
+export const ConversationModel = z
+  .object({
+    agentId: z.uuid(),
+    channelId: z.uuid(),
+    threadId: z.uuid().nullable(),
+    brain: BrainKind.openapi({ description: "The brain the choice is for: the agent's own." }),
+    model: z.string().nullable().openapi({ description: "This conversation's own model; null = none here." }),
+    inherited: z
+      .string()
+      .nullable()
+      .openapi({ description: "A thread's channel's model, which applies while the thread has none of its own." }),
+    label: z
+      .string()
+      .nullable()
+      .openapi({ description: "The name of the model that applies here; null = the agent's own." }),
+    options: z.array(z.object({ value: z.string(), label: z.string() })).openapi({
+      description:
+        "What may be chosen: models of the agent's own key, or its computer brain's. Empty to who can't edit.",
+    }),
+    canEdit: z.boolean().openapi({ description: "An admin who manages agents, or the agent's owner." }),
+  })
+  .openapi("ConversationModel");
 
 export const MissionBrain = z
   .object({

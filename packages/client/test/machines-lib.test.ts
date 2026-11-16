@@ -31,6 +31,7 @@ import {
   isUrlWithoutCode,
   LOGIN_RECONNECT_MS,
   LoginReadError,
+  lentChromeUntil,
   locationText,
   loginFailureLine,
   loginRead,
@@ -651,4 +652,14 @@ describe("one click where a tool is off (ADR 0036 §8)", () => {
     expect(browserNoAnswerMessage("the computer Desk did not answer within 120 s")).toBe(false);
     expect(browserNoAnswerMessage(null)).toBe(false);
   });
+});
+
+test("a person's lent Chrome (ADR 0202): until when, for that agent only, and nothing once it ended", () => {
+  const now = Date.parse("2026-11-16T12:00:00.000Z");
+  const machine = { myChrome: [{ agentId: "a1", expiresAt: "2026-11-16T12:30:00.000Z" }] };
+  expect(lentChromeUntil(machine, "a1", now)).toBe("2026-11-16T12:30:00.000Z");
+  expect(lentChromeUntil(machine, "a2", now)).toBeNull();
+  expect(lentChromeUntil(machine, "a1", Date.parse("2026-11-16T12:30:00.000Z"))).toBeNull();
+  expect(lentChromeUntil({}, "a1", now)).toBeNull();
+  expect(lentChromeUntil(null, "a1", now)).toBeNull();
 });

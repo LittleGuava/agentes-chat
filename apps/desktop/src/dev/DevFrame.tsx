@@ -40,6 +40,9 @@ export function DevFrame({ host }: { host: FakeHost }) {
           <button type="button" onClick={() => first?.setOnline(true)}>
             online
           </button>
+          <button type="button" onClick={() => first?.raiseScreenRequest()}>
+            screen request
+          </button>
           <button type="button" onClick={() => first?.raiseRequest()}>
             folder request
           </button>

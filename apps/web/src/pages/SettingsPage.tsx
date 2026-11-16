@@ -12,8 +12,10 @@ import {
   useRemoveCredentialCopies,
   useRotateCredential,
   useServerTelemetry,
+  useServerUpdater,
   useSetServerTelemetry,
   useSettings,
+  useUpdateServer,
   useUpdateSettings,
   useUsageReport,
   useWorkspaceUsesApi,
@@ -23,7 +25,7 @@ import { keyRemovalText } from "@agenteschat/client/lib/ai-accounts";
 import { composioUsageText, showsComposioUsage } from "@agenteschat/client/lib/composio";
 import { computerEdition } from "@agenteschat/client/lib/computer";
 import { settingsFrozen } from "@agenteschat/client/lib/deletion";
-import { CUSTOM_PROVIDER } from "@agenteschat/client/lib/endpoints";
+import { CUSTOM_PROVIDER, credentialMark } from "@agenteschat/client/lib/endpoints";
 import { errorText, keyRefusal } from "@agenteschat/client/lib/errors";
 import { FIELD_LIMITS } from "@agenteschat/client/lib/field-limits";
 import { formatShortDate, formatUsd, relativeTime } from "@agenteschat/client/lib/format";
@@ -41,6 +43,7 @@ import {
   shownKeys,
 } from "@agenteschat/client/lib/providers";
 import type { RoleTab } from "@agenteschat/client/lib/roles";
+import { serverUpdateLine } from "@agenteschat/client/lib/server-updater";
 import { settingsNav, settingsTabs } from "@agenteschat/client/lib/settings-nav";
 import { parseAmount } from "@agenteschat/client/lib/text";
 import { isPersonal, modeKey } from "@agenteschat/client/lib/workspace-mode";
@@ -82,6 +85,7 @@ import { ApprovalsSection } from "@/components/ApprovalCover";
 import { AppsDownloadSection } from "@/components/AppsDownload";
 import { AuditSection } from "@/components/Audit";
 import { AutoModelsRow } from "@/components/AutoModels";
+import { AllowedBrainsCard } from "@/components/ai/AllowedBrains";
 import { usePlanHold } from "@/components/ai/ConnectAiSteps";
 import { EndpointForm } from "@/components/ai/EndpointForm";
 import { WhoPicksSection } from "@/components/ai/Jev";
@@ -91,6 +95,7 @@ import { DeleteWorkspaceDialog } from "@/components/DeleteWorkspace";
 import type { ConnectStart } from "@/components/devices/ConnectDialog";
 import { DevicePage } from "@/components/devices/DevicePage";
 import { DevicesSection } from "@/components/devices/DevicesSection";
+import { HealthSection } from "@/components/Health";
 import { ImportExportSection } from "@/components/ImportFlow";
 import { BillingMeters } from "@/components/Limits";
 import { ErrorState, LoadingLine, LoadingList } from "@/components/Loading";
@@ -102,6 +107,7 @@ import { ApiCard, PlanUsageCards } from "@/components/PlanUsage";
 import { MyFace, OrgLogoDialog, OrgMark } from "@/components/ProfilePhoto";
 import { KeyMismatch, KeyRefused, KeySite, ProviderKeySelect } from "@/components/ProviderKey";
 import { RolesSection } from "@/components/roles/RolesSection";
+import { ServerUpdateCard } from "@/components/ServerUpdate";
 import { SkillsSection } from "@/components/Skills";
 import { StorageSection } from "@/components/StorageSettings";
 import { TeamMemoryCard } from "@/components/TeamMemory";
@@ -109,6 +115,7 @@ import { OpenPrefsButton, useLocalServerHere } from "@/components/ThisMac";
 import { VoiceSettingsSection } from "@/components/VoiceSettings";
 import { VaultSection } from "@/components/vault/VaultSection";
 import { WorkspaceModeDialog } from "@/components/WorkspaceModeDialog";
+import { OutgoingWebhooksSection } from "@/components/webhooks/OutgoingWebhooksSection";
 import { ZoneSelect } from "@/components/ZoneSelect";
 import { useCentreCurrent } from "@/hooks/useCentreCurrent";
 import { usePersonalView } from "@/hooks/usePersonalView";
@@ -248,7 +255,8 @@ function Settings({
         current !== "invites" &&
         current !== "general" &&
         current !== "roles" &&
-        current !== "vault" && (
+        current !== "vault" &&
+        current !== "audit" && (
           <PageHeader
             level={2}
             title={sectionName(current)}
@@ -275,9 +283,11 @@ function Settings({
       {current === "roles" && <RolesSection roleId={role} tab={tab} create={create} />}
       {current === "vault" && <VaultSection />}
       {current === "audit" && <AuditSection agent={agent} />}
+      {current === "health" && <HealthSection />}
       {current === "media" && <MediaSettingsSection />}
       {current === "voice" && <VoiceSettingsSection />}
       {current === "access" && <AccessMatrixSection />}
+      {current === "webhooks" && <OutgoingWebhooksSection />}
       {current === "connectors" && (
         <ConnectorsSection connected={connected} outcome={outcome} review={review} mail={mail} account={account} />
       )}
@@ -575,6 +585,31 @@ function GeneralSection() {
       </div>
     </div>
   );
+  // Meeting notes (ADR 0199 §6): off until who configures the workspace turns it on, its terms behind the ⓘ.
+  const meetingNotes = t("settings.meetingNotes");
+  const meetingRow = (
+    <div className="settings-row ac-actrow">
+      <div className="settings-row__text ac-actrow__text">
+        <span className="ac-hintline">
+          <label className="settings-row__label" htmlFor="set-meeting-notes">
+            {meetingNotes}
+          </label>
+          <InfoHint name={t("common.about", { label: meetingNotes })} id="set-meeting-notes-hint">
+            {t("settings.meetingNotesHelp")}
+          </InfoHint>
+        </span>
+      </div>
+      <div className="settings-row__control">
+        <Switch
+          id="set-meeting-notes"
+          checked={settings.data?.meetingNotes ?? false}
+          onCheckedChange={(on) => save({ meetingNotes: on })}
+          disabled={!editable || !settings.data}
+          aria-describedby="set-meeting-notes-hint"
+        />
+      </div>
+    </div>
+  );
   // Who the workspace is for (ADR 0159 §4): the mode it is in now and, for who configures it, the switch to the other.
   const modeRow = (
     <div className="settings-row ac-actrow">
@@ -603,6 +638,7 @@ function GeneralSection() {
         {nameRow}
         {!personal && zoneRow}
         {checkRow}
+        {meetingRow}
         {modeRow}
       </div>
     </Card>
@@ -669,7 +705,9 @@ function GeneralSection() {
 
       <TeamMemoryCard />
 
+      <ServerUpdateCard />
       <UsageStatisticsCard />
+      <ServerUpdaterCard />
       {org.role === "owner" && !org.deletion && <DeleteWorkspaceCard />}
       <OrgLogoDialog open={logo} onClose={() => setLogo(false)} />
       <WorkspaceModeDialog
@@ -797,6 +835,78 @@ function UsageStatisticsCard() {
   );
 }
 
+/**
+ * Updates from the app (ADR 0200): the button that asks the updater service for one update, after a yes, and what
+ * its last run did. Only the installation's owner on a server with the updater gets it (the API answers `null` to
+ * everyone else).
+ */
+function ServerUpdaterCard() {
+  const { t } = useTranslation();
+  const update = useServerUpdater();
+  const ask = useUpdateServer();
+  const [open, setOpen] = useState(false);
+  const data = update.data;
+  if (!data) return null;
+  const line = serverUpdateLine(data);
+  return (
+    <Card aria-labelledby="sec-server-updater">
+      <CardHeader id="sec-server-updater" icon="refresh" title={t("settings.serverUpdater.title")} />
+      <div className="settings-rows">
+        <div className="settings-row ac-actline">
+          <div className="settings-row__text">
+            <span className="ac-hintline">
+              <span className="settings-row__label" id="set-server-updater">
+                {t("settings.serverUpdater.label")}
+              </span>
+              <InfoHint
+                name={t("common.about", { label: t("settings.serverUpdater.label") })}
+                id="set-server-updater-hint"
+              >
+                {t("settings.serverUpdater.help")}
+              </InfoHint>
+            </span>
+            {line && (
+              <span className="settings-row__status" id="set-server-updater-status" role="status">
+                {t(line)}
+              </span>
+            )}
+          </div>
+          <Button
+            size="sm"
+            disabled={!data.canUpdate}
+            aria-describedby={line ? "set-server-updater-hint set-server-updater-status" : "set-server-updater-hint"}
+            onClick={() => setOpen(true)}
+          >
+            {t("settings.serverUpdater.button")}
+          </Button>
+        </div>
+      </div>
+      <Dialog
+        open={open}
+        onOpenChange={setOpen}
+        title={t("settings.serverUpdater.confirmTitle")}
+        description={t("settings.serverUpdater.confirmText")}
+        closeLabel={t("common.close")}
+        width={440}
+      >
+        <DialogFooter>
+          <Button disabled={ask.isPending} onClick={() => setOpen(false)}>
+            {t("common.cancel")}
+          </Button>
+          <Button
+            variant="primary"
+            disabled={ask.isPending}
+            loading={ask.isPending}
+            onClick={() => ask.mutate(undefined, { onSettled: () => setOpen(false) })}
+          >
+            {t("settings.serverUpdater.confirm")}
+          </Button>
+        </DialogFooter>
+      </Dialog>
+    </Card>
+  );
+}
+
 function KeysSection() {
   const { t, i18n } = useTranslation();
   const { org } = useOrg();
@@ -866,7 +976,7 @@ function KeysSection() {
             return (
               <div key={c.id} className="ac-list__row key-row ac-mediarow ac-mediarow--row">
                 <span className="ac-mediarow__face">
-                  <ProviderLogo id={c.provider} size="sm" />
+                  <ProviderLogo id={credentialMark(c)} size="sm" />
                 </span>
                 <span className="ac-mediarow__head">
                   <b>{c.label}</b>
@@ -1271,6 +1381,7 @@ function UsageSection() {
         </Card>
       )}
       {allowed && <DefaultBudgetCard />}
+      <AllowedBrainsCard />
       <WhoPicksSection />
     </>
   );

@@ -225,3 +225,53 @@ describe("what the agent keeps running (keep_running), under its computer", () =
     expect(within(row as HTMLElement).queryByRole("button")).toBeNull();
   });
 });
+
+describe("sites through someone's computer (ADR 0203), in the agent's settings", () => {
+  const NO_TOOLS = { claude: false, codex: false, commands: false };
+  async function settingsWith(lenders: (Partial<Machine> & { name: string })[]) {
+    const state = seedState();
+    const api = createFakeApi(state);
+    const machines = fakeMachinesOf.get(api);
+    if (!machines) throw new Error("no fakes");
+    const home = machines.pair({ name: "Servidor", os: "linux" });
+    await api.sandbox.setTarget(ORG_ID, ADA_ID, home.id);
+    for (const m of lenders) machines.pair(m);
+    await renderApp(`/org/${ORG_ID}/agents/${ADA_ID}?tab=settings`, { api });
+    await settle(10);
+    return document.querySelector("[data-agent-relay]");
+  }
+
+  test("each site with the computer it goes out through and whose it is; an away computer says the site opens from here", async () => {
+    const list = await settingsWith([
+      {
+        name: "Notebook do Walter",
+        os: "darwin",
+        pairedBy: { id: "u-walter", name: "Walter" },
+        access: { folders: [], tools: NO_TOOLS, relay: [{ site: "jobs.example.com", agents: [ADA_ID] }] },
+      },
+      {
+        name: "PC da Bia",
+        os: "windows",
+        online: false,
+        pairedBy: { id: "u-bia", name: "Bia" },
+        access: { folders: [], tools: NO_TOOLS, relay: [{ site: "banco.example.com", agents: ["*"] }] },
+      },
+      // Lent to another agent only: not Ada's.
+      {
+        name: "Mac da Rita",
+        os: "darwin",
+        access: { folders: [], tools: NO_TOOLS, relay: [{ site: "x.example.com", agents: ["ag_other"] }] },
+      },
+    ]);
+    const lines = [...(list?.querySelectorAll("li") ?? [])].map((li) => li.textContent);
+    expect(lines).toEqual([
+      "banco.example.compor PC da Bia, conectado por Bia · fora do ar agora, abre pelo computador deste agente até ele voltar",
+      "jobs.example.compor Notebook do Walter, conectado por Walter",
+    ]);
+    expect(list?.textContent).toContain("Sites pelo computador de alguém");
+  });
+
+  test("no site lent to it: nothing about sites on its page", async () => {
+    expect(await settingsWith([])).toBeNull();
+  });
+});

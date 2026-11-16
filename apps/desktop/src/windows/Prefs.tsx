@@ -1,6 +1,6 @@
 /**
  * Preferences: General, Servers and Updates always; while agents work on this computer, its own tabs too
- * (Folders, Tools, Activity, Advanced). Everything about this computer acts through the runners; nothing is
+ * (Folders, Sites, Tools, Activity, Advanced). Everything about this computer acts through the runners; nothing is
  * granted from the site.
  */
 import { CLOUD_SERVER } from "@agenteschat/client/lib/server";
@@ -15,21 +15,34 @@ import { readPref, useOnShown, useUpdateCheck, writePref } from "../hooks";
 import { BrandFace, MacPortrait } from "../ui/bits";
 import { Activity } from "./prefs/Activity";
 import { Advanced } from "./prefs/Advanced";
+import { FolderSync } from "./prefs/FolderSync";
 import { Folders } from "./prefs/Folders";
 import { General } from "./prefs/General";
 import { Servers } from "./prefs/Servers";
+import { Sites } from "./prefs/Sites";
 import { Tools } from "./prefs/Tools";
 import { Updates } from "./prefs/Updates";
 
-export type PrefTab = "general" | "servers" | "folders" | "tools" | "activity" | "advanced" | "updates";
+export type PrefTab =
+  | "general"
+  | "servers"
+  | "sync"
+  | "folders"
+  | "sites"
+  | "tools"
+  | "activity"
+  | "advanced"
+  | "updates";
 type Tab = { id: PrefTab; icon: IconName };
 const APP_TABS: Tab[] = [
   { id: "general", icon: "settings" },
   { id: "servers", icon: "globe" },
+  { id: "sync", icon: "document" },
 ];
 /** This computer's own tabs, only while agents work here. */
 const DEVICE_TABS: Tab[] = [
   { id: "folders", icon: "drive" },
+  { id: "sites", icon: "globe" },
   { id: "tools", icon: "code" },
   { id: "activity", icon: "list" },
   { id: "advanced", icon: "preference" },
@@ -110,7 +123,9 @@ export function Prefs() {
       <main className="dk-pbody" key={shown}>
         {shown === "general" && <General />}
         {shown === "servers" && <Servers />}
+        {shown === "sync" && <FolderSync />}
         {shown === "folders" && <Folders />}
+        {shown === "sites" && <Sites />}
         {shown === "tools" && <Tools />}
         {shown === "updates" && <Updates update={update} />}
         {shown === "activity" && <Activity />}

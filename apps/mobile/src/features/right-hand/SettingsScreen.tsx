@@ -583,6 +583,7 @@ function OwnRows({ name }: { name: string }) {
           [
             { id: "teamWatch", words: "teamWatch", icon: "eye" },
             { id: "welcomePeople", words: "welcome", icon: "person" },
+            { id: "incidents", words: "incidents", icon: "replay" },
           ] as const
         ).filter((r) => shows(r.id))
       : [];
@@ -605,6 +606,17 @@ function OwnRows({ name }: { name: string }) {
             value={prefs.dayHour}
             options={hours}
             onPick={(dayHour) => save({ dayHour })}
+          />
+        ) : null}
+        {/* The day ahead on the daily card: only while it comes, and only from a server that has it. */}
+        {dayOn && prefs.agenda !== undefined ? (
+          <GroupedRow
+            icon="calendar"
+            label={t("teamWeek.settings.agendaLabel")}
+            hint={about(t("teamWeek.settings.agendaLabel"), t("teamWeek.settings.agendaHelp"))}
+            toggle={prefs.agenda}
+            disabled={set.isPending}
+            onPress={() => save({ agenda: !prefs.agenda })}
           />
         ) : null}
         {admin ? (

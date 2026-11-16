@@ -6,9 +6,11 @@ import { decidableBySql } from "./approvals";
 import { audienceSql, listsAllAgents } from "./audience";
 import { recordAudit } from "./audit";
 import type { AutoModels } from "./auto-model";
+import { type BrainPolicy, brainPolicyCacheKey, policyOf, validBrainPolicy } from "./brain-policy";
 import { caches } from "./cache";
 import {
   announceChannelLeavers,
+  CHANNEL_INSTRUCTIONS_MAX,
   CHANNEL_NAME_PATTERN,
   channelRoleIds,
   dropRoleLeavers,
@@ -82,6 +84,8 @@ export interface OrgSettings extends MediaSettings {
   actionCheck: boolean;
   /** People can send voice messages (ADR 0100); they also need `voiceAvailable`. On by default. */
   voiceMessages: boolean;
+  /** Agents may join online meetings to take notes (ADR 0199 §6). Off by default. */
+  meetingNotes: boolean;
   /** Per provider, the models "Automático" picks per tier where the workspace chose its own (ADR 0087). */
   autoModels: AutoModels;
   /** Who the workspace is for (ADR 0159): `team` or `personal`. */
@@ -90,6 +94,10 @@ export interface OrgSettings extends MediaSettings {
   teamWatch: boolean;
   /** The right hand greets each person who joins, once. On by default. */
   welcomePeople: boolean;
+  /** What agents may think with (ADR 0191); null: nothing restricted. */
+  allowedBrains: BrainPolicy | null;
+  /** A task that failed for a cause that may pass becomes the right hand's incident, which it may retry. On by default. */
+  incidents: boolean;
 }
 
 export const TEAM_SIZES = ["solo", "small", "medium", "large"] as const;
@@ -112,10 +120,13 @@ export async function getOrgSettings(db: Database, actorId: string, orgId: strin
     defaultAgentBudgetNanoUsd: s?.defaultAgentBudgetNanoUsd ?? DEFAULT_AGENT_BUDGET_NANO_USD,
     actionCheck: s?.actionCheck ?? true,
     voiceMessages: s?.voiceMessages ?? true,
+    meetingNotes: s?.meetingNotes ?? false,
     autoModels: (s?.autoModels ?? {}) as AutoModels,
     mode: isWorkspaceMode(s?.mode) ? s.mode : "team",
     teamWatch: s?.teamWatch ?? true,
     welcomePeople: s?.welcomePeople ?? true,
+    allowedBrains: policyOf(s?.allowedBrains),
+    incidents: s?.incidents ?? true,
     ...mediaSettingsFrom(s),
   };
 }
@@ -134,7 +145,9 @@ export async function updateOrgSettings(
   db: Database,
   actorId: string,
   orgId: string,
-  input: Partial<Omit<OrgSettings, "defaultCredentialIds" | "autoModels">> & {
+  input: Partial<Omit<OrgSettings, "defaultCredentialIds" | "autoModels" | "allowedBrains">> & {
+    /** A rule, validated here (`validBrainPolicy`); null lifts it. */
+    allowedBrains?: unknown;
     defaultCredentialIds?: Partial<Record<string, string | null>>;
     /** Per provider and tier, a model of that provider; null puts the tier back on the default. */
     autoModels?: Partial<Record<string, Partial<Record<ModelTier, string | null>>>>;
@@ -157,6 +170,8 @@ export async function updateOrgSettings(
         throw new ValidationError(`autoModels.${provider}.${tier} must be one of ${provider}'s models`);
     }
   }
+  const allowedBrains =
+    input.allowedBrains === undefined ? undefined : await validBrainPolicy(db, orgId, input.allowedBrains);
   if (input.teamSize && !TEAM_SIZES.includes(input.teamSize)) throw new ValidationError("invalid teamSize");
   if (input.mode !== undefined && !isWorkspaceMode(input.mode))
     throw new ValidationError(`mode must be one of ${WORKSPACE_MODES.join(", ")}`);
@@ -209,6 +224,18 @@ export async function updateOrgSettings(
               .from(organizationSettings)
               .where(eq(organizationSettings.orgId, orgId))
           )[0]?.mode ?? "team");
+    // The rule before this change, read in the transaction: a change is audited with what it was.
+    const policyBefore =
+      allowedBrains === undefined
+        ? undefined
+        : policyOf(
+            (
+              await tx
+                .select({ allowedBrains: organizationSettings.allowedBrains })
+                .from(organizationSettings)
+                .where(eq(organizationSettings.orgId, orgId))
+            )[0]?.allowedBrains,
+          );
     const storedAutoModels = async () => {
       const [row] = await tx
         .select({ autoModels: organizationSettings.autoModels })
@@ -243,6 +270,7 @@ export async function updateOrgSettings(
         : {}),
       ...(input.actionCheck !== undefined ? { actionCheck: input.actionCheck } : {}),
       ...(input.voiceMessages !== undefined ? { voiceMessages: input.voiceMessages } : {}),
+      ...(input.meetingNotes !== undefined ? { meetingNotes: input.meetingNotes } : {}),
       ...(input.gifs !== undefined ? { gifs: input.gifs } : {}),
       ...(input.gifRating !== undefined ? { gifRating: input.gifRating } : {}),
       ...(input.agentStickers !== undefined ? { agentStickers: input.agentStickers } : {}),
@@ -250,6 +278,8 @@ export async function updateOrgSettings(
       ...(input.mode !== undefined ? { mode: input.mode } : {}),
       ...(input.teamWatch !== undefined ? { teamWatch: input.teamWatch } : {}),
       ...(input.welcomePeople !== undefined ? { welcomePeople: input.welcomePeople } : {}),
+      ...(allowedBrains !== undefined ? { allowedBrains: allowedBrains ? { ...allowedBrains } : null } : {}),
+      ...(input.incidents !== undefined ? { incidents: input.incidents } : {}),
       ...(input.autoModels !== undefined
         ? { autoModels: mergeAutoModels(await storedAutoModels(), input.autoModels) }
         : {}),
@@ -269,6 +299,15 @@ export async function updateOrgSettings(
         details: { from: modeBefore, to: input.mode },
       });
     }
+    if (allowedBrains !== undefined && JSON.stringify(policyBefore) !== JSON.stringify(allowedBrains)) {
+      await recordAudit(tx, {
+        orgId,
+        actor: { type: "person", id: actorId },
+        action: "organization.brain_policy_changed",
+        target: { type: "organization", id: orgId },
+        details: { from: policyBefore ?? null, to: allowedBrains },
+      });
+    }
   });
   caches.orgs.delete(`${orgId}:`);
   caches.orgs.delete(`${orgId}:agent-budget`);
@@ -276,6 +315,7 @@ export async function updateOrgSettings(
   if (input.defaultAgentBudgetNanoUsd !== undefined) await resumeBudgetWaits(db, orgId, null);
   caches.orgs.delete(`${orgId}:action-check`);
   caches.orgs.delete(`${orgId}:auto-models`);
+  caches.orgs.delete(brainPolicyCacheKey(orgId));
   caches.orgs.delete(mediaSettingsCacheKey(orgId));
   caches.orgs.delete(workspaceModeCacheKey(orgId));
   caches.zones.deletePrefix(`${orgId}:`);
@@ -545,7 +585,14 @@ export async function updateChannel(
   actorId: string,
   orgId: string,
   channelId: string,
-  input: { name?: string; topic?: string; visibility?: "public" | "private"; audienceRoleIds?: string[] },
+  input: {
+    name?: string;
+    topic?: string;
+    /** What every agent here follows (ADR 0208); "" clears them. */
+    instructions?: string;
+    visibility?: "public" | "private";
+    audienceRoleIds?: string[];
+  },
   options: { pubsub?: PubSub } = {},
 ) {
   const membership = await requireActiveMembership(db, actorId, orgId);
@@ -563,6 +610,13 @@ export async function updateChannel(
   if (channel.name === "general" && name !== undefined && name !== "general")
     throw new ValidationError("#general can't be renamed");
   if (channel.kind === "dm") throw new ValidationError("A direct conversation keeps its participants");
+  const instructions = input.instructions?.trim();
+  // Only a channel's runs read them (a task's conversation has its task).
+  if (instructions !== undefined && channel.kind !== "channel")
+    throw new ValidationError("Only a channel has instructions for its agents");
+  if (instructions !== undefined && instructions.length > CHANNEL_INSTRUCTIONS_MAX)
+    throw new ValidationError(`channel instructions: at most ${CHANNEL_INSTRUCTIONS_MAX} characters`);
+  const instructionsChanged = instructions !== undefined && instructions !== channel.instructions;
   const accessChanges = input.visibility !== undefined || input.audienceRoleIds !== undefined;
   const visibility = input.visibility ?? channel.visibility;
   const asked =
@@ -592,10 +646,23 @@ export async function updateChannel(
         .set({
           ...(name !== undefined ? { name } : {}),
           ...(input.topic !== undefined ? { topic: input.topic } : {}),
+          ...(instructions !== undefined ? { instructions } : {}),
           ...access,
         })
         .where(eq(channels.id, channelId))
         .returning();
+      // Who changed them and how long they are now, never their text (it can be long and say anything), as with an
+      // agent's instructions.
+      if (row && instructionsChanged) {
+        await recordAudit(tx, {
+          orgId,
+          actor: { type: "person", id: actorId },
+          action: "channel.instructions_changed",
+          target: { type: "channel", id: channelId },
+          channelId,
+          details: { name: row.name, length: row.instructions.length },
+        });
+      }
       return { row, leavers: row ? await dropRoleLeavers(tx, orgId, { channelId, roleIds: dropped }) : [] };
     });
     if (!row) throw new NotFoundError("Channel not found");

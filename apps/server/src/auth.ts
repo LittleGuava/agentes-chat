@@ -159,11 +159,17 @@ export function createAuth(deps: {
     // this leaves open), and a forgotten password is reset by email. A new address goes only through
     // `changeAccountEmail`, which takes a code or a fresh sign-in first and calls `/change-email` in this process.
     // The multi-session paths take and answer session tokens, and no token reaches the browser: the apps go through
-    // `/api/app/device-accounts`, which names accounts by person and calls these in this process (ADR 0183).
+    // `/api/app/device-accounts`, which names accounts by person and calls these in this process (ADR 0183). Better
+    // Auth's own session list answers every session's token, and its revocations take one: where the account is signed
+    // in is `/api/app/account/sessions`, which names sessions by id (ADR 0006, addendum 2026-11-15).
     disabledPaths: [
       "/verify-password",
       "/change-password",
       "/change-email",
+      "/list-sessions",
+      "/revoke-session",
+      "/revoke-sessions",
+      "/revoke-other-sessions",
       "/multi-session/list-device-sessions",
       "/multi-session/set-active",
       "/multi-session/revoke",

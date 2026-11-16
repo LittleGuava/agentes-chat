@@ -21,7 +21,10 @@ export const brainName = (brain: string | null | undefined) =>
             ? "Antigravity CLI"
             : brain === "copilot"
               ? "Copilot CLI"
-              : "Claude Code";
+              : // An ACP agent (ADR 0216) by its protocol: the outage carries no engine's name.
+                brain === "acp"
+                ? "ACP"
+                : "Claude Code";
 
 /** `meta.brainUnavailable` of an agent's notice ("the computer brain can't answer; I'll answer when it's back"). */
 export interface BrainUnavailable {

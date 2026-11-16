@@ -91,6 +91,8 @@ export interface ComposerCommand {
   /** Text that replaces the box (e.g. "/relatório "). Defaults to `${label} `. */
   insert?: string;
   onPick?: () => void;
+  /** Consecutive commands with the same group get a heading ("Skills"). */
+  group?: string;
 }
 
 export interface ComposerCommands {
@@ -118,6 +120,8 @@ export interface ComposerVoice {
   onNotice: (notice: VoiceNotice) => void;
   /** Each second it records, never while starting or paused: the others see "gravando áudio…". */
   onRecording?: () => void;
+  /** A voice call with the agent (ADR 0198): the phone beside the microphone starts it. */
+  call?: { label: string; onStart: () => void };
   labels: {
     record: string;
     recording: string;
@@ -134,6 +138,25 @@ export interface ComposerVoice {
     keysPaused: string;
     /** The last seconds, counting down: "faltam 13 s". */
     left: (seconds: number) => string;
+  };
+  /**
+   * Dictation (ADR 0100 addendum): a recording's words land in the box to be edited, never sent. Its switch shows
+   * while recording and every way the recording ends follows it. `run` rejects when it failed (the app said why) and
+   * answers "" when nothing was heard.
+   */
+  dictation?: {
+    run: (take: VoiceTake) => Promise<string>;
+    labels: {
+      /** The switch ("Transformar em texto"). */
+      toggle: string;
+      /** The send button while it is on. */
+      send: string;
+      /** The microphone while the words are on their way. */
+      transcribing: string;
+      keys: string;
+      keysHold: string;
+      keysPaused: string;
+    };
   };
 }
 
@@ -495,7 +518,39 @@ export function Composer({
   const ref = useRef<HTMLTextAreaElement>(null);
   const shownPlaceholder = useOneLinePlaceholder(ref, placeholder);
   const wave = useRef<HTMLCanvasElement>(null);
-  const rec = useVoiceRecorder(voice, wave);
+  const dictation = voice?.dictation;
+  // Dictation's switch stays as the person left it, for the next recording too.
+  const [toText, setToText] = useState(false);
+  const textMode = Boolean(dictation) && toText;
+  // The words on their way: one at a time, and only for the box's conversation of the moment.
+  const [transcribing, setTranscribing] = useState(false);
+  const dictationRun = useRef(0);
+  const placeWords = useRef<(text: string) => void>(() => {});
+  const dictate = (take: VoiceTake) => {
+    if (!dictation) return;
+    const run = ++dictationRun.current;
+    setTranscribing(true);
+    dictation
+      .run(take)
+      .then((text) => {
+        if (run === dictationRun.current && text) placeWords.current(text);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (run === dictationRun.current) setTranscribing(false);
+      });
+  };
+  // A recording for text is the person's own: nobody else is told "gravando áudio…".
+  const rec = useVoiceRecorder(
+    voice
+      ? {
+          ...voice,
+          onTake: (take) => (textMode ? dictate(take) : voice.onTake(take)),
+          onRecording: textMode ? undefined : voice.onRecording,
+        }
+      : undefined,
+    wave,
+  );
   const recording = rec.active;
   // The box keeps its height while recording, whatever was typed, attached or hidden: read as it starts.
   const [heldHeight, setHeldHeight] = useState<number | undefined>(undefined);
@@ -503,6 +558,15 @@ export function Composer({
   const scope = voice?.scope;
   // biome-ignore lint/correctness/useExhaustiveDependencies: `scope` is why it runs
   useEffect(() => () => discard(false), [scope, discard]);
+  // Another conversation, or gone: words still on their way have no box to go to.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `scope` is why it runs
+  useEffect(
+    () => () => {
+      dictationRun.current++;
+      setTranscribing(false);
+    },
+    [scope],
+  );
   const box = useRef<HTMLDivElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const bar = useRef<HTMLDivElement>(null);
@@ -571,6 +635,12 @@ export function Composer({
     const { start, end } = selection();
     edit(insertText(value, start, end, e));
   };
+  // Dictated words go where the caret is when they come, a space apart from what is before them.
+  placeWords.current = (text: string) => {
+    const { start, end } = selection();
+    const spaced = start > 0 && !/\s$/.test(value.slice(0, start)) ? ` ${text}` : text;
+    edit(insertText(value, start, end, spaced));
+  };
   const files = (list: FileList | null | undefined) => Array.from(list ?? []);
   const hasFiles = (e: DragEvent) => Array.from(e.dataTransfer?.types ?? []).includes("Files");
 
@@ -586,6 +656,7 @@ export function Composer({
             label: c.label,
             description: c.description,
             leading: c.leading,
+            group: c.group,
           })) ?? [])
       : [];
   const mentionItems = mentions && token && token.start !== dismissed ? mentions.search(token.query) : [];
@@ -765,22 +836,26 @@ export function Composer({
   }, [recording]);
   const hasMic = Boolean(voice) && !disabled && voiceRecordingSupported();
   const countdown = VOICE_LIMIT_S - rec.seconds;
+  const keys = (textMode && dictation?.labels) || voice?.labels;
   const voiceHint = !voice
     ? ""
     : recording && countdown <= VOICE_COUNTDOWN_S
       ? voice.labels.left(countdown)
       : rec.phase === "paused"
-        ? voice.labels.keysPaused
+        ? keys?.keysPaused
         : rec.hold
-          ? voice.labels.keysHold
-          : voice.labels.keys;
+          ? keys?.keysHold
+          : keys?.keys;
   const micLabel = !voice
     ? ""
-    : rec.phase === "paused"
-      ? voice.labels.resume
-      : rec.phase === "rec" && !rec.hold
-        ? voice.labels.pause
-        : voice.labels.record;
+    : transcribing && dictation
+      ? dictation.labels.transcribing
+      : rec.phase === "paused"
+        ? voice.labels.resume
+        : rec.phase === "rec" && !rec.hold
+          ? voice.labels.pause
+          : voice.labels.record;
+  const recordingSendLabel = textMode && dictation ? dictation.labels.send : voice?.labels.send;
 
   const optionId = (i: number) => `${listId}-${i}`;
   const textarea = (
@@ -1001,6 +1076,31 @@ export function Composer({
                 )}
               </div>
               <div className="ac-composer__tools">
+                {dictation && recording && (
+                  <Button
+                    variant="ghost"
+                    iconOnly
+                    size="sm"
+                    icon="edit"
+                    className="ac-composer__to-text"
+                    aria-pressed={toText}
+                    aria-label={dictation.labels.toggle}
+                    title={dictation.labels.toggle}
+                    onClick={() => setToText((on) => !on)}
+                  />
+                )}
+                {hasMic && voice?.call && !recording && (
+                  <Button
+                    variant="ghost"
+                    iconOnly
+                    size="sm"
+                    icon="phone"
+                    className="ac-composer__call"
+                    aria-label={voice.call.label}
+                    title={voice.call.label}
+                    onClick={voice.call.onStart}
+                  />
+                )}
                 {hasMic && (
                   <Button
                     variant="ghost"
@@ -1009,9 +1109,10 @@ export function Composer({
                     icon={rec.phase === "rec" && !rec.hold ? "pause" : "mic"}
                     className="ac-composer__mic"
                     data-on={rec.phase === "rec" || rec.phase === "paused" || undefined}
+                    loading={transcribing}
                     aria-label={micLabel}
                     title={micLabel}
-                    {...rec.micProps}
+                    {...(transcribing ? {} : rec.micProps)}
                   />
                 )}
                 {/* The compact primary square (32px): dim until there is something to send. */}
@@ -1024,7 +1125,7 @@ export function Composer({
                     data-ready={ready || stopMode || recording ? "" : undefined}
                     data-mode={stopMode ? "stop" : "send"}
                     data-press={pressed || undefined}
-                    aria-label={recording && voice ? voice.labels.send : stopMode ? working?.stopLabel : sendLabel}
+                    aria-label={recording && voice ? recordingSendLabel : stopMode ? working?.stopLabel : sendLabel}
                     title={sendTitle}
                     onClick={() => {
                       if (stopMode) stop();
@@ -1050,7 +1151,7 @@ export function Composer({
                     icon="send"
                     className="ac-composer__send"
                     data-ready={ready || recording ? "" : undefined}
-                    aria-label={recording && voice ? voice.labels.send : sendLabel}
+                    aria-label={recording && voice ? recordingSendLabel : sendLabel}
                     title={sendTitle}
                     onClick={() => send()}
                     disabled={!ready && !recording}

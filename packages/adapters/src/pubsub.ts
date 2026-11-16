@@ -54,6 +54,9 @@ export const chatActivityTopic = "chat-activity";
 /** Server-side signal that one upload to the Drive finished (`upload_file`, ADR 0025). Never forwarded to clients. */
 export const uploadTopic = (uploadId: string) => `upload:${uploadId}`;
 
+/** Server-side: a person's phone answered one `phone_jobs` row (ADR 0205). Never forwarded to clients. */
+export const phoneJobTopic = (jobId: string) => `phone-job:${jobId}`;
+
 /** Server-side: a request (`machine_rpc` row) for a machine whose socket this replica holds (ADR 0025). */
 export const machineRpcTopic = (replicaId: string) => `machine-rpc:${replicaId}`;
 

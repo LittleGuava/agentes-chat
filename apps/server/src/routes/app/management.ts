@@ -99,6 +99,7 @@ import { credentialOut } from "./credential-view";
 import {
   AgentAppearance,
   AgentAudience,
+  BrainPolicy,
   CanceledReturn,
   ChatPrefs,
   Credential,
@@ -195,6 +196,10 @@ const Settings = z
     voiceMessages: z.boolean().openapi({
       description: "People can send voice messages (ADR 0100); they also need `voiceAvailable`. On by default.",
     }),
+    meetingNotes: z.boolean().openapi({
+      description:
+        "Agents may join Google Meet and Jitsi calls to take notes (ADR 0199 §6): other people's voices, under recording and data laws that differ by place. Off by default; an agent also needs a computer that can hear a call and the server a speech engine.",
+    }),
     mode: z.enum(WORKSPACE_MODES).openapi({
       description:
         "Who the workspace is for (ADR 0159): `team` (the default) or `personal`. It changes the apps' defaults and words, never what anyone may do; a change is audited (`organization.mode_changed`) and reaches every member's apps (`org.mode`).",
@@ -206,8 +211,20 @@ const Settings = z
     welcomePeople: z.boolean().openapi({
       description: "The right hand greets each person who joins the workspace, once. On by default.",
     }),
+    allowedBrains: BrainPolicy.nullable().openapi({
+      description:
+        "What agents may think with (ADR 0191); null: nothing restricted. Every member reads it, since their pickers explain it; the Model Gateway, the runs and every save hold it.",
+    }),
+    incidents: z.boolean().openapi({
+      description:
+        "A task that failed for a cause that may pass (an AI provider's outage, a computer or its CLI that stopped) becomes an incident in the right hand's DM with the person behind it, and the right hand may try it again, within limits (ADR 0177 addendum 2026-11-15). On by default.",
+    }),
     voiceAvailable: z.boolean().openapi({
       description: "Read only: this server has a speech engine now, from its environment or from its owner's Settings.",
+    }),
+    voiceCallAvailable: z.boolean().openapi({
+      description:
+        "Read only: this server can read agents' replies aloud for voice calls (ADR 0198, `VOICE_CALL_SPEECH_URL`) and has a speech engine. A call also needs `voiceMessages`.",
     }),
     gifsAvailable: z.boolean().openapi({
       description:
@@ -345,6 +362,10 @@ const AgentDetail = z
     mediaReplies: z.boolean().openapi({
       description:
         "It may send a sticker or a GIF (ADR 0091): when someone asks for one, and after a light reply as often as the workspace's `agentMedia` allows.",
+    }),
+    readAloudVoice: z.string().nullable().openapi({
+      description:
+        "The voice its replies are read aloud in (ADR 0209): the engine's voice id (an ElevenLabs voice id, or a name the server's own engine knows); null = the server's default.",
     }),
   })
   .openapi("AgentDetail");
@@ -575,6 +596,7 @@ export function managementRoutes(deps: AppDeps) {
     // The provider follows the installation's key, which its owner may add or remove at any time.
     gifsAvailable: adapters.gifs?.available() ?? false,
     voiceAvailable: deps.extras?.speech?.available() ?? false,
+    voiceCallAvailable: Boolean(deps.extras?.voice?.callVoice) && (deps.extras?.speech?.available() ?? false),
     agentMediaAvailable: Boolean((await deps.extras?.jevKey?.view())?.source),
   });
 
@@ -632,6 +654,10 @@ export function managementRoutes(deps: AppDeps) {
               .boolean()
               .optional()
               .openapi({ description: "People can send voice messages (ADR 0100)." }),
+            meetingNotes: z
+              .boolean()
+              .optional()
+              .openapi({ description: "Agents may join online meetings to take notes (ADR 0199 §6)." }),
             gifs: z.boolean().optional().openapi({ description: "People can send GIFs in chat (ADR 0091)." }),
             gifRating: z.enum(GIF_RATINGS).optional(),
             agentStickers: z.boolean().optional(),
@@ -639,6 +665,11 @@ export function managementRoutes(deps: AppDeps) {
             mode: z.enum(WORKSPACE_MODES).optional().openapi({ description: "`team` or `personal` (ADR 0159)." }),
             teamWatch: z.boolean().optional(),
             welcomePeople: z.boolean().optional(),
+            allowedBrains: BrainPolicy.nullable().optional().openapi({
+              description:
+                "The whole rule (ADR 0191), replacing the one before; null lifts it. 400 `brain_policy.invalid`: an empty list, an unknown brain, provider or model, or a model of a provider it leaves out. Audited (`organization.brain_policy_changed`).",
+            }),
+            incidents: z.boolean().optional(),
           }),
         ),
       },
@@ -1520,6 +1551,7 @@ export function managementRoutes(deps: AppDeps) {
           seesDetails,
           appearance: v.appearance,
           mediaReplies: v.mediaReplies,
+          readAloudVoice: v.readAloudVoice,
           channels: d.channels,
           createdAt: v.createdAt.toISOString(),
         },

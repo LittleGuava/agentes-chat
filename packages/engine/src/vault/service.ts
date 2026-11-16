@@ -330,6 +330,13 @@ export interface VaultReleasedLogin {
   rule: VaultOriginRule;
 }
 
+/** A login's one-time code as its password manager gives it now, and where it may be typed (ADR 0144). */
+export interface VaultReleasedCode {
+  item: VaultItemForAgent;
+  code: string;
+  rule: VaultOriginRule;
+}
+
 /** Most items one workspace keeps: what every check loads and filters in code. */
 export const VAULT_MAX_ITEMS = 5000;
 /** Field limits (the API checks the same). */

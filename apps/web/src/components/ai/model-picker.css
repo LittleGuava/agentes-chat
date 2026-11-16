@@ -176,6 +176,19 @@
   margin-top: var(--space-2);
   border-top: 1px solid var(--line);
 }
+/* "Só nesta conversa": its name, then the kit's small select across the picker. */
+.mp__here {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-top: var(--space-3);
+  margin-top: var(--space-2);
+  border-top: 1px solid var(--line);
+}
+.mp__here-title {
+  color: var(--ink2);
+  font-size: var(--text-sm);
+}
 .mp__foot {
   display: flex;
   flex-wrap: wrap;

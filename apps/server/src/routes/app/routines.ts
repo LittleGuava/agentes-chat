@@ -16,6 +16,7 @@ import {
   listRoutines,
   localDateTimeOf,
   MAX_OWN_ACTIONS,
+  MEETING_LEAD,
   managedWebhookRoutine,
   newRoutineHookAddress,
   newRoutineHookSecret,
@@ -209,6 +210,12 @@ const ConnectorFilterSchema = z
     to: z.string().max(320).optional().openapi({ description: "The inbox's address the email was sent to." }),
     from: z.array(z.string().max(320)).max(50).optional().openapi({ description: "Addresses or `@domains`." }),
     subject: z.string().max(200).optional().openapi({ description: "Words the subject contains." }),
+    channel: z
+      .string()
+      .max(40)
+      .optional()
+      .openapi({ description: "A chat message's channel, by its id (Slack's `C0123ABC`)." }),
+    text: z.string().max(200).optional().openapi({ description: "Words a chat message contains." }),
   })
   .openapi("RoutineConnectorFilter");
 
@@ -264,6 +271,16 @@ const Routine = z
         filter: ConnectorFilterSchema,
         status: z.enum(["active", "error"]).openapi({
           description: "`error`: the service refused the webhook (`lastError`); saving the routine tries again.",
+        }),
+        lastError: z.string().nullable(),
+      }),
+      z.object({
+        type: z.literal("meeting"),
+        connectionId: z.uuid(),
+        leadMinutes: z.number().int(),
+        status: z.enum(["active", "error"]).openapi({
+          description:
+            "`error`: the last look at the calendar failed, or the agent can no longer read it (`lastError`).",
         }),
         lastError: z.string().nullable(),
       }),
@@ -324,7 +341,7 @@ const Routine = z
           "Its run waits on its plan or budget (ADR 0118); Continuar agora is `POST …/continue` (not at the limit itself), Don't run it is `POST …/stop`.",
       }),
     brain: z.object({
-      kind: z.enum(["model", "claude_code", "codex", "cursor", "opencode", "grok", "antigravity", "copilot"]),
+      kind: z.enum(["model", "claude_code", "codex", "cursor", "opencode", "grok", "antigravity", "copilot", "acp"]),
       machineName: z.string().nullable().openapi({ description: "The computer a computer brain runs on." }),
     }),
     health: z
@@ -423,6 +440,16 @@ const TriggerInput = z.union([
     .openapi({
       description:
         "A connector's event (ADR 0130), from a connection the agent may read: the server registers the routine's address at the service.",
+    }),
+  z
+    .object({
+      type: z.literal("meeting"),
+      connectionId: z.uuid(),
+      leadMinutes: z.number().int().min(MEETING_LEAD.min).max(MEETING_LEAD.max).optional(),
+    })
+    .openapi({
+      description:
+        "Before each meeting of a Google Calendar connection the agent may read (ADR 0190): `leadMinutes` before it (default 15).",
     }),
 ]);
 

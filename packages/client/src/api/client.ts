@@ -24,17 +24,26 @@ import type {
   VaultOverview,
   VaultScope,
 } from "../vault/types";
+import type {
+  OutgoingWebhook,
+  OutgoingWebhookDelivery,
+  OutgoingWebhookInput,
+  OutgoingWebhookPatch,
+} from "../webhooks/types";
 import type { UploadOptions } from "./http";
 import type {
   AccessInput,
   AccountDeletionPlan,
   AccountLoginStart,
   AccountLoginStatus,
+  AccountSession,
   ActiveRun,
   AdminAsk,
   Agent,
   AgentAccess,
   AgentAction,
+  AgentApiKeyInput,
+  AgentApiKeys,
   AgentAudience,
   AgentBrain,
   AgentBrainInput,
@@ -49,6 +58,7 @@ import type {
   AgentGroupPatch,
   AgentHolds,
   AgentInput,
+  AgentKeyRoom,
   AgentLineChange,
   AgentMailbox,
   AgentMailboxInput,
@@ -64,6 +74,7 @@ import type {
   AgentUsage,
   AiAccounts,
   AiStatus,
+  Announcement,
   ApiRule,
   AppConsent,
   AppConsentDecision,
@@ -85,6 +96,7 @@ import type {
   AuditPage,
   AuditQuery,
   AuthConfig,
+  AwayEmailMinutes,
   BatchInviteResult,
   BillingFrom,
   BlockState,
@@ -93,6 +105,8 @@ import type {
   BrainScope,
   BrowserHandoff,
   BrowserProfile,
+  BrowserSite,
+  BrowserSiteSignOut,
   CalendarEvent,
   CalendarEventInput,
   CalendarEventPatch,
@@ -119,7 +133,10 @@ import type {
   ConnectOutcome,
   ConnectorCatalog,
   ConsultationConversation,
+  ConversationModel,
+  ConversationPlace,
   CostlyDecision,
+  CreatedAgentApiKey,
   CreatedPersonalToken,
   Credential,
   CustomConnectStart,
@@ -139,10 +156,13 @@ import type {
   DirectMessage,
   DmRead,
   DmTarget,
+  DomainWorkspace,
+  DuplicatedAgent,
   EmailChange,
   EndpointCheck,
   EndpointModel,
   EndpointStyle,
+  ExportScope,
   FeedbackFile,
   FeedbackInput,
   FeedbackOffer,
@@ -157,6 +177,7 @@ import type {
   GitHubOrgAccess,
   GitHubRepositories,
   Health,
+  HealthIssue,
   HostComputer,
   IdRef,
   ImportedFile,
@@ -164,6 +185,7 @@ import type {
   ImportFileInput,
   ImportInput,
   ImportPlan,
+  ImportUndoItem,
   InstallableCli,
   Instance,
   Invitation,
@@ -189,8 +211,10 @@ import type {
   JevKey,
   JoinApproval,
   JoinClaim,
+  JoinDomain,
   JoinRequest,
   LearnedSkill,
+  LocalSetup,
   Machine,
   MachineAccess,
   MachineAccessReduce,
@@ -211,6 +235,7 @@ import type {
   Message,
   MessageCard,
   MessagePin,
+  MigrationBundle,
   Mission,
   MissionBrain,
   MissionCommand,
@@ -243,6 +268,7 @@ import type {
   NotificationCount,
   NotificationFilter,
   NotificationPage,
+  OAuthAppInput,
   Organization,
   OrgOverview,
   OrgPlanUsage,
@@ -257,12 +283,18 @@ import type {
   PersonUsage,
   PhoneDevice,
   PhoneDeviceInput,
+  PhoneJob,
+  PhoneJobAnswer,
   PhoneSignIn,
+  PhoneTool,
+  PhoneTools,
   PlanServes,
   Poll,
   PostMedia,
   Proposal,
+  PublishedPage,
   PushDeviceInput,
+  QuestionAnswerInput,
   ReactionCount,
   ReadOnlyOrgSettings,
   Reminder,
@@ -297,9 +329,13 @@ import type {
   SecretRequest,
   SeriesScope,
   ServerTelemetry,
+  ServerUpdate,
+  ServerUpdaterStatus,
   SetupStep,
+  ShareDmTarget,
   SidebarItem,
   SidebarItems,
+  SidebarLink,
   SidebarPlace,
   SidebarSection,
   SidebarView,
@@ -383,6 +419,12 @@ export interface ApiClient {
     /** `null` unless I am the installation's owner (and not on agentes.chat itself). */
     telemetry(): Promise<ServerTelemetry | null>;
     setTelemetry(enabled: boolean): Promise<ServerTelemetry>;
+    /** `null` unless I am the installation's owner, on a server that looks for new releases. */
+    serverUpdate(): Promise<ServerUpdate | null>;
+    /** `null` unless I am the installation's owner on a server with the updater (ADR 0200). */
+    serverUpdater(): Promise<ServerUpdaterStatus | null>;
+    /** Asks the updater for one update; the server restarts. */
+    updateServer(): Promise<ServerUpdaterStatus>;
     /** By email to whoever runs the server; only where it takes feedback (`AuthConfig.feedback`). */
     sendFeedback(input: FeedbackInput): Promise<void>;
     /** A picture or a video for the feedback being written: kept an hour unless it is sent. */
@@ -428,6 +470,24 @@ export interface ApiClient {
         language?: string | null;
       },
     ): Promise<{ clipId: string }>;
+    /** A recording's words for the message box, posted by nobody (ADR 0100 addendum); "" when nothing was said. */
+    dictate(
+      orgId: string,
+      channelId: string,
+      input: { blob: Blob; durationMs: number; language?: string | null },
+    ): Promise<{ text: string }>;
+    /**
+     * An agent's reply read aloud, for a voice call (ADR 0198): the audio, made now and never kept. `voice_call.*`
+     * errors: `unavailable` 409, `not_agent`/`no_words` 422, `busy` 503, `failed` 502.
+     */
+    speech(orgId: string, messageId: string): Promise<Blob>;
+  };
+  /** Agents' replies read aloud (ADR 0209). */
+  readAloud: {
+    /** Whether this server reads replies aloud at all. */
+    available(orgId: string): Promise<{ available: boolean }>;
+    /** Makes a reply's audio, or finds it made; play it from `readAloudAudioUrl`. */
+    make(orgId: string, messageId: string): Promise<{ clipId: string }>;
   };
   account: {
     authConfig(): Promise<AuthConfig>;
@@ -453,6 +513,12 @@ export interface ApiClient {
      * browser still has an account, the next one when the current one left.
      */
     signOutDeviceAccount(userId?: string): Promise<{ signedIn: boolean }>;
+    /** Where my account is signed in, this session first (ADR 0006 addendum 2026-11-15); null on a server from before. */
+    sessions(): Promise<AccountSession[] | null>;
+    /** Signs one of my other sessions out (`not_found` 404; this one is `session.current` 409: sign out instead). */
+    signOutSession(sessionId: string): Promise<void>;
+    /** Signs out every session of mine but this one; `signedOut`: how many ended. */
+    signOutOtherSessions(): Promise<{ signedOut: number }>;
     /** My app language (emails and pushes are written in it). */
     updateMe(input: { locale: AppLocale; auto?: boolean }): Promise<void>;
     /** My own area, asked once during the onboarding, or `skipped` (`PUT /me/work-area`). */
@@ -574,6 +640,12 @@ export interface ApiClient {
     sidebarView(orgId: string): Promise<SidebarView>;
     /** Replaces my sidebar view here; answers with what the server kept. */
     setSidebarView(orgId: string, view: SidebarView): Promise<SidebarView>;
+    /** My links in the sidebar here, in their order. */
+    sidebarLinks(orgId: string): Promise<SidebarLink[]>;
+    /** Adds a link at the end (`sidebar_link.full` past the limit); answers with every link. */
+    addSidebarLink(orgId: string, link: { title: string; url: string }): Promise<SidebarLink[]>;
+    /** Removes one of my links; answers with the rest. */
+    removeSidebarLink(orgId: string, linkId: string): Promise<SidebarLink[]>;
     /** My profile photo: a square image (JSON only: base64), already cropped. */
     /** `portrait`: the recipe of a portrait drawn in the app; it comes back on the address as a `#px=` fragment. */
     setAvatar(
@@ -664,6 +736,10 @@ export interface ApiClient {
     requestMoreUsage(orgId: string): Promise<{ requestedAt: string }>;
     raisePersonLimit(orgId: string, userId: string, limitUsd: number): Promise<void>;
     refuseMoreUsage(orgId: string, userId: string): Promise<void>;
+    /** What the server's operator tells me here now (ADR 0056, addendum on announcements). */
+    announcements(orgId: string): Promise<{ announcements: Announcement[] }>;
+    /** Closes one for good, in every workspace. */
+    dismissAnnouncement(orgId: string, id: string): Promise<void>;
     /** Lodi's weekly card (ADR 0137 §9): when mine comes, or that it is off. */
     teamWeek(orgId: string): Promise<LodiPrefs>;
     setTeamWeek(orgId: string, patch: LodiPrefsPatch | LegacyPrefsPatch): Promise<LodiPrefs>;
@@ -671,6 +747,10 @@ export interface ApiClient {
     actOnTeamWeek(orgId: string, messageId: string, act: TeamWeekAct): Promise<void>;
     /** The audit log, newest first (admins): agents' tool calls and people's changes. `before`: `next`. */
     audit(orgId: string, query?: AuditQuery & { before?: string; limit?: number }): Promise<AuditPage>;
+    /** Where the audit log downloads from as CSV, with the list's filters: its newest rows, up to the server's cap. */
+    auditCsvUrl(orgId: string, query?: AuditQuery): string;
+    /** What keeps failing, grouped by cause, latest first (who may read the audit log, ADR 0214). */
+    healthIssues(orgId: string): Promise<{ issues: HealthIssue[] }>;
   };
   /** A workspace's roles (ADR 0085): every member reads them; who may manage roles changes those below theirs. */
   roles: {
@@ -782,6 +862,11 @@ export interface ApiClient {
     archive(orgId: string, agentId: string): Promise<void>;
     /** An archived agent back in the team (who manages agents); never a deleted one. */
     unarchive(orgId: string, agentId: string): Promise<void>;
+    /**
+     * "Duplicar": a new agent with its settings, yours (who may create agents and edit this one). `name`, the copy's in
+     * the person's language; `skipped`, what it didn't take because you may not set it.
+     */
+    duplicate(orgId: string, agentId: string, name?: string): Promise<DuplicatedAgent>;
     /** Deletes it for good (ADR 0082): owners and admins, archived or not. */
     purge(orgId: string, agentId: string): Promise<void>;
     /** Agents no longer in the team (archived or deleted), for the names and faces of what they left. */
@@ -865,6 +950,13 @@ export interface ApiClient {
     /** "Quem pensa": the API, Claude Code or Codex on its computer (its owner or an admin). */
     brain(orgId: string, agentId: string, scope?: BrainScope): Promise<AgentBrain>;
     setBrain(orgId: string, agentId: string, input: AgentBrainInput): Promise<AgentBrain>;
+    /** The model it thinks with in one conversation alone (a thread, else its channel); null = the agent's own. */
+    conversationModel(orgId: string, agentId: string, place: ConversationPlace): Promise<ConversationModel>;
+    setConversationModel(
+      orgId: string,
+      agentId: string,
+      input: ConversationPlace & { model: string | null },
+    ): Promise<ConversationModel>;
     /** "Quem pensa" for an agent still being created: the workspace's computers and what each offers (admins). */
     brainMachines(orgId: string): Promise<BrainMachine[]>;
     /**
@@ -911,12 +1003,19 @@ export interface ApiClient {
     /** What this workspace brought from other apps, by source package (admins). */
     sources(orgId: string): Promise<ImportedSource[]>;
     /**
+     * Takes back what one source package brought, as the caller imported it (`dryRun`: only what would go); what
+     * was changed here since stays. Importing it again brings the same items back. Who manages agents.
+     */
+    undo(orgId: string, input: { app: string; ref: string; dryRun: boolean }): Promise<{ items: ImportUndoItem[] }>;
+    /**
      * One of an imported agent's files into its folder in the Drive (multipart, ≤ 50 MB). A name already in the
      * folder is never overwritten (`exists`); a credential store is refused (`import.secret_file`).
      */
     copyFile(orgId: string, input: ImportFileInput): Promise<ImportedFile>;
-    /** Same-origin URL that downloads this workspace as a bundle (`.json`). */
-    exportUrl(orgId: string): string;
+    /** Same-origin URL that downloads this workspace, or the part `scope` names, as a bundle (`.json`). */
+    exportUrl(orgId: string, scope?: ExportScope): string;
+    /** The bundle of the part `scope` names, as the file would hold it: what a preview shows before the download. */
+    exportBundle(orgId: string, scope: ExportScope): Promise<MigrationBundle>;
   };
   chat: {
     channels(orgId: string): Promise<Channel[]>;
@@ -1002,6 +1101,16 @@ export interface ApiClient {
      * no-AI card or the person's message. 409 `ai.still_missing` while there's still no AI.
      */
     answerNow(orgId: string, messageId: string): Promise<{ runs: { agentId: string; runId: string }[] }>;
+    /**
+     * Edits a message you sent, within a day (ADR 0207). `redo`: "Editar e refazer a resposta", the agents that took it
+     * answer the new text. 409 `message.edit_answered` (an agent took it: only with `redo`),
+     * `message.redo_not_latest`, `message.edit_expired`, `message.not_editable`; 403 `message.edit_not_yours`.
+     */
+    editMessage(
+      orgId: string,
+      messageId: string,
+      input: { body: string; redo?: boolean },
+    ): Promise<{ message: Message; runs: { agentId: string; runId: string }[] }>;
     /** The returns agents set in a conversation, still to come, the soonest first (`[]` while the server lacks it). */
     followUps(orgId: string, channelId: string): Promise<PendingReturn[]>;
     /**
@@ -1014,6 +1123,8 @@ export interface ApiClient {
      * there, with this person behind it. 409 `github_event.answered` once someone asked.
      */
     answerGitHub(orgId: string, messageId: string): Promise<void>;
+    /** "Sair da reunião" (ADR 0199): the agent leaves the meeting now and its notes come. 409 `meeting.ended` once over. */
+    leaveMeeting(orgId: string, meetingId: string): Promise<void>;
   };
 
   approvals: {
@@ -1075,10 +1186,17 @@ export interface ApiClient {
       /** Absent from an older server. */
       outcome?: ConnectOutcome;
       returnTo?: string;
+      /** One's own account on a per-person connection (ADR 0195). */
+      personal?: boolean;
     }>;
     /** Renames a connection, any kind (admins); its tools keep their names. 409 `connector.label_taken`. */
     rename(orgId: string, connectionId: string, label: string): Promise<Connection>;
     disconnect(orgId: string, connectionId: string): Promise<void>;
+    /** Each person's own account on a connection through Composio, or the workspace's again (ADR 0195, admins). */
+    setPerPerson(orgId: string, connectionId: string, perPerson: boolean): Promise<{ perPerson: boolean }>;
+    /** Connects one's own account to a per-person connection: returns the URL to open (any member). */
+    connectMine(orgId: string, connectionId: string, input: { returnTo: string }): Promise<string>;
+    disconnectMine(orgId: string, connectionId: string): Promise<void>;
   };
   githubApp: {
     /** Whether this server can install the GitHub App, the organization's installations, and the server's app. */
@@ -1114,6 +1232,16 @@ export interface ApiClient {
     computer(orgId: string, agentId: string): Promise<AgentComputer>;
     /** Which computer the agent uses: a connected machine, or `null` for none. */
     setTarget(orgId: string, agentId: string, machineId: string | null): Promise<ComputerTarget>;
+  };
+  /**
+   * The phone's own apps as the agents' tools (ADR 0205), from the phone app only (the server refuses the others):
+   * the person's switches here, the jobs their agents sent and the phone's answers.
+   */
+  phone: {
+    tools(orgId: string): Promise<PhoneTools>;
+    setTools(orgId: string, input: { tools: PhoneTool[]; deviceName: string }): Promise<PhoneTools>;
+    jobs(orgId: string): Promise<{ jobs: PhoneJob[] }>;
+    answer(orgId: string, jobId: string, answer: PhoneJobAnswer): Promise<void>;
   };
   /** Bring your own devices: computers people connect and the phones they reach, as agents' targets. */
   devices: {
@@ -1197,6 +1325,8 @@ export interface ApiClient {
     ): Promise<{ install: CliInstall | null }>;
     /** Anyone else: asks whoever paired it to install `tool` (an inbox row with the install button). */
     askCliInstall(orgId: string, machineId: string, tool: InstallableCli): Promise<void>;
+    /** Only the person who paired it: the MCP servers and skills of their coding tools there, read now. */
+    localConfig(orgId: string, machineId: string): Promise<LocalSetup>;
     /** Pauses it (`until` null: until resumed) or resumes it (`resume`); the pause as it stands then. */
     setPause(
       orgId: string,
@@ -1326,7 +1456,8 @@ export interface ApiClient {
     listTeam(orgId: string): Promise<Memory[]>;
     /** Tornar do time (ADR 0167): an agent's memory becomes the team's; its copies are archived. */
     makeTeam(orgId: string, memoryId: string): Promise<Memory>;
-    edit(orgId: string, memoryId: string, text: string): Promise<Memory>;
+    /** `validUntil`: when it stops holding (ISO), null for no end; left out, the end it had. */
+    edit(orgId: string, memoryId: string, text: string, validUntil?: string | null): Promise<Memory>;
     setPinned(orgId: string, memoryId: string, pinned: boolean): Promise<Memory>;
     setArchived(orgId: string, memoryId: string, archived: boolean): Promise<Memory>;
     /** Confirmar (ADR 0167): trusted and verified, by who may edit it or the person who said it. */
@@ -1348,11 +1479,18 @@ export interface ApiClient {
      * Connects to an https MCP server: a new account, or with `connectionId` a new sign-in for that one
      * ("Reconectar"). Without `apiKey` the server tries OAuth (discovery + dynamic client registration); if the
      * MCP server doesn't support it, answers `needs_key` (`reason: "not_approved"` when it only registers apps it
-     * approved, with its refusal in `detail`).
+     * approved, with its refusal in `detail`). With `oauthClient`, it signs in with the admin's own app instead.
      */
     connect(
       orgId: string,
-      input: { serverUrl: string; apiKey?: string; label?: string; returnTo: string; connectionId?: string },
+      input: {
+        serverUrl: string;
+        apiKey?: string;
+        label?: string;
+        returnTo: string;
+        connectionId?: string;
+        oauthClient?: OAuthAppInput;
+      },
     ): Promise<CustomConnectStart>;
     /** Lists the server's tools again; new ones come back unclassified. */
     refresh(orgId: string, serverId: string): Promise<CustomServer>;
@@ -1374,12 +1512,23 @@ export interface ApiClient {
     open(orgId: string, target: DmTarget): Promise<{ channelId: string; dm?: DirectMessage }>;
     /** Marks a channel or DM read up to now. */
     markRead(orgId: string, channelId: string): Promise<void>;
+    /** Marks a channel or DM unread for me until I read it again ("Marcar como não lida"). */
+    markUnread(orgId: string, channelId: string): Promise<void>;
     /** Where the other people of a DM stopped reading ("Visto"); empty for any other channel. */
     reads(orgId: string, channelId: string): Promise<DmRead[]>;
+    /**
+     * Shares my DM with an agent as a read-only copy, posted with `note` in a channel I'm in or in my DM with a
+     * person. Nothing takes it back: the apps confirm first.
+     */
+    share(
+      orgId: string,
+      channelId: string,
+      input: { to: ShareDmTarget; note: string; clientId?: string },
+    ): Promise<{ channelId: string; message: Message }>;
   };
   questions: {
-    /** Answers an agent's question with a choice or free text. */
-    answer(orgId: string, questionId: string, input: { choice?: string; text?: string }): Promise<AgentQuestion>;
+    /** Answers an agent's question with a choice or free text, or a card of several questions all at once. */
+    answer(orgId: string, questionId: string, input: QuestionAnswerInput): Promise<AgentQuestion>;
     /** Skips it: the agent goes on without an answer. */
     dismiss(orgId: string, questionId: string): Promise<AgentQuestion>;
   };
@@ -1729,6 +1878,8 @@ export interface ApiClient {
     /** What reaches my devices as a notification in this workspace (ADR 0071 §8). */
     prefs(orgId: string): Promise<NoticePrefs>;
     setPref(orgId: string, category: NoticeCategory, on: boolean): Promise<NoticePrefs>;
+    /** How long I'm away from this workspace before an email of what I missed (0: never). */
+    setAwayEmail(orgId: string, minutes: AwayEmailMinutes): Promise<NoticePrefs>;
     /** "Pedir a um admin": an inbox row for whoever may do it (`admin_ask`); how many it reached. */
     askAdmins(orgId: string, ask: AdminAsk): Promise<{ sent: number }>;
   };
@@ -1818,6 +1969,13 @@ export interface ApiClient {
       id: string,
       sharing: { mode: ArtifactSharing["mode"]; userIds?: string[]; roleIds?: string[] },
     ): Promise<Artifact>;
+    /**
+     * Live public pages I may take down (ADR 0211): every one for an administrator, else those of files I read; one
+     * file's with `artifactId`. None on a server that publishes no pages.
+     */
+    publishedPages(orgId: string, artifactId?: string): Promise<PublishedPage[]>;
+    /** Takes a public page down at once; 404 `published_page.not_found` once it's down or out of reach. */
+    unpublish(orgId: string, pageId: string): Promise<void>;
     /** To the trash for 30 days (403 `artifact.delete_forbidden`). */
     remove(orgId: string, id: string): Promise<void>;
     trash(orgId: string): Promise<TrashedArtifact[]>;
@@ -1871,6 +2029,21 @@ export interface ApiClient {
     /** Expired email invitation: ask the inviter for a new one. */
     requestNew(token: string): Promise<void>;
   };
+  /** Joining by the address's domain (ADR 0068, addendum 2026-11-15). */
+  joinDomains: {
+    /** The workspace's domains (admins). */
+    list(orgId: string): Promise<JoinDomain[]>;
+    /**
+     * Names a domain, or changes the cargos of one named (admins). Refused: `join_domain.invalid`, `.public`,
+     * `.not_yours` (not at the admin's own confirmed address), `.too_many`.
+     */
+    add(orgId: string, input: { domain: string; roleIds?: string[] }): Promise<JoinDomain>;
+    remove(orgId: string, domainId: string): Promise<void>;
+    /** Workspaces this account's confirmed address's domain lets it join. */
+    workspaces(): Promise<DomainWorkspace[]>;
+    /** Joins one: `join_domain.not_allowed` (403), `org.members_full` (409). */
+    join(orgId: string): Promise<{ orgId: string }>;
+  };
   /** Requests to join through the invitation link, for admins (ADR 0068). */
   joinRequests: {
     /** Waiting ones, oldest first. */
@@ -1898,6 +2071,21 @@ export interface ApiClient {
    * Phone app additions. Optional so older fakes and clients still type-check;
    * `createHttpApi` has them all (hooks throw when a client lacks one).
    */
+  /** Who else has a conversation open now (ADR 0084 addendum 2026-11-15): user ids, never yours nor a hidden one's. */
+  viewers?: {
+    list(orgId: string, channelId: string): Promise<string[]>;
+  };
+  /**
+   * A conversation's transcript (ADR 0055 addendum 2026-11-15): the same-origin URL of a channel, DM or thread as
+   * Markdown or JSON, a zip with its files when `files`, for whoever reads it.
+   */
+  transcripts?: {
+    url(
+      orgId: string,
+      channelId: string,
+      options: { format: "markdown" | "json"; threadId?: string; files?: boolean },
+    ): string;
+  };
   /** Pinned messages of a channel or DM (anyone who can post there pins). */
   pins?: {
     /** Newest pin first. */
@@ -2068,6 +2256,29 @@ export interface ApiClient {
     setDefault(orgId: string, agentId: string, profileId: string | null): Promise<void>;
     /** "Pedir mais um perfil": the people who grant profiles hear of it. */
     request(orgId: string, agentId: string): Promise<void>;
+    /**
+     * The sites the profile is signed in to, for its drivers (its Chrome may start for it: ask when a person opens the
+     * list). 400 `browser_profile.machine` (outdated runner).
+     */
+    sites(orgId: string, profileId: string): Promise<BrowserSite[]>;
+    /** "Sair" from one site; 409 `browser_profile.busy` while an agent or another person has the profile. */
+    signOutSite(orgId: string, profileId: string, site: string): Promise<BrowserSiteSignOut>;
+    /** The caller's own browser a run in their DM drives (null elsewhere); absent from older fakes. */
+    runPersonal?(orgId: string, runId: string): Promise<BrowserProfile | null>;
+  };
+  /**
+   * A workspace's outgoing webhooks (ADR 0212), administrators only. A secret comes back only from `create` and
+   * `rotateSecret`. Optional so older fakes type-check (`createHttpApi` has it).
+   */
+  outgoingWebhooks?: {
+    list(orgId: string): Promise<OutgoingWebhook[]>;
+    create(orgId: string, input: OutgoingWebhookInput): Promise<{ webhook: OutgoingWebhook; secret: string }>;
+    /** `enabled: true` turns it back on with its failures from zero. */
+    update(orgId: string, id: string, patch: OutgoingWebhookPatch): Promise<OutgoingWebhook>;
+    remove(orgId: string, id: string): Promise<void>;
+    rotateSecret(orgId: string, id: string): Promise<{ secret: string }>;
+    test(orgId: string, id: string): Promise<{ deliveryId: string }>;
+    deliveries(orgId: string, id: string): Promise<OutgoingWebhookDelivery[]>;
   };
   /**
    * The Vault (ADR 0144): logins, keys and contacts agents use without seeing a password or a key. No answer carries
@@ -2132,6 +2343,17 @@ export interface ApiClient {
     /** 409 `token_limit` past 10 live tokens per person here. */
     createToken(orgId: string, input: PersonalTokenInput): Promise<CreatedPersonalToken>;
     revokeToken(orgId: string, grantId: string): Promise<void>;
+  };
+  /**
+   * An agent's API keys (ADR 0210), for its owner or whoever has `manage_agents`: 409 `agent_api.key_limit` past 10
+   * live, 403 `reauth.sign_in` for one with no expiry without a recent sign-in.
+   */
+  agentApiKeys: {
+    list(orgId: string, agentId: string): Promise<AgentApiKeys>;
+    create(orgId: string, agentId: string, input: AgentApiKeyInput): Promise<CreatedAgentApiKey>;
+    revoke(orgId: string, agentId: string, keyId: string): Promise<void>;
+    /** A conversation outside the DM list that is one of my keys' rooms; 404 for any other. */
+    room(orgId: string, channelId: string): Promise<AgentKeyRoom>;
   };
   /** "Lembrar": one-off reminders in conversations (also routines in Rotinas). */
   reminders?: {

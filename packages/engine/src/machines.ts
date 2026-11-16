@@ -5,9 +5,11 @@ import {
   CLI_INSTALL_PROTOCOL,
   DESKTOP_PROTOCOL,
   HEARTBEAT_MS,
+  LOCAL_CONFIG_PROTOCOL,
   MACHINE_TOKEN_PREFIX,
   type MachineAgent,
   MIN_RUNNER_PROTOCOL,
+  MY_CHROME_PROTOCOL,
   type PubSub,
   REMOTE_PAUSE_PROTOCOL,
 } from "@agenteschat/adapters";
@@ -545,6 +547,11 @@ async function machineViews(db: Database, actorId: string, orgId: string, only?:
        * (`CLI_INSTALL_PROTOCOL`); never the workspace's own computer, which installs them itself.
        */
       cliInstall: !managed && m.protocol >= CLI_INSTALL_PROTOCOL,
+      /**
+       * The MCP servers and skills its person set up for their own coding tools can be read from here, by them
+       * (`LOCAL_CONFIG_PROTOCOL`, ADR 0055 addendum 2026-11-15); never the workspace's own computer.
+       */
+      localConfig: !managed && m.protocol >= LOCAL_CONFIG_PROTOCOL,
       /** The coding CLIs there that can't start, with their own error line; admins and the pairer only. */
       cliErrors: (admin || mine) && !managed ? (m.executors?.broken ?? null) : null,
       pairedBy: m.pairedByUserId ? { id: m.pairedByUserId, name: pairedByName ?? "" } : null,
@@ -588,6 +595,14 @@ async function machineViews(db: Database, actorId: string, orgId: string, only?:
             code: m.executors.desktopUse.code ?? null,
           }
         : null,
+      /**
+       * The agents its owner lent their own Chrome to (ADR 0202), and until when: only while it answers, never in system
+       * mode, and only what hasn't ended. Agent ids and times only, for everyone who sees the computer.
+       */
+      myChrome:
+        !managed && machineOnline(m, now) && m.protocol >= MY_CHROME_PROTOCOL && m.executors?.mode !== "system"
+          ? (m.executors?.myChrome ?? []).filter((l) => Date.parse(l.expiresAt) > now.getTime())
+          : [],
       /** This person may rename, delete or reduce its access. */
       canManage: admin || mine,
       createdAt: m.createdAt.toISOString(),
@@ -863,7 +878,7 @@ export async function detachMachine(tx: Executor, machine: Pick<MachineRow, "id"
   const rows = await tx
     .update(agents)
     // Its accounts (ADR 0041) stay with it: the agents leave them.
-    .set({ machineId: null, brainAccountId: null, updatedAt: now })
+    .set({ machineId: null, brainAccountId: null, brainEngine: null, updatedAt: now })
     .where(and(eq(agents.orgId, machine.orgId), eq(agents.machineId, machine.id)))
     .returning({ id: agents.id });
   const ids = rows.map((r) => r.id);
@@ -924,6 +939,8 @@ export async function announceRemovedMachine(
       event: { type: "agent.computer", agentId, target: { kind: "none" } },
     });
   }
+  // ADR 0203: the sites it lent, and its agents as others may lend to them, leave the other computers' lists.
+  await publishMachineAgentsChanged(deps.pubsub, orgId);
 }
 
 /** Which computer an agent uses (`GET …/computer` `target`). */
@@ -993,7 +1010,7 @@ export async function setAgentComputerTarget(
     .set({
       machineId: machine?.id ?? null,
       // An account is a folder on one computer (ADR 0041): another computer starts on its own sign-in.
-      ...(moved ? { brainAccountId: null } : {}),
+      ...(moved ? { brainAccountId: null, brainEngine: null } : {}),
       updatedAt: new Date(),
     })
     .where(and(eq(agents.orgId, orgId), eq(agents.id, agentId)));

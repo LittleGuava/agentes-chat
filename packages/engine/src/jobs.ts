@@ -18,6 +18,7 @@ import type { ArtifactDeps } from "./artifacts";
 import { PLAN_OPENED_JOB } from "./audience";
 import { routinePostRun, runAuthorityById } from "./authority";
 import { AUTONOMY_REPORT_JOB, queueAutonomyEmail } from "./autonomy-report";
+import { BURST_JUDGE_JOB, judgeBurst } from "./best-of";
 import { closePoll, POLL_CLOSE_JOB } from "./blocks";
 import { PLAN_LENT_JOB } from "./brain-settings";
 import { type BrakeReport, brakeWakes, callableAgents, LATER_JOB, notCallableWhy } from "./brakes";
@@ -26,6 +27,7 @@ import { typingLogFor } from "./burst";
 import { CHANNEL_DELETE_JOB, purgeChannel } from "./channel-deletion";
 import { crowdedAgents, publishQueueChanged } from "./computer-queue";
 import type { ConnectorDeps } from "./connectors/connections";
+import { forgetLeaversAccounts, PERSONAL_FORGET_JOB } from "./connectors/personal";
 import { startNoteRun } from "./consultations";
 import { getChannelCached } from "./context";
 import { consolidateOrg } from "./context/consolidate";
@@ -72,6 +74,7 @@ import { FOLLOW_UP_JOB, wakeFollowUp } from "./follow-through";
 import { cutText } from "./format";
 import type { GitHubAppAccess } from "./git/github-call";
 import { GITHUB_EVENT_JOB, type GitHubAppEvent, handleGitHubAppEvent } from "./git/github-events";
+import { HEALTH_SCAN_JOB, scanHealth } from "./health";
 import { FILE_JOIN_REQUEST_JOB, fileJoinRequest } from "./invite-requests";
 import { announceTaskConversation } from "./issues";
 import type { JevKey, JevKeySource } from "./jev-key";
@@ -86,6 +89,7 @@ import {
   type TaskCall,
   wakeConversationForTask,
 } from "./machine-tasks";
+import { MAIL_UNCLAIMED_JOB, tellUnclaimedMail } from "./mail/triage";
 import { isMediaAfterReply, isMediaOnly } from "./media";
 import { getMessage, referencedOf } from "./messages";
 import { checkMissionDone } from "./mission-delivery";
@@ -97,6 +101,7 @@ import { notifyMessage } from "./notification-producers";
 import { ORG_FILES_PURGE_ATTEMPTS, ORG_FILES_PURGE_JOB, USER_FILES_PURGE_JOB } from "./organizations";
 import { outOfOfficeIds } from "./out-of-office";
 import { enqueue, type JobHandlers, type OutboxJob, PermanentJobError } from "./outbox";
+import { type DeliveryDeps, deliverOutgoingWebhook, OUTGOING_WEBHOOK_JOB } from "./outgoing-webhooks";
 import { checkParkedRun, EARLY_CHECK_JOB, scheduleParkedChecks } from "./parked-asks";
 import { PARTNER_WAITLIST_CONTACT_JOB, savePartnerWaitlistContact } from "./partner-waitlist";
 import { notifyPersonLimit, PERSON_LIMIT_JOB } from "./person-usage";
@@ -194,6 +199,8 @@ export interface JobDeps extends RunExecutorDeps {
   voice?: VoiceDeps;
   /** The Vault's sources (job `vault.sync`, ADR 0144); absent: connections aren't read again. */
   vault?: VaultDeps;
+  /** Outgoing webhooks (job `webhooks.deliver`, ADR 0212): the keys their secrets are sealed with. */
+  outgoingWebhooks?: Omit<DeliveryDeps, "db">;
   /** Connectors: job `org.delete` revokes a workspace's GitHub OAuth grants at GitHub before its rows go. */
   connectors?: ConnectorDeps;
   /** The server's GitHub App: job `org.delete` uninstalls it from the workspace's GitHub accounts (ADR 0156). */
@@ -593,6 +600,11 @@ export function createJobHandlers(deps: JobDeps): JobHandlers {
       if (isMediaAfterReply(message.meta) || isMediaOnly(message)) return;
       // A routine's trigger: its background run is already started; nobody else is routed (routines.ts).
       if (message.meta.background) return;
+      // A shared DM's copy (`dm-share.ts`) is for people to read: nobody is routed.
+      if (message.meta.sharedDm) return;
+      // A `/burst` (ADR 0192): its attempts are already started, and their comparison answers it; an attempt's
+      // brief is answered by its own run. Nobody else is routed, not even by mention.
+      if (message.meta.burst || message.meta.burstAttempt) return;
       const routed = (
         strategy: "mention" | "dm" | "router" | "none",
         seenBy: string[],
@@ -820,6 +832,12 @@ export function createJobHandlers(deps: JobDeps): JobHandlers {
     [STRETCH_JOB]: async (job) => {
       await postStretchCard({ db: deps.db, pubsub: deps.pubsub }, orgOf(job), job.payload as unknown as StretchHold);
     },
+    // A burst's attempt ended, or its time ran out: what came back is compared, once (ADR 0192).
+    [BURST_JUDGE_JOB]: async (job) => {
+      await judgeBurst({ db: deps.db, pubsub: deps.pubsub }, orgOf(job), String(job.payload.messageId), {
+        deadline: job.payload.deadline === true,
+      });
+    },
     // A vote's time came: it closes and the agent hears the result (ADR 0113).
     [POLL_CLOSE_JOB]: async (job) => {
       if (!deps.artifacts) throw new Error("Files are unavailable");
@@ -943,6 +961,12 @@ export function createJobHandlers(deps: JobDeps): JobHandlers {
         dedupeKey: `${ORG_FILES_PURGE_JOB}:${job.id}`,
         maxAttempts: ORG_FILES_PURGE_ATTEMPTS,
       });
+    },
+    // The people who left took their own accounts with them (`dropAccountsOfLeaver`, ADR 0195 §6).
+    [PERSONAL_FORGET_JOB]: async (job) => {
+      const composio = deps.mail?.composio;
+      if (!composio) throw new PermanentJobError("Composio is not configured");
+      await forgetLeaversAccounts(composio, job.payload.accountIds);
     },
     [USER_FILES_PURGE_JOB]: async (job) => {
       if (!deps.storage) throw new PermanentJobError("no storage configured");
@@ -1154,6 +1178,10 @@ export function createJobHandlers(deps: JobDeps): JobHandlers {
       if (!deps.skills) return;
       await runSkillUpdates(deps.skills, orgOf(job));
     },
+    // An email triage found worth attention that no routine took (ADR 0038, addendum 2026-11-15): its mailbox's owner.
+    [MAIL_UNCLAIMED_JOB]: async (job) => {
+      await tellUnclaimedMail({ db: deps.db, pubsub: deps.pubsub }, orgOf(job), job.payload);
+    },
     // A Vault connection read again (ADR 0144); a source's refusal stays on the connection, never retried here.
     [VAULT_SYNC_JOB]: async (job) => {
       if (!deps.vault) return;
@@ -1175,6 +1203,19 @@ export function createJobHandlers(deps: JobDeps): JobHandlers {
     // Yesterday's stall-and-noise report, to the people who run the server (`OPS_REPORT_EMAIL`).
     [AUTONOMY_REPORT_JOB]: async (job) => {
       await queueAutonomyEmail(deps.db, job.payload, { router: deps.router?.enabled ?? false });
+    },
+    // One event to an outgoing webhook (ADR 0212); retried by the outbox until its last attempt.
+    [OUTGOING_WEBHOOK_JOB]: async (job, ctx) => {
+      if (!deps.outgoingWebhooks) throw new PermanentJobError("outgoing webhooks aren't set up on this server");
+      await deliverOutgoingWebhook(
+        { db: deps.db, pubsub: deps.pubsub, ...deps.outgoingWebhooks },
+        String(job.payload.deliveryId),
+        ctx,
+      );
+    },
+    // Every workspace's failures of the last window, counted into their issues (ADR 0214).
+    [HEALTH_SCAN_JOB]: async () => {
+      await scanHealth(deps.db);
     },
     // What happened on GitHub to an item an agent worked on, or naming the app (ADR 0156).
     [GITHUB_EVENT_JOB]: async (job) => {

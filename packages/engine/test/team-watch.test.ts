@@ -14,7 +14,12 @@ import {
   wakeSnoozedNotifications,
 } from "../src";
 import { APPROVALS_DIGEST_JOB, approvalsDigestLane } from "../src/approvals-digest";
-import { OUTSIDE_RUN_ERRORS, outsideRoutineFailure, ROUTINE_RETRY_AFTER_MS } from "../src/routine-ledger";
+import {
+  OUTSIDE_RUN_ERRORS,
+  outsideRoutineFailure,
+  ROUTINE_RETRY_AFTER_MS,
+  reapRoutineRuns,
+} from "../src/routine-ledger";
 import {
   enqueueTeamWatches,
   runTeamWatch,
@@ -936,6 +941,58 @@ describe("what it fixes", () => {
     await executeRoutineRun(routineDeps(f), retry?.id ?? "");
     expect((await routineRunRow(f, retry?.id ?? "")).status).toBe("superseded");
     expect(f.provider.calls).toHaveLength(0);
+  });
+
+  test("a failure and its retry are one failure in the routine's health, told once as tried again", async () => {
+    f = await setup({ rightHand: true });
+    const routine = await channelRoutine(f);
+    await farSlot(routine.id);
+    await failOnce(routine.id, 30, DOWN);
+    expect((await routineRow(f, routine.id)).failuresInRow).toBe(1);
+    const [retry] = (await f.db.select().from(schema.routineRuns)).filter((r) => r.status === "queued");
+    await executeRoutineRun(routineDeps(f), retry?.id ?? "");
+    await failRun(retry?.id ?? "", DOWN);
+    expect((await routineRow(f, routine.id)).failuresInRow).toBe(1);
+    const [told] = await notificationsOf(f, "routine_failed");
+    expect(told?.latest).toMatchObject({ reason: "provider_error", retried: true });
+    // The next slot's failure is the streak's second, told by nobody.
+    await failOnce(routine.id, 20, DOWN);
+    expect((await routineRow(f, routine.id)).failuresInRow).toBe(2);
+    expect(await notificationsOf(f, "routine_failed")).toHaveLength(1);
+  });
+
+  test("a failure ended twice queues one retry, and the retry's failure ended twice queues nothing more", async () => {
+    f = await setup({ rightHand: true });
+    const routine = await channelRoutine(f);
+    await farSlot(routine.id);
+    const first = await fire(f, routine.id, minutesFromNow(-30));
+    await failRun(first.id, DOWN);
+    await failRun(first.id, DOWN);
+    await reapRoutineRuns(ledger(), new Date(Date.now() + HOUR));
+    const runs = async () => (await f.db.select().from(schema.routineRuns)).filter((r) => r.routineId === routine.id);
+    expect(await runs()).toHaveLength(2);
+    const retry = (await runs()).find((r) => r.id !== first.id);
+    await executeRoutineRun(routineDeps(f), retry?.id ?? "");
+    await failRun(retry?.id ?? "", DOWN);
+    await failRun(retry?.id ?? "", DOWN);
+    await reapRoutineRuns(ledger(), new Date(Date.now() + HOUR));
+    expect(await runs()).toHaveLength(2);
+    expect((await routineRow(f, routine.id)).failuresInRow).toBe(1);
+    expect(await notificationsOf(f, "routine_failed")).toHaveLength(1);
+  });
+
+  test("a person's run in the retry's place is no retry: it counts, and its notice says nothing of a retry", async () => {
+    f = await setup({ rightHand: true });
+    const routine = await channelRoutine(f);
+    await farSlot(routine.id);
+    await failOnce(routine.id, 30, DOWN);
+    await runRoutineNow(routineDeps(f), f.owner.id, f.org.id, routine.id);
+    const [manual] = (await f.db.select().from(schema.routineRuns)).filter((r) => r.status === "queued");
+    await executeRoutineRun(routineDeps(f), manual?.id ?? "");
+    await failRun(manual?.id ?? "", DOWN);
+    expect((await routineRow(f, routine.id)).failuresInRow).toBe(2);
+    const [told] = await notificationsOf(f, "routine_failed");
+    expect(told?.latest.retried).toBeUndefined();
   });
 
   test("a routine failing for its own reasons, or one paused for another reason, is left paused", async () => {

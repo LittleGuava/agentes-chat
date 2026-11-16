@@ -13,6 +13,7 @@
  * - `POST   …/machines/{id}/access/reduce` `{ removeFolder?, disableTool? }` → the new access
  * - `POST   …/machines/{id}/clis/check` → 200; `POST|GET|DELETE …/machines/{id}/cli-install` → `{ install }`
  *   (`running` once started, until a test calls `setCliInstall()`); `POST …/cli-install/ask` → 200
+ * - `POST   …/machines/{id}/local-config` → what `setLocalSetup()` set (nothing found by default)
  * - `GET    /api/desktop/latest?target=&arch=` → the release, or 404 (`null`)
  * - `GET    …/machines/outages` → `{ outages, targets }` (offline computers agents wait for)
  * - `GET    …/machines/{id}/queue` → the computer's line (`setQueue()`; nothing working or waiting by default)
@@ -38,6 +39,7 @@ import type {
   DesktopRelease,
   DeviceRequest,
   HostComputer,
+  LocalSetup,
   Machine,
   MachineAccountKind,
   MachineOutages,
@@ -70,6 +72,8 @@ export interface FakeMachines {
   setQueue(queue: ComputerQueue): void;
   /** Where a computer's install of a coding CLI stands (`null`: none ran). */
   setCliInstall(machineId: string, install: CliInstall | null): void;
+  /** What a computer's `localConfig` answers; unset: nothing found there. */
+  setLocalSetup(machineId: string, setup: LocalSetup): void;
   /** What `moveAgents` answers (default: every agent moved, nothing else). */
   setMoveResult(result: MoveAgentsResult | null): void;
   /** The server's own computer in the organization; `null` (default): it has none. */
@@ -118,6 +122,7 @@ export function createFakeMachines(ctx: MockContext, log: (method: string, ...ar
   let ai: AiAccounts = { accounts: [], computers: [] };
   const logins: Login[] = [];
   const installs = new Map<string, CliInstall | null>();
+  const setups = new Map<string, LocalSetup>();
   const loginStatus = new Map<string, AccountLoginStatus>();
   const login = (loginId: string) => {
     const l = logins.find((x) => x.loginId === loginId && !x.cancelled);
@@ -247,6 +252,29 @@ export function createFakeMachines(ctx: MockContext, log: (method: string, ...ar
         if (action === "cancel" && now?.state === "running") installs.set(machineId, { ...now, state: "canceled" });
         return { install: clone(installs.get(machineId) ?? null) };
       },
+      localConfig: async (orgId, machineId) => {
+        log("machines.localConfig", orgId, machineId);
+        find(machineId);
+        const nothing: LocalSetup = {
+          files: [],
+          servers: [],
+          skipped: [],
+          masked: [],
+          bundle: {
+            format: "agenteschat.bundle",
+            version: 1,
+            source: { app: "claude-code", ref: `computer:${machineId}`, name: "", files: [] },
+            agents: [],
+            skills: [],
+            channels: [],
+            routines: [],
+            notes: [],
+            todo: [],
+            leftOut: [],
+          },
+        };
+        return clone(setups.get(machineId) ?? nothing);
+      },
       askCliInstall: async (orgId, machineId, tool) => {
         log("machines.askCliInstall", orgId, machineId, tool);
       },
@@ -369,6 +397,9 @@ export function createFakeMachines(ctx: MockContext, log: (method: string, ...ar
     },
     setCliInstall: (machineId, install) => {
       installs.set(machineId, install ? clone(install) : null);
+    },
+    setLocalSetup: (machineId, setup) => {
+      setups.set(machineId, clone(setup));
     },
     setMoveResult: (next) => {
       moveResult = next;

@@ -3,6 +3,9 @@ import { and, eq, inArray, schema, sql } from "@agenteschat/db";
 import { en, STRINGS } from "@agenteschat/i18n";
 import {
   actOnTeamWeek,
+  createCalendarEvent,
+  createIssue,
+  createRoutine,
   createSetupToolSource,
   createToolGateway,
   decideProposal,
@@ -1368,6 +1371,90 @@ describe("Resumo do dia", () => {
       daily: true,
       hour: 8,
     });
+  });
+
+  test("the day ahead, for who asks for it: their meetings, their agents' routines and tasks due, from the slot to midnight", async () => {
+    f = await setup({ rightHand: true });
+    await inZone(f);
+    const deps = { db: f.db, pubsub: f.pubsub };
+    const bia = await addMember(f.db, f.org.id, "member", "bia");
+    const meeting = (title: string, start: string, participants: { type: "person"; id: string }[] = []) =>
+      createCalendarEvent(deps, f.owner.id, f.org.id, {
+        title,
+        start,
+        end: new Date(Date.parse(start) + HOUR).toISOString(),
+        recurrence: "none",
+        participants,
+      });
+    // 14:00 and 11:00 in São Paulo today; 07:00 is before the slot; tomorrow's is on tomorrow's card.
+    await meeting("Planejamento", "2026-11-06T17:00:00Z");
+    await meeting("Daily", "2026-11-06T14:00:00Z");
+    await meeting("Cedo", "2026-11-06T10:00:00Z");
+    await meeting("Amanhã", "2026-11-07T14:00:00Z");
+    // Bia's own meeting, without the owner, is on her calendar only.
+    await createCalendarEvent(deps, bia.id, f.org.id, {
+      title: "1:1",
+      start: "2026-11-06T15:00:00Z",
+      end: "2026-11-06T16:00:00Z",
+      recurrence: "none",
+      participants: [],
+    });
+    const owner = { type: "person" as const, userId: f.owner.id };
+    await createIssue(deps, owner, f.org.id, {
+      title: "Entrega",
+      dueDate: "2026-11-06",
+      assignee: { type: "agent", id: f.agent.id },
+    });
+    await createIssue(deps, owner, f.org.id, { title: "Depois", dueDate: "2026-11-07" });
+    await createIssue(deps, owner, f.org.id, {
+      title: "Da Bia",
+      dueDate: "2026-11-06",
+      assignee: { type: "person", id: bia.id },
+    });
+    await createRoutine({ db: f.db, pubsub: f.pubsub, context: f.context }, f.owner.id, f.org.id, {
+      agentId: f.agent.id,
+      prompt: "Resumo",
+      target: { type: "channel", channelId: f.general.id },
+      trigger: { type: "schedule", rule: { freq: "daily", times: ["10:00"], timezone: ZONE, start: "2026-11-01" } },
+    });
+
+    // Off by default: a day with only the calendar to say posts nothing.
+    expect((await getLodiPrefs(f.db, f.org.id, f.owner.id)).agenda).toBe(false);
+    expect(await post(f, f.owner.id, NINE)).toBeNull();
+
+    expect((await setLodiPrefs(f.db, f.org.id, f.owner.id, { agenda: true })).agenda).toBe(true);
+    const today = await post(f, f.owner.id, NINE);
+    expect(today).not.toBeNull();
+    const { card } = await cardOf(f, today as string);
+    // First on the card; only builds that word it read it; never "seen", since each day's is its own.
+    expect(card.moreRows?.[0]).toEqual({
+      id: "today",
+      kind: "today",
+      meetings: 2,
+      routines: 1,
+      deadlines: 1,
+      first: { title: "Daily", at: "2026-11-06T14:00:00.000Z", allDay: false },
+    });
+    expect(card.rows.some((r) => (r.kind as string) === "today")).toBe(false);
+    expect(card.seen ?? []).not.toContain("today");
+    // Asked for, it rings at the person's hour; none of it called a model.
+    expect(await rings(f, today as string)).toBe(true);
+    expect(f.provider.calls).toHaveLength(0);
+
+    // The next day's slot reads that day: its meeting and the routine at 10h. Nothing is due then for the owner.
+    const next = await post(f, f.owner.id, new Date(NINE.getTime() + DAY));
+    expect((await cardOf(f, next as string)).card.moreRows?.[0]).toEqual({
+      id: "today",
+      kind: "today",
+      meetings: 1,
+      routines: 1,
+      deadlines: 0,
+      first: { title: "Amanhã", at: "2026-11-07T14:00:00.000Z", allDay: false },
+    });
+
+    // A day with no meeting, routine or task of theirs says nothing.
+    await f.db.update(schema.routines).set({ active: false });
+    expect(await post(f, f.owner.id, new Date(NINE.getTime() + 3 * DAY))).toBeNull();
   });
 });
 

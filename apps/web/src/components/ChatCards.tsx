@@ -1,4 +1,11 @@
-import type { AgentQuestion, MemoryUpdate, Proposal, SecretRequest, SecretToVaultInput } from "@agenteschat/client";
+import type {
+  AgentQuestion,
+  MemoryUpdate,
+  Proposal,
+  QuestionAnswerInput,
+  SecretRequest,
+  SecretToVaultInput,
+} from "@agenteschat/client";
 import {
   useCardProposals,
   useDecideProposal,
@@ -6,7 +13,14 @@ import {
   useModelLabel,
   useSaveSecretToVault,
 } from "@agenteschat/client";
-import { questionWaitsOn } from "@agenteschat/client/lib/agent-questions";
+import {
+  answeredLines,
+  draftAnswers,
+  emptyQuestionDraft,
+  questionItems,
+  questionWaitsOn,
+  unansweredCount,
+} from "@agenteschat/client/lib/agent-questions";
 import { formatTime, whenAt } from "@agenteschat/client/lib/format";
 import { agentGrammar } from "@agenteschat/client/lib/grammar";
 import { MAX_MESSAGE_LENGTH } from "@agenteschat/client/lib/message-length";
@@ -57,6 +71,7 @@ import { useOpenAgentPanel } from "./agent-panel-context";
 import { SiteIcon } from "./browser/SiteIcon";
 import { useOrg } from "./org-context";
 import { ProseDiff } from "./ProseDiff";
+import { QuestionAnswers, QuestionItems } from "./QuestionItems";
 import {
   type RequestAnswer,
   RequestCard,
@@ -485,7 +500,8 @@ export function ProposalGroup({ proposalIds }: { proposalIds: string[] }) {
  * choices as a list, one a line with its number key, and "Outra resposta" (or
  * "Responder" without choices) opening a field in the card. The field answers this question wherever the card shows (a thread
  * in the panel, a consultation, a channel whose composer posts elsewhere), so
- * it never depends on which composer is on screen.
+ * it never depends on which composer is on screen. A card of several questions, or of one where several may be picked,
+ * stacks them (`QuestionItems`) and sends every answer at once from its footer.
  */
 export function QuestionCard({ question }: { question: AgentQuestion }) {
   const { t, i18n } = useTranslation();
@@ -501,6 +517,12 @@ export function QuestionCard({ question }: { question: AgentQuestion }) {
   const limit = useTextLimit(MAX_MESSAGE_LENGTH, "choices.tooLongFix");
   const tooLong = overLimit(text, limit);
   const reopen = useRef<HTMLButtonElement>(null);
+  // Several questions, or several picks: one draft for the card, sent once every question has its answer.
+  const several = Boolean(question.items?.length);
+  const items = questionItems(question);
+  const [draft, setDraft] = useState(() => emptyQuestionDraft(items));
+  const ready = several ? draftAnswers(items, draft) : null;
+  const draftTooLong = draft.written.some((w) => overLimit(w, limit));
   // Refused because it ended (someone answered, its run stopped): the card closes here, even if no event came.
   const [ended, setEnded] = useState(false);
   const refused = (err: unknown, fallback: "question.failed" | "question.skipFailed") => {
@@ -510,12 +532,11 @@ export function QuestionCard({ question }: { question: AgentQuestion }) {
     live.answered({ ...current, status: "answered", answer: null, answeredByUserId: null });
   };
   const answer = useMutation({
-    mutationFn: (input: { choice: string } | { text: string }) => api.questions.answer(org.id, question.id, input),
+    mutationFn: (input: QuestionAnswerInput) => api.questions.answer(org.id, question.id, input),
     // Errors are explained on the card.
     meta: { silent: true },
     onMutate: () => setError(null),
-    onSuccess: (res, input) =>
-      live.answered({ ...res, answer: res.answer ?? ("choice" in input ? input.choice : input.text) }),
+    onSuccess: (res, input) => live.answered({ ...res, answer: res.answer ?? input.choice ?? input.text ?? null }),
     onError: (err) => refused(err, "question.failed"),
   });
   const skip = useMutation({
@@ -533,6 +554,8 @@ export function QuestionCard({ question }: { question: AgentQuestion }) {
   // Answered, or closed with no answer (its run stopped, it expired): the same card, the question still its words,
   // and who answered what, and when, where the choices and the footer were.
   const answerText = current.answer ?? "";
+  // A card of several questions answered from the card: each question and its answer, under the questions' place.
+  const lines = answeredLines(current);
   const how: RequestAnswer | undefined = done
     ? {
         done: current.answer !== null && !current.withdrawn && !current.dismissed,
@@ -546,6 +569,12 @@ export function QuestionCard({ question }: { question: AgentQuestion }) {
           )
         ) : current.answer === null ? (
           t(ended ? "question.alreadyAnswered" : "question.closed")
+        ) : lines ? (
+          who ? (
+            t("question.answeredCard", { name: who })
+          ) : (
+            t("question.answeredCardByYou")
+          )
         ) : who ? (
           <Trans
             i18nKey="question.answered"
@@ -574,8 +603,11 @@ export function QuestionCard({ question }: { question: AgentQuestion }) {
   const pick = (choice: string | undefined) => {
     if (choice !== undefined && !busy) answer.mutate({ choice });
   };
-  const picking = (choice: string) =>
-    answer.isPending && "choice" in answer.variables && answer.variables.choice === choice;
+  const picking = (choice: string) => answer.isPending && answer.variables.choice === choice;
+  const sendAll = () => {
+    if (ready && !draftTooLong && !busy) answer.mutate({ answers: ready });
+  };
+  const left = unansweredCount(items, draft);
   const errorLine = error ? (
     <p className="rq__error" role="alert">
       {error}
@@ -612,10 +644,18 @@ export function QuestionCard({ question }: { question: AgentQuestion }) {
       waitingFor={t("ask.waitingFor", {
         name: dir.memberById.get(current.requestedForUserId ?? "")?.name ?? t("channel.unknownPerson"),
       })}
-      lead={current.text}
+      lead={several ? undefined : current.text}
       answer={how}
       body={
-        (mine && choices.length > 0) || (mine && field) || errorLine ? (
+        several ? (
+          <>
+            {done && <QuestionAnswers lines={lines ?? items.map((item) => ({ question: item.question, said: "" }))} />}
+            {!done && (
+              <QuestionItems items={items} draft={draft} onChange={setDraft} disabled={!mine || busy} limit={limit} />
+            )}
+            {errorLine}
+          </>
+        ) : (mine && choices.length > 0) || (mine && field) || errorLine ? (
           <>
             {mine && choices.length > 0 && (
               <RequestChoices
@@ -634,16 +674,27 @@ export function QuestionCard({ question }: { question: AgentQuestion }) {
       }
       actions={
         mine &&
-        (writing ? (
+        (several ? (
+          <>
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={!ready || draftTooLong || skip.isPending}
+              loading={answer.isPending}
+              onClick={sendAll}
+            >
+              {t("question.sendAll")}
+            </Button>
+            {left > 0 && <span className="rq__left">{t("question.left", { count: left })}</span>}
+          </>
+        ) : writing ? (
           <>
             <Button
               type="submit"
               variant="primary"
               size="sm"
-              disabled={
-                !text.trim() || tooLong || skip.isPending || (answer.isPending && !("text" in answer.variables))
-              }
-              loading={answer.isPending && "text" in answer.variables}
+              disabled={!text.trim() || tooLong || skip.isPending || (answer.isPending && !answer.variables.text)}
+              loading={answer.isPending && Boolean(answer.variables.text)}
             >
               {t("channel.send")}
             </Button>
@@ -677,7 +728,7 @@ export function QuestionCard({ question }: { question: AgentQuestion }) {
           </Button>
         )
       }
-      what={current.text}
+      what={several && items.length > 1 ? t("question.several", { count: items.length }) : (items[0]?.question ?? "")}
       onSubmit={writing ? send : undefined}
       locked={busy}
     />

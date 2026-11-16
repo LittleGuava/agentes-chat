@@ -1,3 +1,4 @@
+import { deflateSync } from "node:zlib";
 import type { ScreenKind } from "@agenteschat/adapters";
 import {
   observeSnapshot,
@@ -7,6 +8,7 @@ import {
   type ScreenRegion,
   type ScreenSurface,
 } from "../src";
+import { crc32 } from "../src/docx";
 
 /** An XFCE desktop as the runner writes it: the panel, Thunar in front, and its window buttons. */
 export const THUNAR = `- toolbar "Panel"
@@ -117,3 +119,48 @@ export function ticking() {
 
 /** Steps' actions without the pauses of waits and checks. */
 export const acted = (actions: ScreenAction[]) => actions.filter((a) => a.kind !== "pause");
+
+/** A PNG of one color, written by hand (`colorType` 2: RGB, 6: RGBA), so frames in other layouts can be tested. */
+export function plainPng(width: number, height: number, rgb: [number, number, number], colorType: 2 | 6 = 2) {
+  const channels = colorType === 2 ? 3 : 4;
+  const raw = new Uint8Array((width * channels + 1) * height);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const at = y * (width * channels + 1) + 1 + x * channels;
+      raw.set(channels === 3 ? rgb : [...rgb, 255], at);
+    }
+  }
+  const header = new Uint8Array(13);
+  const view = new DataView(header.buffer);
+  view.setUint32(0, width);
+  view.setUint32(4, height);
+  header[8] = 8;
+  header[9] = colorType;
+  return pngOf([
+    ["IHDR", header],
+    ["IDAT", new Uint8Array(deflateSync(raw))],
+    ["IEND", new Uint8Array(0)],
+  ]);
+}
+
+export function pngOf(chunks: [string, Uint8Array][]) {
+  const parts: Uint8Array[] = [Uint8Array.of(137, 80, 78, 71, 13, 10, 26, 10)];
+  for (const [type, data] of chunks) {
+    const out = new Uint8Array(12 + data.length);
+    const view = new DataView(out.buffer);
+    view.setUint32(0, data.length);
+    const typed = new TextEncoder().encode(type);
+    out.set(typed, 4);
+    out.set(data, 8);
+    const crcInput = new Uint8Array(4 + data.length);
+    crcInput.set(typed);
+    crcInput.set(data, 4);
+    view.setUint32(8 + data.length, crc32(crcInput));
+    parts.push(out);
+  }
+  return Buffer.concat(parts);
+}
+
+/** A JPEG of one color, as a browser screenshot or the desktop's capture comes. */
+export const jpegOf = (rgb: [number, number, number], width = 400, height = 300) =>
+  new Bun.Image(plainPng(width, height, rgb)).jpeg({ quality: 70 }).bytes();

@@ -148,6 +148,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       "android.permission.READ_MEDIA_VIDEO",
       "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
       "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+      // The phone's contacts are only searched (ADR 0205); expo-contacts' plugin also asks to write them.
+      "android.permission.WRITE_CONTACTS",
     ],
     intentFilters: [
       {
@@ -260,6 +262,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         androidIntentFilters: ["text/*", "image/*", "video/*", "application/*"],
         androidMultiIntentFilters: ["image/*", "video/*", "*/*"],
       },
+    ],
+    [
+      // Contatos do celular (ADR 0205): read only after the person turns it on in Você, for an agent's search by name.
+      "expo-contacts",
+      { contactsPermission: "To find the contacts you ask your agents about." },
     ],
     [
       // Salvar em Fotos: add-only access (the read text matches expo-image-picker's). No granular reads on Android:

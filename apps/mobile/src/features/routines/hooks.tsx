@@ -10,7 +10,13 @@ import { knownErrorText } from "@agenteschat/client/lib/errors";
 import { relativeTime, toYmd, whenAt } from "@agenteschat/client/lib/format";
 import { agentGrammar } from "@agenteschat/client/lib/grammar";
 import { type RoutineFix, routineChannelOf, runPixels, type Words } from "@agenteschat/client/lib/routine-view";
-import { browserTimezone, onceParts, routineHookUrl, timezoneName } from "@agenteschat/client/lib/routines";
+import {
+  browserTimezone,
+  connectorWhenWords,
+  onceParts,
+  routineHookUrl,
+  timezoneName,
+} from "@agenteschat/client/lib/routines";
 import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { ActionSheetIOS, Alert, Platform } from "react-native";
@@ -64,9 +70,10 @@ export function useWhenText() {
       }
       if (r.trigger.type === "event") return t(`routines.event.${r.trigger.event}`);
       if (r.trigger.type === "webhook") return t("routines.webhook.when");
+      if (r.trigger.type === "meeting") return t("routines.meeting.when", { minutes: r.trigger.leadMinutes });
       if (r.trigger.type === "connector") {
-        const to = r.trigger.filter.to;
-        return to ? t("mail.routine.when", { address: to }) : t("mail.routine.whenMillionSend");
+        const words = connectorWhenWords(r.trigger);
+        return words.key === "mail.routine.when" ? t(words.key, words.values) : t(words.key);
       }
       const zone = r.trigger.timezone || "UTC";
       const zoneNote = zone !== myZone ? ` (${timezoneName(zone, i18n.language)})` : "";
@@ -105,6 +112,8 @@ export function useNextText() {
           return n.week > 0 ? t("routines.eventThisWeek", { count: n.week }) : t("routines.waitingEvent");
         case "webhook":
           return n.week > 0 ? t("routines.eventThisWeek", { count: n.week }) : t("routines.webhook.waiting");
+        case "meeting":
+          return n.week > 0 ? t("routines.eventThisWeek", { count: n.week }) : t("routines.meeting.waiting");
         case "none":
           return "";
         case "soon":

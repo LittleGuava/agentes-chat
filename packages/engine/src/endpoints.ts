@@ -10,6 +10,7 @@ import {
   setCustomModels,
   type ToolSpec,
 } from "@agenteschat/providers";
+import { markForEndpointHost } from "@agenteschat/ui/brand/marks";
 import { recordAudit } from "./audit";
 import { caches } from "./cache";
 import { NotFoundError, ValidationError } from "./errors";
@@ -103,10 +104,11 @@ export function cleanEndpointModels(models: EndpointModel[], previous: EndpointM
 }
 
 /** An endpoint model as the gateway and the pickers read it: never a pick for routing, the judge or summaries. */
-const infoOf = (endpointName: string, m: EndpointModel): ModelInfo => ({
+const infoOf = (endpointName: string, mark: string, m: EndpointModel): ModelInfo => ({
   provider: "custom",
   label: m.label ?? m.id,
   endpoint: endpointName,
+  ...(mark === "custom" ? {} : { endpointMark: mark }),
   prices: m.prices ?? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
   ...(m.prices ? {} : { unpriced: true as const }),
   serverSideFallback: false,
@@ -137,9 +139,12 @@ export async function loadEndpointModels(db: Executor, orgId: string) {
   setCustomModels(
     orgId,
     Object.fromEntries(
-      rows.flatMap((r) =>
-        (r.options.endpoint?.models ?? []).map((m) => [customModelId(r.id, m.id), infoOf(r.label, m)] as const),
-      ),
+      rows.flatMap((r) => {
+        const mark = markForEndpointHost(r.options.endpoint?.baseURL);
+        return (r.options.endpoint?.models ?? []).map(
+          (m) => [customModelId(r.id, m.id), infoOf(r.label, mark, m)] as const,
+        );
+      }),
     ),
   );
 }
@@ -300,12 +305,15 @@ export const endpointPricesToUsd = (p: NonNullable<EndpointModel["prices"]>) => 
   cacheWrite: p.cacheWrite / 1000,
 });
 
-/** What the pickers add for an endpoint's model (ADR 0146): whose credential, its name, and whether it has prices. */
+/**
+ * What the pickers add for an endpoint's model (ADR 0146): whose credential, its name, the mark its host shows (never
+ * the address, which only admins read), and whether it has prices.
+ */
 export function pickerEndpoint(id: string, info: ModelInfo) {
   const credentialId = parseCustomModel(id)?.credentialId;
   if (!credentialId) return {};
   return {
-    endpoint: { credentialId, name: info.endpoint ?? "" },
+    endpoint: { credentialId, name: info.endpoint ?? "", ...(info.endpointMark ? { mark: info.endpointMark } : {}) },
     ...(info.unpriced ? { unpriced: true } : {}),
   };
 }

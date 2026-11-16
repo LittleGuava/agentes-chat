@@ -99,6 +99,23 @@ test("memory presence tracks connections per user", async () => {
   expect(await p.online("other")).toEqual([]);
 });
 
+test("memory presence knows who has a conversation open, per person across their connections", async () => {
+  const p = createMemoryPresence();
+  // The first connection opening it changes who views it; a second of the same person doesn't.
+  expect(await p.view("o", "ch", "u1", "c1")).toBe(true);
+  expect(await p.view("o", "ch", "u1", "c2")).toBe(false);
+  expect(await p.view("o", "ch", "u2", "c3")).toBe(true);
+  expect(await p.viewers("o", "ch")).toEqual(["u1", "u2"]);
+  expect(await p.unview("o", "ch", "u1", "c1")).toBe(false);
+  expect(await p.viewers("o", "ch")).toEqual(["u1", "u2"]);
+  expect(await p.unview("o", "ch", "u1", "c2")).toBe(true);
+  expect(await p.viewers("o", "ch")).toEqual(["u2"]);
+  // Leaving what was never opened changes nothing.
+  expect(await p.unview("o", "ch", "u1", "c9")).toBe(false);
+  expect(await p.viewers("o", "other")).toEqual([]);
+  expect(await p.viewers("other", "ch")).toEqual([]);
+});
+
 test("memory rate limiter uses fixed windows", async () => {
   let t = 0;
   const rl = createMemoryRateLimiter(() => t);

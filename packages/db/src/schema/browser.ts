@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   foreignKey,
   index,
+  jsonb,
   pgTable,
   primaryKey,
   text,
@@ -116,12 +117,25 @@ export const browserProfiles = pgTable(
     heldSince: timestamp({ withTimezone: true }),
     /** When an agent last drove it ("Fechado · usado há 2 dias"). */
     lastUsedAt: timestamp({ withTimezone: true }),
+    /**
+     * A person's own browser of one agent (ADR 0110 addendum 2026-11-15): made on the first browser command of that
+     * agent in their DM, used only there, watched and driven by them alone. Both null on a workspace profile, which
+     * the grants decide; a personal one has no grant and is never listed, offered or managed as one.
+     */
+    agentId: uuid().references(() => agents.id, { onDelete: "cascade" }),
+    personUserId: text().references(() => users.id, { onDelete: "cascade" }),
   },
   (t) => [
     unique().on(t.orgId, t.id),
     foreignKey({ columns: [t.orgId, t.machineId], foreignColumns: [machines.orgId, machines.id] }).onDelete("cascade"),
-    // Names are unique among the workspace's live profiles, ignoring case.
-    uniqueIndex("browser_profiles_name").on(t.orgId, sql`lower(${t.name})`).where(sql`${t.deletedAt} is null`),
+    // Names are unique among the workspace's live profiles, ignoring case; a person's own browser is none of them.
+    uniqueIndex("browser_profiles_name")
+      .on(t.orgId, sql`lower(${t.name})`)
+      .where(sql`${t.deletedAt} is null and ${t.personUserId} is null`),
+    // One live browser per agent and person on each computer (a mission's computer is another one).
+    uniqueIndex("browser_profiles_personal")
+      .on(t.agentId, t.personUserId, t.machineId)
+      .where(sql`${t.deletedAt} is null and ${t.personUserId} is not null`),
     index().on(t.heldByRunId),
   ],
 );
@@ -145,6 +159,41 @@ export const browserProfileGrants = pgTable(
       foreignColumns: [browserProfiles.orgId, browserProfiles.id],
     }).onDelete("cascade"),
     foreignKey({ columns: [t.orgId, t.agentId], foreignColumns: [agents.orgId, agents.id] }).onDelete("cascade"),
+    index().on(t.agentId),
+  ],
+);
+
+/**
+ * Saved steps (ADR 0054, addendum 2026-11-15): a plan on one of an agent's screens that went through, kept under a
+ * name the agent chose, with where each target was, to run again without a model picking the targets. Kept per
+ * screen as the server remembers it (`screenKey`: the agent, and on the right hand the seat), so one seat's steps
+ * never run in another's. Steps are read back as data from outside, checked as a model's steps are.
+ */
+export const screenRecipes = pgTable(
+  "screen_recipes",
+  {
+    id: uuid()
+      .primaryKey()
+      .$defaultFn(() => Bun.randomUUIDv7()),
+    orgId: uuid()
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    agentId: uuid().notNull(),
+    /** Whose screen: the engine's `screenKey` (the agent, or the right hand's seat). */
+    screenKey: text().notNull(),
+    /** Which screen: the machine protocol's `ScreenKind` (this package can't import it). */
+    screen: text().$type<"browser" | "desktop">().notNull(),
+    name: text().notNull(),
+    /** The engine's `ScreenStep[]`, each target with where it was (`pinned`). */
+    steps: jsonb().$type<unknown[]>().notNull(),
+    /** The run that saved them last. */
+    runId: uuid().references(() => agentRuns.id, { onDelete: "set null" }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    foreignKey({ columns: [t.orgId, t.agentId], foreignColumns: [agents.orgId, agents.id] }).onDelete("cascade"),
+    uniqueIndex().on(t.screenKey, t.screen, t.name),
     index().on(t.agentId),
   ],
 );

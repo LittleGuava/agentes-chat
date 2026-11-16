@@ -16,9 +16,11 @@ import {
 import type { Config } from "@agenteschat/config";
 import { and, type Database, eq, inArray, isNotNull, isNull, or, schema, sql } from "@agenteschat/db";
 import {
+  ACTIVE_MARK_MS,
   activityAudience,
   adminChannelSql,
   announcePresence,
+  announceViewers,
   type BrowserFrameMessage,
   type BrowserLive,
   browserFrameBase64,
@@ -28,6 +30,7 @@ import {
   getMembership,
   isConnected,
   type LiveWatch,
+  markActive,
   NotFoundError,
   type OrgEvent,
   profileIdOfKey,
@@ -69,6 +72,10 @@ import type { StreamSocketData, StreamSockets } from "./streams";
  *   checks the channel belongs to that org and the person is a member of it
  *   (`requireChannelAccess`, the same check as the HTTP API) before
  *   forwarding the channel's events.
+ * - A subscription is the person having that conversation open (ADR 0084
+ *   addendum 2026-11-15): the `Presence` adapter counts it per connection, and
+ *   the person's first opening and last closing send `channel.viewers` (ids
+ *   only) to the channel; `GET …/channels/{channelId}/viewers` says who.
  * - `{"type":"typing","channelId","threadId"?,"kind"?}` (throttled by the
  *   client; the server keeps at most two every 2 s) fans out `user.typing` to
  *   the channel, valid for `ttlMs` (5 s); `kind: "voice"` while recording a
@@ -100,6 +107,8 @@ export interface RealtimeDeps {
   streams?: StreamSockets;
   /** How often an open socket checks its session and channels again (`SESSION_RECHECK_MS`; tests go faster). */
   sessionRecheckMs?: number;
+  /** How often an open socket marks its person active, on a recheck (`ACTIVE_MARK_MS`; tests go faster). */
+  activeMarkMs?: number;
 }
 
 /** A browser tab of the web app. */
@@ -111,6 +120,8 @@ export interface BrowserSocketData {
   sessionValidatedAt: number;
   sessionCheckInFlight: Promise<boolean> | null;
   sessionTimer: ReturnType<typeof setInterval> | null;
+  /** When this socket last marked its person active (`markActive`): the away email's "here" (ADR 0069). */
+  activeMarkedAt: number;
   orgId: string;
   subscriptions: Map<string, Unsubscribe>;
   /** Org and user topic listeners. */
@@ -358,6 +369,27 @@ export function createRealtime(deps: RealtimeDeps) {
     } finally {
       ws.data.sessionCheckInFlight = null;
     }
+  }
+
+  /**
+   * Each socket's last change to the conversations it has open: a closing never overtakes the opening before it (an
+   * adapter over the network answers out of order).
+   */
+  const viewLanes = new WeakMap<BrowserSocket, Promise<unknown>>();
+
+  /** This socket opened (`open`) or closed a conversation: the adapter counts it, the channel hears when who changed. */
+  function viewing(ws: BrowserSocket, channelId: string, open: boolean) {
+    const { orgId, user, connectionId } = ws.data;
+    const lane = (viewLanes.get(ws) ?? Promise.resolve()).then(async () => {
+      const changed = open
+        ? await deps.presence.view(orgId, channelId, user.id, connectionId)
+        : await deps.presence.unview(orgId, channelId, user.id, connectionId);
+      if (changed) await announceViewers(deps, orgId, channelId, user.id);
+    });
+    // Best effort, as presence is: a failure only leaves the faces in the header behind until the next change.
+    const settled = lane.catch((error) => deps.log.warn("conversation viewers failed", { error: String(error) }));
+    viewLanes.set(ws, settled);
+    return settled;
   }
 
   /** Each socket's last input frame on its way into the live view (`browserInput`). */
@@ -710,6 +742,7 @@ export function createRealtime(deps: RealtimeDeps) {
         sessionValidatedAt: 0,
         sessionCheckInFlight: null,
         sessionTimer: null,
+        activeMarkedAt: 0,
         orgId,
         subscriptions: new Map(),
         system: [],
@@ -751,6 +784,10 @@ export function createRealtime(deps: RealtimeDeps) {
           void (async () => {
             try {
               if (!(await liveSession(ws, true))) return;
+              if (Date.now() - ws.data.activeMarkedAt >= (deps.activeMarkMs ?? ACTIVE_MARK_MS)) {
+                ws.data.activeMarkedAt = Date.now();
+                await markActive(deps.db, orgId, user.id).catch(() => {});
+              }
               let timeout: ReturnType<typeof setTimeout> | undefined;
               const deadline = new Promise<never>((_, reject) => {
                 timeout = setTimeout(
@@ -808,6 +845,7 @@ export function createRealtime(deps: RealtimeDeps) {
         const wasConnected = await isConnected(deps.presence, orgId, user.id);
         await deps.presence.connect(ws.data.orgId, ws.data.user.id, ws.data.connectionId);
         await touchLastSeen(deps.db, orgId, user.id).catch(() => {});
+        ws.data.activeMarkedAt = Date.now();
         if (!wasConnected) await announcePresence(deps, orgId, user.id).catch(() => {});
         send(ws, { type: "ready", orgId: ws.data.orgId, userId: ws.data.user.id });
       },
@@ -889,11 +927,20 @@ export function createRealtime(deps: RealtimeDeps) {
         if (!denied && check.revoked) denied = "forbidden";
         if (denied) return send(ws, { type: "error", code: denied, channelId });
         if (ws.data.subscriptions.has(channelId)) return send(ws, { type: "subscribed", channelId });
+        // Closed while the check ran: `close` already let go of what it had, nothing may be added after it.
+        if (ws.readyState !== 1) return;
         const off = deps.pubsub.subscribe(channelTopic(channelId), (event) => {
+          // News of my own opening or closing it is no news to me: I am never in my own list.
+          if (event.type === "channel.viewers" && event.userId === ws.data.user.id) return;
           if (ws.readyState === 1) send(ws, { type: "event", channelId, event });
         });
-        ws.data.subscriptions.set(channelId, off);
+        // Every way out (unsubscribe, revoked, archived, closed) goes through this: the conversation closes with it.
+        ws.data.subscriptions.set(channelId, () => {
+          off();
+          void viewing(ws, channelId, false);
+        });
         send(ws, { type: "subscribed", channelId });
+        void viewing(ws, channelId, true);
       },
       async close(socket: Bun.ServerWebSocket<SocketData>, code: number) {
         if (isFrames(socket)) return frameSocket.close(socket);

@@ -8,6 +8,7 @@ import {
   type MachineRequest,
   SITE_SECRET_TTL_MS as PROTOCOL_SITE_SECRET_TTL_MS,
   parseServerFrame,
+  VAULT_CODE_PROTOCOL,
   VAULT_PASSWORD_PROTOCOL,
   VAULT_PROTOCOL,
   VAULT_TYPE_REFUSALS,
@@ -33,6 +34,7 @@ import {
   newFillMark,
   parseExecVault,
   parseTypeVault,
+  parseTypeVaultCode,
   RunnerVault,
   runnerVault,
   SITE_SECRET_TTL_MS,
@@ -102,6 +104,52 @@ test("protocol 45 carries the Vault: vault.key is an op of the agent's own proce
   expect(parseServerFrame(JSON.stringify({ type: "request", id: "1", op: "vault.key", agent: ana }))).toMatchObject({
     op: "vault.key",
   });
+});
+
+test("protocol 86 types a login's one-time code from a connected password manager, sealed for codes only", async () => {
+  expect(VAULT_CODE_PROTOCOL).toBe(86);
+  expect(MACHINE_PROTOCOL_VERSION).toBeGreaterThanOrEqual(VAULT_CODE_PROTOCOL);
+  // A code's box and a password's are bound to different uses: neither opens as the other.
+  const vault = new RunnerVault();
+  const k = await vault.issueKey(ana.id);
+  const box = await sealSecret(
+    k.publicKey,
+    "482913",
+    vaultAad({ keyId: k.keyId, agentId: ana.id, use: { kind: "code", rule: RULE } }),
+  );
+  expect(vaultAad({ keyId: "k", agentId: "a", use: { kind: "code", rule: RULE } })).toBe(
+    `agentes-vault|v1|k|a|code:${RULE}`,
+  );
+  const asPassword = new VaultOpening(vault, ana.id);
+  expect(await errorCode(() => asPassword.open(k.keyId, box, { kind: "fill", rule: RULE }, "X"))).toBe("bad_request");
+  const k2 = await vault.issueKey(ana.id);
+  const again = await sealSecret(
+    k2.publicKey,
+    "482913",
+    vaultAad({ keyId: k2.keyId, agentId: ana.id, use: { kind: "code", rule: RULE } }),
+  );
+  expect(await new VaultOpening(vault, ana.id).open(k2.keyId, again, { kind: "code", rule: RULE }, "VAULT_CODE")).toBe(
+    "482913",
+  );
+});
+
+test("a code's typing names its fields, its rule and its box; anything malformed is refused before it opens", async () => {
+  const k = await new RunnerVault().issueKey(ana.id);
+  const box = await sealSecret(k.publicKey, "482913", "aad");
+  const json = JSON.stringify({ keyId: k.keyId, box });
+  expect(parseTypeVaultCode(["e4", RULE, json])).toMatchObject({ refs: ["@e4"], ruleText: RULE, keyId: k.keyId });
+  expect(parseTypeVaultCode(["e1", RULE, json, "e2", "@e3"]).refs).toEqual(["@e1", "@e2", "@e3"]);
+  for (const args of [
+    ["e4", RULE],
+    ["#code", RULE, json],
+    ["e4", "exact:http://shop.example.com", json],
+    ["e4", RULE, "not json"],
+    ["e1", RULE, json, "e1"],
+    ["e1", RULE, json, "not-a-ref"],
+    ["e1", RULE, json, ...Array.from({ length: 16 }, (_, i) => `e${i + 2}`)],
+  ]) {
+    expect(await errorCode(() => parseTypeVaultCode(args))).toBe("bad_request");
+  }
 });
 
 // ── Keys ─────────────────────────────────────────────────────────────────────

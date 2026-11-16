@@ -6,11 +6,14 @@ import {
   type MailSummary,
 } from "@agenteschat/adapters";
 import { and, type Database, eq, inArray, isNull, lt, or, schema, sql } from "@agenteschat/db";
+import { markComposioTriggerOff } from "../connector-triggers";
 import { countComposio } from "../connector-usage";
 import { markComposioAccountBroken } from "../connectors/composio";
 import { NotFoundError } from "../errors";
 import { cutText } from "../format";
+import type { Judge } from "../judge";
 import { type EventMerge, holdForNextRun, queueEventRun, type RoutineEventPayload } from "../routine-events";
+import { type RoutineHookDeps, receiveComposioTrigger } from "../routine-hooks";
 import { hasScope } from "../tools/scopes";
 import { neutralizeUntrusted } from "../untrusted";
 import {
@@ -23,6 +26,7 @@ import {
 } from "./accounts";
 import { agentMailPolicy } from "./policies";
 import { formatAddress, matchesAddressRules, oneLine } from "./text";
+import { holdUnclaimedMail, type MailTriageVerdict, triageMail } from "./triage";
 import { type MailFilter, watchesFor } from "./watches";
 
 const { mailWatches, mailSeen, mailAccounts, routines, routineRuns } = schema;
@@ -47,14 +51,22 @@ interface QueuedMail {
   subject: string;
   date: string;
   snippet: string;
+  /** How triage sorted it (never `ignore`: ignored mail doesn't reach a run); absent when unsorted. */
+  triage?: MailTriageVerdict;
 }
+
+const TRIAGE_TAGS: Record<MailTriageVerdict, string> = {
+  needs_reply: "[needs reply] · ",
+  important: "[important] · ",
+  ignore: "[ignore] · ",
+};
 
 /** The event summary: who, what, when, a short snippet, per message; marker-free, one line each. */
 function mailSummary(address: string, folder: string, readTool: string, messages: QueuedMail[], extra: number) {
   const head = `${messages.length + extra} new email${messages.length + extra === 1 ? "" : "s"} in ${address} (${folder}). Read one with ${readTool} and its id.`;
   const room = Math.max(0, Math.floor((SUMMARY_BUDGET - head.length) / Math.max(1, messages.length)));
   const lines = messages.map((m) => {
-    const base = `- ${m.date} · ${m.from} · "${m.subject}" · id ${m.id}`;
+    const base = `- ${m.date} · ${m.triage ? TRIAGE_TAGS[m.triage] : ""}${m.from} · "${m.subject}" · id ${m.id}`;
     const snippetRoom = room - base.length - 3;
     // A list without text: no snippet, no dangling separator.
     const snippet = snippetRoom > 20 ? oneLine(m.snippet, snippetRoom) : "";
@@ -67,12 +79,14 @@ function mailSummary(address: string, folder: string, readTool: string, messages
 /**
  * New mail for a watch (a Composio webhook or an IMAP poll): filtered here
  * (the watch's filter and what the routine's agent may read), deduplicated
- * by message id (`mail_seen`), and merged into ONE routine run: a run still
- * queued for this routine takes the new messages instead of a second run.
- * The run's context carries the summary inside the outside-content envelope.
+ * by message id (`mail_seen`), sorted when the mailbox has triage on (mail
+ * sorted as `ignore` stops here; the rest carries its label), and merged into
+ * ONE routine run: a run still queued for this routine takes the new messages
+ * instead of a second run. The run's context carries the summary inside the
+ * outside-content envelope.
  */
 export async function ingestMail(
-  deps: { db: Database; now?: () => Date },
+  deps: { db: Database; now?: () => Date; judge?: Judge | null },
   watchId: string,
   messages: MailSummary[],
 ): Promise<{ added: number; fired: boolean }> {
@@ -97,6 +111,17 @@ export async function ingestMail(
       (policy.senders.length === 0 || (m.from && matchesAddressRules(policy.senders, m.from.address))) &&
       (policy.windowDays === null || Date.parse(m.date) >= now.getTime() - policy.windowDays * 86_400_000),
   );
+  // What this routine leaves out may still matter to the mailbox's owner (another routine may take it first).
+  if (account.triage && deps.judge)
+    await holdUnclaimedMail(
+      { db, judge: deps.judge, now: () => now },
+      {
+        orgId: routine.orgId,
+        agentId: routine.agentId,
+        account,
+        messages: messages.filter((m) => !wanted.includes(m)),
+      },
+    );
   if (wanted.length === 0) return { added: 0, fired: false };
   const fresh = await db
     .insert(mailSeen)
@@ -104,17 +129,27 @@ export async function ingestMail(
     .onConflictDoNothing()
     .returning({ key: mailSeen.messageKey });
   const freshKeys = new Set(fresh.map((r) => r.key));
-  const added = wanted
-    .filter((m) => freshKeys.has(m.id))
-    .map(
-      (m): QueuedMail => ({
+  const newMail = wanted.filter((m) => freshKeys.has(m.id));
+  const verdicts =
+    account.triage && deps.judge
+      ? await triageMail(
+          { db, judge: deps.judge },
+          { orgId: routine.orgId, agentId: routine.agentId, account, messages: newMail },
+        )
+      : new Map<string, MailTriageVerdict>();
+  const added = newMail
+    .filter((m) => verdicts.get(m.id) !== "ignore")
+    .map((m): QueuedMail => {
+      const triage = verdicts.get(m.id);
+      return {
         id: oneLine(m.id, 200),
         from: oneLine(formatAddress(m.from), 120),
         subject: oneLine(m.subject, 150),
         date: m.date,
         snippet: oneLine(m.snippet, 200),
-      }),
-    );
+        ...(triage ? { triage } : {}),
+      };
+    });
   if (added.length === 0) return { added: 0, fired: false };
   const merge = await mailMerge(db, routine.orgId, account, watch.folder);
   // Bursts become one run (§6.3, §6.8): the new messages join the run still queued with its job alive,
@@ -186,12 +221,13 @@ export async function releaseRoutineEmails(deps: { db: Database }, routineRunId:
 
 /**
  * `POST /api/webhooks/composio`: the signature is checked by the client
- * (throws `ComposioSignatureError`); then new mail goes to its watch, and an
- * expired account (a mailbox's or a connector's, ADR 0107) or a disabled
+ * (throws `ComposioSignatureError`); then new mail goes to its watch, a
+ * connector routine's trigger event to its routine (ADR 0196, through `hooks`),
+ * and an expired account (a mailbox's or a connector's, ADR 0107) or a disabled
  * trigger asks a person to reconnect.
  */
 export async function handleComposioWebhook(
-  deps: Pick<MailDeps, "db" | "mail" | "now">,
+  deps: Pick<MailDeps, "db" | "mail" | "now" | "judge"> & { hooks?: RoutineHookDeps },
   headers: Headers,
   rawBody: string,
 ): Promise<{ type: string; fired: number }> {
@@ -221,11 +257,16 @@ export async function handleComposioWebhook(
     await markComposioAccountBroken(db, event.connectedAccountId, "composio_expired");
     return { type: event.type, fired: 0 };
   }
+  if (event.type === "trigger.event") {
+    if (!deps.hooks) return { type: event.type, fired: 0 };
+    return { type: event.type, ...(await receiveComposioTrigger(deps.hooks, event, headers)) };
+  }
   if (event.type === "trigger.disabled") {
     await db
       .update(mailWatches)
       .set({ status: "needs_reconnect", lastError: "trigger_disabled", updatedAt: new Date() })
       .where(eq(mailWatches.externalTriggerId, event.triggerId));
+    await markComposioTriggerOff(db, event.triggerId);
     return { type: event.type, fired: 0 };
   }
   return { type: event.type, fired: 0 };

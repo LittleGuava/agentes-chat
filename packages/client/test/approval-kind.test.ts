@@ -236,6 +236,9 @@ describe("an approval's title", () => {
       approvalTitle(pt, { tool, title, params, email: null, connector });
     expect(title("request_approval", "Roll back prod", { action: "rollback", target: "prod" })).toBe("Reverter prod");
     expect(title("vault_make_password", "Make a password")).toBe("Criar uma senha");
+    expect(title("publish_page", "Publish a page", { artifact_id: "x", version: 3 })).toBe(
+      "Publicar uma página na internet (versão 3)",
+    );
     expect(title("pg_analytics_query", "Query Analytics · prod")).toBe("Consultar Analytics · prod");
     expect(title("slack_send_message", "Slack: Send message", {}, "custom")).toBe("Enviar uma mensagem para fora");
     expect(title("slack_2_list_channels", "Slack (Acme): List channels", {}, "custom")).toBe("Listar canais");

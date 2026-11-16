@@ -110,7 +110,7 @@ export function requestOriginAllowed(origins: Set<string>, headers: Headers): bo
 export const MULTIPART_PATHS = [
   /\/organizations\/[^/]+\/artifacts(\/[^/]+)?\/files$/,
   /\/organizations\/[^/]+\/imports\/files$/,
-  /\/organizations\/[^/]+\/channels\/[^/]+\/voice$/,
+  /\/organizations\/[^/]+\/channels\/[^/]+\/voice(\/dictation)?$/,
   /\/feedback\/files$/,
 ];
 /** Multipart overhead allowed on top of an uploaded file itself. */
@@ -288,6 +288,21 @@ export const body = <T extends z.ZodType>(schema: T) => ({
   content: { "application/json": { schema } },
 });
 export const OrgParams = z.object({ orgId: z.uuid().openapi({ param: { name: "orgId", in: "path" } }) });
+
+/** A comma-separated list in a query string, each item read by `item` (at most `max`, 50 unless said). */
+export const csv = <T>(description: string, item: z.ZodType<T, string>, max = 50) =>
+  z
+    .string()
+    .max(max * 80)
+    .optional()
+    .transform((v) =>
+      v
+        ?.split(",")
+        .map((x) => x.trim())
+        .filter(Boolean),
+    )
+    .pipe(z.array(item).max(max).optional())
+    .openapi({ description, type: "string" });
 export const noContent = { 204: { description: "Done" } };
 
 export const iso = (d: Date | null) => (d ? d.toISOString() : null);

@@ -1805,12 +1805,20 @@ const continueWorkAction: WorkspaceAction = {
 
 // ── The workspace ────────────────────────────────────────────────────────────
 
-const WORKSPACE_FIELDS = ["name", "timezone", "defaultAgentBudgetNanoUsd", "teamWatch", "welcomePeople"] as const;
+const WORKSPACE_FIELDS = [
+  "name",
+  "timezone",
+  "defaultAgentBudgetNanoUsd",
+  "teamWatch",
+  "welcomePeople",
+  "incidents",
+] as const;
 
 /** The right hand's workspace switches as `update_workspace` takes them, each offered once its feature is built. */
 const WORKSPACE_SWITCHES = {
   teamWatch: { input: "team_watch", does: "whether Lodi watches for what stops the team and tells who can fix it" },
   welcomePeople: { input: "welcome_people", does: "whether Lodi greets each person who joins" },
+  incidents: { input: "incidents", does: "whether Lodi takes up failed tasks and may try them again" },
 } as const;
 const workspaceSwitches = () =>
   liveLodiSwitches().flatMap((s) => (s in WORKSPACE_SWITCHES ? [s as keyof typeof WORKSPACE_SWITCHES] : []));

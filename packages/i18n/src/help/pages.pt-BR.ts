@@ -343,6 +343,7 @@ export const helpPtBR: Record<HelpSlug, HelpDocument> = {
               "Uso, custos e histórico de ações",
             ],
           },
+          "Para levar só alguns setores ou agentes, escolha **Setores ou agentes** e marque quais: o arquivo leva esses agentes e o que eles usam (as skills ligadas, os canais públicos em que estão, as rotinas e a memória deles), com uma prévia antes de baixar.",
           "Para usar o arquivo, abra **Configurações\u00a0›\u00a0Importar e exportar** no outro workspace e solte o .json.",
         ],
       },
@@ -620,10 +621,12 @@ export const helpPtBR: Record<HelpSlug, HelpDocument> = {
           {
             list: [
               "`send_to_agent`: manda uma mensagem sua a um agente, na conversa privada com ele ou num canal, e espera a resposta. Só com o acesso **Ler e mandar tarefas aos agentes**.",
-              "`wait_for_reply`: continua esperando a resposta de uma tarefa.",
+              "`wait_for_reply`: continua esperando a resposta de uma tarefa. Com o trabalho inteiro (`scope: tree`), espera também os agentes a quem ele repassou trabalho, e um cursor retoma a espera sem perder nenhuma mudança.",
+              "`stop_task`: para o trabalho de um agente numa tarefa sua ou de um agente seu (um admin para qualquer uma). Só com o acesso **Ler e mandar tarefas aos agentes**.",
               "`list_agents`: os agentes que você vê.",
               "`list_channels`: os canais que você lê.",
               "`read_conversation`: as mensagens recentes de um canal, de uma thread ou de uma tarefa.",
+              "`search_messages`: busca nas mensagens que você lê, suas conversas diretas incluídas.",
               "`list_recent_tasks`: as tarefas que você mandou pelos apps e o que os agentes estão fazendo agora.",
             ],
           },

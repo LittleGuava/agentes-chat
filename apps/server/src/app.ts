@@ -13,13 +13,17 @@ import { authHandler, signInPageUrl } from "./auth";
 import { apiBodyLimit } from "./http/body-limit";
 import { errorPages } from "./http/error-page";
 import { apiError, domainErrorResponse, routeOf, validationHook } from "./http/errors";
+import { publishedPages } from "./http/published-pages";
 import { createLogger, type Logger, loggedPath } from "./logger";
 import { directPushSenders, relayServeSender } from "./push-senders";
+import { registerAgentApi } from "./routes/agent-api";
 import { accessRoutes } from "./routes/app/access";
 import { accountRoutes } from "./routes/app/account";
 import { actionRoutes } from "./routes/app/actions";
+import { agentApiKeyRoutes } from "./routes/app/agent-api-keys";
 import { agentImportRoutes } from "./routes/app/agent-imports";
 import { agentRoutes } from "./routes/app/agents";
+import { announcementRoutes } from "./routes/app/announcements";
 import { approvalRoutes } from "./routes/app/approvals";
 import { appRoutes } from "./routes/app/apps";
 import { artifactRoutes } from "./routes/app/artifacts";
@@ -41,24 +45,34 @@ import { dmRoutes } from "./routes/app/dms";
 import { feedbackRoutes, registerFeedbackFiles, registerFeedbackInbox } from "./routes/app/feedback";
 import { gifKeyRoutes } from "./routes/app/gif-key";
 import { gifRoutes } from "./routes/app/gifs";
+import { healthIssueRoutes } from "./routes/app/health-issues";
 import { inviteRoutes } from "./routes/app/invites";
 import { issueRoutes } from "./routes/app/issues";
 import { jevRoutes } from "./routes/app/jev";
+import { joinDomainRoutes } from "./routes/app/join-domains";
 import { knowledgeRoutes } from "./routes/app/knowledge";
 import { machineAccountRoutes } from "./routes/app/machine-accounts";
 import { mailRoutes } from "./routes/app/mail";
 import { managementRoutes } from "./routes/app/management";
+import { meetingRoutes } from "./routes/app/meetings";
 import { memoryRoutes } from "./routes/app/memory";
 import { missionRoutes } from "./routes/app/missions";
 import { notificationRoutes } from "./routes/app/notifications";
+import { outgoingWebhookRoutes } from "./routes/app/outgoing-webhooks";
 import { personUsageRoutes } from "./routes/app/person-usage";
+import { phoneRoutes } from "./routes/app/phone";
 import { planUsageRoutes } from "./routes/app/plan-usage";
+import { publishedPageRoutes } from "./routes/app/published-pages";
 import { pushRoutes } from "./routes/app/push";
 import { questionRoutes } from "./routes/app/questions";
+import { readAloudRoutes } from "./routes/app/read-aloud";
 import { roleRoutes } from "./routes/app/roles";
 import { routineRoutes } from "./routes/app/routines";
 import { sandboxRoutes } from "./routes/app/sandboxes";
 import { secretRoutes } from "./routes/app/secrets";
+import { serverUpdateRoutes } from "./routes/app/server-update";
+import { serverUpdaterRoutes } from "./routes/app/server-updater";
+import { sidebarLinkRoutes } from "./routes/app/sidebar-links";
 import { skillRoutes } from "./routes/app/skills";
 import { storageRoutes } from "./routes/app/storage";
 import { teamWeekRoutes } from "./routes/app/team-week";
@@ -124,6 +138,7 @@ export interface AppOptions {
  * - `/api/waitlist`       public: join the waiting list and confirm the email (the landing page, only with LANDING_URL)
  * - `/api/partners/waitlist` public: join the partner program's waiting list (the landing page, only with LANDING_URL)
  * - `/api/oauth/*`        public: the OAuth 2.1 authorization server for AI apps (ADR 0119)
+ * - `/api/agents/v1/*`    an agent's own REST API, its API keys only (ADR 0210)
  * - `/api/push-relay/v1/*` other installations' phone pushes, server to server (only with PUSH_RELAY_SERVE, ADR 0152)
  * - `/mcp`                AI apps' MCP endpoint, bearer tokens only (ADR 0119); `/.well-known/oauth-*` its discovery
  * - `/api/ws`             WebSocket (real-time)
@@ -132,6 +147,7 @@ export interface AppOptions {
  * - `/i/<code>`           a new computer's installer with a connect link baked in (`/i/<code>/ps` for Windows)
  * - `/install/docker-compose.yml` the compose file of this release, which the setup downloads
  * - `/sw.js`              the web app's service worker (browser push, ADR 0071)
+ * - `/p/<token>/`         a public page, only on `PUBLISHED_PAGES_URL`'s host, which answers nothing else (ADR 0211)
  * - everything else       web app (single-page app), when built
  */
 const APP_CSP =
@@ -184,12 +200,15 @@ export function createApp(options: AppOptions) {
     api.route("/app", channelRoutes(deps));
     api.route("/app", approvalRoutes(deps));
     api.route("/app", appRoutes(deps));
+    api.route("/app", agentApiKeyRoutes(deps));
     api.route("/app", auditRoutes(deps));
+    api.route("/app", healthIssueRoutes(deps));
     api.route("/app", customConnectorRoutes(deps));
     api.route("/app", connectorRoutes(deps));
     api.route("/app", mailRoutes(deps, log));
     api.route("/app", databaseRoutes(deps));
     api.route("/app", managementRoutes(deps));
+    api.route("/app", sidebarLinkRoutes(deps));
     api.route("/app", knowledgeRoutes(deps));
     api.route("/app", memoryRoutes(deps));
     api.route("/app", dmRoutes(deps));
@@ -203,10 +222,12 @@ export function createApp(options: AppOptions) {
     api.route("/app", secretRoutes(deps));
     api.route("/app", vaultRoutes(deps));
     api.route("/app", inviteRoutes(deps));
+    api.route("/app", joinDomainRoutes(deps));
     api.route("/app", roleRoutes(deps));
     api.route("/app", storageRoutes(deps));
     api.route("/app", billingRoutes(deps));
     api.route("/app", artifactRoutes(deps));
+    api.route("/app", publishedPageRoutes(deps));
     api.route("/app", issueRoutes(deps));
     api.route("/app", threadRoutes(deps));
     api.route("/app", missionRoutes(deps));
@@ -218,21 +239,29 @@ export function createApp(options: AppOptions) {
     api.route("/app", sandboxRoutes(deps));
     api.route("/app", machineAppRoutes(deps));
     api.route("/app", deviceWaitRoutes(deps));
+    api.route("/app", phoneRoutes(deps));
     api.route("/app", deviceAppRoutes(deps));
     api.route("/app", machineAccountRoutes(deps));
     api.route("/app", planUsageRoutes(deps));
     api.route("/app", personUsageRoutes(deps));
     api.route("/app", teamWeekRoutes(deps));
+    api.route("/app", announcementRoutes(deps));
     api.route("/app", dashboardRoutes(deps));
     api.route("/app", telemetryRoutes(deps));
+    api.route("/app", serverUpdateRoutes(deps));
+    api.route("/app", serverUpdaterRoutes(deps));
     api.route("/app", jevRoutes(deps));
     api.route("/app", feedbackRoutes(deps));
     api.route("/app", gifKeyRoutes(deps));
     api.route("/app", speechKeyRoutes(deps));
     api.route("/app", voiceRoutes(deps));
+    api.route("/app", readAloudRoutes(deps));
+    api.route("/app", meetingRoutes(deps));
     api.route("/app", webhookAdminRoutes(deps));
+    api.route("/app", outgoingWebhookRoutes(deps));
     api.route("/app", githubAppRoutes(deps));
     registerOauthRoutes(api, deps, { version, fetchDocument: options.appsFetchDocument });
+    registerAgentApi(api, deps);
     registerWebhookReceiver(api, deps);
     registerRoutineHooks(api, deps);
     registerGitHubAppWebhook(api, deps);
@@ -317,6 +346,11 @@ export function createApp(options: AppOptions) {
     if (error instanceof MisconfiguredError) return apiError(c, 500, error.code, error.message, error.params);
     return apiError(c, 500, "internal_error", "Something went wrong on our side");
   });
+  // Public pages' own host answers their addresses and nothing else, ahead of every route (ADR 0211 §1).
+  app.use(
+    "*",
+    publishedPages(options.services?.config.PUBLISHED_PAGES_URL, () => options.services?.extras?.artifacts),
+  );
   // Ties a request's failure in the log to its report, and to what the client saw (`X-Request-Id`).
   app.use("/api/*", requestId());
   app.use("/api/*", apiBodyLimit);

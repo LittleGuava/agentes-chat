@@ -27,6 +27,40 @@ export interface ServerTelemetry {
   report: Record<string, unknown>;
 }
 
+/** A newer release for the installation's owner (`GET /api/app/server-update`, ADR 0060 addendum 2026-11-15). */
+export interface ServerUpdate {
+  /** This server's version. */
+  version: string;
+  /** The newest release seen, with its notes' page; null while none was. */
+  latest: { version: string; publishedAt: string | null; notesUrl: string } | null;
+  updateAvailable: boolean;
+  install: "docker" | "native" | "desktop";
+  /** What installs it on this server, one command per line; null with nothing to install. */
+  command: string | null;
+}
+
+/** The updater's last run, as it wrote it (ADR 0200). */
+export interface ServerUpdateRun {
+  state: "running" | "updated" | "current" | "pinned" | "rolled_back" | "failed" | "interrupted";
+  step: "pulling" | "stopping" | "backing_up" | "starting" | "rolling_back" | null;
+  reason: "pull" | "backup" | "unhealthy" | "rollback" | "no_app" | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  /** The app's image id before the run, and the one the registry had. */
+  from: string | null;
+  to: string | null;
+}
+
+/** Updates from the app, for the installation's owner on a server with the updater (`GET /api/app/server-updater`). */
+export interface ServerUpdaterStatus {
+  /** `absent`: the updater service isn't running. */
+  helper: "ready" | "absent";
+  /** A request is waiting for the updater. */
+  requested: boolean;
+  canUpdate: boolean;
+  run: ServerUpdateRun | null;
+}
+
 /** The installation's Jev key, for its pinned owner on a self-hosted server (`GET /api/app/jev`, ADR 0073). */
 export interface JevKey {
   /** `env`: `TYPESAFE_API_KEY`, read-only here. `settings`: added in Settings. Null: none. */
@@ -415,6 +449,21 @@ export interface DeviceAccount {
   unread: { orgId: string; unread: number; waiting: number }[];
 }
 
+/**
+ * One place my account is signed in (`GET /account/sessions`, ADR 0006 addendum 2026-11-15), named by id: the device
+ * its sign-in came from, read from its user agent, and the address it came from when the server kept one.
+ * `lastActiveAt` moves at most once a day.
+ */
+export interface AccountSession {
+  id: string;
+  /** The session this app is using. */
+  current: boolean;
+  device: { kind: "browser" | "phone_app" | "unknown"; browser: string | null; os: string | null };
+  ip: string | null;
+  signedInAt: string;
+  lastActiveAt: string;
+}
+
 export interface Organization extends OrgSummary {
   context?: string;
 }
@@ -635,6 +684,22 @@ export interface CodeSent {
 export type EmailChange = { status: "sent" | "changed"; email: string } | ({ status: "code" } & CodeSent);
 
 /** A workspace's invitation link people can still ask with (admins). */
+/** A domain whose confirmed addresses join without an invitation (ADR 0068, addendum 2026-11-15). */
+export interface JoinDomain {
+  id: string;
+  domain: string;
+  /** Cargos joining starts on. */
+  roleIds: string[];
+  createdAt: string;
+}
+
+/** A workspace the account's confirmed address's domain lets it join: id, name and logo only. */
+export interface DomainWorkspace {
+  id: string;
+  name: string;
+  logo: string | null;
+}
+
 export interface InviteLink {
   id: string;
   /** Null for a link made before links could be shown again: it can only be turned off. */
@@ -838,6 +903,8 @@ export interface Agent {
    * workspace allows. Absent: on (the default).
    */
   mediaReplies?: boolean;
+  /** The voice its replies are read aloud in (ADR 0209); null = the server's default. Absent from an older server. */
+  readAloudVoice?: string | null;
   /** Its autonomy brakes (ADR 0131); absent from an older server (the defaults). */
   brakes?: AgentBrakes;
   /** How much it asks before acting (ADR 0173); absent from an older server (`risky`). */
@@ -906,6 +973,18 @@ export const BRAKES_DEFAULTS: AgentBrakes = {
   project: "",
   otherProjects: false,
 };
+
+/**
+ * What the copy of an agent didn't take because whoever duplicated it may not set it: what it may use, how much it
+ * asks, a budget over the default, its brakes, its computer or plan (ADR 0059), who it reports to and its group.
+ */
+export type DuplicateSkipped = "access" | "approvals" | "budget" | "brakes" | "ai" | "team";
+
+/** `POST …/agents/{id}/duplicate`. */
+export interface DuplicatedAgent {
+  agent: Agent;
+  skipped: DuplicateSkipped[];
+}
 
 /** An agent no longer in the team (archived or deleted): what its messages and reports still show. */
 export interface FormerAgent {
@@ -995,6 +1074,8 @@ export interface AgentBrainLine {
   /** A computer brain's model ("Sonnet 5.5"); null for the model brain. */
   model: string | null;
   computer?: string;
+  /** `acp` (ADR 0216): the ACP agent it thinks with, by the name its computer declares. */
+  engine?: string;
   /** A plan account's provider (`zai`, `kimi`…), whose mark replaces the brain's; absent for the CLI's own sign-in. */
   provider?: string | null;
   /** On a plan: the account it thinks with ("Claude Team 2"; a computer's own sign-in by its plan, "Claude Max"). */
@@ -1031,6 +1112,8 @@ export interface AgentInput {
   proposal?: string;
   /** Its stickers and GIFs after a light reply (ADR 0091); same permission as editing the agent. */
   mediaReplies?: boolean;
+  /** The voice its replies are read aloud in (ADR 0209); null = the server's default. */
+  readAloudVoice?: string | null;
   /** The Autonomia it starts with (the last setup's, ADR 0094): only an admin or its own owner sends it. */
   autonomy?: CommandApproval;
   /** Editing only: its autonomy brakes (ADR 0131); the fields given change. */
@@ -1237,8 +1320,11 @@ export interface Model {
   pick?: boolean;
   /** The size Automático uses it for on its provider's key, by default. */
   tier?: ModelTier;
-  /** A workspace endpoint's model (ADR 0146): whose credential, under what name. */
-  endpoint?: { credentialId: string; name: string };
+  /**
+   * A workspace endpoint's model (ADR 0146): whose credential, under what name, and the maker's mark its host shows
+   * (a `ProviderLogo` id; absent: the generic endpoint's).
+   */
+  endpoint?: { credentialId: string; name: string; mark?: string };
   /** No prices known: its calls cost 0, so a budget can't count money for it. */
   unpriced?: boolean;
 }
@@ -1256,6 +1342,8 @@ export interface Channel {
   id: string;
   name: string;
   topic: string;
+  /** What every agent working here follows (ADR 0208); empty or absent: none. */
+  instructions?: string;
   visibility: "public" | "private";
   /** Private and limited to these roles (departments, ADR 0125): their people see it and may join. Empty or absent: public or invite only. */
   audienceRoleIds?: string[];
@@ -1304,6 +1392,8 @@ export interface ChannelOverride {
 /** Who may join a channel, on creating it or changing it later. */
 export interface ChannelInput {
   topic?: string;
+  /** What every agent working here follows (ADR 0208); "" clears them. Channels only. */
+  instructions?: string;
   visibility?: "public" | "private";
   /** Private only: limits it to people holding one of these roles (ADR 0125); empty: invite only. */
   audienceRoleIds?: string[];
@@ -1422,6 +1512,8 @@ export interface Message {
   actions?: AgentAction[];
   /** A long work's anchor (`meta.longWork`, ADR 0121): its line; live via `agent.work`. */
   longWork?: WorkView;
+  /** When its author last edited it (ADR 0207); absent: never edited. Live via `message.edited`. */
+  editedAt?: string;
   /** Client only: an optimistic message waiting for the server, or one that failed to send. */
   local?: "pending" | "failed";
   /** Client only, on a `failed` one the server refused: why (`sendFailureText`). */
@@ -1702,6 +1794,15 @@ export type ChannelEvent =
       pinnedAt: string;
     }
   /** A message was unpinned. */
+  /** Its author edited a message (ADR 0207): its new text, in place. Not news (no unread). */
+  | {
+      type: "message.edited";
+      channelId: string;
+      messageId: string;
+      threadId: string | null;
+      body: string;
+      editedAt: string;
+    }
   | { type: "message.unpinned"; channelId: string; messageId: string }
   /** A person read this DM up to `lastReadAt` (DMs between people only: "Visto"). */
   | { type: "channel.read"; channelId: string; userId: string; lastReadAt: string }
@@ -1920,6 +2021,8 @@ export type ChannelEvent =
       waitKind: string;
       outcome: WaitMessageOutcome;
     }
+  /** `userId` opened the conversation or closed it (ids only, never about me): read `viewers.list` again. */
+  | { type: "channel.viewers"; channelId: string; userId: string }
   /** A person is typing, or recording a voice message (`kind: "voice"`); drop it after `ttlMs`. */
   | {
       type: "user.typing";
@@ -2353,6 +2456,10 @@ export interface Memory {
   playbook?: boolean;
   /** Another memory says otherwise, until a person decides. */
   disputed?: boolean;
+  /** When it stops holding (ISO); agents no longer use it from then on. Null: no end. Older servers leave it out. */
+  validUntil?: string | null;
+  /** Past `validUntil`: kept and shown, marked. */
+  expired?: boolean;
   /** Where it was learned. */
   channelId?: string | null;
   /** A `rule` the viewer may remove: its giver, the agent's owner or an admin. */
@@ -2492,12 +2599,20 @@ export interface OrgSettings {
   agentMedia: AgentMediaLevel;
   /** People can send voice messages (ADR 0100); only with `voiceAvailable` too. On by default. */
   voiceMessages: boolean;
+  /** Agents may join online meetings to take notes (ADR 0199 §6). Off by default; absent from an older server. */
+  meetingNotes?: boolean;
   /** The right hand watches for what stops the team and tells who can fix it. Absent from an older server: on. */
   teamWatch?: boolean;
   /** The right hand greets each person who joins, once. Absent from an older server: on. */
   welcomePeople?: boolean;
+  /** What agents may think with (ADR 0191); null: nothing restricted. Absent from an older server: none. */
+  allowedBrains?: BrainPolicy | null;
+  /** A failed task becomes the right hand's incident, which it may retry. Absent from an older server, which hasn't it. */
+  incidents?: boolean;
   /** Read only: this server has a speech engine. */
   voiceAvailable: boolean;
+  /** Read only: this server reads agents' replies aloud for voice calls (ADR 0198). Absent from an older server: no. */
+  voiceCallAvailable?: boolean;
   /** Read only: this server can search GIFs (it has a GIF provider). */
   gifsAvailable: boolean;
   /** Read only: this server can decide when agents send one (agents send none on their own without it). */
@@ -2507,7 +2622,7 @@ export interface OrgSettings {
 }
 
 /** `OrgSettings` the server works out itself: never in a PATCH. */
-export type ReadOnlyOrgSettings = "gifsAvailable" | "agentMediaAvailable" | "voiceAvailable";
+export type ReadOnlyOrgSettings = "gifsAvailable" | "agentMediaAvailable" | "voiceAvailable" | "voiceCallAvailable";
 
 /** Automático's sizes: quick tasks, everyday work, hard work. */
 export type ModelTier = "small" | "medium" | "large";
@@ -2667,6 +2782,18 @@ export interface AgentStatus {
   working?: boolean;
   /** Its most important work for you, with where it shows when you read it (ADR 0084). Absent from older servers. */
   work?: AgentWork | null;
+  /** The requests waiting for it that you read, by who asked; null: none. Absent from older servers. */
+  queue?: AgentQueue | null;
+}
+
+/**
+ * What waits for an agent, for you (ADR 0084 addendum of 2026-11-15): messages in its run's inbox and runs in line,
+ * only where you read, so a DM or a channel you don't read never shows, not even in the count.
+ */
+export interface AgentQueue {
+  count: number;
+  /** Who asked, each once, oldest request first (at most 10). */
+  askers: { type: "person" | "agent"; id: string }[];
 }
 
 /**
@@ -2948,9 +3075,21 @@ export interface CustomServer {
   tools: CustomTool[];
   /** What routines can wait on from it (ADR 0130). Older servers leave it out. */
   events?: RoutineConnectorTrigger["event"][];
+  /** Each person uses their own account here (ADR 0195). Older servers leave it out. */
+  perPerson?: boolean;
+  /** The caller's own account on a per-person connection; null when they have none. */
+  mine?: PersonalAccount | null;
+  /** Whether a meeting routine can watch it (ADR 0190): a Google Calendar. Older servers leave it out. */
+  meetings?: boolean;
   /** Last time an admin saved the classification; null = never (nothing exposed). */
   reviewedAt: string | null;
   createdAt: string;
+}
+
+/** One's own account on a per-person connection (ADR 0195), as its owner sees it. */
+export interface PersonalAccount {
+  accountLabel: string | null;
+  status: "active" | "needs_reconnect";
 }
 
 /** The workspace's Composio calls this month (UTC): connectors and mailboxes together (ADR 0107 §7). */
@@ -2975,6 +3114,17 @@ export type CustomConnectStart =
    * refused our registration, in its own words (`error: error_description`, short).
    */
   | { status: "needs_key"; reason?: "not_approved"; detail?: string };
+
+/**
+ * An OAuth app the admin registered with an MCP server's authorization server, for one that registers no apps itself
+ * (ADR 0016): its client id, its secret when it is a confidential app (blank keeps a saved one), and scopes that
+ * replace the server's.
+ */
+export interface OAuthAppInput {
+  clientId: string;
+  clientSecret?: string;
+  scopes?: string[];
+}
 
 // ── Knowledge (phase 5: apps/server/src/routes/app/knowledge.ts) ─────────────
 
@@ -3184,6 +3334,7 @@ export const AGENT_ACTION_KINDS = [
   "agent.settings_changed",
   "pr.merged",
   "workspace.changed",
+  "files.changed",
 ] as const;
 export type AgentActionKind = (typeof AGENT_ACTION_KINDS)[number];
 
@@ -3232,7 +3383,8 @@ export interface AgentActionTarget {
     | "repository"
     | "role"
     | "person"
-    | "workspace";
+    | "workspace"
+    | "files";
   id: string;
   /** Issues. */
   number?: number;
@@ -3262,6 +3414,7 @@ export interface AgentActionTarget {
  * - `agent.settings_changed` (ADR 0137): `agentName`, `fields`, `proposalId` (the right hand's card, applied by the
  *   person who clicked: Undo puts each setting back; or one row applied at once from what they asked, `fields` then
  *   `instructions`, `role` or `apps`, ADR 0092 §5)
+ * - `files.changed` (ADR 0193): `count`, `paths` (the first files a computer turn changed, relative to its folder)
  */
 export type AgentActionParams = Record<string, string | number | boolean | null | string[] | ApiRule>;
 
@@ -3386,6 +3539,29 @@ export interface MemoryUpdate {
 /** Who a direct message is with. */
 export type DmTarget = { agentId: string } | { userId: string };
 
+/** Where a shared DM's copy goes (`POST …/dms/{channelId}/share`): a channel I'm a member of, or a person. */
+export type ShareDmTarget = { channelId: string } | { userId: string };
+
+/** One line of a shared DM's copy, as it was said. */
+export interface SharedDmLine {
+  author: { type: "person" | "agent"; id: string; name: string };
+  at: string;
+  body: string;
+  /** A reply in one of the DM's threads. */
+  inThread?: true;
+  /** Longer than the copy keeps. */
+  cut?: true;
+}
+
+/** `meta.sharedDm`: a read-only copy of its author's DM with an agent (ADR 0151, addendum 2026-11-15). */
+export interface SharedDm {
+  agent: { id: string; name: string; handle: string };
+  count: number;
+  /** Earlier lines left out past the copy's limits. */
+  omitted: number;
+  lines: SharedDmLine[];
+}
+
 /** A direct conversation (`GET …/dms`). */
 /** Where another person of a DM stopped reading ("Visto"). */
 export interface DmRead {
@@ -3433,6 +3609,13 @@ export interface AgentQuestion {
   choices: string[] | null;
   /** The one person who may answer it; null or absent (an older server): anyone in the conversation. */
   requestedForUserId?: string | null;
+  /**
+   * Several questions, or one where several may be picked (ADR 0008 addendum 2026-11-15): the card asks each and
+   * answers them together. Absent: the one question in `text` and `choices`.
+   */
+  items?: QuestionItem[];
+  /** The answer to each of `items`, in order, when it came from the card (a reply in words leaves it out). */
+  answers?: QuestionItemAnswer[];
   status: "open" | "answered";
   answer: string | null;
   answeredByUserId: string | null;
@@ -3442,6 +3625,26 @@ export interface AgentQuestion {
   withdrawn?: true;
   /** A person (`answeredByUserId`) skipped it: the agent went on without an answer. */
   dismissed?: true;
+}
+
+/** One of a question card's questions: its choices (none: answered in words), and whether several may be picked. */
+export interface QuestionItem {
+  question: string;
+  choices: string[] | null;
+  multiSelect?: true;
+}
+
+/** What was said to one of a card's questions: the choices picked, and what was written. */
+export interface QuestionItemAnswer {
+  choices: string[];
+  text: string | null;
+}
+
+/** An answer to an agent's question: one question's `choice` and/or `text`, or `answers`, one per question in order. */
+export interface QuestionAnswerInput {
+  choice?: string;
+  text?: string;
+  answers?: { choices?: string[]; text?: string }[];
 }
 
 /**
@@ -3720,6 +3923,18 @@ export interface ArtifactSharing {
   mode: "conversation" | "people" | "everyone";
   userIds: string[];
   roleIds: string[];
+}
+
+/** A page anyone with its address opens (ADR 0211): `version` is the one a person approved. */
+export interface PublishedPage {
+  id: string;
+  artifactId: string;
+  title: string;
+  version: number;
+  url: string;
+  createdBy: { type: "agent" | "person"; id: string };
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type ArtifactAudience =
@@ -4022,18 +4237,45 @@ export type RoutineTrigger =
   | { type: "once"; at: string; timezone: string; description: string }
   | RoutineEmailTrigger
   | RoutineWebhookTrigger
-  | RoutineConnectorTrigger;
+  | RoutineConnectorTrigger
+  | RoutineMeetingTrigger;
 
-/** A connector's event (ADR 0130): "Quando chegar um e-mail no MillionSend", from an inbox or all of them. */
+/**
+ * "Antes de uma reunião" (ADR 0190): `leadMinutes` before each meeting of a Google Calendar connection. The routine
+ * form sets it (its rules in `lib/routines.ts`).
+ */
+export interface RoutineMeetingTrigger {
+  type: "meeting";
+  connectionId: string;
+  leadMinutes: number;
+  /** `error`: the last look at the calendar failed, or the agent can no longer read it (`lastError`). */
+  status: "active" | "error";
+  lastError: string | null;
+}
+
+/** A meeting trigger as the API takes it: without `leadMinutes`, 15. */
+export interface RoutineMeetingTriggerInput {
+  type: "meeting";
+  connectionId: string;
+  leadMinutes?: number;
+}
+
+/**
+ * A connector's event (ADR 0130): "Quando chegar um e-mail no MillionSend", from an inbox or all of them; or a new
+ * Slack message through Composio (ADR 0196).
+ */
 export interface RoutineConnectorTrigger {
   type: "connector";
   connectionId: string;
-  event: "millionsend.email.received";
-  /** Null: every inbox of the team. */
+  event: "millionsend.email.received" | "slack.message.received";
+  /** Null: every inbox of the team (MillionSend's only). */
   inboxId: string | null;
-  /** `to`: the inbox's address ("Quando chegar um e-mail em vendas@…"). */
-  filter: Pick<RoutineEmailFilter, "from" | "subject"> & { to?: string };
-  /** `error`: the service refused the webhook (`lastError`); saving the routine again retries. */
+  /**
+   * An email's: `to`, the inbox's address ("Quando chegar um e-mail em vendas@…"), senders and subject. A Slack
+   * message's: `channel` (its id) and `text` (words it contains).
+   */
+  filter: Pick<RoutineEmailFilter, "from" | "subject"> & { to?: string; channel?: string; text?: string };
+  /** `error`: the service refused the webhook or trigger (`lastError`); saving the routine again retries. */
   status: "active" | "error";
   lastError: string | null;
 }
@@ -4292,7 +4534,8 @@ export interface RoutineInput {
     | { type: "once"; at: string; timezone?: string }
     | Omit<RoutineEmailTrigger, "status">
     | { type: "webhook"; methods?: RoutineHookMethod[] }
-    | Omit<RoutineConnectorTrigger, "status" | "lastError">;
+    | Omit<RoutineConnectorTrigger, "status" | "lastError">
+    | RoutineMeetingTriggerInput;
   /** Ignored: every routine acts (ADR 0109). */
   access?: RoutineAccess;
   /** Default `when_new` ("Só quando tiver novidade"). */
@@ -4687,6 +4930,19 @@ export type SandboxSettingsInput = Partial<Pick<SandboxSettings, "enabled" | "ex
 /** `GET …/agents/{id}/computer`: which computer the agent uses (ADR 0025). */
 export interface AgentComputer {
   target: ComputerTarget;
+  /**
+   * The sites a person's computer lends it (ADR 0203), one line per computer that lends each: whose it is, and
+   * whether it is there now (online, not paused). Absent from an older server.
+   */
+  relay?: AgentRelaySite[];
+}
+
+/** A site an agent's browser opens through a person's computer (ADR 0203). */
+export interface AgentRelaySite {
+  site: string;
+  machine: { id: string; name: string };
+  by: { id: string; name: string } | null;
+  online: boolean;
 }
 
 // ── Connected computers (ADR 0025; apps/server/src/routes/machines.ts) ──────
@@ -4759,6 +5015,11 @@ export interface Machine {
    */
   cliInstall?: boolean;
   /**
+   * Who paired it reads the MCP servers and skills of their own coding tools there (`machines.localConfig`, ADR 0055
+   * addendum 2026-11-15); `false` or absent: its app is too old, or it is the workspace's own computer.
+   */
+  localConfig?: boolean;
+  /**
    * The coding CLIs there that can't start (`claude`, `codex`…), each with its own last error line, or
    * `CLI_GIT_MISSING`; null or absent for people who don't manage it.
    */
@@ -4772,6 +5033,8 @@ export interface Machine {
    * user); `reason`, in the runner's words, says what is missing. Null or absent when its runner doesn't say.
    */
   desktopUse?: { available: boolean; reason: string | null; code?: string | null } | null;
+  /** ADR 0202: the agents the person who connected it lent their own Chrome to, and until when (ISO). */
+  myChrome?: { agentId: string; expiresAt: string }[];
   /**
    * ADR 0115: its workspace disk (free GB, share in use) and the shared folder's size (GB, measured hourly), as its
    * runner last said; null or absent for people who don't manage it, or when its runner doesn't say.
@@ -4884,6 +5147,8 @@ export interface MachineAccess {
     desktop?: boolean;
     terminal?: boolean;
   };
+  /** Protocol 83 (ADR 0203): the sites this computer lends its internet connection for, and to which agents. */
+  relay?: { site: string; agents: string[] }[];
 }
 
 /** `POST …/machines/{id}/access/reduce`: the site can only take away, never grant. */
@@ -4935,7 +5200,15 @@ export interface DesktopRelease {
 }
 
 /** A computer brain that runs on a connected machine. */
-export type ComputerBrain = "claude_code" | "codex" | "cursor" | "opencode" | "grok" | "antigravity" | "copilot";
+export type ComputerBrain =
+  | "claude_code"
+  | "codex"
+  | "cursor"
+  | "opencode"
+  | "grok"
+  | "antigravity"
+  | "copilot"
+  | "acp";
 
 /** An agent waiting for an offline computer, and what it has waiting. */
 export interface OutageAgent {
@@ -5093,6 +5366,18 @@ export interface ComputerQueue {
   name: string;
   working: QueueWorking[];
   waiting: QueueWaiting[];
+}
+
+/** What the server's operator tells me in a workspace (ADR 0056, addendum on announcements): plain text. */
+export interface Announcement {
+  id: string;
+  title: string;
+  /** Line breaks kept. */
+  body: string;
+  /** An https address; `label` null: the app's own words. */
+  link: { url: string; label: string | null } | null;
+  startsAt: string;
+  endsAt: string | null;
 }
 
 /** `GET …/machines/outages`. */
@@ -5256,6 +5541,15 @@ export interface WikiImportResult {
 }
 
 /**
+ * A part of the workspace to export (ADR 0055 addendum 2026-11-15): these agents and the agents of these setores,
+ * with what they use. Empty lists name nobody: the file holds nothing, never the whole workspace.
+ */
+export interface ExportScope {
+  agentIds?: string[];
+  groupIds?: string[];
+}
+
+/**
  * Everything an import can create, in one shape for every source (ADR 0055).
  * The app parses another product's files into it where the person is (their
  * browser); `POST …/imports` plans it (`dryRun`) and applies the picked items;
@@ -5355,7 +5649,12 @@ export type ImportSkipReason =
   | "invalid"
   | "failed"
   /** A note on a created routine: its agent already had the most active routines, so it arrived paused. */
-  | "too_many_routines";
+  | "too_many_routines"
+  /**
+   * Changed here since the import and at the source too: a `skip` (kept as it is) unless the item is in `overwrite`,
+   * then an `update` with this note.
+   */
+  | "edited_here";
 
 export interface ImportItemResult {
   kind: ImportItemKind;
@@ -5384,6 +5683,8 @@ export interface ImportInput {
    * in the plan's order (each call is safe to repeat).
    */
   pick?: string[];
+  /** `kind:key` of items changed here (`edited_here`) to overwrite with the source's version; the rest stay. */
+  overwrite?: string[];
 }
 
 export interface ImportPlan {
@@ -5417,7 +5718,20 @@ export interface ImportedFile {
 export interface ImportedSource {
   app: string;
   ref: string;
+  /** The caller imported some of it: they may undo it (`imports.undo`). */
+  mine: boolean;
   counts: Record<ImportItemKind, number>;
+}
+
+/** One item an undo takes back (`remove`) or leaves (`keep`, with why). */
+export interface ImportUndoItem {
+  kind: ImportItemKind;
+  key: string;
+  label: string;
+  action: "remove" | "keep";
+  /** Changed here since the import, a channel people talked in, or taking it back failed. */
+  reason?: "edited_here" | "in_use" | "failed";
+  targetId: string;
 }
 
 /** Where a page is mentioned: other pages, messages, issues. */
@@ -5871,7 +6185,17 @@ export interface MissionSettings {
 }
 
 /** "Quem pensa" (ADR 0032): the API, or Claude Code / Codex on the agent's computer with a person's plan. */
-export type BrainKind = "model" | "claude_code" | "codex" | "cursor" | "opencode" | "grok" | "antigravity" | "copilot";
+export type BrainKind =
+  | "model"
+  | "claude_code"
+  | "codex"
+  | "cursor"
+  | "opencode"
+  | "grok"
+  | "antigravity"
+  | "copilot"
+  /** An ACP agent its computer declares (ADR 0216): `AgentBrain.acp` lists them, `engine` names the one. */
+  | "acp";
 
 /** Why a computer brain can't be chosen now. */
 export type BrainUnavailable =
@@ -5886,7 +6210,18 @@ export type BrainUnavailable =
   /** Its runner doesn't run this CLI on the computer's system (Cursor on Windows, for one). */
   | "system"
   /** It is there and can't start: the computer's row has its error (`Machine.cliErrors`). */
-  | "cant_start";
+  | "cant_start"
+  /** The workspace's rule leaves it out (ADR 0191); the API brain too. */
+  | "not_allowed";
+
+/** What a workspace's agents may think with (ADR 0191): each list restricts, null allows every one of its kind. */
+export interface BrainPolicy {
+  brains: BrainKind[] | null;
+  /** The API brain's providers. */
+  providers: string[] | null;
+  /** The API brain's models, each of an allowed provider; null: every model of those. */
+  models: string[] | null;
+}
 
 export interface BrainModelOption {
   /** What is stored (`opus`, `sonnet`, `haiku`, a Codex model). */
@@ -5910,12 +6245,51 @@ export interface BrainOption {
   defaultModel: string | null;
 }
 
+/** An ACP agent a computer declares (ADR 0216), by the name its owner gave it, with the models it offered. */
+export interface AcpEngine {
+  id: string;
+  name: string;
+  models: { value: string; label: string }[];
+}
+
+/** The ACP agents the agent's computer declares, apart from `options` (ADR 0216). */
+export interface AcpBrainOption extends BrainOption {
+  kind: "acp";
+  engines: AcpEngine[];
+}
+
 /** A computer the caller may give an agent, with what it offers. */
 export interface BrainMachine {
   machineId: string;
   name: string;
   online: boolean;
   options: BrainOption[];
+}
+
+/**
+ * `GET …/agents/{id}/conversation-model` (ADR 0032, addendum 2026-11-15): the model an agent thinks with in one
+ * conversation alone, a thread's own else its channel's. Whoever reads the conversation; `options` only to who may
+ * change it (an admin who manages agents, or the agent's owner).
+ */
+/** One conversation: a channel (a DM) as a whole, or a thread in it. */
+export interface ConversationPlace {
+  channelId: string;
+  threadId?: string | null;
+}
+
+export interface ConversationModel {
+  agentId: string;
+  channelId: string;
+  threadId: string | null;
+  brain: BrainKind;
+  /** This conversation's own model; null: none here. */
+  model: string | null;
+  /** A thread's channel's model, which applies while the thread has none of its own. */
+  inherited: string | null;
+  /** The name of the model that applies here; null: the agent's own. */
+  label: string | null;
+  options: { value: string; label: string }[];
+  canEdit: boolean;
 }
 
 /** `GET …/agents/{id}/brain` (its owner or an admin; the team's right hand's `mine`, anyone). */
@@ -5944,6 +6318,10 @@ export interface AgentBrain {
   extraUsage: boolean;
   computer: { machineId: string; name: string; online: boolean } | null;
   options: BrainOption[];
+  /** The ACP agents its computer declares (ADR 0216); absent for the team's right hand and from older servers. */
+  acp?: AcpBrainOption;
+  /** `acp`: the id of the one it thinks with. */
+  engine?: string;
   /** Every computer the caller may give the agent, with what each offers ("Vai para o Mac mini"). */
   machines: BrainMachine[];
   canEdit: boolean;
@@ -5951,6 +6329,11 @@ export interface AgentBrain {
   account: string | null;
   /** How much it thinks before answering; `auto` = picked per task; null = the brain's default. */
   effort: BrainEffortSetting | null;
+  /**
+   * Its reserve AIs in order (ADR 0118 addendum 2026-11-15): accounts in `accounts` that answer a conversation while
+   * its own plan is at its limit or signed out. Absent: an older server.
+   */
+  fallbackChain?: BrainReserve[];
   /** How fast it answers in conversations; kept whatever it thinks with, applied only where `speedFits`. */
   speed: BrainSpeed;
   /** The most context it reads, in tokens (200K, 400K or 1M), any brain; null = its model's window. */
@@ -6114,6 +6497,8 @@ export interface AgentBrainInput {
   /** The team's right hand: the viewer's own AI (`mine`, the server's default) or the workspace's (admins). */
   scope?: BrainScope;
   brain?: BrainKind;
+  /** `acp` (ADR 0216): the id of an ACP agent the agent's computer declares. */
+  engine?: string;
   model?: string | null;
   fallback?: boolean;
   /** Off: long work pauses at 95% of the plan even with its paid extra usage on. */
@@ -6130,6 +6515,14 @@ export interface AgentBrainInput {
   speed?: BrainSpeed;
   /** 200K, 400K or 1M tokens; null = the model's window; omitted = keep. */
   contextTokens?: number | null;
+  /** Its reserve AIs in order, at most 3; [] = none; omitted = keep. */
+  fallbackChain?: BrainReserve[];
+}
+
+/** One of an agent's reserve AIs: an account on its computer, and the model it runs (absent or null: its default). */
+export interface BrainReserve {
+  accountId: string;
+  model?: string | null;
 }
 
 /** One agent's "Quem pensa" as a value, to use on other agents (ADR 0094, `POST …/agent-setup`). */
@@ -6151,6 +6544,8 @@ export interface AgentSetup {
   onlyOwner?: boolean;
   /** Its Autonomia, wherever the caller may set it by hand, whatever the AI takes; omitted = each keeps its own. */
   autonomy?: CommandApproval;
+  /** How much each agent asks (ADR 0173), only from who manages agents; omitted = each keeps its own. */
+  approvalsLevel?: ApprovalsLevel;
 }
 
 /** Why an agent can't take a setup. */
@@ -6175,6 +6570,8 @@ export interface AgentSetupResult {
   params?: Record<string, string>;
   /** Its Autonomia changes, whatever its AI does: wherever the caller may set it by hand, `skipped` agents too. */
   autonomy?: { from: CommandApproval; to: CommandApproval };
+  /** Its approvals level changes, whatever its AI does, `skipped` agents too. */
+  approvalsLevel?: { from: ApprovalsLevel; to: ApprovalsLevel };
   /** It lets more people talk to it on its owner's plan, someone else's: the apps ask first (`setupPlanQuestion`). */
   opensPlan?: true;
 }
@@ -6571,6 +6968,12 @@ export type NotificationKind =
   | "routine_failed"
   /** ADR 0097: an agent's run in a conversation failed for good (`latest.reason` coded). Opens that conversation. */
   | "run_failed"
+  /**
+   * ADR 0061 addendum: a person's message couldn't start an agent's run for want of an AI (its owner and whoever
+   * manages agents or keys, once a day per agent; the person who asked as actor). `source.agentId`, its name in
+   * `source.label`, why in `latest.reason`. Opens "Conectar uma IA" for that agent; done once it thinks again.
+   */
+  | "agent_needs_ai"
   /** The server paused a routine (`latest.reason`: its coded `pausedReason`). Opens it in Rotinas. */
   | "routine_paused"
   /** A routine waits for its computer (once per outage; `source.machineId`). Opens it in Rotinas. */
@@ -6636,6 +7039,7 @@ export type NotificationKind =
   | "invitation_accepted"
   /** ADR 0107 §7: the workspace used its Composio calls for the month (connector admins). `latest.title`: the month. */
   | "composio_limit"
+  | "mail_important"
   /**
    * ADR 0110: an agent's owner asks for one more browser profile for it (the people who grant profiles). Waiting;
    * `source.agentId` and its name in `source.label`. Opens the agent's page.
@@ -6723,7 +7127,13 @@ export type NotificationKind =
    * `latest.names` the first things it is about and `count` how many, `latest.text` the whole sentence in the
    * person's language. `source.agentId`, `machineId` or `accountId` when it is about one. Done once fixed.
    */
-  | "team_watch";
+  | "team_watch"
+  /**
+   * ADR 0212 §7: ten failed deliveries in a row turned an outgoing webhook off (every administrator).
+   * `source.webhookId`, its name in `label` and `latest.title`, the last failure's code in `latest.reason`. Inbox only;
+   * done once it is turned back on or deleted. Opens Configurações › Webhooks.
+   */
+  | "webhook_disabled";
 
 /** "O Gerente aprova por você" (ADR 0139 §2): what the person let the workspace's right hand approve. */
 export interface RightHandApprovals {
@@ -6833,6 +7243,8 @@ export interface NotificationSource {
   dashboardId?: string;
   /** `widget_alert`, `widget_failed`: the widget. */
   widgetId?: string;
+  /** `webhook_disabled`: the outgoing webhook (ADR 0212). */
+  webhookId?: string;
   /** Channel name, thread title, issue title, topic title, mission or routine name (or the computer's name). */
   label?: string;
 }
@@ -6865,6 +7277,8 @@ export interface NotificationLatest {
    * Both said in the person's language.
    */
   reason?: string;
+  /** `routine_failed`: it failed once more on its automatic retry (ADR 0177 addendum 2026-11-15). */
+  retried?: boolean;
   /** `widget_failed` with `missing_credential`: why its agent has no AI, coded (`widgetFailureKey`'s `detail`). */
   detail?: string;
   /** `approval`: asked while nobody watched, by a routine or an unattended run (ADR 0053 §8). */
@@ -6927,6 +7341,30 @@ export interface AppNotification {
   snoozedUntil: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+// ── Health (Configurações › Saúde, ADR 0214) ─────────────────────────────────
+
+export type HealthIssueKind = "tool_error" | "timeout" | "run_failed" | "queue_stalled" | "job_failed" | "cost_spike";
+
+/**
+ * A workspace's failures with one cause (`GET …/health-issues`, who may read the audit log): how many, since when.
+ * `title` is the failure's normalized text (`<n>`, `<path>`…), empty for a stalled job or a cost spike; `source` the
+ * tool, the job's kind or a run's error code (`run.provider_timeout`), worded by `runErrorText`.
+ */
+export interface HealthIssue {
+  id: string;
+  kind: HealthIssueKind;
+  signature: string;
+  title: string;
+  source: string | null;
+  subject: string | null;
+  agentId: string | null;
+  count: number;
+  firstAt: string;
+  lastAt: string;
+  /** The latest three of the last 14 days: references only. */
+  examples: { at: string; runId: string | null; agent: { id: string; name: string | null } | null }[];
 }
 
 // ── Audit (Configurações › Auditoria) ────────────────────────────────────────
@@ -7024,11 +7462,21 @@ export type NoticeCategory =
   | "computers"
   | "reactions";
 
+/**
+ * Minutes away from a workspace before an email of the mentions, DMs and finished work I haven't read, then at most
+ * that often (`AWAY_EMAIL_CHOICES` in packages/engine/src/notice-prefs.ts, ADR 0069 addendum 2026-11-15). 0: never.
+ */
+export type AwayEmailMinutes = 0 | 15 | 60 | 1440;
+
 export interface NoticePrefs {
   /** Every category, in the order the settings show them. */
   categories: { id: NoticeCategory; on: boolean }[];
   /** My phones that get pushes (the phone app). */
   phones: number;
+  /** The email when I'm away from this workspace. */
+  awayEmail: AwayEmailMinutes;
+  /** Whether this server sends emails at all: without, the setting isn't offered. */
+  emails: boolean;
 }
 
 /** A tool at the top of the sidebar (`SIDEBAR_ITEMS` in packages/engine/src/sidebar-items.ts). */
@@ -7066,6 +7514,16 @@ export interface SidebarView {
   showAllAgents: boolean;
   /** Never saved: the apps pin my own agents (`dayOnePins`). */
   pins: SidebarPins | null;
+}
+
+/**
+ * One of my own links in the sidebar of a workspace (`GET …/me/sidebar/links`, ADR 0083 amendment of 2026-11-15): an
+ * https address, opened in a new tab.
+ */
+export interface SidebarLink {
+  id: string;
+  title: string;
+  url: string;
 }
 
 /**
@@ -7114,12 +7572,14 @@ export interface ThreadFollow {
 
 /**
  * Unread marks on my own topic: a message in a conversation I'm in (no content: the lists read again), and my
- * reads and mutes from any device.
+ * reads, marks as unread and mutes from any device.
  */
 export type UnreadEvent =
   | { type: "channel.activity"; channelId: string; threadId: string | null; dm?: boolean }
   | { type: "channel.read"; channelId: string; userId: string; lastReadAt: string }
   | { type: "channel.muted"; channelId: string; muted: boolean }
+  /** I marked a conversation unread ("Marcar como não lida"): one unread at least until I read it. */
+  | { type: "channel.unread"; channelId: string }
   | { type: "thread.read"; threadId: string; channelId: string; lastReadAt: string };
 
 /** A pinned message (`GET …/channels/{id}/pins`, newest pin first). */
@@ -7416,6 +7876,8 @@ export interface MailAccount {
   defaultFrom: string | null;
   /** Who connected it: the only person who gives agents access to it (absent on older servers). */
   ownerUserId?: string | null;
+  /** New mail is sorted (important, needs a reply, ignore) before it wakes a routine (absent on older servers). */
+  triage?: boolean;
   /** Agents with access, and how much. */
   agents: { agentId: string; level: MailLevel; canDelete: boolean }[];
 }
@@ -7446,6 +7908,8 @@ export interface MailAccountUpdate {
   aliases?: string[];
   /** One of `address` or `aliases`; null = `address`. */
   defaultFrom?: string | null;
+  /** Sort new mail before it wakes a routine; ignored mail doesn't. */
+  triage?: boolean;
 }
 
 export interface MailImapInput {
@@ -7915,6 +8379,44 @@ export interface CreatedPersonalToken {
   secret: string;
 }
 
+/** One of an agent's API keys (ADR 0210), never its secret. */
+export interface AgentApiKey {
+  id: string;
+  name: string;
+  /** The secret's last four characters. */
+  lastFour: string;
+  createdAt: string;
+  expiresAt: string | null;
+  lastUsedAt: string | null;
+  createdBy: { id: string; name: string };
+  /** The key's conversation, for its maker once a message was sent with it; null otherwise. */
+  roomId: string | null;
+}
+
+/** `GET …/agents/{agentId}/api-keys`: the live keys and where a key sends this agent messages. */
+export interface AgentApiKeys {
+  keys: AgentApiKey[];
+  endpoint: string;
+}
+
+export interface AgentApiKeyInput {
+  name: string;
+  expiresInDays: 30 | 90 | 365 | null;
+}
+
+/** `POST …/agents/{agentId}/api-keys`: `secret` is shown once. */
+export interface CreatedAgentApiKey {
+  key: AgentApiKey;
+  secret: string;
+}
+
+/** `GET …/agent-key-rooms/{channelId}`: the key a conversation belongs to, for its maker; `keyName` null once gone. */
+export interface AgentKeyRoom {
+  agentId: string;
+  keyId: string;
+  keyName: string | null;
+}
+
 /** Who has a shared browser profile now (ADR 0110): an agent's run or a person in control. */
 export type BrowserProfileHolder =
   | { type: "agent"; agentId: string; since: string }
@@ -7929,6 +8431,29 @@ export interface BrowserProfile {
   agentIds: string[];
   holder: BrowserProfileHolder | null;
   lastUsedAt: string | null;
+  /**
+   * A person's own browser of one agent, made in their DM with it (ADR 0110 addendum 2026-11-15): only they watch and
+   * drive it, and no list shows it. Absent from older servers.
+   */
+  personal?: boolean;
+}
+
+/**
+ * A site a browser profile is signed in to (ADR 0110, addendum 2026-11-15): a host as wide as a domain cookie that
+ * covers it, how many cookies it has and how many of its origins keep data. Never a cookie's name or value.
+ */
+export interface BrowserSite {
+  site: string;
+  cookies: number;
+  storage: number;
+}
+
+/** What "Sair" removed from one site, and the sites after. */
+export interface BrowserSiteSignOut {
+  site: string;
+  cookies: number;
+  storage: number;
+  sites: BrowserSite[];
 }
 
 /** What an agent's browser command waits for. */
@@ -8135,6 +8660,39 @@ export interface DeviceJoinRequest {
   expiresAt: string;
 }
 
+/** What the phone's own apps a person lets their agents use here (ADR 0205): `contacts` for now. */
+export type PhoneTool = "contacts";
+
+/** The person's switches in one workspace, as the phone app reads them back. */
+export interface PhoneTools {
+  tools: PhoneTool[];
+  deviceName: string | null;
+  updatedAt: string | null;
+}
+
+/** One request from an agent's run the phone has to answer (ADR 0205). */
+export interface PhoneJob {
+  id: string;
+  kind: "find_contact";
+  input: { query: string };
+  agent: { id: string; name: string };
+  createdAt: string;
+  expiresAt: string;
+}
+
+/** One contact as it leaves the phone: these fields only. */
+export interface PhoneContact {
+  name: string;
+  phones: string[];
+  emails: string[];
+}
+
+/** The phone's answer to a job: what it found, the person's no, or why it couldn't. */
+export type PhoneJobAnswer =
+  | { outcome: "done"; contacts: PhoneContact[] }
+  | { outcome: "declined" }
+  | { outcome: "failed"; error: string };
+
 export interface DevicesList {
   devices: ComputerDevice[];
   requests: DeviceJoinRequest[];
@@ -8196,6 +8754,36 @@ export interface CliInstall {
   message?: string;
   cause?: "git_missing" | "still_missing";
 }
+
+/**
+ * The MCP servers and skills of Claude Code, Cursor and Codex on a person's own computer (`…/local-config`, ADR 0055
+ * addendum 2026-11-15). Of a server only names and its address leave the computer, never a value. `state`: `connect`
+ * (a public https address, for `connectors.connectCustom`), `connected` (a server here has that address), `private`
+ * (http, or only that computer reaches it), `sse` (the older transport), `stdio` (a program the tool starts there),
+ * `key_in_address` (a key in its address was masked: the person pastes the whole address).
+ * The skills come as `bundle`, for `imports.apply`.
+ */
+export interface LocalSetup {
+  files: { app: LocalConfigApp; path: string; state: "read" | "missing" | "too_big" | "unreadable" | "link" }[];
+  servers: {
+    app: LocalConfigApp;
+    name: string;
+    kind: "http" | "sse" | "stdio";
+    url?: string;
+    command?: string;
+    headers: string[];
+    env: string[];
+    query: string[];
+    /** A part of its address's path looked like a key and is masked (`***`). */
+    keyInAddress?: true;
+    state: "connect" | "connected" | "private" | "sse" | "stdio" | "key_in_address";
+  }[];
+  skipped: { path: string; reason: "link" | "too_big" | "too_many" | "no_skill" | "unreadable" }[];
+  bundle: MigrationBundle;
+  /** The skills where something that looked like a key was masked (`***`) before they left the computer. */
+  masked: string[];
+}
+export type LocalConfigApp = "claude" | "cursor" | "codex";
 
 /** `fix: null`: none ran; `update`: the Mac's agentes.chat is too old to fix it (the Terminal way instead). */
 export interface XcodeFixView {

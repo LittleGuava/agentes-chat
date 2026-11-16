@@ -2,7 +2,15 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, statSync, w
 import os from "node:os";
 import path from "node:path";
 import { SYSTEM_RUNNER_HOME } from "@agenteschat/adapters/command-policy";
-import { parseAccess, type RunnerAccess, type RunnerPause } from "@agenteschat/adapters/machine-protocol";
+import {
+  ACP_ENGINE_LIMITS,
+  CLI_NAMES,
+  type CliName,
+  isAcpEngineId,
+  parseAccess,
+  type RunnerAccess,
+  type RunnerPause,
+} from "@agenteschat/adapters/machine-protocol";
 import { validateNetworkMark } from "./network-mark";
 
 /**
@@ -70,6 +78,11 @@ export interface RunnerConfig {
   /** System mode: absent, a Claude sign-in for all agents is `claude setup-token`'s, as ever. */
   claudeSharedLogin?: ClaudeSharedLogin;
   /**
+   * The computer's own binary for a brain's CLI, an absolute path (`agentes-runner binaries`, ADR 0187), in place of
+   * the one on the PATH. Only whoever runs this computer sets it; the server and agents never do.
+   */
+  binaries?: Binaries;
+  /**
    * System mode: what of this computer's own listeners agents may reach besides DNS, as `tcp/11434` or
    * `udp/8125` (`agentes-runner services allow`). Each agent reaches its own local ports anyway, never another's.
    */
@@ -80,11 +93,65 @@ export interface RunnerConfig {
    */
   agentTmpOnDisk?: true;
   /**
+   * ACP agents the owner declares by hand for agents to think with (ADR 0216): read when the runner starts, never
+   * sent to the server but their ids, names and models.
+   */
+  acpEngines?: AcpEngineConfig[];
+  /**
    * After "leave" (unpair): the token `machineId` had, never used to connect,
    * only sent as proof when pairing again with the same server reconnects
    * that machine (ADR 0036 §5). Dropped by the next pairing.
    */
   previousToken?: string;
+}
+
+/** An ACP agent the computer's owner declares (`acpEngines`, ADR 0216), as the runner keeps it. */
+export interface AcpEngineConfig {
+  id: string;
+  name: string;
+  /** The executable: a full path, or a name looked up on the PATH (`cliSpawn`). */
+  command: string;
+  args: string[];
+  /** Added to the agent's environment for this engine's process. */
+  env: Record<string, string>;
+}
+
+const MAX_ARGS = 32;
+const MAX_ENV = 32;
+const MAX_TEXT = 4096;
+const ENV_NAME = /^[A-Za-z_][A-Za-z0-9_]{0,127}$/;
+
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+const engineText = (v: unknown) => (typeof v === "string" && !v.includes("\0") && v.length <= MAX_TEXT ? v : null);
+
+/**
+ * `config.json`'s `acpEngines`: each entry with a valid unique id and a command, at most `ACP_ENGINE_LIMITS.engines`.
+ * An entry that breaks a rule (an argument or a value that isn't text, too many of them) is left out; the rest load.
+ */
+export function parseAcpEngineConfigs(v: unknown): AcpEngineConfig[] {
+  if (!Array.isArray(v)) return [];
+  const out: AcpEngineConfig[] = [];
+  for (const e of v) {
+    if (!isRecord(e) || !isAcpEngineId(e.id) || out.some((x) => x.id === e.id)) continue;
+    const command = engineText(e.command)?.trim();
+    if (!command) continue;
+    const args = e.args === undefined ? [] : Array.isArray(e.args) ? e.args.map(engineText) : null;
+    if (!args || args.length > MAX_ARGS || args.some((a) => a === null)) continue;
+    const env = e.env === undefined ? {} : isRecord(e.env) ? e.env : null;
+    if (!env) continue;
+    const pairs = Object.entries(env).map(([k, val]) => [k, engineText(val)] as const);
+    if (pairs.length > MAX_ENV || pairs.some(([k, val]) => !ENV_NAME.test(k) || val === null)) continue;
+    const name = typeof e.name === "string" ? e.name.replace(/\s+/g, " ").trim().slice(0, ACP_ENGINE_LIMITS.name) : "";
+    out.push({
+      id: e.id,
+      name: name || e.id,
+      command,
+      args: args as string[],
+      env: Object.fromEntries(pairs) as Record<string, string>,
+    });
+    if (out.length >= ACP_ENGINE_LIMITS.engines) break;
+  }
+  return out;
 }
 
 export { SYSTEM_RUNNER_HOME } from "@agenteschat/adapters/command-policy";
@@ -110,6 +177,30 @@ export function parseService(text: string): string | null {
   const m = /^(tcp|udp)\/(\d{1,5})$/.exec(text.trim().toLowerCase());
   const port = Number(m?.[2]);
   return m && port >= 1 && port <= 65_535 ? `${m[1]}/${port}` : null;
+}
+
+/** A brain's own binary per CLI (ADR 0187). */
+export type Binaries = Partial<Record<CliName, string>>;
+
+/** The longest binary path kept. */
+const BINARY_PATH_MAX = 4096;
+
+/** The config's `binaries`: an absolute path per known brain; anything else dropped. Undefined when none is left. */
+export function parseBinaries(v: unknown): Binaries | undefined {
+  if (typeof v !== "object" || v === null || Array.isArray(v)) return undefined;
+  const out: Binaries = {};
+  for (const name of CLI_NAMES) {
+    const file = (v as Record<string, unknown>)[name];
+    if (
+      typeof file === "string" &&
+      file.length <= BINARY_PATH_MAX &&
+      !file.includes("\0") &&
+      (path.posix.isAbsolute(file) || path.win32.isAbsolute(file))
+    ) {
+      out[name] = file;
+    }
+  }
+  return Object.keys(out).length ? out : undefined;
 }
 
 /** The file as stored: a home that isn't paired (or was unpaired) keeps only some fields. */
@@ -200,6 +291,8 @@ export function normalizeStored(raw: Record<string, unknown>): StoredConfig {
   const range = raw.agentUidRange;
   const uids = Array.isArray(range) && range.length === 2 ? agentUidRange(range[0], range[1]) : null;
   const claudeSharedLogin = parseClaudeSharedLogin(raw.claudeSharedLogin);
+  const binaries = parseBinaries(raw.binaries);
+  const acpEngines = parseAcpEngineConfigs(raw.acpEngines);
   const services = Array.isArray(raw.services)
     ? [...new Set(raw.services.flatMap((s) => (typeof s === "string" ? (parseService(s) ?? []) : [])))]
     : [];
@@ -238,8 +331,10 @@ export function normalizeStored(raw: Record<string, unknown>): StoredConfig {
       ? { networkDrainSeconds: raw.networkDrainSeconds as number }
       : {}),
     ...(claudeSharedLogin ? { claudeSharedLogin } : {}),
+    ...(binaries ? { binaries } : {}),
     ...(services.length ? { services } : {}),
     ...(raw.agentTmpOnDisk === true ? { agentTmpOnDisk: true as const } : {}),
+    ...(acpEngines.length ? { acpEngines } : {}),
     ...(text(raw.previousToken, 4000) ? { previousToken: text(raw.previousToken, 4000) } : {}),
   };
 }

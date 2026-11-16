@@ -24,6 +24,23 @@ export type RoutinePausedReason =
 /** Failed runs in a row that pause a routine (`failing`). */
 export const ROUTINE_FATIGUE_LIMIT = 5;
 
+/**
+ * The `dedupe_key` of the run that tries a failed scheduled run once more (`retryOutsideFailure` in
+ * `routine-ledger.ts`): one retry per failed run, and how its ending is told apart from any other.
+ */
+export const routineRetryRunKey = (failedRoutineRunId: string) => `retry:${failedRoutineRunId}`;
+
+/** Whether a routine run is the retry of a failed one (an event's own key never comes with a scheduled run). */
+export const isRoutineRetryRun = (run: { trigger: string; dedupeKey: string | null }) =>
+  run.trigger === "schedule" && (run.dedupeKey?.startsWith("retry:") ?? false);
+
+/**
+ * The failures in a row once a run fails. A retry's failure is the failure it retried, counted once (ADR 0177
+ * addendum 2026-11-15); after a good run in between it is a first failure.
+ */
+export const failuresAfter = (failuresInRow: number, retry: boolean) =>
+  retry ? Math.max(failuresInRow, 1) : failuresInRow + 1;
+
 /** A waiting run whose slot is older than this when its computer returns is `missed`, not run. */
 export const ROUTINE_CATCH_UP_MS = 12 * 3600_000;
 

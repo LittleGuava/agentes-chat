@@ -24,6 +24,7 @@ export type ActivityKind =
   | "readingIssues"
   | "readingDrive"
   | "writingDrive"
+  | "publishingPage"
   | "searchingMemory"
   | "updatingMemory"
   | "checkingCalendar"
@@ -93,6 +94,7 @@ export type ActivityKind =
   | "queryingDatabase"
   | "checkingUsage"
   | "findingAgent"
+  | "searchingContacts"
   | "searchingWeb"
   | "readingWeb"
   | "preparingCard"
@@ -161,6 +163,8 @@ const BUILTIN: Record<string, ActivityKind> = {
   list_artifacts: "readingDrive",
   create_artifact: "writingDrive",
   update_artifact: "writingDrive",
+  publish_page: "publishingPage",
+  generate_image: "creatingImage",
   search_context: "searchingMemory",
   expand: "searchingMemory",
   get_summary: "searchingMemory",
@@ -242,8 +246,12 @@ const BUILTIN: Record<string, ActivityKind> = {
   follow_up: "followingUp",
   get_my_usage: "checkingUsage",
   find_agent: "findingAgent",
+  // The contacts on the phone of the person talking to the agent (ADR 0205): not a phone a computer tests on.
+  phone_find_contact: "searchingContacts",
   // The right hand's look at the team: its tasks, open and stuck, and what waits.
   team_status: "listingTasks",
+  // Its retry of a failed task: the line in that conversation says who tries again.
+  retry_run: "updatingWork",
   cancel_follow_up: "cancelingFollowUp",
   web_search: "searchingWeb",
   web_fetch: "readingWeb",

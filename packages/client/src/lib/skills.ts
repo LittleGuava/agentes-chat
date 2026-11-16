@@ -1,6 +1,7 @@
 import type { TFunction } from "i18next";
 import { ApiError } from "../api/http";
 import type {
+  AgentSkill,
   GitHubRepositories,
   Skill,
   SkillAgentChange,
@@ -30,6 +31,27 @@ export const skillPickOf = (
 /** Why a skill a link holds can't be installed, in the person's words when the server's code is known. */
 export const skippedSkillText = (t: TFunction, skipped: SkillSkipped) =>
   t("skills.pickSkipped", { reason: errorText(t, new ApiError(400, skipped.code, skipped.message, skipped.params)) });
+
+/**
+ * The skills the composer's "/" offers for an agent: those on for it that a run started by `me`'s message may use, as
+ * the server picks them (`usableInRun` in packages/engine/src/skills.ts): the team's, and `me`'s own personal ones,
+ * whose own wins over a team skill of the same name. Someone else's personal skill is left out even when it's on: only
+ * a run its person starts uses it. By name.
+ */
+export function slashSkills(list: AgentSkill[], me: string): AgentSkill[] {
+  const usable = list.filter((s) => s.enabled && (!s.ownerUserId || s.ownerUserId === me));
+  const mine = new Set(usable.filter((s) => s.ownerUserId).map((s) => s.name));
+  return usable.filter((s) => s.ownerUserId || !mine.has(s.name)).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * A skill's line in the "/" menu: its description's first sentence, whole (SKILL.md descriptions say what it does,
+ * then when to use it). The menu wraps it and scrolls.
+ */
+export function skillMenuLine(description: string): string {
+  const first = (description.trim().split("\n")[0] ?? "").trim();
+  return /^.*?[.!?](?=\s|$)/.exec(first)?.[0] ?? first;
+}
 
 /** The files a skill's page lists: a skill can hold thousands, and its agents read them, not the person. */
 export const SKILL_FILES_SHOWN = 200;

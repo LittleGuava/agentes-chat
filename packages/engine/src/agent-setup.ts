@@ -11,6 +11,7 @@ import {
   validateAgentFields,
 } from "./agents";
 import { answersOthers, audienceOf } from "./audience";
+import { brainPolicyRefusal, orgBrainPolicy } from "./brain-policy";
 import {
   type AgentBrainInput,
   type BrainEffortSetting,
@@ -26,7 +27,7 @@ import {
 import { planIsOwners } from "./brains/select";
 import type { BrainKind } from "./brains/types";
 import { caches } from "./cache";
-import { ValidationError } from "./errors";
+import { ForbiddenError, ValidationError } from "./errors";
 import { defaultAccountLabel, listMachineAccounts, type MachineAccountView } from "./machine-accounts";
 import { getMachine } from "./machines";
 import { setAgentMissionApproval } from "./mission-settings";
@@ -37,11 +38,13 @@ import {
   isCommandApproval,
 } from "./missions";
 import { can, requirePermission } from "./organizations";
+import { type ApprovalsLevel, isApprovalsLevel } from "./tools/run-policy";
 
 /*
- * One agent's "Quem pensa" and its Autonomia on others (ADR 0094): "Usar em outros agentes" applies them to each agent
- * picked, by that agent's own rules (who may change it, whose plan thinks for it), and says why the others can't take
- * them. The last one saved or used on others is what new agents start with (`rememberAgentSetup`).
+ * One agent's "Quem pensa", its Autonomia and its approvals level on others (ADR 0094): "Usar em outros agentes"
+ * applies them to each agent picked, by that agent's own rules (who may change it, whose plan thinks for it), and says
+ * why the others can't take them. The last one saved or used on others is what new agents start with
+ * (`rememberAgentSetup`), the approvals level left out: a new agent starts asking for what is risky (ADR 0173).
  */
 
 /** At most this many agents in one call. */
@@ -49,7 +52,8 @@ export const SETUP_AGENTS_MAX = 200;
 
 /**
  * A setup as "Quem pensa" chose it; `onlyOwner` ("Atende outras pessoas" off) only where it moves onto the plan;
- * `autonomy`, the agent's Autonomia, goes with it (left out, each agent keeps its own).
+ * `autonomy`, the agent's Autonomia, and `approvalsLevel`, how much it asks (ADR 0173), go with it (left out, each agent
+ * keeps its own).
  */
 export interface AgentSetupInput {
   brain?: unknown;
@@ -63,10 +67,19 @@ export interface AgentSetupInput {
   fallback?: unknown;
   onlyOwner?: unknown;
   autonomy?: unknown;
+  approvalsLevel?: unknown;
 }
 
-/** `speed` goes to the agents picked, never into what new agents start with: Fast is off until someone turns it on. */
-type Setup = schema.AgentSetup & { onlyOwner?: boolean; autonomy?: CommandApproval; speed?: BrainSpeed };
+/**
+ * `speed` and `approvalsLevel` go to the agents picked, never into what new agents start with: Fast is off until
+ * someone turns it on, and a new agent asks for what is risky (ADR 0173).
+ */
+type Setup = schema.AgentSetup & {
+  onlyOwner?: boolean;
+  autonomy?: CommandApproval;
+  speed?: BrainSpeed;
+  approvalsLevel?: ApprovalsLevel;
+};
 
 /** Why an agent can't take the setup. */
 export type SetupReason =
@@ -94,6 +107,8 @@ export interface SetupResult {
   params?: Record<string, string>;
   /** Its Autonomia changes (in a preview, would), whatever its AI does. */
   autonomy?: { from: CommandApproval; to: CommandApproval };
+  /** Its approvals level changes (in a preview, would), whatever its AI does. */
+  approvalsLevel?: { from: ApprovalsLevel; to: ApprovalsLevel };
   /**
    * It lets more people talk to it on its owner's plan, someone else's (in a preview, would): that owner gets an email
    * (ADR 0059 §5), so the apps ask first.
@@ -117,7 +132,17 @@ function readSetup(input: AgentSetupInput): Setup {
   if (input.autonomy !== undefined && !isCommandApproval(input.autonomy)) {
     throw new ValidationError("Choose always, low_risk_auto or never", "mission.invalid_command_approval");
   }
-  const autonomy = isCommandApproval(input.autonomy) ? { autonomy: input.autonomy } : {};
+  if (input.approvalsLevel !== undefined && !isApprovalsLevel(input.approvalsLevel)) {
+    throw new ValidationError("Choose always, risky or never", "setup.invalid");
+  }
+  const autonomy = {
+    ...(isCommandApproval(input.autonomy) ? { autonomy: input.autonomy } : {}),
+    ...(isApprovalsLevel(input.approvalsLevel) ? { approvalsLevel: input.approvalsLevel } : {}),
+  };
+  // ADR 0216: an ACP agent is chosen on the agent's page, where its computer lists the ones it declares.
+  if (input.brain === "acp") {
+    throw new ValidationError("An ACP agent is chosen on the agent's page", "brain.invalid");
+  }
   if (input.brain === "model") {
     if (typeof input.model !== "string" || !input.model) {
       throw new ValidationError("The API brain needs a model", "brain.invalid_model");
@@ -202,10 +227,12 @@ class PreviewOnly extends Error {}
 
 /**
  * `POST …/agent-setup`: the setup on each agent picked, in the order asked, each by its own rules and in its own
- * savepoint, audited as its own change (`agent.brain`, `agent.mission_command_approval`, with `via: "setup"`). Its
- * Autonomia goes to every agent the person may set it on by hand, through the editor that sets it on one agent ("Usar
- * como padrão": an admin or the agent's owner), even one that can't take the AI. With `preview`, the same run rolled
- * back: what each would do, nothing kept. Taken whole by one of them, it is what new agents start with.
+ * savepoint, audited as its own change (`agent.brain`, `agent.mission_command_approval`, `agent.updated`, with
+ * `via: "setup"`). Its Autonomia goes to every agent the person may set it on by hand, through the editor that sets it
+ * on one agent ("Usar como padrão": an admin or the agent's owner), even one that can't take the AI. Its approvals
+ * level is only for who manages agents, as on one agent (ADR 0173): anyone else is refused before anything changes,
+ * and it goes to every agent picked through the agent's own `PATCH`. With `preview`, the same run rolled back: what
+ * each would do, nothing kept. Taken whole by one of them, it is what new agents start with.
  */
 export async function applyAgentSetup(
   deps: { db: Database },
@@ -216,6 +243,10 @@ export async function applyAgentSetup(
   const membership = await requirePermission(deps.db, userId, orgId, "read");
   const admin = can(membership, "manage_agents");
   const setup = readSetup(input.setup);
+  // As `updateAgent` and `createAgent` decide it, for the whole call: no agent takes part of a setup it was refused.
+  if (setup.approvalsLevel !== undefined && !admin) {
+    throw new ForbiddenError("Only who manages agents can set how much an agent asks");
+  }
   const ids = [...new Set(input.agentIds)];
   if (ids.length > SETUP_AGENTS_MAX) throw new ValidationError(`At most ${SETUP_AGENTS_MAX} agents`, "setup.invalid");
   if (setup.brain === "model") {
@@ -291,7 +322,9 @@ export async function applyAgentSetup(
         // Its Autonomia wherever the person may set it by hand, whatever its AI can take.
         const mayManage = admin || t.ownerUserId === userId;
         const autonomy = mayManage && setup.autonomy && setup.autonomy !== from ? setup.autonomy : null;
-        if (p.status !== "applied" && !autonomy) {
+        // Its approvals level on every agent picked: only who manages agents gets this far with one.
+        const asks = setup.approvalsLevel && setup.approvalsLevel !== t.approvalsLevel ? setup.approvalsLevel : null;
+        if (p.status !== "applied" && !autonomy && !asks) {
           results.set(t.id, { agentId: t.id, ...ai });
           continue;
         }
@@ -322,15 +355,20 @@ export async function applyAgentSetup(
             if (autonomy) {
               await setAgentMissionApproval({ db: sp }, userId, orgId, t.id, autonomy, { audit: { via: "setup" } });
             }
+            if (asks) {
+              await updateAgent(sp, userId, orgId, t.id, { approvalsLevel: asks }, { audit: { via: "setup" } });
+            }
           });
           applied.push(t.id);
           results.set(t.id, {
             agentId: t.id,
             ...ai,
             ...(autonomy ? { autonomy: { from, to: autonomy } } : {}),
+            ...(asks ? { approvalsLevel: { from: t.approvalsLevel, to: asks } } : {}),
             ...(opensPlan ? { opensPlan: true as const } : {}),
           });
-          // Not one that kept its own account (even one that already thought so), nor one that took only the Autonomia.
+          // Not one that kept its own account (even one that already thought so), nor one that took only the Autonomia
+          // or the approvals level.
           if (p.status === "applied" ? !p.keeps : p.status === "same" && !p.ownAccount) whole ??= t.id;
         } catch (error) {
           results.set(t.id, { agentId: t.id, status: "skipped", ...refusal(error) });
@@ -505,6 +543,9 @@ export async function getNewAgentSetup(
     .where(eq(schema.organizationSettings.orgId, orgId));
   const s = row?.setup;
   if (!s || !isBrainKind(s.brain)) return null;
+  // What the workspace's rule leaves out (ADR 0191) is no default: a new agent starts on Automático instead.
+  if (brainPolicyRefusal(await orgBrainPolicy(deps.db, orgId), s.brain, s.brain === "model" ? s.model : null))
+    return null;
   const contextTokens = isContextLimit(s.contextTokens) ? s.contextTokens : null;
   const autonomy = isCommandApproval(s.autonomy) && s.autonomy !== DEFAULT_MISSION_COMMAND_APPROVAL ? s.autonomy : null;
   if (s.brain === "model") {

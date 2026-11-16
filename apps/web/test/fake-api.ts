@@ -1,5 +1,6 @@
 import type {
   AccountDeletionPlan,
+  AccountSession,
   ActiveRun,
   Agent,
   AgentAudience,
@@ -12,6 +13,7 @@ import type {
   AgentSetupResult,
   AgentStatus,
   AiStatus,
+  Announcement,
   ApiClient,
   AppNotification,
   Approval,
@@ -33,6 +35,8 @@ import type {
   ConsultationConversation,
   Credential,
   DeviceAccount,
+  DomainWorkspace,
+  DuplicateSkipped,
   Edition,
   EmailChange,
   EndpointCheck,
@@ -43,6 +47,7 @@ import type {
   GifKey,
   GitHubAppInfo,
   GitHubRepositories,
+  HealthIssue,
   HttpApi,
   IdRef,
   ImportedSource,
@@ -57,6 +62,7 @@ import type {
   JevKey,
   JoinApproval,
   JoinClaim,
+  JoinDomain,
   JoinRequest,
   Me,
   Member,
@@ -68,6 +74,7 @@ import type {
   ModelTier,
   MySuggestion,
   NewAgentSetup,
+  NoticePrefs,
   OrgRole,
   OrgSettings,
   OrgStanding,
@@ -89,8 +96,11 @@ import type {
   SearchHit,
   SecretRequest,
   ServerTelemetry,
+  ServerUpdate,
+  ServerUpdaterStatus,
   SidebarItem,
   SidebarItems,
+  SidebarLink,
   SidebarSection,
   SidebarView,
   SignInOptions,
@@ -116,8 +126,10 @@ import type { PlanModel } from "@agenteschat/client/lib/plans";
 import { type LodiPrefs, lodiPrefsOf } from "@agenteschat/client/lib/right-hand-prefs";
 import { grants, rowMax, SUMMARY_ORDER, withRowHolders } from "@agenteschat/client/lib/roles";
 import { sidebarItemOrder, sidebarSections } from "@agenteschat/client/lib/sidebar-items";
+import { exportQuery } from "@agenteschat/client/lib/workspace-export";
 import { driveFolder, isSecretFile } from "@agenteschat/ui/names";
 import { createFakeAccess } from "./fakes/access";
+import { createFakeAgentApiKeys, type FakeAgentApiKeys } from "./fakes/agent-api-keys";
 import { createFakeApps, type FakeApps } from "./fakes/apps";
 import { createMockArtifacts } from "./fakes/artifacts";
 import { createFakeBrowser, type FakeBrowser } from "./fakes/browser";
@@ -217,6 +229,8 @@ export interface FakeState {
   answerHold?: Promise<void>;
   /** The accounts signed in on this browser (`account.deviceAccounts`, ADR 0183); unset: the server names none. */
   deviceAccounts?: DeviceAccount[];
+  /** Where my account is signed in (`account.sessions`); unset: a server from before the list. */
+  accountSessions?: AccountSession[];
   /** Threads I follow with an unread reply (`reads.unreadThreads`). */
   unreadThreads?: number;
   /** Tasks whose conversation has a reply I haven't read (`reads.unreadTasks`). */
@@ -231,6 +245,8 @@ export interface FakeState {
   agentGroups?: AgentGroup[];
   /** Agents no longer in the team (`agents.former`); a purge moves one here. */
   former?: FormerAgent[];
+  /** What `agents.duplicate` says the copy didn't take; unset = nothing. */
+  duplicateSkipped?: DuplicateSkipped[];
   /** The archived channels the viewer may bring back (`chat.archived`). */
   archivedChannels?: ArchivedChannel[];
   channels: Channel[];
@@ -257,6 +273,8 @@ export interface FakeState {
   approvalCovers?: ApprovalCovers;
   /** What the right hand approves for me (ADR 0139 §2); unset: off, as a new member has it. */
   rightHandApprovals?: RightHandApprovals;
+  /** Agents whose model in a conversation I may only read (not their owner nor an admin); unset: I may change all. */
+  conversationModelReadOnly?: string[];
   /** How many of the newest the unfiltered list returns (the server's window); all when unset. */
   approvalsWindow?: number;
   /** What each agent runs without asking ("Aprovar sempre"), by agent id; unset = none. */
@@ -304,10 +322,12 @@ export interface FakeState {
   /** A person's month by id; unset: an empty month. */
   personUsage?: Record<string, PersonUsage>;
   personLimits?: PersonLimits;
+  /** What the server's operator tells the signed-in person (`orgs.announcements`); unset: nothing. */
+  announcements?: Announcement[];
   /** What Lodi does by itself for the signed-in person; unset: both cards on, no other switch. */
   teamWeek?: Partial<LodiPrefs>;
   /** The workspace's own switches of Lodi; unset: on. */
-  lodiSwitches?: { teamWatch?: boolean; welcomePeople?: boolean };
+  lodiSwitches?: { teamWatch?: boolean; welcomePeople?: boolean; incidents?: boolean };
   memories: Memory[];
   proposals: Proposal[];
   reactions: Record<string, ReactionCount[]>;
@@ -334,6 +354,8 @@ export interface FakeState {
   spentUsd?: Record<string, number>;
   /** Configurações › Auditoria: newest first. */
   audit?: AuditRow[];
+  /** Configurações › Saúde: latest first. */
+  healthIssues?: HealthIssue[];
   /** The workspace switch "Agentes conferem o que o time já fez" (on when unset). */
   actionCheck?: boolean;
   /** Automático's models per provider and tier (Settings › Chaves); none when unset. */
@@ -351,6 +373,8 @@ export interface FakeState {
   teamActions?: SearchHit[];
   /** My inbox (`notifications.*`); empty unless a test fills it. */
   notifications?: AppNotification[];
+  /** My notification choices (`/notification-prefs`); the server's defaults unless a test sets them. */
+  noticePrefs?: NoticePrefs;
   /** `actions.undo`/`redo`/`undoMessage` fail for these receipt ids with this error (`action.changed_since`…). */
   actionErrors?: Record<string, ApiError>;
   /** Set by `createFakeApi`: `chat.post` with `openThread` marks the thread (the threads fake). */
@@ -387,6 +411,10 @@ export interface FakeState {
   setupResults?: Record<string, Omit<AgentSetupResult, "agentId">>;
   /** `system.telemetry`: the usage report's switch; unset = I'm not the installation's owner (null). */
   telemetry?: ServerTelemetry;
+  /** `system.serverUpdate`: a newer release; unset = I'm not the installation's owner (null). */
+  serverUpdate?: ServerUpdate;
+  /** `system.serverUpdater`: updates from the app (ADR 0200); unset = I'm not the owner or there is no updater (null). */
+  serverUpdater?: ServerUpdaterStatus;
   /** `system.jev`: the installation's Jev key; unset = I'm not its owner on a self-hosted server (null). */
   jev?: JevKey;
   /**
@@ -405,6 +433,10 @@ export interface FakeState {
   speechKeyRefused?: string[];
   /** `voice.allowed`'s answer (default: yes). */
   voiceAllowed?: boolean;
+  /** The words `voice.dictate` gives back (default: none heard). */
+  dictated?: string;
+  /** Whether the server reads replies aloud (ADR 0209); absent: off. */
+  readAloudAvailable?: boolean;
   /** The keys GIPHY refuses when `system.saveGifKey` checks them (422, nothing kept); any other works. */
   gifKeyRefused?: string[];
   /** Where the server keeps files itself (`storage.get`'s `platform`); unset = its disk, no folder. */
@@ -443,6 +475,10 @@ export interface FakeState {
   inviteLinks?: InviteLink[];
   /** Requests to join waiting (`joinRequests.list`). */
   joinRequests?: JoinRequest[];
+  /** The workspace's domains (`joinDomains.list`, ADR 0068, addendum 2026-11-15). */
+  joinDomains?: JoinDomain[];
+  /** Workspaces the account's domain lets it join (`joinDomains.workspaces`). */
+  domainWorkspaces?: DomainWorkspace[];
   /** What `joinRequests.approve` answers; unset: in at once when confirmed, else an emailed invitation. */
   approval?: JoinApproval;
   /** Make `joinRequests.approve` and `deny` fail with this error (`join.answered`…). */
@@ -469,6 +505,10 @@ export interface FakeState {
   sidebarItemsError?: ApiError;
   /** The sidebar's sections in my order (`orgs.sidebarOrder`); unset = the default. */
   sidebarOrder?: SidebarSection[];
+  /** My links in the sidebar (`orgs.sidebarLinks`); unset = none. */
+  sidebarLinks?: SidebarLink[];
+  /** Make `orgs.addSidebarLink` fail with this error (`sidebar_link.full`…). */
+  sidebarLinkError?: ApiError;
   /** How I look at Tarefas (`orgs.issuesView`); unset = never changed (the default). */
   issuesView?: IssuesView;
   /** What ids written in texts name (`chat.idRef`); an id not here is a 404. */
@@ -673,6 +713,7 @@ export const OPENROUTER_KEY: Credential = {
 type MediaSetting =
   | "voiceMessages"
   | "voiceAvailable"
+  | "voiceCallAvailable"
   | "gifs"
   | "gifRating"
   | "agentStickers"
@@ -700,6 +741,7 @@ function mediaSettings(state: FakeState): Pick<OrgSettings, MediaSetting> {
     agentMedia: state.media?.agentMedia ?? "sometimes",
     voiceMessages: state.media?.voiceMessages ?? true,
     voiceAvailable: state.media?.voiceAvailable ?? false,
+    voiceCallAvailable: state.media?.voiceCallAvailable ?? false,
     gifsAvailable: state.media?.gifsAvailable ?? true,
     agentMediaAvailable: state.media?.agentMediaAvailable ?? true,
   };
@@ -1249,6 +1291,7 @@ const id = (prefix: string) => `${prefix}-${++n}`;
 /** Served by the in-memory fakes in `test/fakes` (same shapes as the server). */
 type FakedParts =
   | "apps"
+  | "agentApiKeys"
   | "wiki"
   | "notifications"
   | "sandbox"
@@ -1257,6 +1300,7 @@ type FakedParts =
   | "skills"
   | "access"
   | "invites"
+  | "joinDomains"
   | "joinRequests"
   | "storage"
   | "artifacts"
@@ -1376,6 +1420,34 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
     rightHandId: state.agents.find((a) => a.builtin === "right_hand")?.id ?? null,
     me: meNow() ?? undefined,
   });
+  // A model for one conversation (ADR 0032, addendum 2026-11-15), by `${agentId}:${threadId ?? channelId}`.
+  const conversationModels = new Map<string, { brain: string; model: string }>();
+  const CONVERSATION_OPTIONS = [
+    { value: "claude-opus-5-5", label: "Claude Opus 5.5" },
+    { value: "claude-haiku-5-5", label: "Claude Haiku 5.5" },
+  ];
+  const conversationModelView = (agentId: string, channelId: string, threadId: string | null) => {
+    // As the server: a choice made for another brain than the agent's now is passed over.
+    const brain = brainOf(agentId).brain;
+    const of = (id: string) => {
+      const row = conversationModels.get(`${agentId}:${id}`);
+      return row?.brain === brain ? row.model : null;
+    };
+    const model = of(threadId ?? channelId);
+    const inherited = threadId ? of(channelId) : null;
+    const applies = model ?? inherited;
+    return {
+      agentId,
+      channelId,
+      threadId,
+      brain,
+      model,
+      inherited,
+      label: applies ? (CONVERSATION_OPTIONS.find((o) => o.value === applies)?.label ?? applies) : null,
+      options: CONVERSATION_OPTIONS,
+      canEdit: !(state.conversationModelReadOnly ?? []).includes(agentId),
+    };
+  };
   // "Quem pensa": every agent starts on the API, with a MacBook that has Claude Code and Codex.
   const brains = new Map<string, AgentBrain>();
   const brainOf = (agentId: string): AgentBrain => {
@@ -1432,11 +1504,20 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         ...state.instance,
       }),
       telemetry: async () => state.telemetry ?? null,
+      serverUpdate: async () => state.serverUpdate ?? null,
       setTelemetry: async (enabled) => {
         log("system.setTelemetry", enabled);
         if (!state.telemetry) throw new ApiError(404, "not_found", "Not found");
         state.telemetry = { ...state.telemetry, enabled };
         return state.telemetry;
+      },
+      serverUpdater: async () => state.serverUpdater ?? null,
+      updateServer: async () => {
+        log("system.updateServer");
+        if (!state.serverUpdater) throw new ApiError(404, "not_found", "Not found");
+        if (!state.serverUpdater.canUpdate) throw new ApiError(409, "update_in_progress", "Conflict");
+        state.serverUpdater = { ...state.serverUpdater, requested: true, canUpdate: false };
+        return state.serverUpdater;
       },
       sendFeedback: async (input) => {
         log("system.sendFeedback", input);
@@ -1522,11 +1603,26 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         return state.speechKey;
       },
     },
+    readAloud: {
+      available: async () => ({ available: state.readAloudAvailable ?? false }),
+      make: async (_orgId, messageId) => {
+        log("readAloud.make", messageId);
+        return { clipId: `read-${messageId}` };
+      },
+    },
     voice: {
       allowed: async () => ({ allowed: state.voiceAllowed ?? true }),
       send: async (_orgId, channelId, input) => {
         log("voice.send", channelId, input.clientId, input.durationMs);
         return { clipId: `clip-${input.clientId}` };
+      },
+      dictate: async (_orgId, channelId, input) => {
+        log("voice.dictate", channelId, input.durationMs);
+        return { text: state.dictated ?? "" };
+      },
+      speech: async (_orgId, messageId) => {
+        log("voice.speech", messageId);
+        return new Blob([`audio of ${messageId}`], { type: "audio/mpeg" });
       },
     },
     account: {
@@ -1593,6 +1689,21 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
           ? { organizations: state.me.organizations.map((o) => ({ orgId: o.id, unread: 0, waiting: 0 })) }
           : null,
       deviceAccounts: async () => state.deviceAccounts ?? [],
+      sessions: async () => state.accountSessions ?? null,
+      signOutSession: async (sessionId) => {
+        log("account.signOutSession", sessionId);
+        const sessions = state.accountSessions ?? [];
+        if (sessions.some((s) => s.id === sessionId && s.current))
+          throw new ApiError(409, "session.current", "This is the session you're using");
+        if (!sessions.some((s) => s.id === sessionId)) throw new ApiError(404, "not_found", "Session not found");
+        state.accountSessions = sessions.filter((s) => s.id !== sessionId);
+      },
+      signOutOtherSessions: async () => {
+        log("account.signOutOtherSessions");
+        const sessions = state.accountSessions ?? [];
+        state.accountSessions = sessions.filter((s) => s.current);
+        return { signedOut: sessions.length - state.accountSessions.length };
+      },
       switchDeviceAccount: async (userId) => {
         state.calls.push({ method: "account.switchDeviceAccount", args: [userId] });
       },
@@ -1873,6 +1984,18 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         state.sidebarView = structuredClone(view);
         return structuredClone(view);
       },
+      sidebarLinks: async () => structuredClone(state.sidebarLinks ?? []),
+      addSidebarLink: async (orgId, link) => {
+        log("orgs.addSidebarLink", orgId, link);
+        if (state.sidebarLinkError) throw state.sidebarLinkError;
+        state.sidebarLinks = [...(state.sidebarLinks ?? []), { id: `link-${state.calls.length}`, ...link }];
+        return structuredClone(state.sidebarLinks);
+      },
+      removeSidebarLink: async (orgId, linkId) => {
+        log("orgs.removeSidebarLink", orgId, linkId);
+        state.sidebarLinks = (state.sidebarLinks ?? []).filter((l) => l.id !== linkId);
+        return structuredClone(state.sidebarLinks);
+      },
       setAvatar: async (orgId, input) => {
         log("orgs.setAvatar", orgId, { contentType: input.contentType, bytes: input.imageBase64.length });
         const m = state.members.find((x) => x.userId === state.me?.user.id);
@@ -1977,6 +2100,7 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         autoModels: state.autoModels ?? {},
         teamWatch: state.lodiSwitches?.teamWatch ?? true,
         welcomePeople: state.lodiSwitches?.welcomePeople ?? true,
+        incidents: state.lodiSwitches?.incidents ?? true,
         ...mediaSettings(state),
         mode: personalOrg(orgId) ? "personal" : "team",
         // Money: admins only, like the backend.
@@ -1998,11 +2122,12 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         if (input.defaultAgentBudgetUsd !== undefined) state.defaultAgentBudgetUsd = input.defaultAgentBudgetUsd;
         if (input.actionCheck !== undefined) state.actionCheck = input.actionCheck;
         if (input.routerModel !== undefined) state.routerModel = input.routerModel;
-        if (input.teamWatch !== undefined || input.welcomePeople !== undefined)
+        if (input.teamWatch !== undefined || input.welcomePeople !== undefined || input.incidents !== undefined)
           state.lodiSwitches = {
             ...state.lodiSwitches,
             ...(input.teamWatch !== undefined ? { teamWatch: input.teamWatch } : {}),
             ...(input.welcomePeople !== undefined ? { welcomePeople: input.welcomePeople } : {}),
+            ...(input.incidents !== undefined ? { incidents: input.incidents } : {}),
           };
         const { gifs, gifRating, agentStickers, agentMedia } = input;
         state.media = {
@@ -2031,6 +2156,7 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
           autoModels: state.autoModels ?? {},
           teamWatch: state.lodiSwitches?.teamWatch ?? true,
           welcomePeople: state.lodiSwitches?.welcomePeople ?? true,
+          incidents: state.lodiSwitches?.incidents ?? true,
           ...mediaSettings(state),
           mode: personalOrg(orgId) ? "personal" : "team",
           // As the server's answer: the same settings a read gives, money included for who sees it.
@@ -2138,6 +2264,11 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
       refuseMoreUsage: async (orgId, userId) => {
         log("orgs.refuseMoreUsage", orgId, userId);
       },
+      announcements: async () => ({ announcements: state.announcements ?? [] }),
+      dismissAnnouncement: async (orgId, id) => {
+        log("orgs.dismissAnnouncement", orgId, id);
+        state.announcements = state.announcements?.filter((a) => a.id !== id);
+      },
       teamWeek: async () => lodiPrefs(state),
       setTeamWeek: async (orgId, patch) => {
         log("orgs.setTeamWeek", orgId, patch);
@@ -2177,6 +2308,9 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         const page = rows.slice(from, from + limit);
         return { rows: page, next: from + limit < rows.length ? (page.at(-1)?.id ?? null) : null };
       },
+      auditCsvUrl: (orgId, query = {}) =>
+        `/api/app/organizations/${orgId}/audit.csv?${new URLSearchParams(Object.entries(query).map(([k, v]) => [k, String(v)]))}`,
+      healthIssues: async () => ({ issues: state.healthIssues ?? [] }),
       usageReport: async () => ({
         since: minutesAgo(60 * 24 * 14),
         defaultAgentBudgetUsd: state.defaultAgentBudgetUsd ?? 50,
@@ -2593,6 +2727,21 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         log("agents.unarchive", orgId, agentId);
         state.former = (state.former ?? []).filter((a) => a.id !== agentId || a.deleted);
       },
+      duplicate: async (orgId, agentId, name) => {
+        log("agents.duplicate", orgId, agentId, name);
+        const source = state.agents.find((a) => a.id === agentId);
+        if (!source) throw new ApiError(404, "not_found", "Agent not found");
+        const agent = {
+          ...source,
+          id: crypto.randomUUID(),
+          name: name ?? `${source.name} (copy)`,
+          handle: freeHandle(source.handle, takenHandles(state.agents, state.members)),
+          ownerUserId: state.me?.user.id ?? null,
+          previousHandles: [],
+        };
+        state.agents = [...state.agents, agent];
+        return { agent: { ...agent }, skipped: state.duplicateSkipped ?? [] };
+      },
       purge: async (orgId, agentId) => {
         log("agents.purge", orgId, agentId);
         const was =
@@ -2892,6 +3041,15 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         }
         return structuredClone(next);
       },
+      conversationModel: async (_orgId, agentId, { channelId, threadId }) =>
+        conversationModelView(agentId, channelId, threadId ?? null),
+      setConversationModel: async (orgId, agentId, input) => {
+        log("agents.setConversationModel", orgId, agentId, input);
+        const key = `${agentId}:${input.threadId ?? input.channelId}`;
+        if (input.model === null) conversationModels.delete(key);
+        else conversationModels.set(key, { brain: brainOf(agentId).brain, model: input.model });
+        return conversationModelView(agentId, input.channelId, input.threadId ?? null);
+      },
       runs: async (_orgId, filter = {}) =>
         state.runs
           .filter(
@@ -3052,14 +3210,60 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         for (const { app, ref, kind } of state.imported ?? []) {
           let source = sources.find((x) => x.app === app && x.ref === ref);
           if (!source) {
-            source = { app, ref, counts: { agent: 0, skill: 0, channel: 0, routine: 0, note: 0 } };
+            source = { app, ref, mine: true, counts: { agent: 0, skill: 0, channel: 0, routine: 0, note: 0 } };
             sources.push(source);
           }
           source.counts[kind] += 1;
         }
         return sources;
       },
-      exportUrl: (orgId) => `/api/app/organizations/${orgId}/export`,
+      // Like the backend when nothing was changed here: everything the package brought goes.
+      undo: async (orgId, input) => {
+        log("imports.undo", orgId, input);
+        const theirs = (state.imported ?? []).filter((i) => i.app === input.app && i.ref === input.ref);
+        const items = theirs.map((i, n) => ({
+          kind: i.kind,
+          key: `${i.kind}-${n}`,
+          label: `${i.kind} ${n + 1}`,
+          action: "remove" as const,
+          targetId: id(i.kind),
+        }));
+        if (!input.dryRun) state.imported = (state.imported ?? []).filter((i) => !theirs.includes(i));
+        return { items };
+      },
+      exportUrl: (orgId, scope) => `/api/app/organizations/${orgId}/export${exportQuery(scope)}`,
+      // Like the backend's part: the agents named and the setores' agents, with their routines; no skills or memory here.
+      exportBundle: async (orgId, scope) => {
+        log("imports.exportBundle", orgId, scope);
+        const inGroups = (state.agentGroups ?? []).filter((g) => scope.groupIds?.includes(g.id));
+        const unknown =
+          inGroups.length !== (scope.groupIds?.length ?? 0) ||
+          (scope.agentIds ?? []).some((id) => !state.agents.some((a) => a.id === id));
+        if (unknown) throw new ApiError(404, "not_found", "Not found");
+        const ids = new Set([...(scope.agentIds ?? []), ...inGroups.flatMap((g) => g.agentIds)]);
+        const chosen = state.agents.filter((a) => ids.has(a.id));
+        return {
+          format: "agenteschat.bundle",
+          version: 1,
+          source: { app: "agenteschat", ref: orgId, name: "Acme", files: [] },
+          agents: chosen.map((a) => ({
+            key: a.id,
+            name: a.name,
+            handle: a.handle,
+            role: a.role,
+            instructions: a.instructions,
+            model: a.model,
+            appearance: {},
+            skills: [],
+          })),
+          skills: [],
+          channels: [],
+          routines: [],
+          notes: [],
+          todo: [],
+          leftOut: [],
+        };
+      },
       // Like the backend: `<agent's name>/<path>` in the Drive, never over a name already there, never a key file.
       copyFile: async (orgId, { file, ...input }) => {
         log("imports.copyFile", orgId, input);
@@ -3240,6 +3444,14 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         if (state.answerNowError) throw state.answerNowError;
         return { runs: state.answerNowRuns ?? [] };
       },
+      editMessage: async (orgId, messageId, input) => {
+        log("chat.editMessage", orgId, messageId, input);
+        const found = state.messages.find((m) => m.id === messageId);
+        if (!found) throw new ApiError(404, "not_found", "Message not found");
+        found.body = input.body.trim();
+        found.editedAt = new Date().toISOString();
+        return { message: structuredClone(found), runs: [] };
+      },
       followUps: async (orgId, channelId) => {
         log("chat.followUps", orgId, channelId);
         return (state.followUps ?? []).filter((r) => r.channelId === channelId);
@@ -3257,6 +3469,9 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         const line = state.messages.find((m) => m.id === messageId);
         const notice = line?.meta?.notice as { refs?: Record<string, string> } | undefined;
         if (notice?.refs) notice.refs = { ...notice.refs, answeredBy: "me" };
+      },
+      leaveMeeting: async (orgId, meetingId) => {
+        log("chat.leaveMeeting", orgId, meetingId);
       },
       roster: async (_orgId, channelId) =>
         (state.channelMembers[channelId] ?? []).map((m) =>
@@ -3379,6 +3594,21 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         // Like the server: a reply from the thread panel marks when "Responder" opened the thread.
         if (input.openThread && input.threadId) await state.openThread?.(orgId, input.threadId, message.createdAt);
         return message;
+      },
+    },
+    // The phone's tools (ADR 0205) answer only the phone app: the web gets the server's `phone.app_only`.
+    phone: {
+      tools: async () => {
+        throw new ApiError(403, "phone.app_only", "Only the phone app");
+      },
+      setTools: async () => {
+        throw new ApiError(403, "phone.app_only", "Only the phone app");
+      },
+      jobs: async () => {
+        throw new ApiError(403, "phone.app_only", "Only the phone app");
+      },
+      answer: async () => {
+        throw new ApiError(403, "phone.app_only", "Only the phone app");
       },
     },
     // GIF search (ADR 0091): titles that hold the words, a page at a time; `gifs.off` like the server's.
@@ -3558,6 +3788,17 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         conn.label = label;
         return structuredClone(conn);
       },
+      setPerPerson: async (orgId, connectionId, perPerson) => {
+        log("connectors.setPerPerson", orgId, connectionId, perPerson);
+        return { perPerson };
+      },
+      connectMine: async (orgId, connectionId, input) => {
+        log("connectors.connectMine", orgId, connectionId, input);
+        return `https://connect.composio.dev/link/ln_1?state=s&return=${encodeURIComponent(input.returnTo)}`;
+      },
+      disconnectMine: async (orgId, connectionId) => {
+        log("connectors.disconnectMine", orgId, connectionId);
+      },
       disconnect: async (orgId, connectionId) => {
         log("connectors.disconnect", orgId, connectionId);
         state.connections = state.connections.filter((c) => c.id !== connectionId);
@@ -3696,10 +3937,34 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         });
         return { channelId, dm: dmRow(state.dms.at(-1) as (typeof state.dms)[number]) };
       },
+      share: async (orgId, channelId, input) => {
+        log("dms.share", orgId, channelId, input);
+        const to = "channelId" in input.to ? input.to.channelId : id("dm");
+        const message: Message = {
+          id: id("msg"),
+          channelId: to,
+          threadId: null,
+          author: { type: "person", id: state.me?.user.id ?? null },
+          body: input.note,
+          mentionedAgentIds: [],
+          agentRunId: null,
+          clientId: null,
+          createdAt: new Date().toISOString(),
+        };
+        state.messages.push(message);
+        return { channelId: to, message };
+      },
       markRead: async (orgId, channelId) => {
         log("dms.markRead", orgId, channelId);
         const dm = state.dms.find((d) => d.channelId === channelId);
         if (dm) dm.everRead = true;
+      },
+      markUnread: async (orgId, channelId) => {
+        log("dms.markUnread", orgId, channelId);
+        const c = state.channels.find((x) => x.id === channelId);
+        if (c) c.unreadCount = Math.max(c.unreadCount ?? 0, 1);
+        const dm = state.dms.find((d) => d.channelId === channelId);
+        if (dm) dm.unread = Math.max(dm.unread ?? 0, 1);
       },
       reads: async () => [],
     },
@@ -3726,6 +3991,24 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         }
         if (input.choice && q.choices && !q.choices.includes(input.choice)) {
           throw new ApiError(400, "invalid_choice", "Pick one of the options");
+        }
+        if (input.answers && q.items) {
+          // A card of several questions: one answer per question, in order, each with a pick or words.
+          if (input.answers.length !== q.items.length || input.answers.some((a) => !a.choices?.length && !a.text))
+            throw new ApiError(400, "validation", "Answer every question on the card, in order");
+          const answers = input.answers.map((a) => ({ choices: a.choices ?? [], text: a.text ?? null }));
+          const lines = q.items.map((item, i) => {
+            const a = answers[i];
+            const picked = a?.choices.join(", ") ?? "";
+            return `${item.question} ${picked && a?.text ? `${picked} (${a.text})` : picked || a?.text || ""}`;
+          });
+          Object.assign(q, {
+            status: "answered",
+            answer: lines.join("\n"),
+            answers,
+            answeredByUserId: state.me?.user.id ?? null,
+          });
+          return structuredClone(q);
         }
         const answer =
           input.choice && input.text ? `${input.choice} (${input.text})` : (input.choice ?? input.text ?? null);
@@ -4018,6 +4301,9 @@ export const fakeBrowserOf = new WeakMap<ApiClient, FakeBrowser>();
 /** The AI apps fake behind each `createFakeApi` client (tests add consents and connect apps with it). */
 export const fakeAppsOf = new WeakMap<ApiClient, FakeApps>();
 
+/** The agent API keys fake behind each `createFakeApi` client (tests add keys and their rooms with it). */
+export const fakeAgentApiKeysOf = new WeakMap<ApiClient, FakeAgentApiKeys>();
+
 /** The boards and widgets fake behind each `createFakeApi` client (tests add boards and finish widgets with it). */
 export const fakeDashboardsOf = new WeakMap<ApiClient, FakeDashboards>();
 
@@ -4070,11 +4356,17 @@ export function createFakeApi(state: FakeState = seedState(), options: { seed?: 
   );
   const browser = createFakeBrowser((method, ...args) => state.calls.push({ method, args }), ctx.now);
   const apps = createFakeApps((method, ...args) => state.calls.push({ method, args }), ctx.now);
+  const agentApiKeys = createFakeAgentApiKeys(
+    (method, ...args) => state.calls.push({ method, args }),
+    ctx.now,
+    () => ({ id: state.me?.user.id ?? "", name: state.me?.user.name ?? "" }),
+  );
   const artifacts = createMockArtifacts(ctx, (method, ...args) => state.calls.push({ method, args }));
   state.drive = artifacts;
   const client: ApiClient = {
     ...http,
     apps: apps.client,
+    agentApiKeys: agentApiKeys.client,
     sandbox: createFakeSandbox(ctx, (method, ...args) => state.calls.push({ method, args }), machines),
     machines: machines.client,
     devices: devices.client,
@@ -4083,6 +4375,12 @@ export function createFakeApi(state: FakeState = seedState(), options: { seed?: 
         get items() {
           state.notifications ??= [];
           return state.notifications;
+        },
+        get prefs() {
+          return state.noticePrefs;
+        },
+        set prefs(prefs) {
+          state.noticePrefs = prefs;
         },
       },
       (method, ...args) => state.calls.push({ method, args }),
@@ -4250,6 +4548,39 @@ export function createFakeApi(state: FakeState = seedState(), options: { seed?: 
         if (state.requestNewError) throw state.requestNewError;
       },
     },
+    joinDomains: {
+      list: async (orgId) => {
+        state.calls.push({ method: "joinDomains.list", args: [orgId] });
+        return structuredClone(state.joinDomains ?? []);
+      },
+      add: async (orgId, input) => {
+        state.calls.push({ method: "joinDomains.add", args: [orgId, input] });
+        const made = {
+          id: `domain-${(state.joinDomains ?? []).length + 1}`,
+          domain: input.domain.trim().toLowerCase().replace(/^@/, ""),
+          roleIds: input.roleIds ?? [],
+          createdAt: "2026-11-15T10:00:00.000Z",
+        };
+        state.joinDomains = [...(state.joinDomains ?? []).filter((d) => d.domain !== made.domain), made];
+        return structuredClone(made);
+      },
+      remove: async (orgId, domainId) => {
+        state.calls.push({ method: "joinDomains.remove", args: [orgId, domainId] });
+        state.joinDomains = (state.joinDomains ?? []).filter((d) => d.id !== domainId);
+      },
+      workspaces: async () => {
+        state.calls.push({ method: "joinDomains.workspaces", args: [] });
+        return structuredClone(state.domainWorkspaces ?? []);
+      },
+      join: async (orgId) => {
+        state.calls.push({ method: "joinDomains.join", args: [orgId] });
+        const joined = (state.domainWorkspaces ?? []).find((w) => w.id === orgId);
+        state.domainWorkspaces = (state.domainWorkspaces ?? []).filter((w) => w.id !== orgId);
+        if (joined && state.me && !state.me.organizations.some((o) => o.id === orgId))
+          state.me.organizations.push({ id: orgId, name: joined.name, role: "member", showActivity: true });
+        return { orgId };
+      },
+    },
     joinRequests: {
       list: async (orgId) => {
         state.calls.push({ method: "joinRequests.list", args: [orgId] });
@@ -4384,6 +4715,7 @@ export function createFakeApi(state: FakeState = seedState(), options: { seed?: 
   fakeDashboardsOf.set(client, dashboards);
   fakeBrowserOf.set(client, browser);
   fakeAppsOf.set(client, apps);
+  fakeAgentApiKeysOf.set(client, agentApiKeys);
   return client;
 }
 

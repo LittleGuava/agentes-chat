@@ -2,11 +2,13 @@ import { describe, expect, test } from "bun:test";
 import type { Credential, Model } from "../src/api/types";
 import {
   checksInOrder,
+  credentialMark,
   draftOfEndpoint,
   emptyEndpointDraft,
   endpointAddressLooksValid,
   endpointModelsOf,
   endpointReady,
+  modelMark,
   modelsShown,
   modelUnpriced,
   parsePrice,
@@ -209,5 +211,26 @@ describe("endpoint models in the pickers", () => {
         { id: "chat", check: "no_tools" },
       ]),
     ).toEqual({ model: `custom:${b}:chat` });
+  });
+});
+
+describe("an endpoint's mark", () => {
+  const key = (baseURL: string) => ({
+    provider: "custom",
+    endpoint: { style: "openai" as const, baseURL, models: [] },
+  });
+
+  test("a key shows the maker its endpoint's host names, else the generic endpoint's, else its provider's", () => {
+    expect(credentialMark(key("https://api.deepseek.com/v1"))).toBe("deepseek");
+    expect(credentialMark(key("https://my-gateway.example/v1"))).toBe("custom");
+    expect(credentialMark({ provider: "custom" })).toBe("custom");
+    expect(credentialMark({ provider: "anthropic" })).toBe("anthropic");
+  });
+
+  test("an endpoint model shows the mark the server read from its host, never its endpoint's name", () => {
+    const base = { provider: "custom" };
+    expect(modelMark({ ...base, endpoint: { credentialId: "k", name: "Claude", mark: "deepseek" } })).toBe("deepseek");
+    expect(modelMark({ ...base, endpoint: { credentialId: "k", name: "Claude" } })).toBe("custom");
+    expect(modelMark({ provider: "openai" })).toBe("openai");
   });
 });

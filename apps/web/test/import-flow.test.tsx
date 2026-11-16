@@ -12,7 +12,7 @@ import { fileSaver } from "@/components/artifacts/fileSaver";
 import { ImportFlow, useImportFlow } from "@/components/ImportFlow";
 import { EXPORT_PROMPT } from "@/lib/import";
 import { zip } from "./archives";
-import { createFakeApi, fakeAppsOf, ORG_ID, seedState } from "./fake-api";
+import { ADA_ID, ATLAS_ID, createFakeApi, fakeAppsOf, ORG_ID, seedState } from "./fake-api";
 import { type FakeApps, SERVER_URL } from "./fakes/apps";
 import { renderApp, renderPage, screen, settle } from "./render";
 
@@ -175,6 +175,79 @@ describe("Configurações → Importar e exportar", () => {
     expect(saved).toHaveLength(1);
     expect(saved[0]?.[0]).toBe(`/api/app/organizations/${ORG_ID}/export`);
     expect(saved[0]?.[1]).toMatch(/^agentes-chat-\d{4}-\d{2}-\d{2}\.json$/);
+  });
+
+  test("a part of it: setores and agents in one field, what goes in shown before the download", async () => {
+    const saved: [string, string][] = [];
+    fileSaver.save = (url, name) => saved.push([url, name]);
+    const state = seedState();
+    const setor = "00000000-0000-4000-8000-0000000000e1";
+    const empty = "00000000-0000-4000-8000-0000000000e2";
+    state.agentGroups = [
+      { id: setor, name: "Pesquisa", agentIds: [ADA_ID] },
+      { id: empty, name: "Vazio", agentIds: [] },
+    ];
+    await go(state);
+    const card = screen().getByRole("region", { name: "Exportar" });
+    const download = () => within(card).getByRole("button", { name: "Baixar o arquivo" }) as HTMLButtonElement;
+    await click(within(card).getByRole("radio", { name: "Setores ou agentes" }));
+    // Nothing picked: nothing to download yet.
+    expect(download().disabled).toBe(true);
+    const field = within(card).getByRole("combobox", { name: "Setores e agentes" });
+    const pick = async (name: string) => {
+      await act(async () => fireEvent.keyDown(field, { key: "ArrowDown" }));
+      await settle(4);
+      const list = screen().getByRole("listbox", { name: "Setores e agentes" });
+      await click(within(list).getByRole("option", { name: new RegExp(`^${name}`) }), 8);
+    };
+    await pick("Vazio");
+    expect(card.textContent).toContain("Nenhum agente no que você escolheu: o arquivo iria vazio.");
+    expect(download().disabled).toBe(true);
+    await pick("Pesquisa");
+    await pick("Atlas");
+    expect(card.textContent).toContain("Vão no arquivo: 2 agentes, Ada e Atlas.");
+    expect(calls(state, "imports.exportBundle").at(-1)?.args[1]).toEqual({
+      agentIds: [ATLAS_ID],
+      groupIds: [empty, setor],
+    });
+    await click(download());
+    expect(saved).toHaveLength(1);
+    expect(saved[0]?.[0]).toBe(`/api/app/organizations/${ORG_ID}/export?agents=${ATLAS_ID}&groups=${empty}%2C${setor}`);
+
+    // A token's ✕ takes it out of the part.
+    await click(within(card).getByRole("button", { name: "Remover Atlas" }), 8);
+    expect(card.textContent).toContain("Vai no arquivo: Ada.");
+
+    // Back to the whole workspace: the plain download, no part.
+    await click(within(card).getByRole("radio", { name: "O workspace todo" }));
+    await click(download());
+    expect(saved[1]?.[0]).toBe(`/api/app/organizations/${ORG_ID}/export`);
+  });
+
+  test("a part whose preview fails says why and never downloads", async () => {
+    const saved: [string, string][] = [];
+    fileSaver.save = (url, name) => saved.push([url, name]);
+    const state = seedState();
+    const api = createFakeApi(state);
+    api.imports = {
+      ...api.imports,
+      exportBundle: async () => {
+        throw new ApiError(400, "validation_error", "Too many");
+      },
+    };
+    await go(state, api);
+    const card = screen().getByRole("region", { name: "Exportar" });
+    await click(within(card).getByRole("radio", { name: "Setores ou agentes" }));
+    const field = within(card).getByRole("combobox", { name: "Setores e agentes" });
+    await act(async () => fireEvent.keyDown(field, { key: "ArrowDown" }));
+    await settle(4);
+    const list = screen().getByRole("listbox", { name: "Setores e agentes" });
+    await click(within(list).getByRole("option", { name: /^Ada/ }), 8);
+    expect(card.querySelector("#imp-export-preview")?.textContent).not.toBe("");
+    const download = within(card).getByRole("button", { name: "Baixar o arquivo" }) as HTMLButtonElement;
+    expect(download.disabled).toBe(true);
+    await click(download);
+    expect(saved).toEqual([]);
   });
 
   test("members don't see it", async () => {
@@ -1137,5 +1210,83 @@ describe("Configurações → Importar e exportar", () => {
       expect(text()).not.toContain("Copiando os arquivos");
       expect(applies(state).some((i) => i.pick?.[0] === "note:scout/drive-files")).toBe(false);
     });
+  });
+});
+
+describe("what was changed here since the import, and undoing an import (ADR 0055, addendum 2026-11-15)", () => {
+  /** Scout was changed here since the last import, and in the other app too. */
+  const keptScout = (api: ApiClient, state: State) =>
+    withPlan(api, state, () => [
+      { kind: "agent", key: "lead", label: "Morgan", action: "create" },
+      { kind: "agent", key: "scout", label: "Scout", action: "skip", reason: "edited_here", targetId: "agent-scout" },
+      { kind: "agent", key: "writer", label: "Quill", action: "create" },
+    ]);
+
+  test("it stays unchecked, said so; applying leaves it; checked one by one, it is sent to overwrite", async () => {
+    const state = seedState();
+    const api = createFakeApi(state);
+    keptScout(api, state);
+    await go(state, api);
+    await pick("Arquivos para importar", [fixture("sales-desk.openmaus.json")]);
+    const scout = screen().getByRole("checkbox", { name: "Trazer Scout" });
+    expect(scout.getAttribute("aria-checked")).toBe("false");
+    expect(chipOf("Scout · Prospect researcher")).toBe("mudou aqui");
+    expect(text()).toContain("Fica como está. Marque para trocar pela versão nova.");
+    // Checking every agent at once never overwrites it: only its own checkbox does.
+    const all = screen().getByRole("checkbox", { name: "Trazer tudo em Agentes" });
+    expect(all.getAttribute("aria-checked")).toBe("true");
+
+    await click(button(/^Importar 2 itens/), 8);
+    const first = applies(state).filter((i) => !i.dryRun);
+    expect(first.flatMap((i) => i.pick ?? [])).toEqual(["agent:lead", "agent:writer"]);
+    expect(first.some((i) => i.overwrite)).toBe(false);
+    expect(text()).toContain("1 item mudado aqui ficou como está.");
+
+    await click(button("Importar outro arquivo"), 2);
+    await pick("Arquivos para importar", [fixture("sales-desk.openmaus.json")]);
+    await click(screen().getByRole("checkbox", { name: "Trazer Scout" }), 2);
+    expect(chipOf("Scout · Prospect researcher")).toBe("vai atualizar");
+    expect(text()).toContain("Troca o que foi mudado aqui pela versão nova.");
+    await click(button(/^Importar 3 itens/), 8);
+    const second = applies(state)
+      .filter((i) => !i.dryRun)
+      .slice(first.length);
+    expect(second.flatMap((i) => i.pick ?? [])).toEqual(["agent:lead", "agent:scout", "agent:writer"]);
+    expect(second.flatMap((i) => i.overwrite ?? [])).toEqual(["agent:scout"]);
+  });
+
+  test("your imports: Desfazer shows what goes and what stays, then takes it back", async () => {
+    const state = seedState();
+    state.imported = [
+      { app: "openmausbot", ref: "pkg-sales", kind: "agent" },
+      { app: "openmausbot", ref: "pkg-sales", kind: "note" },
+    ];
+    const api = createFakeApi(state);
+    const fake = api.imports.undo;
+    api.imports = {
+      ...api.imports,
+      undo: async (orgId, input) => {
+        const { items } = await fake(orgId, input);
+        // The note was changed here since the import: it stays.
+        return { items: items.map((i) => (i.kind === "note" ? { ...i, action: "keep", reason: "edited_here" } : i)) };
+      },
+    };
+    await go(state, api);
+    const card = screen().getByRole("region", { name: "Suas importações" });
+    expect(card.textContent).toContain("OpenMausBot · pkg-sales");
+    expect(card.textContent).toContain("1 agente · 1 memória");
+
+    await click(within(card).getByRole("button", { name: "Desfazer" }), 6);
+    const dialog = screen().getByRole("dialog", { name: "Desfazer a importação de OpenMausBot · pkg-sales" });
+    expect(within(dialog).getByRole("heading", { name: /^Sai/ })).toBeTruthy();
+    expect(within(dialog).getByRole("heading", { name: /^Fica/ })).toBeTruthy();
+    expect(dialog.textContent).toContain("Mudou aqui desde a importação.");
+    expect(calls(state, "imports.undo").map((c) => (c.args[1] as { dryRun: boolean }).dryRun)).toEqual([true]);
+
+    await click(within(dialog).getByRole("button", { name: "Desfazer importação" }), 8);
+    expect(calls(state, "imports.undo").map((c) => (c.args[1] as { dryRun: boolean }).dryRun)).toEqual([true, false]);
+    expect(text()).toContain("1 item desfeito.");
+    expect(screen().queryByRole("dialog")).toBeNull();
+    expect(screen().queryByRole("region", { name: "Suas importações" })).toBeNull();
   });
 });

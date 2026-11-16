@@ -5,7 +5,7 @@ import type {
   ImportSkipReason,
   MigrationBundle,
 } from "@agenteschat/client";
-import { choosable, IMPORT_KINDS, type ImportCard, itemId } from "@agenteschat/client/lib/import/flow";
+import { choosable, IMPORT_KINDS, type ImportCard, itemId, keptHere } from "@agenteschat/client/lib/import/flow";
 import { ARCHIVE_PATH, importFileCap, isSecretPath, TEXT_PATH } from "@agenteschat/client/lib/import/shared";
 import { isIdHandle } from "@agenteschat/tokens/names";
 
@@ -77,7 +77,8 @@ export function agentRows(
     .map((item) => {
       const agent = byKey.get(item.key);
       const id = itemId(item);
-      const free = choosable(item) && !blocked.has(id);
+      // What was changed here stays on the phone: overwriting it one by one is the web's.
+      const free = choosable(item) && !keptHere(item) && !blocked.has(id);
       const own = agent?.handle ?? item.key;
       return {
         id,

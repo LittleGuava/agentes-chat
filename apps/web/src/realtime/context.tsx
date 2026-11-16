@@ -45,6 +45,7 @@ import {
   cacheDmRead,
   cacheMessage,
   cacheMessageActions,
+  cacheMessageEdited,
   cacheMessageMeta,
   cacheMessageWork,
   cachePinned,
@@ -110,6 +111,7 @@ import { useApi } from "@/api/context";
 import { checkAppVersion } from "@/lib/app-version";
 import { desktopNotice, inDesktopApp, thisMac } from "@/lib/desktop";
 import { feedIsland, island } from "@/lib/island";
+import { readArrivedReply } from "@/lib/read-aloud";
 import { notificationAudience } from "@/lib/sounds";
 import { useToast } from "@/lib/toast";
 import { settleShownPushes } from "@/lib/web-push";
@@ -799,6 +801,8 @@ export function useChannelRealtime(orgId: string, channelId: string, enabled: bo
       handledEvents.add(event);
       streams.apply(event);
       applyMembershipEvent(qc, orgId, event);
+      // A finished agent reply, read aloud where this device asked for it (ADR 0209).
+      if (event.type === "message.created") readArrivedReply(qc, api, orgId, event.message);
       if (event.type === "approval.created" || event.type === "approval.decided") {
         cacheApproval(qc, orgId, event.approval);
       }
@@ -854,6 +858,8 @@ export function useChannelRealtime(orgId: string, channelId: string, enabled: bo
         cachePinned(qc, orgId, channelId, event.messageId, event.type === "message.pinned");
         void qc.invalidateQueries({ queryKey: keys.pins(orgId, channelId) });
       }
+      // Its author edited a message (ADR 0207): the new text, in place, everywhere it shows.
+      if (event.type === "message.edited") cacheMessageEdited(qc, orgId, channelId, event);
       // Act with undo: an agent message's receipts changed (made, undone, redone): replace the list.
       // A long work moved, updated or ended (ADR 0121): its anchor's line redraws; its card on the board too.
       if (event.type === "agent.work") {
@@ -923,6 +929,29 @@ export function useChannelEvents(channelId: string, enabled: boolean, onEvent: (
     if (!connection || !enabled) return;
     return connection.subscribe(channelId, (event) => handler.current(event));
   }, [connection, enabled, channelId]);
+}
+
+/**
+ * Keeps who else has the conversation open fresh while `enabled` (ADR 0084 addendum 2026-11-15): its `channel.viewers`
+ * and every (re)subscription read it again, since what changed while the socket was down never came.
+ */
+export function useViewersLive(orgId: string, channelId: string, enabled: boolean) {
+  const { connection } = useRealtime();
+  const qc = useQueryClient();
+  useEffect(() => {
+    if (!connection || !enabled) return;
+    const again = () => void qc.invalidateQueries({ queryKey: keys.viewers(orgId, channelId) });
+    const off = connection.subscribe(channelId, (event) => {
+      if (event.type === "channel.viewers") again();
+    });
+    const offSubscribed = connection.onSubscribed((id) => {
+      if (id === channelId) again();
+    });
+    return () => {
+      off();
+      offSubscribed();
+    };
+  }, [connection, enabled, orgId, channelId, qc]);
 }
 
 /** Same items in the same order (lists), or the same keys with the same values (plain objects). */

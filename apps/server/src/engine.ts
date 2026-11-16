@@ -1,14 +1,18 @@
 import {
   type Adapters,
   type BrainTurnRequest,
+  createCallVoice,
+  createReadAloudEngine,
   type ErrorReporter,
   type S3Fetch,
+  type SpeechEngine,
   type SpeechFetch,
   STREAM_CLOSE,
 } from "@agenteschat/adapters";
 import { type Config, connectorOAuthApps, githubAppConfig, mcpCallerIdentity } from "@agenteschat/config";
 import type { Database } from "@agenteschat/db";
 import {
+  AcpBrain,
   AntigravityBrain,
   APP_FAULT_HINT,
   type ArtifactDeps,
@@ -52,6 +56,8 @@ import {
   createGitHubAppSettings,
   createGitToolSource,
   createHandOffToolSource,
+  createImageToolSource,
+  createIncidentToolSource,
   createIssueToolSource,
   createJevJudge,
   createJevKey,
@@ -60,12 +66,17 @@ import {
   createMachineHub,
   createMailToolSource,
   createMediaToolSource,
+  createMeetingAudio,
+  createMeetingToolSource,
   createMissionHooks,
   createMissionRunToolSource,
   createMissionToolSource,
   createModelGateway,
+  createMyChromeToolSource,
   createPassToolSource,
   createPermissionToolSource,
+  createPhoneToolSource,
+  createPublishedPageToolSource,
   createReactToolSource,
   createReleaseAsksToolSource,
   createSandboxToolSource,
@@ -73,6 +84,7 @@ import {
   createSessionScreening,
   createSetStatusToolSource,
   createSetupToolSource,
+  createSiteRelay,
   createSkillToolSource,
   createSpeechSettings,
   createStreamBroker,
@@ -92,6 +104,7 @@ import {
   envSpeechEngines,
   feedbackDestination,
   type GatewayEmbeddings,
+  type GatewayImages,
   type GitProxyDeps,
   GrokBrain,
   getAgentCached,
@@ -110,6 +123,7 @@ import {
   prepareAgentCode,
   publishUserEvent,
   queueBudgetEmail,
+  type ReadAloudDeps,
   type ResolveHost,
   RIGHT_HAND_TURN,
   ROUTER_QUIET_MS,
@@ -125,6 +139,8 @@ import {
   type StorageDeps,
   setWorkOrgCap,
   shareSavedFile,
+  siteRelayFromDb,
+  siteRelayHooks,
   smallModelFor,
   standingJudge,
   streamClosed,
@@ -135,7 +151,12 @@ import {
   withComposio,
   withJudgeFallback,
 } from "@agenteschat/engine";
-import { createOpenAIEmbeddings, createVoyageEmbeddings, type ModelProvider } from "@agenteschat/providers";
+import {
+  createImageProviders,
+  createOpenAIEmbeddings,
+  createVoyageEmbeddings,
+  type ModelProvider,
+} from "@agenteschat/providers";
 import { type AppleTokenRevoker, appleTokenRevoker } from "./auth";
 import { hookConfig } from "./routes/app/context";
 import { version } from "./version";
@@ -155,6 +176,8 @@ export interface EngineOptions {
   appleRevoke?: AppleTokenRevoker;
   http?: typeof fetch;
   embeddings?: GatewayEmbeddings;
+  /** Tests: fake image providers (ADR 0213); absent: OpenAI's and Gemini's own. */
+  imageProviders?: GatewayImages["providers"];
   /** Latency measurements from runs (logged by the server). */
   onTiming?(name: string, ms: number, attrs: Record<string, unknown>): void;
   /** Tests: fake TypeSafe transport. */
@@ -226,6 +249,8 @@ export function buildEngine(o: EngineOptions) {
     },
     embeddings,
     errors: o.errors,
+    // Pictures for every brain (ADR 0213), on the workspace's own OpenAI or Gemini key.
+    images: { providers: o.imageProviders ?? createImageProviders(), perDay: config.IMAGES_PER_DAY },
   });
   const context: ContextDeps = {
     db,
@@ -395,6 +420,16 @@ export function buildEngine(o: EngineOptions) {
     errors: o.errors,
     vault,
   });
+  // Meetings an agent takes notes in (ADR 0199 §4): the speech chain is made below, with voice messages.
+  let meetingSpeech: () => SpeechEngine[] = () => [];
+  const meetingAudio = createMeetingAudio({
+    db,
+    pubsub: adapters.pubsub,
+    hub: machineHub,
+    speech: () => meetingSpeech(),
+    browser: browserTools.plan,
+    log: o.log,
+  });
   // The workspace's cap of live background works (ADR 0121 §7).
   setWorkOrgCap(config.AGENT_WORK_MAX_PER_ORG);
   const tools = createToolGateway({
@@ -435,12 +470,18 @@ export function buildEngine(o: EngineOptions) {
       createReactToolSource({ pubsub: adapters.pubsub }),
       // A GIF or the agent's sticker when asked (ADR 0091): listed by the workspace's switches and the agent's.
       createMediaToolSource({ pubsub: adapters.pubsub, gifs: adapters.gifs ?? null }),
+      // A picture from words, saved in the Drive, while the workspace has an image provider's key (ADR 0213).
+      createImageToolSource({ gateway, artifacts }),
+      // The contacts on the phone of the person talking to the agent, in their own DM, once they turn it on (ADR 0205).
+      createPhoneToolSource({ pubsub: adapters.pubsub }),
       // Long work goes to the background and reports back by itself, on every brain (ADR 0121).
       createWorkToolSource({ pubsub: adapters.pubsub }),
       // An agent comes back to a conversation by itself (a CI run, a deploy), instead of promising to.
       createFollowUpToolSource({ pubsub: adapters.pubsub }),
       // The right hand sees what the team is doing, with no model call (ADR 0137 §13).
       createTeamStatusToolSource(),
+      // The right hand tries a failed task again, from its incident (ADR 0177 addendum 2026-11-15).
+      createIncidentToolSource({ pubsub: adapters.pubsub }),
       // Background runs (routines) speak only through it, with a GIF where the agent may send one (ADR 0091).
       createHandOffToolSource({
         pubsub: adapters.pubsub,
@@ -451,6 +492,8 @@ export function buildEngine(o: EngineOptions) {
       // Runs nobody called by name may stay quiet (reply-policy.ts): listed only for them.
       createPassToolSource(),
       createArtifactToolSource(artifacts),
+      // A page at a public address, after a person approves, only where the server has a pages host (ADR 0211).
+      createPublishedPageToolSource({ ...artifacts, baseUrl: config.PUBLISHED_PAGES_URL }),
       // Live blocks and votes in the agent's own conversation (ADR 0113).
       createBlockToolSource(artifacts),
       createChatToolSource({ pubsub: adapters.pubsub, artifacts, gif: createAgentGifPoster(adapters.gifs) }),
@@ -523,6 +566,14 @@ export function buildEngine(o: EngineOptions) {
         publicUrl: config.PUBLIC_URL,
       }),
       browserTools,
+      // Meetings (ADR 0199): joined from the agent's own browser, offered only where the workspace turned them on, the
+      // agent's computer can hear a call and a speech engine makes its words.
+      createMeetingToolSource({
+        browser: browserTools.plan,
+        listener: meetingAudio.listener,
+        leave: meetingAudio.leave,
+        pubsub: adapters.pubsub,
+      }),
       // Reading the web, for every agent and run (ADR 0109): a search service when configured, else the agent's
       // own browser, else DuckDuckGo's HTML page.
       createWebToolSource({
@@ -540,6 +591,8 @@ export function buildEngine(o: EngineOptions) {
         vision,
         publicUrl: config.PUBLIC_URL,
       }),
+      // A person's own Chrome, lent to an agent from the desktop app (ADR 0202): only in the lender's own runs.
+      createMyChromeToolSource({ machines: { hub: machineHub } }),
       // Git through our proxy (ADR 0024): connected machines clone and push through the runner's `git.sync`
       // (only our credential reaches the machine; nothing global changes there).
       createGitToolSource({
@@ -557,6 +610,8 @@ export function buildEngine(o: EngineOptions) {
     pubsub: adapters.pubsub,
     // One of our own tools broke: where the server takes feedback, the agent may offer a report (ADR 0160 §12).
     ...(feedbackDestination(config) ? { faultHint: APP_FAULT_HINT } : {}),
+    // A JSON answer too long for the model is kept for the run and read in parts (ADR 0015, addendum on long results).
+    keepLongResults: true,
   });
   // Mission tasks' tools and computer-brain runs' tools come through the hub's MCP bridge (ADR 0032).
   // Runs waiting for a device (bring your own devices) go on when its computer is back or its phones report it free.
@@ -593,6 +648,9 @@ export function buildEngine(o: EngineOptions) {
       }
     },
   });
+  // Sites that refuse data centers open through a person's own computer (ADR 0203): two runners' data sockets paired.
+  const siteRelay = createSiteRelay({ hub: machineHub, ...siteRelayFromDb(db), log: o.log });
+  machineHub.setRelayHooks(siteRelayHooks(db, siteRelay));
   // agentes.chat Cloud reads the screen's text while a person is in control (ADR 0076); a self-hosted server never.
   const sessions = config.SESSION_SCREENING ? createSessionScreening({ db, hub: machineHub, log: o.log }) : null;
   // Agents' desktops and terminals (ADR 0058): each person's stream paired with the runner's data socket for it,
@@ -616,8 +674,12 @@ export function buildEngine(o: EngineOptions) {
     },
     recheck: (stream) => recheckStream(db, stream),
     reauthorize: (stream, mode) => reauthorizeStream(db, stream, mode),
-    // An agent browser's live view has a data socket of its own too (ADR 0040 §7.1).
-    claim: (streamId, machineId, socket) => browserLive.claimView(streamId, machineId, socket),
+    // An agent browser's live view has a data socket of its own too (ADR 0040 §7.1), and so have each end of a
+    // tunnel through a person's computer (ADR 0203) and a meeting's audio (ADR 0199 §4).
+    claim: (streamId, machineId, socket) =>
+      browserLive.claimView(streamId, machineId, socket) ??
+      siteRelay.claim(streamId, machineId, socket) ??
+      meetingAudio.claim(streamId, machineId, socket),
     onReady: sessions ? (stream) => sessions.ready(stream) : undefined,
     onClosed: (stream) => Promise.all([streamClosed(db, stream), sessions?.closed(stream)]),
     log: o.log,
@@ -726,6 +788,16 @@ export function buildEngine(o: EngineOptions) {
         permissions: turnPermissions,
         prepare: prepareCode,
       }),
+    // ADR 0216: an ACP agent the computer's owner declared, the one the agent chose; one process per turn.
+    acp: (agent, _run, setup) =>
+      new AcpBrain({
+        link: brainLink,
+        engine: agent.brainEngine,
+        mcp: async () => ({ token: setup.mcpToken() }),
+        agent: agentScope,
+        permissions: turnPermissions,
+        prepare: prepareCode,
+      }),
   };
   // Voice messages (ADR 0100): engines from the environment, and on any other server the one its owner sets.
   const speech = createSpeechSettings({
@@ -753,8 +825,9 @@ export function buildEngine(o: EngineOptions) {
       { fetch: o.speechFetch },
     ),
   });
-  // An audio file an agent opens is heard by the same engines as a voice message.
+  // An audio file an agent opens is heard by the same engines as a voice message, and so is a meeting (ADR 0199).
   artifacts.speech = speech.chain;
+  meetingSpeech = speech.chain;
   const voice: VoiceDeps = {
     db,
     pubsub: adapters.pubsub,
@@ -762,6 +835,16 @@ export function buildEngine(o: EngineOptions) {
     engines: speech.chain,
     judge: context.judge,
     retentionDays: config.VOICE_RETENTION_DAYS,
+    // Voice calls (ADR 0198): their own switch, so a key set for voice messages never reads replies anywhere.
+    callVoice: createCallVoice(
+      {
+        baseUrl: config.VOICE_CALL_SPEECH_URL,
+        apiKey: config.VOICE_CALL_SPEECH_API_KEY,
+        model: config.VOICE_CALL_SPEECH_MODEL,
+        voice: config.VOICE_CALL_SPEECH_VOICE,
+      },
+      { fetch: o.speechFetch },
+    ),
     // Fair use is for what we pay for: a self-hosted server has no limit.
     limits: isAgentesCloud(config.PUBLIC_URL)
       ? {
@@ -771,6 +854,34 @@ export function buildEngine(o: EngineOptions) {
         }
       : null,
   };
+  // Agents' replies read aloud (ADR 0209): off unless the environment picks an engine; a voice key alone never does.
+  const readAloud: ReadAloudDeps = {
+    db,
+    blobs: artifacts.blobs,
+    engine:
+      config.READ_ALOUD_ENGINE === "off"
+        ? null
+        : createReadAloudEngine(
+            config.READ_ALOUD_ENGINE,
+            config.READ_ALOUD_ENGINE === "elevenlabs"
+              ? { apiKey: config.ELEVENLABS_API_KEY, voice: config.READ_ALOUD_VOICE }
+              : {
+                  baseUrl: config.READ_ALOUD_URL,
+                  model: config.READ_ALOUD_MODEL,
+                  apiKey: config.READ_ALOUD_API_KEY,
+                  voice: config.READ_ALOUD_VOICE,
+                },
+            { fetch: o.speechFetch },
+          ),
+    cacheDays: config.READ_ALOUD_CACHE_DAYS,
+    limits: isAgentesCloud(config.PUBLIC_URL)
+      ? { personCharsPerDay: config.READ_ALOUD_LIMIT_PERSON_CHARS_PER_DAY }
+      : null,
+  };
+  if (config.READ_ALOUD_ENGINE !== "off" && !readAloud.engine) {
+    const needs = config.READ_ALOUD_ENGINE === "elevenlabs" ? "ELEVENLABS_API_KEY" : "READ_ALOUD_URL";
+    o.log?.warn(`READ_ALOUD_ENGINE=${config.READ_ALOUD_ENGINE} without ${needs}: reading aloud stays off`);
+  }
   const jobDeps: JobDeps = {
     feedbackBlobs: adapters.platformBlobs,
     feedbackFetch: o.http,
@@ -801,6 +912,8 @@ export function buildEngine(o: EngineOptions) {
     githubApp: githubAppAccess,
     // External Vault sources synced every few minutes (ADR 0144).
     vault,
+    // A workspace's events to the addresses its admins chose (ADR 0212), through `outboundFetch` at send time.
+    outgoingWebhooks: { keyWrappers },
     mail: adapters.mail,
     // An agent's GIF after a light reply (ADR 0091): none without the server's GIF provider.
     gifs: adapters.gifs ?? null,
@@ -863,6 +976,8 @@ export function buildEngine(o: EngineOptions) {
     mail: adapters.mail,
     publicUrl: config.PUBLIC_URL,
     resolveHost: o.resolveHost,
+    // New mail of mailboxes with triage on is sorted by the same judge (ADR 0038, addendum 2026-11-15).
+    judge: context.judge,
   };
   return {
     gateway,
@@ -895,6 +1010,9 @@ export function buildEngine(o: EngineOptions) {
     /** Likewise: the speech engines, read before the first voice message. */
     speech,
     voice,
+    readAloud,
+    /** Meetings agents take notes in (ADR 0199): the routes' "Leave meeting". */
+    meetingAudio,
   };
 }
 

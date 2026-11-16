@@ -51,6 +51,7 @@ import { useToast } from "@/lib/toast";
 import {
   filterMemories,
   type MemoryTab as Kind,
+  memoryEnd,
   memorySource,
   memoryTabOf,
   NoMemories,
@@ -159,12 +160,34 @@ function ProposalCard({ proposal }: { proposal: Proposal }) {
 }
 
 /** A state in a memory's quiet line: its mark and its word, no pill. */
-function State({ icon, waiting, children }: { icon: IconName; waiting?: boolean; children: ReactNode }) {
+function State({
+  icon,
+  waiting,
+  title,
+  children,
+}: {
+  icon: IconName;
+  waiting?: boolean;
+  title?: string;
+  children: ReactNode;
+}) {
   return (
-    <span className="agp-mem__state" data-tone={waiting ? "waiting" : undefined}>
+    <span className="agp-mem__state" data-tone={waiting ? "waiting" : undefined} title={title}>
       <Icon name={icon} size={14} />
       {children}
     </span>
+  );
+}
+
+/** Until when it holds, or that it ended (ADR 0028 §2), as a state of its quiet line. */
+function End({ m }: { m: Memory }) {
+  const { t, i18n } = useTranslation();
+  const end = memoryEnd(t, i18n.language, m);
+  if (!end) return null;
+  return (
+    <State icon={end.ended ? "clock" : "calendar"} waiting={end.ended} title={end.title}>
+      {end.text}
+    </State>
   );
 }
 
@@ -228,6 +251,7 @@ function LearnedRow({ m }: { m: Memory }) {
       )}
       <span className="agp-mem__meta">
         <Trust m={m} />
+        <End m={m} />
         {m.disputed && (
           <State icon="alert" waiting>
             {t("agentPage.memory.disputed")}
@@ -627,6 +651,7 @@ export function MemoryTab({ item }: { item?: string }) {
                     <span>{memoryLine(t, m)}</span>
                     <span className="agp-mem__meta">
                       <Trust m={m} />
+                      <End m={m} />
                       {m.pinned && <State icon="pin">{t("memory.pinned")}</State>}
                       <span>
                         {m.kind !== "fact" && kind !== "lessons" && `${t(`memory.kinds.${m.kind}`)} · `}

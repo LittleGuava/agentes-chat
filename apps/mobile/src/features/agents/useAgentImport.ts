@@ -4,13 +4,12 @@ import {
   applyInChunks,
   blockedItems,
   bundleOrigin,
-  choosable,
+  defaultPicks,
   githubRoot,
   type ImportCard,
   type ImportFailure,
   type ImportMethod,
   isGithubLink,
-  itemId,
   NOT_GITHUB,
   picksOf,
 } from "@agenteschat/client/lib/import/flow";
@@ -107,7 +106,7 @@ export function useAgentImport(orgId: string) {
       if (!current()) return;
       done.current = new Map();
       setPlan({ orgId, bundle, items: plan.items, from });
-      setPick(new Set(plan.items.filter(choosable).map(itemId)));
+      setPick(defaultPicks(plan.items));
       setCard(bundleOrigin(bundle).card);
     } catch (cause) {
       if (current()) setFailure({ from, step, cause });
