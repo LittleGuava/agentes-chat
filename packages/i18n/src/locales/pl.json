@@ -17236,6 +17236,7 @@
     "emptyTitle": "Wszystko, co robią agenci, jest zapisywane",
     "emptyFiltered": "Nic dla tego filtra.",
     "loadMore": "Wczytaj więcej",
+    "export": "Eksportuj CSV",
     "outcome": {
       "done": "Gotowe",
       "failed": "Błąd",

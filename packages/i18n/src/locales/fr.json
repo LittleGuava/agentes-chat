@@ -16708,6 +16708,7 @@
     "emptyTitle": "Tout ce que font les agents est enregistré",
     "emptyFiltered": "Rien avec ce filtre.",
     "loadMore": "Charger plus",
+    "export": "Exporter en CSV",
     "outcome": {
       "done": "Fait",
       "failed": "Échec",
