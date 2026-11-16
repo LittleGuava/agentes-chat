@@ -45,6 +45,7 @@ import { useTranslation } from "react-i18next";
 import { useApi } from "@/api/context";
 import type { AuthResult } from "@/auth/client";
 import { useAuth } from "@/auth/context";
+import { AccountSessions } from "@/components/AccountSessions";
 import { AppIconDialog, AppIconPicture, useAppIcon, useAppIconName } from "@/components/AppIconPicker";
 import { ChangeAvatarDialog } from "@/components/AvatarBuilder";
 import { ChatLookSettings } from "@/components/ChatLookSettings";
@@ -71,7 +72,7 @@ import { LanguageSelect } from "./LanguageSelect";
 /**
  * Configurações › Sua conta: your profile in this workspace, your time zone, whether agents' work shows under their replies,
  * how agents talk to you (ADR 0147), opening the phone app and a password
- * for an account without one, your plans' limits (ADR 0063 §5), how conversations look to you, then what this device keeps for itself (theme,
+ * for an account without one, where the account is signed in, your plans' limits (ADR 0063 §5), how conversations look to you, then what this device keeps for itself (theme,
  * the app icon (ADR 0179), language, sounds, the desktop app's menus), and last, deleting the account.
  */
 export function AccountSection() {
@@ -184,6 +185,7 @@ export function AccountSection() {
           />
         </div>
       </Card>
+      <AccountSessions />
       {plans.length > 0 && (
         <Card aria-labelledby="account-plans">
           <CardHeader id="account-plans" title={t("settings.account.plans")} />

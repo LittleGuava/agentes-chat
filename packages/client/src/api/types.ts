@@ -454,6 +454,21 @@ export interface DeviceAccount {
   unread: { orgId: string; unread: number; waiting: number }[];
 }
 
+/**
+ * One place my account is signed in (`GET /account/sessions`, ADR 0006 addendum 2026-11-15), named by id: the device
+ * its sign-in came from, read from its user agent, and the address it came from when the server kept one.
+ * `lastActiveAt` moves at most once a day.
+ */
+export interface AccountSession {
+  id: string;
+  /** The session this app is using. */
+  current: boolean;
+  device: { kind: "browser" | "phone_app" | "unknown"; browser: string | null; os: string | null };
+  ip: string | null;
+  signedInAt: string;
+  lastActiveAt: string;
+}
+
 export interface Organization extends OrgSummary {
   context?: string;
 }

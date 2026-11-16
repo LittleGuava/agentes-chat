@@ -17278,6 +17278,20 @@
       "activity": "Mostra cosa hanno fatto gli agenti sotto ogni risposta",
       "activityHelp": "Gli strumenti che hanno usato e quanto tempo ci è voluto. Mentre lavorano, vedi comunque cosa stanno facendo.",
       "activityFailed": "Non è stato possibile salvare. Riprova.",
+      "sessions": {
+        "title": "Sessioni attive",
+        "help": "Ogni browser e telefono con il tuo account aperto. Uscire da uno chiude subito la sua sessione. L'ultimo utilizzo si aggiorna una volta al giorno.",
+        "current": "Questa sessione",
+        "lastUsed": "Ultimo utilizzo: {{day}}",
+        "browserOn": "{{browser}} su {{os}}",
+        "phoneApp": "App del telefono",
+        "phoneAppOn": "App del telefono su {{os}}",
+        "unknown": "Dispositivo sconosciuto",
+        "signOut": "Esci",
+        "signOutOthers": "Esci da tutte le altre",
+        "signedOutOthers": "Sei uscito dalle altre sessioni.",
+        "failed": "Non è stato possibile uscire. Riprova."
+      },
       "chat": {
         "title": "Conversazioni",
         "density": "Densità della conversazione",

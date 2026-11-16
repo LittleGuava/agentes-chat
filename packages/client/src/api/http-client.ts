@@ -21,6 +21,7 @@ import type {
   AccountDeletionPlan,
   AccountLoginStart,
   AccountLoginStatus,
+  AccountSession,
   ActiveRun,
   Agent,
   AgentAccess,
@@ -652,6 +653,13 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
           method: "POST",
           json: userId ? { userId } : {},
         }),
+      sessions: async () =>
+        (await nullOn(404, () => request<{ sessions: AccountSession[] }>("/api/app/account/sessions")))?.sessions ??
+        null,
+      signOutSession: (sessionId) =>
+        request<void>(`/api/app/account/sessions/${encodeURIComponent(sessionId)}`, { method: "DELETE" }),
+      signOutOtherSessions: () =>
+        request<{ signedOut: number }>("/api/app/account/sessions/sign-out-others", { json: {} }),
       updateMe: (input) => request<void>("/api/app/me", { method: "PATCH", json: input }),
       setWorkArea: (area) => request<void>("/api/app/me/work-area", { method: "PUT", json: { area } }),
       phoneSignIn: () => request<PhoneSignIn>("/api/app/phone-sign-in", { json: {} }),

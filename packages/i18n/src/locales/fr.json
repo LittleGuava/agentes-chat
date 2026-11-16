@@ -17265,6 +17265,20 @@
       "activity": "Montrer ce que les agents ont fait sous chaque réponse",
       "activityHelp": "Les outils utilisés et le temps que cela a pris. Pendant qu'ils travaillent, vous voyez toujours ce qu'ils font.",
       "activityFailed": "Impossible d'enregistrer. Réessayez.",
+      "sessions": {
+        "title": "Sessions actives",
+        "help": "Chaque navigateur et téléphone connecté à votre compte. En déconnecter un met fin à sa session tout de suite. La dernière utilisation est mise à jour une fois par jour.",
+        "current": "Cette session",
+        "lastUsed": "Dernière utilisation : {{day}}",
+        "browserOn": "{{browser}} sur {{os}}",
+        "phoneApp": "App du téléphone",
+        "phoneAppOn": "App du téléphone sur {{os}}",
+        "unknown": "Appareil inconnu",
+        "signOut": "Se déconnecter",
+        "signOutOthers": "Déconnecter toutes les autres",
+        "signedOutOthers": "Vous vous êtes déconnecté de vos autres sessions.",
+        "failed": "Impossible de se déconnecter. Réessayez."
+      },
       "chat": {
         "title": "Discussions",
         "density": "Densité de la conversation",

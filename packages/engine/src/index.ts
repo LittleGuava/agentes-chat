@@ -1,5 +1,6 @@
 export * from "./access";
 export * from "./account-contacts";
+export * from "./account-sessions";
 export * from "./admin-asks";
 export * from "./agent-actions";
 export * from "./agent-audit";

@@ -16160,6 +16160,20 @@
       "activity": "각 답변 아래에 에이전트가 한 일 표시",
       "activityHelp": "사용한 도구와 걸린 시간이에요. 작업 중에는 지금 하는 일이 계속 보여요.",
       "activityFailed": "저장하지 못했어요. 다시 시도해 주세요.",
+      "sessions": {
+        "title": "활성 세션",
+        "help": "계정에 로그인된 모든 브라우저와 휴대폰입니다. 하나를 로그아웃하면 그 세션은 바로 끝납니다. 마지막 사용은 하루에 한 번 업데이트됩니다.",
+        "current": "이 세션",
+        "lastUsed": "마지막 사용: {{day}}",
+        "browserOn": "{{os}}의 {{browser}}",
+        "phoneApp": "휴대폰 앱",
+        "phoneAppOn": "{{os}}의 휴대폰 앱",
+        "unknown": "알 수 없는 기기",
+        "signOut": "로그아웃",
+        "signOutOthers": "다른 모든 세션에서 로그아웃",
+        "signedOutOthers": "다른 세션에서 로그아웃했습니다.",
+        "failed": "로그아웃하지 못했습니다. 다시 시도하세요."
+      },
       "chat": {
         "title": "대화",
         "density": "대화 밀도",

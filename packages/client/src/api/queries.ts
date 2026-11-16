@@ -504,6 +504,34 @@ export const useAccountDeletionPlan = (enabled = true) => {
   });
 };
 
+/** Where my account is signed in (`GET /account/sessions`); null on a server from before the list. */
+export const useAccountSessions = () => {
+  const api = useApi();
+  return useQuery({ queryKey: keys.accountSessions, queryFn: () => api.account.sessions(), staleTime: 0 });
+};
+
+/** Signs one of my other sessions out; the list is read again either way (it may have ended meanwhile). */
+export function useSignOutSession() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (sessionId: string) => api.account.signOutSession(sessionId),
+    meta: { silent: true },
+    onSettled: () => qc.invalidateQueries({ queryKey: keys.accountSessions }),
+  });
+}
+
+/** Signs out every session of mine but this one. */
+export function useSignOutOtherSessions() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.account.signOutOtherSessions(),
+    meta: { silent: true },
+    onSettled: () => qc.invalidateQueries({ queryKey: keys.accountSessions }),
+  });
+}
+
 /**
  * Deletes the workspace (owners), with the proof that it's them (the emailed code, or the password). Its line on top
  * shows here at once, and through `org.deleting` everywhere else. The dialog says its refusals.

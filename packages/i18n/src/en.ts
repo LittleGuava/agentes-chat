@@ -17095,6 +17095,24 @@ export const en = {
       activity: "Show what agents did under each reply",
       activityHelp: "The tools they used and how long it took. While they work, you still see what they're doing.",
       activityFailed: "Couldn't save that. Try again.",
+      /**
+       * Where the account is signed in (ADR 0006, addendum 2026-11-15): one line per session, named by its device. A
+       * browser's and a system's names ("Chrome", "Windows", "iPhone") are their own, never translated.
+       */
+      sessions: {
+        title: "Active sessions",
+        help: "Each browser and phone signed in to your account. Signing one out ends it at once. The last use is updated once a day.",
+        current: "This session",
+        lastUsed: "Last used: {{day}}",
+        browserOn: "{{browser}} on {{os}}",
+        phoneApp: "Phone app",
+        phoneAppOn: "Phone app on {{os}}",
+        unknown: "Unknown device",
+        signOut: "Sign out",
+        signOutOthers: "Sign out of all others",
+        signedOutOthers: "You signed out of your other sessions.",
+        failed: "Couldn't sign out. Try again.",
+      },
       /** Yours in this workspace, for every agent (ADR 0147). */
       chat: {
         title: "Conversations",

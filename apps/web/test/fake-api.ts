@@ -1,5 +1,6 @@
 import type {
   AccountDeletionPlan,
+  AccountSession,
   ActiveRun,
   Agent,
   AgentAudience,
@@ -221,6 +222,8 @@ export interface FakeState {
   answerHold?: Promise<void>;
   /** The accounts signed in on this browser (`account.deviceAccounts`, ADR 0183); unset: the server names none. */
   deviceAccounts?: DeviceAccount[];
+  /** Where my account is signed in (`account.sessions`); unset: a server from before the list. */
+  accountSessions?: AccountSession[];
   /** Threads I follow with an unread reply (`reads.unreadThreads`). */
   unreadThreads?: number;
   /** Tasks whose conversation has a reply I haven't read (`reads.unreadTasks`). */
@@ -1637,6 +1640,21 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
           ? { organizations: state.me.organizations.map((o) => ({ orgId: o.id, unread: 0, waiting: 0 })) }
           : null,
       deviceAccounts: async () => state.deviceAccounts ?? [],
+      sessions: async () => state.accountSessions ?? null,
+      signOutSession: async (sessionId) => {
+        log("account.signOutSession", sessionId);
+        const sessions = state.accountSessions ?? [];
+        if (sessions.some((s) => s.id === sessionId && s.current))
+          throw new ApiError(409, "session.current", "This is the session you're using");
+        if (!sessions.some((s) => s.id === sessionId)) throw new ApiError(404, "not_found", "Session not found");
+        state.accountSessions = sessions.filter((s) => s.id !== sessionId);
+      },
+      signOutOtherSessions: async () => {
+        log("account.signOutOtherSessions");
+        const sessions = state.accountSessions ?? [];
+        state.accountSessions = sessions.filter((s) => s.current);
+        return { signedOut: sessions.length - state.accountSessions.length };
+      },
       switchDeviceAccount: async (userId) => {
         state.calls.push({ method: "account.switchDeviceAccount", args: [userId] });
       },

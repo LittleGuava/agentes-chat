@@ -17807,6 +17807,20 @@
       "activity": "Pokazuj, co zrobili agenci, pod każdą odpowiedzią",
       "activityHelp": "Narzędzia, z których skorzystali, i ile to trwało. W trakcie pracy dalej widzisz, co robią.",
       "activityFailed": "Nie udało się tego zapisać. Spróbuj ponownie.",
+      "sessions": {
+        "title": "Aktywne sesje",
+        "help": "Każda przeglądarka i telefon zalogowane na Twoje konto. Wylogowanie jednego od razu kończy jego sesję. Ostatnie użycie jest aktualizowane raz dziennie.",
+        "current": "Ta sesja",
+        "lastUsed": "Ostatnio używana: {{day}}",
+        "browserOn": "{{browser}} na {{os}}",
+        "phoneApp": "Aplikacja na telefon",
+        "phoneAppOn": "Aplikacja na telefon na {{os}}",
+        "unknown": "Nieznane urządzenie",
+        "signOut": "Wyloguj się",
+        "signOutOthers": "Wyloguj wszystkie inne",
+        "signedOutOthers": "Wylogowano z pozostałych sesji.",
+        "failed": "Nie udało się wylogować. Spróbuj ponownie."
+      },
       "chat": {
         "title": "Rozmowy",
         "density": "Gęstość rozmowy",

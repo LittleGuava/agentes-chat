@@ -16672,6 +16672,20 @@
       "activity": "Ajanların yaptıklarını her yanıtın altında göster",
       "activityHelp": "Kullandıkları araçlar ve ne kadar sürdüğü. Çalışırken ne yaptıklarını yine görürsünüz.",
       "activityFailed": "Kaydedilemedi. Yeniden deneyin.",
+      "sessions": {
+        "title": "Etkin oturumlar",
+        "help": "Hesabınızda oturum açık olan her tarayıcı ve telefon. Birinden çıkış yapmak oturumunu hemen sonlandırır. Son kullanım günde bir kez güncellenir.",
+        "current": "Bu oturum",
+        "lastUsed": "Son kullanım: {{day}}",
+        "browserOn": "{{os}} üzerinde {{browser}}",
+        "phoneApp": "Telefon uygulaması",
+        "phoneAppOn": "{{os}} üzerinde telefon uygulaması",
+        "unknown": "Bilinmeyen cihaz",
+        "signOut": "Çıkış yap",
+        "signOutOthers": "Diğer tümünden çıkış yap",
+        "signedOutOthers": "Diğer oturumlarınızdan çıkış yaptınız.",
+        "failed": "Çıkış yapılamadı. Tekrar deneyin."
+      },
       "chat": {
         "title": "Sohbetler",
         "density": "Sohbet yoğunluğu",

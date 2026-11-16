@@ -30,6 +30,7 @@ import type {
   AccountDeletionPlan,
   AccountLoginStart,
   AccountLoginStatus,
+  AccountSession,
   ActiveRun,
   AdminAsk,
   Agent,
@@ -486,6 +487,12 @@ export interface ApiClient {
      * browser still has an account, the next one when the current one left.
      */
     signOutDeviceAccount(userId?: string): Promise<{ signedIn: boolean }>;
+    /** Where my account is signed in, this session first (ADR 0006 addendum 2026-11-15); null on a server from before. */
+    sessions(): Promise<AccountSession[] | null>;
+    /** Signs one of my other sessions out (`not_found` 404; this one is `session.current` 409: sign out instead). */
+    signOutSession(sessionId: string): Promise<void>;
+    /** Signs out every session of mine but this one; `signedOut`: how many ended. */
+    signOutOtherSessions(): Promise<{ signedOut: number }>;
     /** My app language (emails and pushes are written in it). */
     updateMe(input: { locale: AppLocale; auto?: boolean }): Promise<void>;
     /** My own area, asked once during the onboarding, or `skipped` (`PUT /me/work-area`). */

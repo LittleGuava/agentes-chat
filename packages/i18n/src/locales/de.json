@@ -16736,6 +16736,20 @@
       "activity": "Unter jeder Antwort zeigen, was Agenten getan haben",
       "activityHelp": "Die Tools, die sie genutzt haben, und wie lange es gedauert hat. Während sie arbeiten, siehst du weiterhin, was sie tun.",
       "activityFailed": "Das konnte nicht gespeichert werden. Versuch es noch einmal.",
+      "sessions": {
+        "title": "Aktive Sitzungen",
+        "help": "Jeder Browser und jedes Handy, auf dem du in deinem Konto angemeldet bist. Wenn du eines abmeldest, endet seine Sitzung sofort. Die letzte Nutzung wird einmal am Tag aktualisiert.",
+        "current": "Diese Sitzung",
+        "lastUsed": "Zuletzt genutzt: {{day}}",
+        "browserOn": "{{browser}} unter {{os}}",
+        "phoneApp": "Handy-App",
+        "phoneAppOn": "Handy-App unter {{os}}",
+        "unknown": "Unbekanntes Gerät",
+        "signOut": "Abmelden",
+        "signOutOthers": "Alle anderen abmelden",
+        "signedOutOthers": "Du hast dich von deinen anderen Sitzungen abgemeldet.",
+        "failed": "Abmelden hat nicht geklappt. Versuch es noch einmal."
+      },
       "chat": {
         "title": "Unterhaltungen",
         "density": "Dichte der Unterhaltung",

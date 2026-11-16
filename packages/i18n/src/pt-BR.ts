@@ -16987,6 +16987,20 @@ export const ptBR = {
       activityHelp:
         "As ferramentas que usaram e quanto tempo levou. Enquanto trabalham, você continua vendo o que estão fazendo.",
       activityFailed: "Não deu para salvar. Tente de novo.",
+      sessions: {
+        title: "Sessões ativas",
+        help: "Cada navegador e celular conectado à sua conta. Sair de um encerra a sessão dele na hora. O último uso é atualizado uma vez por dia.",
+        current: "Esta sessão",
+        lastUsed: "Último uso: {{day}}",
+        browserOn: "{{browser}} no {{os}}",
+        phoneApp: "App do celular",
+        phoneAppOn: "App do celular no {{os}}",
+        unknown: "Dispositivo desconhecido",
+        signOut: "Sair",
+        signOutOthers: "Sair de todas as outras",
+        signedOutOthers: "Você saiu das outras sessões.",
+        failed: "Não deu para sair. Tente de novo.",
+      },
       /** Yours in this workspace, for every agent (ADR 0147). */
       chat: {
         title: "Conversa",

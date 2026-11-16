@@ -16232,6 +16232,20 @@
       "activity": "在每条回复下显示智能体做了什么",
       "activityHelp": "它们使用的工具和花费的时间。在它们工作时，你仍能看到它们在做什么。",
       "activityFailed": "无法保存，请重试。",
+      "sessions": {
+        "title": "活跃会话",
+        "help": "登录了你账号的每个浏览器和手机。退出其中一个会立即结束它的会话。最后使用时间每天更新一次。",
+        "current": "此会话",
+        "lastUsed": "最后使用：{{day}}",
+        "browserOn": "{{os}} 上的 {{browser}}",
+        "phoneApp": "手机应用",
+        "phoneAppOn": "{{os}} 上的手机应用",
+        "unknown": "未知设备",
+        "signOut": "退出登录",
+        "signOutOthers": "退出其他所有会话",
+        "signedOutOthers": "你已退出其他会话。",
+        "failed": "无法退出登录。请重试。"
+      },
       "chat": {
         "title": "对话",
         "density": "对话密度",

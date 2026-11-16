@@ -41206,6 +41206,42 @@
   "settings.account.activityFailed": {
     "value": "Couldn't save that. Try again."
   },
+  "settings.account.sessions.title": {
+    "value": "Active sessions"
+  },
+  "settings.account.sessions.help": {
+    "value": "Each browser and phone signed in to your account. Signing one out ends it at once. The last use is updated once a day."
+  },
+  "settings.account.sessions.current": {
+    "value": "This session"
+  },
+  "settings.account.sessions.lastUsed": {
+    "value": "Last used: {{day}}"
+  },
+  "settings.account.sessions.browserOn": {
+    "value": "{{browser}} on {{os}}"
+  },
+  "settings.account.sessions.phoneApp": {
+    "value": "Phone app"
+  },
+  "settings.account.sessions.phoneAppOn": {
+    "value": "Phone app on {{os}}"
+  },
+  "settings.account.sessions.unknown": {
+    "value": "Unknown device"
+  },
+  "settings.account.sessions.signOut": {
+    "value": "Sign out"
+  },
+  "settings.account.sessions.signOutOthers": {
+    "value": "Sign out of all others"
+  },
+  "settings.account.sessions.signedOutOthers": {
+    "value": "You signed out of your other sessions."
+  },
+  "settings.account.sessions.failed": {
+    "value": "Couldn't sign out. Try again."
+  },
   "settings.account.chat.title": {
     "value": "Conversations"
   },

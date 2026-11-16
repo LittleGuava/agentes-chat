@@ -16223,6 +16223,20 @@
       "activity": "Tampilkan yang dilakukan agen di bawah tiap balasan",
       "activityHelp": "Alat yang mereka pakai dan berapa lama prosesnya. Saat mereka bekerja, kamu tetap melihat apa yang sedang mereka lakukan.",
       "activityFailed": "Tidak bisa menyimpan. Coba lagi.",
+      "sessions": {
+        "title": "Sesi aktif",
+        "help": "Setiap browser dan ponsel yang masuk ke akun Anda. Keluar dari salah satunya langsung mengakhiri sesinya. Penggunaan terakhir diperbarui sekali sehari.",
+        "current": "Sesi ini",
+        "lastUsed": "Terakhir digunakan: {{day}}",
+        "browserOn": "{{browser}} di {{os}}",
+        "phoneApp": "Aplikasi ponsel",
+        "phoneAppOn": "Aplikasi ponsel di {{os}}",
+        "unknown": "Perangkat tidak dikenal",
+        "signOut": "Keluar",
+        "signOutOthers": "Keluar dari semua yang lain",
+        "signedOutOthers": "Anda sudah keluar dari sesi lain.",
+        "failed": "Tidak bisa keluar. Coba lagi."
+      },
       "chat": {
         "title": "Percakapan",
         "density": "Kepadatan percakapan",

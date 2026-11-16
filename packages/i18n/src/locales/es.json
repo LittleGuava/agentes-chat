@@ -17194,6 +17194,20 @@
       "activity": "Mostrar lo que hicieron los agentes debajo de cada respuesta",
       "activityHelp": "Las herramientas que usaron y cuánto tardaron. Mientras trabajan, sigues viendo lo que están haciendo.",
       "activityFailed": "No se pudo guardar. Inténtalo de nuevo.",
+      "sessions": {
+        "title": "Sesiones activas",
+        "help": "Cada navegador y teléfono con tu cuenta abierta. Cerrar sesión en uno la termina al instante. El último uso se actualiza una vez al día.",
+        "current": "Esta sesión",
+        "lastUsed": "Último uso: {{day}}",
+        "browserOn": "{{browser}} en {{os}}",
+        "phoneApp": "App del teléfono",
+        "phoneAppOn": "App del teléfono en {{os}}",
+        "unknown": "Dispositivo desconocido",
+        "signOut": "Cerrar sesión",
+        "signOutOthers": "Cerrar todas las demás",
+        "signedOutOthers": "Cerraste tus otras sesiones.",
+        "failed": "No se pudo cerrar la sesión. Inténtalo de nuevo."
+      },
       "chat": {
         "title": "Conversaciones",
         "density": "Densidad de la conversación",
