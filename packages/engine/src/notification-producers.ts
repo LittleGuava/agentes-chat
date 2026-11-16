@@ -1564,6 +1564,31 @@ export async function notifyComposioLimit(deps: NotificationDeps, orgId: string,
   });
 }
 
+const webhookDisabledGroup = (webhookId: string) => `webhook-disabled:${webhookId}:`;
+
+/**
+ * An outgoing webhook was turned off by its failures (ADR 0212 §7): every member with `administrator` hears it, once
+ * each time it goes off, with the webhook's name and the last failure's code. Done once it is turned back on or deleted.
+ */
+export async function notifyWebhookDisabled(
+  deps: NotificationDeps,
+  input: { orgId: string; webhookId: string; name: string; reason: string; at: Date },
+) {
+  await notify(deps, {
+    orgId: input.orgId,
+    userIds: await adminsOf(deps, input.orgId, "administrator"),
+    kind: "webhook_disabled",
+    groupKey: `${webhookDisabledGroup(input.webhookId)}${input.at.getTime()}`,
+    source: { webhookId: input.webhookId, label: input.name },
+    latest: { title: input.name, reason: input.reason },
+  });
+}
+
+/** The webhook is on again or gone: its notice is done. */
+export async function resolveWebhookDisabled(deps: NotificationDeps, orgId: string, webhookId: string) {
+  await resolveNotifications(deps, orgId, { groupKeyPrefix: webhookDisabledGroup(webhookId) });
+}
+
 const skillWaitingGroup = (skillId: string) => `skill_update:waiting:${skillId}:`;
 
 /**

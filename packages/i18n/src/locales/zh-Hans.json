@@ -14478,6 +14478,13 @@
       "invalidSecret": "请完整粘贴 Client Secret，不要带空格。",
       "invalidRepo": "请把仓库写成 所有者/名称。"
     },
+    "outgoingWebhook": {
+      "noEvents": "请至少选择一个事件。",
+      "noChannels": "请选择要发送其消息的频道。",
+      "channel": "只能选择工作区的频道。私信永远不会被发送。",
+      "disabled": "请先开启 Webhook 再测试。",
+      "limit": "此工作区的 Webhook 已达上限。请先删除一个。"
+    },
     "githubEvent": {
       "answered": "已经有人请求了这条回复。智能体正在处理。"
     },
@@ -14853,15 +14860,6 @@
     "memory": {
       "invalidUntil": "这不是一个日期。请选择它有效的最后一天。",
       "pastUntil": "这一天已经过去了。请选择一个将来的日期。"
-    },
-    "outgoingWebhook": {
-      "channel": "只能选择这个工作区的频道，不能选私信。",
-      "disabled": "请先开启这个 Webhook。",
-      "event": "没有这个事件。请从列表中选择。",
-      "limit": "这个工作区的 Webhook 数量已达上限。请先删除一个。",
-      "name": "请给这个 Webhook 起个名字。",
-      "noChannels": "请选择要发送其消息的频道。",
-      "noEvents": "请至少选择一个事件。"
     },
     "publishedPage": {
       "notAPage": "只有页面可以发布，而这个文件不是页面。",
@@ -16361,6 +16359,7 @@
       "roles": "角色",
       "vault": "Vault",
       "access": "智能体和访问权限",
+      "webhooks": "Webhook",
       "connectors": "连接器和 MCP",
       "skills": "技能",
       "storage": "存储",
@@ -16395,6 +16394,7 @@
       "roles": "每个角色都会增加权限、频道和智能体。",
       "vault": "你的智能体的密码、密钥和联系人。它们永远看不到密码。",
       "access": "每个智能体可以使用什么：每个连接器一个级别。",
+      "webhooks": "将工作区的事件签名后发送到你自己的系统。",
       "connectors": "为整个工作区一次性连接的服务和 MCP 服务器。",
       "skills": "智能体在需要时打开的 Markdown 指令。",
       "storage": "工作区文件的存放位置。",
@@ -19243,6 +19243,87 @@
         "done": "今天完成"
       },
       "none": "{{name}} 现在空闲。"
+    }
+  },
+  "webhooks": {
+    "new": "新建 Webhook",
+    "emptyTitle": "还没有 Webhook",
+    "emptyText": "将此工作区的事件用密钥签名后发送到你的地址。",
+    "full": "此工作区有 {{max}} 个 Webhook，已达上限。",
+    "state": {
+      "on": "已开启",
+      "failures": "因失败已关闭",
+      "off": "已关闭"
+    },
+    "inChannels": "({{channels}})",
+    "lastSuccess": "上次送达 {{when}}",
+    "offByFailures_other": "连续 {{count}} 次投递失败，已关闭。重新开启前不会发送任何内容。",
+    "turnOn": "重新开启",
+    "turnOnAgain": "开启",
+    "turnOff": "关闭",
+    "turnedOn": "Webhook 已开启",
+    "turnedOff": "Webhook 已关闭",
+    "test": "测试",
+    "tested": "测试已发送。结果会显示在投递记录中。",
+    "edit": "编辑",
+    "newSecret": "新密钥",
+    "newSecretBody": "当前密钥会立即停止签名。校验签名的一方需要新的密钥。",
+    "secretOnce": "请立即复制签名密钥。它不会再次显示。",
+    "secretCopied": "密钥已复制",
+    "delete": "删除",
+    "deleteBody": "{{name}} 及其投递记录将被删除。不会再向其地址发送任何内容。",
+    "deleted": "Webhook 已删除",
+    "deliveries": "最近的投递",
+    "noDeliveries": "尚未发送任何内容。",
+    "attempts_other": "{{count}} 次尝试",
+    "event": {
+      "messagePosted": "频道中的消息",
+      "runFinished": "已结束的智能体运行",
+      "issueCreated": "已创建的任务",
+      "ping": "测试"
+    },
+    "delivery": {
+      "delivered": "已送达 ({{status}})",
+      "sending": "正在发送…",
+      "retrying_other": "失败 {{count}} 次。正在重试",
+      "retryingStatus_other": "失败 {{count}} 次 ({{status}})。正在重试",
+      "refused": "被目标地址拒绝 ({{status}})",
+      "redirect": "目标地址进行了重定向 ({{status}})。不会跟随重定向",
+      "timeout": "目标地址在 10 秒内没有响应",
+      "network": "无法连接到目标地址",
+      "addressRefused": "地址被拒绝：它指向内部网络",
+      "webhookOff": "未发送：Webhook 当时已关闭",
+      "gone": "未发送：要通知的内容已被删除",
+      "workspaceClosed": "未发送：工作区已暂停或正在删除",
+      "failed": "未送达"
+    },
+    "form": {
+      "newTitle": "新建 Webhook",
+      "editTitle": "编辑 Webhook",
+      "text": "每个事件都会以 POST 发送到该地址，并用其密钥签名。",
+      "name": "名称",
+      "namePlaceholder": "销售 CRM",
+      "nameRequired": "请给 Webhook 起个名字。",
+      "url": "地址",
+      "urlExample": "https://example.com/agentes",
+      "urlHint": "互联网上的 https 地址。每个请求都带有 X-Agentes-Webhook-Signature，即用密钥计算的请求体 HMAC-SHA256。不会跟随重定向。",
+      "urlHttps": "请使用以 https:// 开头的地址",
+      "urlInternal": "此地址指向内部网络。请使用公开地址。",
+      "events": "事件",
+      "eventsHint": "消息：所选频道中的每条新消息。运行：每次结束的智能体运行，附带状态，不含回复。任务：每个新任务，仅部分人可见的除外。",
+      "channels": "频道",
+      "channelsHint": "消息只会从这些频道发出，运行和任务也是。私信永远不会被发送。",
+      "channelsOptionalHint": "选择频道后，只会发送这些频道的运行和任务。私信永远不会被发送。",
+      "addChannel": "添加频道",
+      "everyChannel": "所有频道",
+      "noChannel": "没有名为 {{query}} 的频道",
+      "noChannels": "没有频道",
+      "create": "创建 Webhook",
+      "created": "Webhook 已创建",
+      "saved": "更改已保存"
+    },
+    "notice": {
+      "disabled": "Webhook {{name}} 连续 10 次投递失败，已关闭"
     }
   },
   "widgets": {

@@ -14469,6 +14469,13 @@
       "invalidSecret": "Tempel Client Secret secara utuh, tanpa spasi.",
       "invalidRepo": "Tulis repositori sebagai pemilik/nama."
     },
+    "outgoingWebhook": {
+      "noEvents": "Pilih setidaknya satu peristiwa.",
+      "noChannels": "Pilih kanal yang pesannya dikirim.",
+      "channel": "Pilih hanya kanal ruang kerja. Pesan langsung tidak pernah dikirim.",
+      "disabled": "Nyalakan webhook sebelum mengujinya.",
+      "limit": "Ruang kerja ini sudah punya webhook sebanyak mungkin. Hapus satu dulu."
+    },
     "githubEvent": {
       "answered": "Seseorang sudah meminta balasan ini. Agen sedang menanganinya."
     },
@@ -14844,15 +14851,6 @@
     "memory": {
       "invalidUntil": "Itu bukan tanggal. Pilih hari terakhir berlakunya.",
       "pastUntil": "Hari itu sudah lewat. Pilih hari yang masih akan datang."
-    },
-    "outgoingWebhook": {
-      "channel": "Pilih hanya kanal di ruang kerja ini, bukan pesan langsung.",
-      "disabled": "Nyalakan webhook dulu.",
-      "event": "Peristiwa itu tidak ada. Pilih satu dari daftar.",
-      "limit": "Ruang kerja ini sudah punya webhook sebanyak yang diizinkan. Hapus satu dulu.",
-      "name": "Beri nama untuk webhook ini.",
-      "noChannels": "Pilih kanal yang pesannya dikirim.",
-      "noEvents": "Pilih setidaknya satu peristiwa."
     },
     "publishedPage": {
       "notAPage": "Hanya halaman yang bisa dipublikasikan, dan berkas ini bukan halaman.",
@@ -16352,6 +16350,7 @@
       "roles": "Peran",
       "vault": "Vault",
       "access": "Agen dan akses",
+      "webhooks": "Webhook",
       "connectors": "Konektor dan MCP",
       "skills": "Skill",
       "storage": "Penyimpanan",
@@ -16386,6 +16385,7 @@
       "roles": "Setiap peran menambah izin, kanal, dan agen.",
       "vault": "Kata sandi, kunci, dan kontak agenmu. Mereka tidak pernah melihat kata sandi.",
       "access": "Yang bisa dipakai tiap agen: satu tingkat per konektor.",
+      "webhooks": "Kirim peristiwa ruang kerja, bertanda tangan, ke sistem Anda sendiri.",
       "connectors": "Layanan dan server MCP yang dihubungkan sekali untuk seluruh ruang kerja.",
       "skills": "Instruksi Markdown yang dibuka agen saat dibutuhkan.",
       "storage": "Tempat file ruang kerja disimpan.",
@@ -19167,6 +19167,87 @@
         "done": "Selesai hari ini"
       },
       "none": "{{name}} sedang luang."
+    }
+  },
+  "webhooks": {
+    "new": "Webhook baru",
+    "emptyTitle": "Belum ada webhook",
+    "emptyText": "Kirim peristiwa ruang kerja ini ke alamat milik Anda, ditandatangani dengan rahasia.",
+    "full": "Ruang kerja ini punya {{max}} webhook, jumlah maksimal.",
+    "state": {
+      "on": "Menyala",
+      "failures": "Mati karena kegagalan",
+      "off": "Mati"
+    },
+    "inChannels": "di {{channels}}",
+    "lastSuccess": "Terakhir terkirim {{when}}",
+    "offByFailures_other": "Dimatikan setelah {{count}} pengiriman gagal berturut-turut. Tidak ada yang dikirim sampai dinyalakan lagi.",
+    "turnOn": "Nyalakan lagi",
+    "turnOnAgain": "Nyalakan",
+    "turnOff": "Matikan",
+    "turnedOn": "Webhook menyala",
+    "turnedOff": "Webhook dimatikan",
+    "test": "Uji",
+    "tested": "Uji dikirim. Hasilnya muncul di pengiriman.",
+    "edit": "Edit",
+    "newSecret": "Rahasia baru",
+    "newSecretBody": "Rahasia saat ini berhenti menandatangani sekarang. Yang memeriksa tanda tangan butuh yang baru.",
+    "secretOnce": "Salin rahasia tanda tangan sekarang. Rahasia ini tidak akan ditampilkan lagi.",
+    "secretCopied": "Rahasia disalin",
+    "delete": "Hapus",
+    "deleteBody": "{{name}} dan pengirimannya dihapus. Tidak ada lagi yang dikirim ke alamatnya.",
+    "deleted": "Webhook dihapus",
+    "deliveries": "Pengiriman terakhir",
+    "noDeliveries": "Belum ada yang dikirim.",
+    "attempts_other": "{{count}} percobaan",
+    "event": {
+      "messagePosted": "Pesan di kanal",
+      "runFinished": "Jalannya agen selesai",
+      "issueCreated": "Tugas dibuat",
+      "ping": "Uji"
+    },
+    "delivery": {
+      "delivered": "Terkirim ({{status}})",
+      "sending": "Mengirim…",
+      "retrying_other": "Gagal {{count}} kali. Mencoba lagi",
+      "retryingStatus_other": "Gagal {{count}} kali ({{status}}). Mencoba lagi",
+      "refused": "Ditolak oleh alamat tujuan ({{status}})",
+      "redirect": "Alamat tujuan mengalihkan ({{status}}). Pengalihan tidak diikuti",
+      "timeout": "Alamat tujuan tidak menjawab dalam 10 detik",
+      "network": "Alamat tujuan tidak bisa dijangkau",
+      "addressRefused": "Alamat ditolak: alamat ini mengarah ke jaringan internal",
+      "webhookOff": "Tidak dikirim: webhook sedang mati",
+      "gone": "Tidak dikirim: yang akan diberitahukan sudah dihapus",
+      "workspaceClosed": "Tidak dikirim: ruang kerja ditangguhkan atau sedang dihapus",
+      "failed": "Tidak terkirim"
+    },
+    "form": {
+      "newTitle": "Webhook baru",
+      "editTitle": "Edit webhook",
+      "text": "Setiap peristiwa dikirim ke alamat sebagai POST, ditandatangani dengan rahasianya.",
+      "name": "Nama",
+      "namePlaceholder": "CRM penjualan",
+      "nameRequired": "Beri nama untuk webhook.",
+      "url": "Alamat",
+      "urlExample": "https://contoh.com/agentes",
+      "urlHint": "Alamat https di internet. Setiap permintaan membawa X-Agentes-Webhook-Signature, HMAC-SHA256 dari isi dengan rahasia. Pengalihan tidak diikuti.",
+      "urlHttps": "Gunakan alamat yang diawali https://",
+      "urlInternal": "Alamat ini mengarah ke jaringan internal. Gunakan alamat publik.",
+      "events": "Peristiwa",
+      "eventsHint": "Pesan: setiap pesan baru di kanal yang dipilih. Jalannya: setiap jalannya agen yang selesai, dengan statusnya dan tanpa jawabannya. Tugas: setiap tugas baru, kecuali yang hanya dilihat sebagian orang.",
+      "channels": "Kanal",
+      "channelsHint": "Pesan hanya dikirim dari kanal ini, begitu juga jalannya agen dan tugas. Pesan langsung tidak pernah dikirim.",
+      "channelsOptionalHint": "Jika kanal dipilih, hanya jalannya agen dan tugas dari kanal itu yang dikirim. Pesan langsung tidak pernah dikirim.",
+      "addChannel": "Tambah kanal",
+      "everyChannel": "Semua kanal",
+      "noChannel": "Tidak ada kanal bernama {{query}}",
+      "noChannels": "Tidak ada kanal",
+      "create": "Buat webhook",
+      "created": "Webhook dibuat",
+      "saved": "Perubahan disimpan"
+    },
+    "notice": {
+      "disabled": "Webhook {{name}} dimatikan setelah 10 pengiriman gagal berturut-turut"
     }
   },
   "widgets": {

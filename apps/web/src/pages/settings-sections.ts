@@ -23,6 +23,7 @@ export type SettingsSection =
   | "audit"
   | "health"
   | "access"
+  | "webhooks"
   | "connectors"
   | "skills"
   | "storage"
@@ -78,6 +79,8 @@ export const SETTINGS_SECTIONS: {
   // Every member keeps their own logins, keys and contacts there; team items show to who they're shared with (ADR 0144).
   { id: "vault", icon: "lock", allowed: () => true },
   { id: "access", icon: "agent", allowed: (o) => can(o, "manage_agents") },
+  // Outgoing webhooks (ADR 0212): they send private channels' messages out, which only administrators read.
+  { id: "webhooks", icon: "send", allowed: (o) => can(o, "administrator") },
   // Every member sees the devices and can connect one (ADR 0025): computers and the phones they reach.
   { id: "devices", icon: "computer", allowed: (o) => can(o, "read") },
   { id: "storage", icon: "drive", allowed: (o) => can(o, "configure") },

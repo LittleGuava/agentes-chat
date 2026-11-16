@@ -15,6 +15,7 @@ import type {
   VaultKeysImportResult,
   VaultOverview,
 } from "../vault/types";
+import type { OutgoingWebhook, OutgoingWebhookDelivery } from "../webhooks/types";
 import type { HttpApi, OpenedWorkspace } from "./client";
 import { ApiError, createFileRequester, createRequester, enc, type TransportOptions } from "./http";
 import type {
@@ -575,6 +576,25 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       holds: (orgId, agentId) => request<AgentHolds>(`${org(orgId)}/agents/${enc(agentId)}/holds`),
       stopHold: (orgId, agentId, holdId) =>
         request<void>(`${org(orgId)}/agents/${enc(agentId)}/holds/${enc(holdId)}`, { method: "DELETE" }),
+    },
+    outgoingWebhooks: {
+      list: async (orgId) =>
+        (await request<{ webhooks: OutgoingWebhook[] }>(`${org(orgId)}/outgoing-webhooks`)).webhooks,
+      create: (orgId, input) =>
+        request<{ webhook: OutgoingWebhook; secret: string }>(`${org(orgId)}/outgoing-webhooks`, { json: input }),
+      update: (orgId, id, patch) =>
+        request<OutgoingWebhook>(`${org(orgId)}/outgoing-webhooks/${enc(id)}`, { method: "PATCH", json: patch }),
+      remove: (orgId, id) => request<void>(`${org(orgId)}/outgoing-webhooks/${enc(id)}`, { method: "DELETE" }),
+      rotateSecret: (orgId, id) =>
+        request<{ secret: string }>(`${org(orgId)}/outgoing-webhooks/${enc(id)}/secret`, { json: {} }),
+      test: (orgId, id) =>
+        request<{ deliveryId: string }>(`${org(orgId)}/outgoing-webhooks/${enc(id)}/test`, { json: {} }),
+      deliveries: async (orgId, id) =>
+        (
+          await request<{ deliveries: OutgoingWebhookDelivery[] }>(
+            `${org(orgId)}/outgoing-webhooks/${enc(id)}/deliveries`,
+          )
+        ).deliveries,
     },
     vault: {
       overview: (orgId) => request<VaultOverview>(`${org(orgId)}/vault`),

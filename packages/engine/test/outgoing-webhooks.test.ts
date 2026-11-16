@@ -7,6 +7,7 @@ import {
   createJobHandlers,
   createOutgoingWebhook,
   DISABLE_AFTER_FAILURES,
+  deleteOutgoingWebhook,
   deliverOutgoingWebhook,
   drainOutbox,
   listOutgoingWebhookDeliveries,
@@ -34,7 +35,7 @@ afterEach(async () => {
 
 /** Every name resolves to a public address (the check at save time); a test that wants a private one says so. */
 const PUBLIC = async () => ["93.184.216.34"];
-const deps = () => ({ db: f.db, keyWrappers: [f.keyWrapper], resolveHost: PUBLIC });
+const deps = () => ({ db: f.db, pubsub: f.pubsub, keyWrappers: [f.keyWrapper], resolveHost: PUBLIC });
 
 interface Sent {
   url: string;
@@ -53,7 +54,12 @@ function receiver(...statuses: number[]) {
   return { sent, fetcher };
 }
 
-const deliveryDeps = (fetcher: typeof fetch) => ({ db: f.db, keyWrappers: [f.keyWrapper], fetch: fetcher });
+const deliveryDeps = (fetcher: typeof fetch) => ({
+  db: f.db,
+  pubsub: f.pubsub,
+  keyWrappers: [f.keyWrapper],
+  fetch: fetcher,
+});
 
 const deliveriesOf = (webhookId: string) =>
   f.db.select().from(schema.outgoingWebhookDeliveries).where(eq(schema.outgoingWebhookDeliveries.webhookId, webhookId));
@@ -300,6 +306,43 @@ describe("delivery", () => {
     });
     const on = await updateOutgoingWebhook(deps(), f.owner.id, f.org.id, hook.id, { enabled: true });
     expect(on).toMatchObject({ enabled: true, consecutiveFailures: 0 });
+  });
+
+  test("turned off by failures, the administrators hear it once; turning it back on or deleting it closes the notice", async () => {
+    f = await setup();
+    const admin = await addMember(f.db, f.org.id, "admin", "ana");
+    const member = await addMember(f.db, f.org.id, "member", "bia");
+    const { webhook: hook } = await webhook({ name: "CRM de vendas" });
+    const { fetcher: refusing } = receiver(400);
+    const failAll = async () => {
+      for (let i = 0; i < DISABLE_AFTER_FAILURES; i++) {
+        await post(f.general.id, `falha ${i}`);
+        const pending = (await deliveriesOf(hook.id)).find((d) => d.status === "pending");
+        await deliverOutgoingWebhook(deliveryDeps(refusing), pending?.id ?? "", { finalAttempt: false });
+      }
+    };
+    const notices = async () =>
+      (await f.db.select().from(schema.notifications)).filter((n) => n.kind === "webhook_disabled");
+
+    await failAll();
+    const told = await notices();
+    expect(told.map((n) => n.userId).sort()).toEqual([admin.id, f.owner.id].sort());
+    expect(told.map((n) => n.userId)).not.toContain(member.id);
+    expect(told[0]).toMatchObject({
+      orgId: f.org.id,
+      doneAt: null,
+      source: { webhookId: hook.id, label: "CRM de vendas" },
+      latest: { title: "CRM de vendas", reason: "http_400" },
+    });
+
+    await updateOutgoingWebhook(deps(), f.owner.id, f.org.id, hook.id, { enabled: true });
+    expect((await notices()).every((n) => n.doneAt !== null)).toBe(true);
+
+    // Off again: a new notice; deleting the webhook closes it too.
+    await failAll();
+    expect((await notices()).filter((n) => n.doneAt === null)).toHaveLength(2);
+    await deleteOutgoingWebhook(deps(), f.owner.id, f.org.id, hook.id);
+    expect((await notices()).every((n) => n.doneAt !== null)).toBe(true);
   });
 
   test("an address that resolves to a private one when sent is refused, never retried", async () => {

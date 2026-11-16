@@ -60,6 +60,10 @@ export const NotificationSource = z.object({
     .optional()
     .openapi({ description: "`widget_alert`, `widget_failed`, `dashboard_proposal`: the board (ADR 0135)." }),
   widgetId: z.string().optional().openapi({ description: "`widget_alert`, `widget_failed`: the widget." }),
+  webhookId: z
+    .string()
+    .optional()
+    .openapi({ description: "`webhook_disabled`: the outgoing webhook its failures turned off (ADR 0212)." }),
   accountId: z
     .string()
     .optional()

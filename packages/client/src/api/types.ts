@@ -7099,7 +7099,13 @@ export type NotificationKind =
    * `latest.names` the first things it is about and `count` how many, `latest.text` the whole sentence in the
    * person's language. `source.agentId`, `machineId` or `accountId` when it is about one. Done once fixed.
    */
-  | "team_watch";
+  | "team_watch"
+  /**
+   * ADR 0212 §7: ten failed deliveries in a row turned an outgoing webhook off (every administrator).
+   * `source.webhookId`, its name in `label` and `latest.title`, the last failure's code in `latest.reason`. Inbox only;
+   * done once it is turned back on or deleted. Opens Configurações › Webhooks.
+   */
+  | "webhook_disabled";
 
 /** "O Gerente aprova por você" (ADR 0139 §2): what the person let the workspace's right hand approve. */
 export interface RightHandApprovals {
@@ -7209,6 +7215,8 @@ export interface NotificationSource {
   dashboardId?: string;
   /** `widget_alert`, `widget_failed`: the widget. */
   widgetId?: string;
+  /** `webhook_disabled`: the outgoing webhook (ADR 0212). */
+  webhookId?: string;
   /** Channel name, thread title, issue title, topic title, mission or routine name (or the computer's name). */
   label?: string;
 }
