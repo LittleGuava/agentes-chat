@@ -43,6 +43,7 @@ import { type MessageMemory, memoriesFor } from "./message-memories";
 import { readableBody, voiceOf } from "./message-preview";
 import { quietNoticeSql } from "./notices";
 import { can } from "./organizations";
+import { webhookDeliveriesInsert, webhookDeliveryJobsSelect } from "./outgoing-webhooks";
 import { maySql } from "./permissions";
 import { afterReplyAnswered } from "./questions";
 import { rightHandReaches } from "./right-hand";
@@ -1052,6 +1053,15 @@ export async function insertMessageWithRuns(
           and an.agent_id not in (select agent_id from steered)
         on conflict do nothing
         returning id, agent_id
+      ), hooked as (
+        -- The workspace's outgoing webhooks on this channel (ADR 0212): one indexed lookup, nothing written when none.
+        ${webhookDeliveriesInsert({
+          orgId: sql`${input.orgId}`,
+          event: "message.posted",
+          subjectId: sql`${id}`,
+          channelId: sql`${input.channelId}`,
+          when: sql`exists (select 1 from m)`,
+        })}
       ), jobs as (
         insert into ${outbox} (id, org_id, kind, payload, dedupe_key, max_attempts)
         select gen_random_uuid(), ${input.orgId}::uuid, 'agent_run.execute', jsonb_build_object('runId', r.id),
@@ -1079,6 +1089,8 @@ export async function insertMessageWithRuns(
             or m.agent_run_id is not null or m.meta -> 'routine' is not null
             or (m.author_type = 'person' and exists (
               select 1 from ${channels} dc where dc.id = ${input.channelId}::uuid and dc.kind = 'dm')))
+        union all
+        ${webhookDeliveryJobsSelect("hooked")}
         on conflict do nothing
         returning id
       ), assess as (

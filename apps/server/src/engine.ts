@@ -855,6 +855,8 @@ export function buildEngine(o: EngineOptions) {
     githubApp: githubAppAccess,
     // External Vault sources synced every few minutes (ADR 0144).
     vault,
+    // A workspace's events to the addresses its admins chose (ADR 0212), through `outboundFetch` at send time.
+    outgoingWebhooks: { keyWrappers },
     mail: adapters.mail,
     // An agent's GIF after a light reply (ADR 0091): none without the server's GIF provider.
     gifs: adapters.gifs ?? null,

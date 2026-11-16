@@ -258,6 +258,7 @@ export * from "./organizations";
 export * from "./out-of-office";
 export * from "./outbound";
 export * from "./outbox";
+export * from "./outgoing-webhooks";
 export * from "./parked-asks";
 export * from "./partner-waitlist";
 export * from "./password-link";
