@@ -10261,6 +10261,15 @@
     "failed": "Mikrofon tidak bisa dibuka. Coba lagi.",
     "noPlayback": "Tidak bisa diputar sekarang. Kamu tetap bisa mengirimnya atau lanjut merekam.",
     "cantPlay": "Audio tidak bisa diputar.",
+    "dictation": {
+      "toggle": "Ubah jadi teks",
+      "send": "Masukkan teks ke kotak",
+      "transcribing": "Mentranskripsi…",
+      "keys": "Enter mengubah jadi teks · Esc menghapus",
+      "keysHold": "Lepas untuk mengubah jadi teks · Esc menghapus",
+      "keysPaused": "Dijeda · Spasi mendengarkan · Enter mengubah jadi teks · Esc menghapus",
+      "failed": "Audio tidak bisa diubah jadi teks sekarang. Coba lagi."
+    },
     "settings": {
       "title": "Pesan suara",
       "on": "Pesan suara",

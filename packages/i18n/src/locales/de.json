@@ -10630,6 +10630,15 @@
     "failed": "Das Mikrofon ließ sich nicht öffnen. Versuch es noch mal.",
     "noPlayback": "Gerade nicht abspielbar. Du kannst es trotzdem senden oder weiter aufnehmen.",
     "cantPlay": "Das Audio konnte nicht abgespielt werden.",
+    "dictation": {
+      "toggle": "In Text umwandeln",
+      "send": "Text ins Feld setzen",
+      "transcribing": "Wird in Text umgewandelt…",
+      "keys": "Enter wandelt in Text um · Esc löscht",
+      "keysHold": "Loslassen wandelt in Text um · Esc löscht",
+      "keysPaused": "Pausiert · Leertaste hört an · Enter wandelt in Text um · Esc löscht",
+      "failed": "Das Audio ließ sich gerade nicht in Text umwandeln. Versuch es noch mal."
+    },
     "settings": {
       "title": "Sprachnachrichten",
       "on": "Sprachnachrichten",

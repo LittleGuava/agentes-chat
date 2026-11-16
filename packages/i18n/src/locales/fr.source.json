@@ -25898,6 +25898,27 @@
   "voice.cantPlay": {
     "value": "Couldn't play the audio."
   },
+  "voice.dictation.toggle": {
+    "value": "Turn into text"
+  },
+  "voice.dictation.send": {
+    "value": "Put the text in the box"
+  },
+  "voice.dictation.transcribing": {
+    "value": "Transcribing…"
+  },
+  "voice.dictation.keys": {
+    "value": "Enter turns it into text · Esc deletes"
+  },
+  "voice.dictation.keysHold": {
+    "value": "Release to turn it into text · Esc deletes"
+  },
+  "voice.dictation.keysPaused": {
+    "value": "Paused · Space listens · Enter turns it into text · Esc deletes"
+  },
+  "voice.dictation.failed": {
+    "value": "Couldn't turn the audio into text now. Try again."
+  },
   "voice.settings.title": {
     "value": "Voice messages"
   },

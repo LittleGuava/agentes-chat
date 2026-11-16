@@ -111,7 +111,7 @@ export function requestOriginAllowed(origins: Set<string>, headers: Headers): bo
 export const MULTIPART_PATHS = [
   /\/organizations\/[^/]+\/artifacts(\/[^/]+)?\/files$/,
   /\/organizations\/[^/]+\/imports\/files$/,
-  /\/organizations\/[^/]+\/channels\/[^/]+\/voice$/,
+  /\/organizations\/[^/]+\/channels\/[^/]+\/voice(\/dictation)?$/,
   /\/feedback\/files$/,
 ];
 /** Multipart overhead allowed on top of an uploaded file itself. */

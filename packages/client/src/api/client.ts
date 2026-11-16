@@ -439,6 +439,12 @@ export interface ApiClient {
         attachments?: string[];
       },
     ): Promise<{ clipId: string }>;
+    /** A recording's words for the message box, posted by nobody (ADR 0100 addendum); "" when nothing was said. */
+    dictate(
+      orgId: string,
+      channelId: string,
+      input: { blob: Blob; durationMs: number; language?: string | null },
+    ): Promise<{ text: string }>;
   };
   account: {
     authConfig(): Promise<AuthConfig>;

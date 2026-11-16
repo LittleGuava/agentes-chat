@@ -11412,6 +11412,15 @@
     "failed": "Nie udało się otworzyć mikrofonu. Spróbuj ponownie.",
     "noPlayback": "Nie można teraz odtworzyć. Nadal możesz je wysłać lub nagrywać dalej.",
     "cantPlay": "Nie udało się odtworzyć nagrania.",
+    "dictation": {
+      "toggle": "Zamień na tekst",
+      "send": "Wstaw tekst do pola",
+      "transcribing": "Zamieniam na tekst…",
+      "keys": "Enter zamienia na tekst · Esc usuwa",
+      "keysHold": "Puść, aby zamienić na tekst · Esc usuwa",
+      "keysPaused": "Wstrzymano · Spacja odtwarza · Enter zamienia na tekst · Esc usuwa",
+      "failed": "Nie udało się teraz zamienić dźwięku na tekst. Spróbuj ponownie."
+    },
     "settings": {
       "title": "Wiadomości głosowe",
       "on": "Wiadomości głosowe",

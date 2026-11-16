@@ -11002,6 +11002,18 @@ export const en = {
     noPlayback: "Can't play it right now. You can still send it or keep recording.",
     /** Under a voice message that failed to load or play, before "Try again" (`common.retry`). */
     cantPlay: "Couldn't play the audio.",
+    /** Dictation: a recording's words go into the message box to edit, nothing is sent. */
+    dictation: {
+      /** The switch shown while recording. */
+      toggle: "Turn into text",
+      /** The send button while the switch is on. */
+      send: "Put the text in the box",
+      transcribing: "Transcribing…",
+      keys: "Enter turns it into text · Esc deletes",
+      keysHold: "Release to turn it into text · Esc deletes",
+      keysPaused: "Paused · Space listens · Enter turns it into text · Esc deletes",
+      failed: "Couldn't turn the audio into text now. Try again.",
+    },
     settings: {
       title: "Voice messages",
       on: "Voice messages",

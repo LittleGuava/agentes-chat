@@ -7598,6 +7598,11 @@ html:not([data-pointer]) .ac-composer__send:focus-visible {
   color: var(--danger);
   background: color-mix(in srgb, var(--danger) 12%, transparent);
 }
+/* Dictation's switch, on: the recording's end puts its words in the box (ADR 0100 addendum). */
+.ac-composer__to-text[aria-pressed="true"] {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
+}
 .ac-composer__mic {
   touch-action: none;
   -webkit-touch-callout: none;

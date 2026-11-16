@@ -1,5 +1,5 @@
 import type { BlobStoreResolver, PubSub, SpeechEngine } from "@agenteschat/adapters";
-import { firstWords, typingTopic } from "@agenteschat/adapters";
+import { firstWords, SpeechError, typingTopic } from "@agenteschat/adapters";
 import { and, asc, count, type Database, desc, eq, gt, gte, isNull, lt, ne, schema, sql } from "@agenteschat/db";
 import { requireChannelAccess } from "./channels";
 import { ForbiddenError, NotFoundError, ValidationError } from "./errors";
@@ -119,6 +119,30 @@ export async function voiceOn(deps: Pick<VoiceDeps, "db" | "engines">, orgId: st
   return row?.on ?? true;
 }
 
+/**
+ * What every recording must pass, sent or dictated: the workspace has voice, the audio is within its limits, the
+ * person is within fair use. Answers the type it is kept as.
+ */
+async function checkRecording(
+  deps: Pick<VoiceDeps, "db" | "engines" | "limits">,
+  userId: string,
+  orgId: string,
+  input: { audio: Uint8Array; contentType: string; durationMs: number },
+) {
+  if (!(await voiceOn(deps, orgId))) throw new ValidationError("Voice messages are off here", "voice.unavailable");
+  if (input.audio.length === 0 || input.audio.length > VOICE_MAX_BYTES) {
+    throw new ValidationError("The recording is too large", "voice.too_large");
+  }
+  if (input.durationMs < VOICE_MIN_MS || input.durationMs > VOICE_MAX_MS + VOICE_DURATION_SLACK_MS) {
+    throw new ValidationError("The recording is too long or too short", "voice.bad_duration");
+  }
+  if (!(await voiceAllowed(deps, userId, orgId))) throw new ValidationError("Too many voice messages", "voice.limit");
+  const declared = input.contentType.split(";")[0]?.trim().toLowerCase() || "audio/mp4";
+  const contentType = VOICE_ARRIVES_AS[declared] ?? declared;
+  if (!VOICE_TYPES.includes(contentType)) throw new ValidationError("Not a voice recording", "voice.bad_type");
+  return contentType;
+}
+
 /** Stores a recording and queues its words. A resend with the same `clientId` finds what the first one stored. */
 export async function acceptVoiceClip(
   deps: VoiceDeps,
@@ -149,14 +173,7 @@ export async function acceptVoiceClip(
     .from(voiceClips)
     .where(and(eq(voiceClips.orgId, orgId), eq(voiceClips.userId, userId), eq(voiceClips.clientId, clientId)));
   if (existing) return { clipId: existing.id };
-  if (!(await voiceOn(deps, orgId))) throw new ValidationError("Voice messages are off here", "voice.unavailable");
-  if (input.audio.length === 0 || input.audio.length > VOICE_MAX_BYTES) {
-    throw new ValidationError("The recording is too large", "voice.too_large");
-  }
-  if (input.durationMs < VOICE_MIN_MS || input.durationMs > VOICE_MAX_MS + VOICE_DURATION_SLACK_MS) {
-    throw new ValidationError("The recording is too long or too short", "voice.bad_duration");
-  }
-  if (!(await voiceAllowed(deps, userId, orgId))) throw new ValidationError("Too many voice messages", "voice.limit");
+  const contentType = await checkRecording(deps, userId, orgId, input);
   const text = input.text?.trim() || null;
   if (text && text.length > MAX_MESSAGE_LENGTH) {
     throw new ValidationError(`Message is longer than ${MAX_MESSAGE_LENGTH} characters`, "message.too_long", {
@@ -167,9 +184,6 @@ export async function acceptVoiceClip(
   const attachments = input.attachments?.length
     ? (await attachmentRefsFor(deps.db, userId, orgId, channelId, input.attachments)).map((f) => f.id)
     : null;
-  const declared = input.contentType.split(";")[0]?.trim().toLowerCase() || "audio/mp4";
-  const contentType = VOICE_ARRIVES_AS[declared] ?? declared;
-  if (!VOICE_TYPES.includes(contentType)) throw new ValidationError("Not a voice recording", "voice.bad_type");
   const id = crypto.randomUUID();
   const place = await deps.blobs.forOrg(orgId);
   const blobKey = `${place.prefix}voice/${id}`;
@@ -378,6 +392,63 @@ export async function transcribeVoiceClip(deps: VoiceDeps, clipId: string, optio
     }
     throw error;
   }
+}
+
+/**
+ * Dictation (ADR 0100 addendum): a recording's words for the person's own message box, posted by nobody. The audio
+ * lives only in this request. Its minutes go on a row with no audio, written before the engines are asked, so fair use
+ * is one budget for both and a second recording meanwhile already counts this one. A try no engine took costs nothing.
+ */
+export async function dictateVoice(
+  deps: VoiceDeps,
+  userId: string,
+  orgId: string,
+  channelId: string,
+  input: { audio: Uint8Array; contentType: string; durationMs: number; language?: string | null },
+): Promise<{ text: string }> {
+  const { membership } = await requireChannelAccess(deps.db, userId, orgId, channelId);
+  if (!can(membership, "post")) throw new ForbiddenError();
+  const contentType = await checkRecording(deps, userId, orgId, input);
+  const durationMs = Math.round(input.durationMs);
+  const language = input.language?.slice(0, 8) ?? null;
+  const terms = await namesFor(deps.db, orgId);
+  const id = crypto.randomUUID();
+  await deps.db.insert(voiceClips).values({
+    id,
+    orgId,
+    channelId,
+    userId,
+    clientId: `dictation:${id}`,
+    blobKey: "",
+    contentType,
+    size: 0,
+    durationMs,
+    peaks: [],
+    language,
+    status: "dictated",
+    audioDeletedAt: new Date(),
+  });
+  let words: Awaited<ReturnType<typeof firstWords>>;
+  try {
+    words = await firstWords(
+      deps.engines(),
+      { audio: input.audio, contentType, language, terms, orgId, durationMs },
+      (deps.hedgeAfterMs ?? hedgeAfterMs)(durationMs),
+    );
+  } catch (error) {
+    await deps.db.delete(voiceClips).where(eq(voiceClips.id, id));
+    // Busy is worth another try from the person; anything else (a refused key, the network) goes up as it is.
+    if (error instanceof SpeechError && error.reason === "busy") {
+      throw new ValidationError("No speech engine could take it now", "voice.busy");
+    }
+    throw error;
+  }
+  if (!words) throw new ValidationError("The words could not be made out", "voice.no_words");
+  await deps.db
+    .update(voiceClips)
+    .set({ engine: words.engine.id, costNanoUsd: costOf(words.engine, durationMs) })
+    .where(eq(voiceClips.id, id));
+  return { text: words.text };
 }
 
 /** A recording to play, for who can read its channel: a signed link where the store has them, else the bytes. */

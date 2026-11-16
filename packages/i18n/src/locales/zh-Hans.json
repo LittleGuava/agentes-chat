@@ -10275,6 +10275,15 @@
     "failed": "无法打开麦克风。请重试。",
     "noPlayback": "现在无法播放。你仍然可以发送，或继续录音。",
     "cantPlay": "语音播放失败。",
+    "dictation": {
+      "toggle": "转成文字",
+      "send": "把文字放进输入框",
+      "transcribing": "正在转成文字…",
+      "keys": "Enter 转成文字 · Esc 删除",
+      "keysHold": "松开转成文字 · Esc 删除",
+      "keysPaused": "已暂停 · 空格键收听 · Enter 转成文字 · Esc 删除",
+      "failed": "暂时无法把语音转成文字。请重试。"
+    },
     "settings": {
       "title": "语音消息",
       "on": "语音消息",

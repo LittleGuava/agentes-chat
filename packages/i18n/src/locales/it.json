@@ -11059,6 +11059,15 @@
     "failed": "Impossibile aprire il microfono. Riprova.",
     "noPlayback": "Ora non si può riprodurre. Puoi comunque inviarlo o continuare a registrare.",
     "cantPlay": "Impossibile riprodurre l'audio.",
+    "dictation": {
+      "toggle": "Trasforma in testo",
+      "send": "Metti il testo nella casella",
+      "transcribing": "Trascrizione…",
+      "keys": "Invio lo trasforma in testo · Esc elimina",
+      "keysHold": "Rilascia per trasformarlo in testo · Esc elimina",
+      "keysPaused": "In pausa · Spazio ascolta · Invio lo trasforma in testo · Esc elimina",
+      "failed": "Impossibile trasformare l'audio in testo ora. Riprova."
+    },
     "settings": {
       "title": "Messaggi vocali",
       "on": "Messaggi vocali",

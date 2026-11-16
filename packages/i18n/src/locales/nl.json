@@ -10696,6 +10696,15 @@
     "failed": "Kon de microfoon niet openen. Probeer het opnieuw.",
     "noPlayback": "Kan nu niet afspelen. Je kunt het nog steeds versturen of verder opnemen.",
     "cantPlay": "Kon de audio niet afspelen.",
+    "dictation": {
+      "toggle": "Omzetten naar tekst",
+      "send": "Tekst in het vak zetten",
+      "transcribing": "Wordt omgezet naar tekst…",
+      "keys": "Enter zet om naar tekst · Esc verwijdert",
+      "keysHold": "Loslaten om naar tekst om te zetten · Esc verwijdert",
+      "keysPaused": "Gepauzeerd · Spatie luistert · Enter zet om naar tekst · Esc verwijdert",
+      "failed": "Kon de audio nu niet naar tekst omzetten. Probeer het opnieuw."
+    },
     "settings": {
       "title": "Spraakberichten",
       "on": "Spraakberichten",

@@ -2205,6 +2205,41 @@ function ChannelView({
             askDelete: t("voice.askDelete"),
             askKeep: t("voice.askKeep"),
           },
+          // Dictation (ADR 0100 addendum): the words come back to this box to edit; nothing is sent.
+          dictation: {
+            run: async ({ blob, durationMs }) => {
+              try {
+                const { text } = await api.voice.dictate(org.id, channel.id, {
+                  blob,
+                  durationMs,
+                  language: i18n.language.split("-")[0] ?? null,
+                });
+                if (!text) toast.show(t("voice.silent"), "error");
+                return text;
+              } catch (error) {
+                const code = errorCode(error);
+                toast.show(
+                  code === "voice_limit"
+                    ? t("voice.limit")
+                    : code === "voice.no_words"
+                      ? t("voice.notUnderstood")
+                      : code === "voice.busy"
+                        ? t("voice.dictation.failed")
+                        : errorText(t, error),
+                  "error",
+                );
+                throw error;
+              }
+            },
+            labels: {
+              toggle: t("voice.dictation.toggle"),
+              send: t("voice.dictation.send"),
+              transcribing: t("voice.dictation.transcribing"),
+              keys: t("voice.dictation.keys"),
+              keysHold: t("voice.dictation.keysHold"),
+              keysPaused: t("voice.dictation.keysPaused"),
+            },
+          },
         }
       : undefined;
   // While an agent works here: the send button turns into stop (box empty); a message sent with ↵ joins what it does,

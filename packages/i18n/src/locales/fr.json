@@ -11041,6 +11041,15 @@
     "failed": "Impossible d'ouvrir le microphone. Réessayez.",
     "noPlayback": "Lecture impossible pour le moment. Vous pouvez quand même l'envoyer ou continuer l'enregistrement.",
     "cantPlay": "Impossible de lire l'audio.",
+    "dictation": {
+      "toggle": "Transformer en texte",
+      "send": "Mettre le texte dans la zone",
+      "transcribing": "Transcription…",
+      "keys": "Entrée le transforme en texte · Échap supprime",
+      "keysHold": "Relâchez pour le transformer en texte · Échap supprime",
+      "keysPaused": "En pause · Espace écoute · Entrée le transforme en texte · Échap supprime",
+      "failed": "Impossible de transformer l'audio en texte pour l'instant. Réessayez."
+    },
     "settings": {
       "title": "Messages vocaux",
       "on": "Messages vocaux",

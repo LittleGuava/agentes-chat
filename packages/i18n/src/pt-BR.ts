@@ -11024,6 +11024,15 @@ export const ptBR = {
     failed: "Não deu para abrir o microfone. Tente de novo.",
     noPlayback: "Não deu para tocar agora. Você ainda pode enviar ou continuar gravando.",
     cantPlay: "Não deu para tocar o áudio.",
+    dictation: {
+      toggle: "Transformar em texto",
+      send: "Pôr o texto na caixa",
+      transcribing: "Transcrevendo…",
+      keys: "Enter vira texto · Esc apaga",
+      keysHold: "Solte para virar texto · Esc apaga",
+      keysPaused: "Pausado · Espaço ouve · Enter vira texto · Esc apaga",
+      failed: "Não deu para transformar o áudio em texto agora. Tente de novo.",
+    },
     settings: {
       title: "Mensagens de voz",
       on: "Mensagens de voz",

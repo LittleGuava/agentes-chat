@@ -10573,6 +10573,15 @@
     "failed": "Mikrofon açılamadı. Tekrar deneyin.",
     "noPlayback": "Şu anda oynatılamıyor. Yine de gönderebilir veya kayda devam edebilirsiniz.",
     "cantPlay": "Ses oynatılamadı.",
+    "dictation": {
+      "toggle": "Metne çevir",
+      "send": "Metni kutuya koy",
+      "transcribing": "Metne çevriliyor…",
+      "keys": "Enter metne çevirir · Esc siler",
+      "keysHold": "Metne çevirmek için bırakın · Esc siler",
+      "keysPaused": "Duraklatıldı · Boşluk dinletir · Enter metne çevirir · Esc siler",
+      "failed": "Ses şu anda metne çevrilemedi. Tekrar deneyin."
+    },
     "settings": {
       "title": "Sesli mesajlar",
       "on": "Sesli mesajlar",
