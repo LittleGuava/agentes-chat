@@ -7565,7 +7565,9 @@ html:not([data-pointer]) .ac-composer__send:focus-visible {
   height: 28px;
 }
 /* The row stays: the send button and the microphone where they were, attach and emoji give way to delete. */
-.ac-composer[data-voice] .ac-composer__tools > :not(.ac-composer__voice-trash, .ac-composer__mic, .ac-composer__send),
+.ac-composer[data-voice]
+  .ac-composer__tools
+  > :not(.ac-composer__voice-trash, .ac-composer__to-text, .ac-composer__mic, .ac-composer__send),
 .ac-composer[data-voice] .ac-composer__pills {
   display: none;
 }
@@ -7591,6 +7593,11 @@ html:not([data-pointer]) .ac-composer__send:focus-visible {
 .ac-composer__mic[data-on] {
   color: var(--danger);
   background: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+/* Dictation's switch, on: the recording's end puts its words in the box (ADR 0100 addendum). */
+.ac-composer__to-text[aria-pressed="true"] {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
 }
 .ac-composer__mic {
   touch-action: none;

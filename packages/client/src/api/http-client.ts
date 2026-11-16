@@ -1043,6 +1043,13 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         if (input.language) form.set("language", input.language);
         return files.upload<{ clipId: string }>(`${org(orgId)}/channels/${enc(channelId)}/voice`, form);
       },
+      dictate: (orgId, channelId, input) => {
+        const form = new FormData();
+        form.set("file", input.blob, input.blob.type.startsWith("audio/webm") ? "voice.webm" : "voice.m4a");
+        form.set("durationMs", String(Math.round(input.durationMs)));
+        if (input.language) form.set("language", input.language);
+        return files.upload<{ text: string }>(`${org(orgId)}/channels/${enc(channelId)}/voice/dictation`, form);
+      },
     },
     chat: {
       channels: async (orgId) => (await request<{ channels: Channel[] }>(`${org(orgId)}/channels`)).channels,
