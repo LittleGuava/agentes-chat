@@ -6269,6 +6269,21 @@
   "channel.correctionSent": {
     "value": "Correction sent. {{name}} will learn from it."
   },
+  "channel.editMessage": {
+    "value": "Edit message"
+  },
+  "channel.editLabel": {
+    "value": "Message"
+  },
+  "channel.editRedoHint": {
+    "value": "Whoever already answered answers the new text again. The earlier answers stay."
+  },
+  "channel.editSave": {
+    "value": "Save"
+  },
+  "channel.editRedo": {
+    "value": "Edit and redo the answer"
+  },
   "channel.sending": {
     "value": "sending…"
   },
@@ -8047,11 +8062,11 @@
   "connectAi.plan.grok.title": {
     "value": "Your Grok plan"
   },
-  "connectAi.plan.copilot.title": {
-    "value": "Your GitHub Copilot plan"
-  },
   "connectAi.plan.grok.tiers": {
     "value": "SuperGrok, SuperGrok Heavy or X Premium+"
+  },
+  "connectAi.plan.copilot.title": {
+    "value": "Your GitHub Copilot plan"
   },
   "connectAi.plan.copilot.tiers": {
     "value": "Copilot Pro, Pro+, Business or Enterprise"
@@ -36107,6 +36122,21 @@
   "errors.replyGone": {
     "value": "The message you were replying to isn't here anymore."
   },
+  "errors.messageEdit.notYours": {
+    "value": "Only whoever wrote the message can edit it."
+  },
+  "errors.messageEdit.expired": {
+    "value": "A message can only be edited up to a day after it was sent."
+  },
+  "errors.messageEdit.notEditable": {
+    "value": "This message can't be edited."
+  },
+  "errors.messageEdit.answered": {
+    "value": "An agent already answered this message. Use Edit and redo the answer."
+  },
+  "errors.messageEdit.notLatest": {
+    "value": "Only the last message in the conversation can get another answer. Send a new message."
+  },
   "errors.media.off": {
     "value": "GIFs and stickers are off in this workspace."
   },
@@ -40000,6 +40030,9 @@
   "audit.change.verb.changed": {
     "value": "Changed"
   },
+  "audit.change.verb.edited": {
+    "value": "Edited"
+  },
   "audit.change.verb.connected": {
     "value": "Connected"
   },
@@ -42256,6 +42289,9 @@
   "chat.notice.wakeSkippedAnon": {
     "value": "{{name}}'s mention didn't reach another agent"
   },
+  "chat.notice.messageEdited": {
+    "value": "{{person}} edited the message and asked {{name}} for another answer"
+  },
   "chat.notice.wakeSkippedAudience": {
     "value": "Only some people may call {{agents}}, and this work of {{name}} didn't come from one of them. Someone who may call {{agents}} can pass the request on."
   },
@@ -42318,6 +42354,12 @@
   },
   "chat.notice.talkerWaitingTip": {
     "value": "Answered while its task waits."
+  },
+  "chat.edited.label": {
+    "value": "edited"
+  },
+  "chat.edited.tip": {
+    "value": "Edited · {{date}}"
   },
   "chat.joined.label": {
     "value": "joined in"

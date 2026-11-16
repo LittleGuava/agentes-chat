@@ -1,6 +1,6 @@
 import type { PubSub } from "@agenteschat/adapters";
 import type { Executor } from "@agenteschat/db";
-import { createAgentRuns, type RunTrigger } from "./dispatch";
+import { createAgentRuns, type RunTrigger, type StartRunOptions } from "./dispatch";
 import { publishChannelEvent, publishMessageCreated } from "./events";
 import { insertMessage, type Message, messageView } from "./messages";
 import { type Notice, SELF_REPORT_NOTICES } from "./notices";
@@ -24,6 +24,8 @@ export interface DeliverNoticeInput {
   trigger?: RunTrigger;
   /** It relays what a run read outside (`meta.readOutside`, ADR 0117). */
   readOutside?: boolean;
+  /** How its run starts: `granted` for one a person asked for (a fresh stretch, ADR 0089). */
+  start?: StartRunOptions;
 }
 
 /**
@@ -48,7 +50,7 @@ export async function deliverNotice(
     meta: { notice: input.notice, ...(input.readOutside ? { readOutside: true } : {}) },
   });
   const wake = input.wake !== false && !SELF_REPORT_NOTICES.includes(input.notice.kind);
-  const runs = wake ? await createAgentRuns(tx, message, [input.agentId], input.trigger ?? "mention") : [];
+  const runs = wake ? await createAgentRuns(tx, message, [input.agentId], input.trigger ?? "mention", input.start) : [];
   return { message, runs };
 }
 

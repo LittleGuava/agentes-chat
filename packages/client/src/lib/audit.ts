@@ -142,6 +142,7 @@ const VERBS = [
   "deleted",
   "updated",
   "changed",
+  "edited",
   "connected",
   "disconnected",
   "reconnected",

@@ -843,6 +843,9 @@ const MessageBase = z.object({
   longWork: WorkView.optional().openapi({
     description: "A long work's anchor (`meta.longWork`, ADR 0121): its line; live via `agent.work`.",
   }),
+  editedAt: z.string().optional().openapi({
+    description: "When its author last edited it (ADR 0187); absent: never edited. Live via `message.edited`.",
+  }),
   createdAt: z.string(),
 });
 
