@@ -157,6 +157,7 @@ import type {
   GitHubOrgAccess,
   GitHubRepositories,
   Health,
+  HealthIssue,
   HostComputer,
   IdRef,
   ImportedFile,
@@ -671,6 +672,8 @@ export interface ApiClient {
     actOnTeamWeek(orgId: string, messageId: string, act: TeamWeekAct): Promise<void>;
     /** The audit log, newest first (admins): agents' tool calls and people's changes. `before`: `next`. */
     audit(orgId: string, query?: AuditQuery & { before?: string; limit?: number }): Promise<AuditPage>;
+    /** What keeps failing, grouped by cause, latest first (who may read the audit log, ADR 0190). */
+    healthIssues(orgId: string): Promise<{ issues: HealthIssue[] }>;
   };
   /** A workspace's roles (ADR 0085): every member reads them; who may manage roles changes those below theirs. */
   roles: {

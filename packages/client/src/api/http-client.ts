@@ -118,6 +118,7 @@ import type {
   GitHubOrgAccess,
   GitHubRepositories,
   Health,
+  HealthIssue,
   HostComputer,
   IdRef,
   ImportedFile,
@@ -782,6 +783,7 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
             limit: query.limit,
           },
         }),
+      healthIssues: (orgId) => request<{ issues: HealthIssue[] }>(`${org(orgId)}/health-issues`),
     },
     roles: {
       list: (orgId) => request<OrgRoles>(`${org(orgId)}/roles`),

@@ -16462,6 +16462,28 @@ export const en = {
     via: "via {{name}}",
     viaTip: "Sent by {{person}} through {{name}}, a connected app",
   },
+  /** Configurações › Saúde (ADR 0190): what keeps failing, one card per cause. */
+  health: {
+    emptyTitle: "Nothing keeps failing",
+    empty: "When a tool, a run or work in the queue fails, it shows up here, grouped by cause.",
+    runFailed: "The agent's work stopped on an error.",
+    stalled: "Waited more than 5 minutes past its time to start.",
+    jobFailed: "Gave up after its last try.",
+    costSpike: "A run of {{agent}} cost the workspace over US$ 5.",
+    costSpikeNoName: "A run cost the workspace over US$ 5.",
+    count: "Occurrences: {{count}}",
+    since: "First {{first}}, last {{last}}",
+    latest: "Latest:",
+    /** What failed, on the card's chip. */
+    kind: {
+      tool_error: "Tool error",
+      timeout: "Timed out",
+      run_failed: "Run failed",
+      queue_stalled: "Stuck in the queue",
+      job_failed: "Failed in the queue",
+      cost_spike: "Costly run",
+    },
+  },
   audit: {
     filters: "Show",
     filter: {
@@ -16684,6 +16706,7 @@ export const en = {
       devices: "Devices",
       usage: "AI and usage",
       audit: "Audit log",
+      health: "Health",
       import: "Import and export",
       billing: "Plan and billing",
       media: "GIFs and stickers",
@@ -16718,6 +16741,7 @@ export const en = {
       storage: "Where the workspace's files live.",
       usage: "The workspace's AI accounts, and how much each person and agent uses.",
       audit: "What agents did outside the conversation and what people changed.",
+      health: "What keeps failing in the workspace, grouped by cause.",
       import: "Bring agents from another app or workspace, or take this one along.",
       billing: "The plan, card and invoices, on a page of ours outside the app.",
       media: "What can be sent in a conversation, and the agents' GIFs and stickers.",

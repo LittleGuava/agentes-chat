@@ -151,6 +151,8 @@ export * from "./git/repos";
 export * from "./git/signature";
 export * from "./git/tools";
 export * from "./hand-off";
+export * from "./health";
+export * from "./health-signature";
 export * from "./host-computer";
 export * from "./id-refs";
 export * from "./imports";

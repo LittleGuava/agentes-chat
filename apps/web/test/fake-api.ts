@@ -43,6 +43,7 @@ import type {
   GifKey,
   GitHubAppInfo,
   GitHubRepositories,
+  HealthIssue,
   HttpApi,
   IdRef,
   ImportedSource,
@@ -334,6 +335,8 @@ export interface FakeState {
   spentUsd?: Record<string, number>;
   /** Configurações › Auditoria: newest first. */
   audit?: AuditRow[];
+  /** Configurações › Saúde: latest first. */
+  healthIssues?: HealthIssue[];
   /** The workspace switch "Agentes conferem o que o time já fez" (on when unset). */
   actionCheck?: boolean;
   /** Automático's models per provider and tier (Settings › Chaves); none when unset. */
@@ -2177,6 +2180,7 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         const page = rows.slice(from, from + limit);
         return { rows: page, next: from + limit < rows.length ? (page.at(-1)?.id ?? null) : null };
       },
+      healthIssues: async () => ({ issues: state.healthIssues ?? [] }),
       usageReport: async () => ({
         since: minutesAgo(60 * 24 * 14),
         defaultAgentBudgetUsd: state.defaultAgentBudgetUsd ?? 50,
