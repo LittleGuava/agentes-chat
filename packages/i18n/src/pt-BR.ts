@@ -1177,6 +1177,13 @@ export const ptBR = {
     personal: {
       name: "Pessoal",
     },
+    /** Workspaces the person's email domain lets them join (ADR 0068, addendum 2026-11-15), on the first step. */
+    domainJoin: {
+      title: "Sua equipe já está aqui",
+      lead: "O domínio do seu e-mail deixa você entrar sem convite.",
+      join: "Entrar",
+      joinName: "Entrar em {{name}}",
+    },
     workspace: {
       title: "Como se chama o seu workspace?",
       lead: "É onde o time e os agentes conversam.",
@@ -7857,6 +7864,21 @@ export const ptBR = {
       roleTitle: "Cargo de {{email}}",
       roleText: "Muda o que a pessoa recebe ao entrar. O link continua o mesmo.",
       roleSaved: "{{email}} entra como {{roles}}.",
+    },
+    /** Joining by the address's domain (ADR 0068, addendum 2026-11-15): Settings › Members, for admins. */
+    domains: {
+      title: "Entrar pelo domínio do e-mail",
+      lead: "Quem tem e-mail confirmado nestes domínios encontra {{org}} e entra sem convite.",
+      domain: "Domínio",
+      placeholder: "empresa.com.br",
+      hint: "Só um domínio do seu próprio e-mail confirmado. Provedores públicos como gmail.com não valem.",
+      role: "Entra como",
+      add: "Adicionar domínio",
+      added: "Quem é de {{domain}} já pode entrar.",
+      removeShort: "Remover",
+      remove: "Remover {{domain}}",
+      removed: "{{domain}} não deixa mais ninguém entrar.",
+      rolesOf: "Entra como {{roles}}",
     },
     // A member who may not invite suggests someone: a request for whoever invites (ADR 0090).
     suggest: {
@@ -15227,6 +15249,14 @@ export const ptBR = {
       expired: "Este pedido expirou: ninguém respondeu em 14 dias.",
       codeNeeded: "Verifique seu e-mail primeiro.",
     },
+    /** Joining by the address's domain refused (ADR 0068, addendum 2026-11-15). */
+    joinDomain: {
+      invalid: "Isso não é um domínio. Escreva como empresa.com.br.",
+      public: "Qualquer pessoa pode ter um e-mail em {{domain}}. Use o domínio da sua empresa.",
+      notYours: "Você só pode adicionar o domínio do seu próprio e-mail confirmado.",
+      tooMany: "Um workspace pode ter no máximo {{max}} domínios.",
+      notAllowed: "Este workspace não aceita mais o domínio do seu e-mail. Peça a alguém de lá para convidar você.",
+    },
     /** An emailed code refused: asking to join (ADR 0072) and deleting (ADR 0088) alike. */
     code: {
       wrong: "Código errado. Tente de novo.",
@@ -16763,6 +16793,10 @@ export const ptBR = {
     change: {
       mergedWithoutAsking: "Fez o merge em {{repo}} sem perguntar",
       dmShared: "Compartilhou uma cópia da sua conversa com um agente",
+      joinDomain: {
+        added: "Deixou quem é de {{domain}} entrar sem convite",
+        removed: "Parou de deixar quem é de {{domain}} entrar",
+      },
       pattern: "{{verb}} {{area}}",
       approval: {
         approved: "Aprovou um pedido",

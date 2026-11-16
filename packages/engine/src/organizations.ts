@@ -988,7 +988,7 @@ export async function announceProfile(db: Database, pubsub: PubSub | undefined, 
  * A change to who is in the workspace, in the audit log: the person's name and address as they were then
  * (the row outlives the account).
  */
-async function auditMember(
+export async function auditMember(
   tx: Executor,
   orgId: string,
   actorId: string,

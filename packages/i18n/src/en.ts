@@ -1251,6 +1251,13 @@ export const en = {
     personal: {
       name: "Personal",
     },
+    /** Workspaces the person's email domain lets them join (ADR 0068, addendum 2026-11-15), on the first step. */
+    domainJoin: {
+      title: "Your team is already here",
+      lead: "Your email's domain lets you join without an invitation.",
+      join: "Join",
+      joinName: "Join {{name}}",
+    },
     workspace: {
       title: "What's your workspace called?",
       lead: "It's where the team and the agents talk.",
@@ -7887,6 +7894,21 @@ export const en = {
       roleTitle: "{{email}}'s role",
       roleText: "Changes what they get when they join. The link stays the same.",
       roleSaved: "{{email}} joins as {{roles}}.",
+    },
+    /** Joining by the address's domain (ADR 0068, addendum 2026-11-15): Settings › Members, for admins. */
+    domains: {
+      title: "Join by email domain",
+      lead: "People with a confirmed email at these domains find {{org}} and join without an invitation.",
+      domain: "Domain",
+      placeholder: "company.com",
+      hint: "Only a domain your own confirmed email is at. Public providers like gmail.com can't be used.",
+      role: "Joins as",
+      add: "Add domain",
+      added: "People at {{domain}} can now join.",
+      removeShort: "Remove",
+      remove: "Remove {{domain}}",
+      removed: "{{domain}} no longer lets people in.",
+      rolesOf: "Joins as {{roles}}",
     },
     // A member who may not invite suggests someone: a request for whoever invites (ADR 0090).
     suggest: {
@@ -15270,6 +15292,14 @@ export const en = {
       expired: "This request expired: nobody answered it in 14 days.",
       codeNeeded: "Verify your email first.",
     },
+    /** Joining by the address's domain refused (ADR 0068, addendum 2026-11-15). */
+    joinDomain: {
+      invalid: "That isn't a domain. Type it like company.com.",
+      public: "Anyone can have an email at {{domain}}. Use your company's own domain.",
+      notYours: "You can only add a domain your own confirmed email is at.",
+      tooMany: "A workspace can have at most {{max}} domains.",
+      notAllowed: "This workspace no longer lets your email's domain in. Ask someone there to invite you.",
+    },
     /** An emailed code refused: asking to join (ADR 0072) and deleting (ADR 0088) alike. */
     code: {
       wrong: "Wrong code. Try again.",
@@ -16861,6 +16891,10 @@ export const en = {
     change: {
       mergedWithoutAsking: "Merged in {{repo}} without asking",
       dmShared: "Shared a copy of their conversation with an agent",
+      joinDomain: {
+        added: "Let people at {{domain}} join without an invitation",
+        removed: "Stopped letting people at {{domain}} join",
+      },
       pattern: "{{verb}} {{area}}",
       approval: {
         approved: "Approved a request",

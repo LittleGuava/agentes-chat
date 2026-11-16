@@ -34,6 +34,7 @@ import type {
   ConsultationConversation,
   Credential,
   DeviceAccount,
+  DomainWorkspace,
   DuplicateSkipped,
   Edition,
   EmailChange,
@@ -59,6 +60,7 @@ import type {
   JevKey,
   JoinApproval,
   JoinClaim,
+  JoinDomain,
   JoinRequest,
   Me,
   Member,
@@ -460,6 +462,10 @@ export interface FakeState {
   inviteLinks?: InviteLink[];
   /** Requests to join waiting (`joinRequests.list`). */
   joinRequests?: JoinRequest[];
+  /** The workspace's domains (`joinDomains.list`, ADR 0068, addendum 2026-11-15). */
+  joinDomains?: JoinDomain[];
+  /** Workspaces the account's domain lets it join (`joinDomains.workspaces`). */
+  domainWorkspaces?: DomainWorkspace[];
   /** What `joinRequests.approve` answers; unset: in at once when confirmed, else an emailed invitation. */
   approval?: JoinApproval;
   /** Make `joinRequests.approve` and `deny` fail with this error (`join.answered`…). */
@@ -1276,6 +1282,7 @@ type FakedParts =
   | "skills"
   | "access"
   | "invites"
+  | "joinDomains"
   | "joinRequests"
   | "storage"
   | "artifacts"
@@ -4400,6 +4407,39 @@ export function createFakeApi(state: FakeState = seedState(), options: { seed?: 
       requestNew: async (token) => {
         state.calls.push({ method: "invites.requestNew", args: [token] });
         if (state.requestNewError) throw state.requestNewError;
+      },
+    },
+    joinDomains: {
+      list: async (orgId) => {
+        state.calls.push({ method: "joinDomains.list", args: [orgId] });
+        return structuredClone(state.joinDomains ?? []);
+      },
+      add: async (orgId, input) => {
+        state.calls.push({ method: "joinDomains.add", args: [orgId, input] });
+        const made = {
+          id: `domain-${(state.joinDomains ?? []).length + 1}`,
+          domain: input.domain.trim().toLowerCase().replace(/^@/, ""),
+          roleIds: input.roleIds ?? [],
+          createdAt: "2026-11-15T10:00:00.000Z",
+        };
+        state.joinDomains = [...(state.joinDomains ?? []).filter((d) => d.domain !== made.domain), made];
+        return structuredClone(made);
+      },
+      remove: async (orgId, domainId) => {
+        state.calls.push({ method: "joinDomains.remove", args: [orgId, domainId] });
+        state.joinDomains = (state.joinDomains ?? []).filter((d) => d.id !== domainId);
+      },
+      workspaces: async () => {
+        state.calls.push({ method: "joinDomains.workspaces", args: [] });
+        return structuredClone(state.domainWorkspaces ?? []);
+      },
+      join: async (orgId) => {
+        state.calls.push({ method: "joinDomains.join", args: [orgId] });
+        const joined = (state.domainWorkspaces ?? []).find((w) => w.id === orgId);
+        state.domainWorkspaces = (state.domainWorkspaces ?? []).filter((w) => w.id !== orgId);
+        if (joined && state.me && !state.me.organizations.some((o) => o.id === orgId))
+          state.me.organizations.push({ id: orgId, name: joined.name, role: "member", showActivity: true });
+        return { orgId };
       },
     },
     joinRequests: {

@@ -1179,6 +1179,12 @@
     "personal": {
       "name": "Osobiste"
     },
+    "domainJoin": {
+      "title": "Twój zespół już tu jest",
+      "lead": "Domena twojego e-maila pozwala dołączyć bez zaproszenia.",
+      "join": "Dołącz",
+      "joinName": "Dołącz do {{name}}"
+    },
     "workspace": {
       "title": "Jak nazywa się twoja przestrzeń robocza?",
       "lead": "To tu rozmawiają zespół i agenci.",
@@ -7925,6 +7931,20 @@
       "roleTitle": "Rola: {{email}}",
       "roleText": "Zmienia to, co ta osoba dostanie po dołączeniu. Link pozostaje ten sam.",
       "roleSaved": "{{email}} dołączy jako: {{roles}}."
+    },
+    "domains": {
+      "title": "Dołączanie przez domenę e-maila",
+      "lead": "Osoby z potwierdzonym e-mailem w tych domenach znajdą {{org}} i dołączą bez zaproszenia.",
+      "domain": "Domena",
+      "placeholder": "firma.pl",
+      "hint": "Tylko domena twojego własnego potwierdzonego e-maila. Publiczni dostawcy jak gmail.com się nie liczą.",
+      "role": "Dołącza jako",
+      "add": "Dodaj domenę",
+      "added": "Osoby z {{domain}} mogą już dołączyć.",
+      "removeShort": "Usuń",
+      "remove": "Usuń {{domain}}",
+      "removed": "{{domain}} nikogo już nie wpuszcza.",
+      "rolesOf": "Dołącza jako {{roles}}"
     },
     "suggest": {
       "title": "Chcesz kogoś przyprowadzić do {{org}}?",
@@ -16055,6 +16075,13 @@
       "expired": "Ta prośba wygasła: nikt na nią nie odpowiedział przez 14 dni.",
       "codeNeeded": "Najpierw potwierdź swój e-mail."
     },
+    "joinDomain": {
+      "invalid": "To nie jest domena. Wpisz ją jak firma.pl.",
+      "public": "Każdy może mieć e-mail w {{domain}}. Użyj domeny swojej firmy.",
+      "notYours": "Możesz dodać tylko domenę swojego własnego potwierdzonego e-maila.",
+      "tooMany": "Przestrzeń robocza może mieć najwyżej {{max}} domen.",
+      "notAllowed": "Ta przestrzeń robocza nie wpuszcza już domeny twojego e-maila. Poproś kogoś stamtąd o zaproszenie."
+    },
     "code": {
       "wrong": "Błędny kod. Spróbuj ponownie.",
       "expired": "Ten kod wygasł. Pobierz nowy.",
@@ -17579,6 +17606,10 @@
     "removed": "Usunięte",
     "change": {
       "mergedWithoutAsking": "Scalono w {{repo}} bez pytania",
+      "joinDomain": {
+        "added": "Pozwolono osobom z {{domain}} dołączać bez zaproszenia",
+        "removed": "Osoby z {{domain}} nie mogą już dołączać"
+      },
       "dmShared": "Udostępnił(a) kopię swojej rozmowy z agentem",
       "pattern": "{{verb}} {{area}}",
       "approval": {

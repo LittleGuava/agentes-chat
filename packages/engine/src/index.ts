@@ -176,6 +176,7 @@ export * from "./issues";
 export * from "./issues-view";
 export * from "./jev-key";
 export * from "./jobs";
+export * from "./join-domains";
 export * from "./judge";
 export * from "./key-line";
 export * from "./limits";

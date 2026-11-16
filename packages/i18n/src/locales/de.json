@@ -1126,6 +1126,12 @@
     "personal": {
       "name": "Privat"
     },
+    "domainJoin": {
+      "title": "Dein Team ist schon hier",
+      "lead": "Mit der Domain deiner E-Mail-Adresse kannst du ohne Einladung beitreten.",
+      "join": "Beitreten",
+      "joinName": "{{name}} beitreten"
+    },
     "workspace": {
       "title": "Wie heißt dein Workspace?",
       "lead": "Hier reden das Team und die Agenten miteinander.",
@@ -7405,6 +7411,20 @@
       "roleTitle": "Rolle von {{email}}",
       "roleText": "Ändert, was die Person beim Beitritt bekommt. Der Link bleibt gleich.",
       "roleSaved": "{{email}} tritt als {{roles}} bei."
+    },
+    "domains": {
+      "title": "Beitritt über die E-Mail-Domain",
+      "lead": "Wer eine bestätigte E-Mail-Adresse bei diesen Domains hat, findet {{org}} und tritt ohne Einladung bei.",
+      "domain": "Domain",
+      "placeholder": "firma.de",
+      "hint": "Nur eine Domain, bei der deine eigene bestätigte E-Mail-Adresse liegt. Öffentliche Anbieter wie gmail.com gehen nicht.",
+      "role": "Tritt bei als",
+      "add": "Domain hinzufügen",
+      "added": "Leute bei {{domain}} können jetzt beitreten.",
+      "removeShort": "Entfernen",
+      "remove": "{{domain}} entfernen",
+      "removed": "{{domain}} lässt niemanden mehr herein.",
+      "rolesOf": "Tritt bei als {{roles}}"
     },
     "suggest": {
       "title": "Möchtest du jemanden zu {{org}} holen?",
@@ -15023,6 +15043,13 @@
       "expired": "Diese Anfrage ist abgelaufen: Niemand hat innerhalb von 14 Tagen geantwortet.",
       "codeNeeded": "Bestätige zuerst deine E-Mail-Adresse."
     },
+    "joinDomain": {
+      "invalid": "Das ist keine Domain. Schreib sie wie firma.de.",
+      "public": "Bei {{domain}} kann jeder eine E-Mail-Adresse haben. Nimm die eigene Domain deiner Firma.",
+      "notYours": "Du kannst nur die Domain deiner eigenen bestätigten E-Mail-Adresse hinzufügen.",
+      "tooMany": "Ein Workspace kann höchstens {{max}} Domains haben.",
+      "notAllowed": "Dieser Workspace lässt die Domain deiner E-Mail-Adresse nicht mehr herein. Bitte jemanden dort, dich einzuladen."
+    },
     "code": {
       "wrong": "Falscher Code. Versuch es noch einmal.",
       "expired": "Dieser Code ist abgelaufen. Hol dir einen neuen.",
@@ -16508,6 +16535,10 @@
     "removed": "Entfernt",
     "change": {
       "mergedWithoutAsking": "In {{repo}} ohne Nachfrage gemergt",
+      "joinDomain": {
+        "added": "Hat Leute bei {{domain}} ohne Einladung beitreten lassen",
+        "removed": "Lässt Leute bei {{domain}} nicht mehr beitreten"
+      },
       "dmShared": "Hat eine Kopie der eigenen Unterhaltung mit einem Agenten geteilt",
       "pattern": "{{verb}}: {{area}}",
       "approval": {

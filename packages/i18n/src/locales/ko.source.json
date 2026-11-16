@@ -2789,6 +2789,18 @@
   "onboarding.personal.name": {
     "value": "Personal"
   },
+  "onboarding.domainJoin.title": {
+    "value": "Your team is already here"
+  },
+  "onboarding.domainJoin.lead": {
+    "value": "Your email's domain lets you join without an invitation."
+  },
+  "onboarding.domainJoin.join": {
+    "value": "Join"
+  },
+  "onboarding.domainJoin.joinName": {
+    "value": "Join {{name}}"
+  },
   "onboarding.workspace.title": {
     "value": "What's your workspace called?"
   },
@@ -18115,6 +18127,42 @@
   },
   "members.invitations.roleSaved": {
     "value": "{{email}} joins as {{roles}}."
+  },
+  "members.domains.title": {
+    "value": "Join by email domain"
+  },
+  "members.domains.lead": {
+    "value": "People with a confirmed email at these domains find {{org}} and join without an invitation."
+  },
+  "members.domains.domain": {
+    "value": "Domain"
+  },
+  "members.domains.placeholder": {
+    "value": "company.com"
+  },
+  "members.domains.hint": {
+    "value": "Only a domain your own confirmed email is at. Public providers like gmail.com can't be used."
+  },
+  "members.domains.role": {
+    "value": "Joins as"
+  },
+  "members.domains.add": {
+    "value": "Add domain"
+  },
+  "members.domains.added": {
+    "value": "People at {{domain}} can now join."
+  },
+  "members.domains.removeShort": {
+    "value": "Remove"
+  },
+  "members.domains.remove": {
+    "value": "Remove {{domain}}"
+  },
+  "members.domains.removed": {
+    "value": "{{domain}} no longer lets people in."
+  },
+  "members.domains.rolesOf": {
+    "value": "Joins as {{roles}}"
   },
   "members.suggest.title": {
     "value": "Want to bring someone to {{org}}?"
@@ -36902,6 +36950,21 @@
   "errors.join.codeNeeded": {
     "value": "Verify your email first."
   },
+  "errors.joinDomain.invalid": {
+    "value": "That isn't a domain. Type it like company.com."
+  },
+  "errors.joinDomain.public": {
+    "value": "Anyone can have an email at {{domain}}. Use your company's own domain."
+  },
+  "errors.joinDomain.notYours": {
+    "value": "You can only add a domain your own confirmed email is at."
+  },
+  "errors.joinDomain.tooMany": {
+    "value": "A workspace can have at most {{max}} domains."
+  },
+  "errors.joinDomain.notAllowed": {
+    "value": "This workspace no longer lets your email's domain in. Ask someone there to invite you."
+  },
   "errors.code.wrong": {
     "value": "Wrong code. Try again."
   },
@@ -40617,6 +40680,12 @@
   },
   "audit.change.mergedWithoutAsking": {
     "value": "Merged in {{repo}} without asking"
+  },
+  "audit.change.joinDomain.added": {
+    "value": "Let people at {{domain}} join without an invitation"
+  },
+  "audit.change.joinDomain.removed": {
+    "value": "Stopped letting people at {{domain}} join"
   },
   "audit.change.dmShared": {
     "value": "Shared a copy of their conversation with an agent"

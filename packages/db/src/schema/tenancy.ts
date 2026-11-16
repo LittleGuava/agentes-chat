@@ -323,6 +323,26 @@ export const organizationInviteLinks = pgTable(
 );
 
 /**
+ * A domain whose confirmed addresses join the workspace with a click, no invitation (ADR 0068, addendum 2026-11-15).
+ * Lowercased, never a public mailbox provider's; only one the admin who added it has a confirmed address at.
+ */
+export const organizationJoinDomains = pgTable(
+  "organization_join_domains",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    orgId: uuid()
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    domain: text().notNull(),
+    /** Cargos joining starts on, as far as whoever added it could still give them. */
+    roleIds: uuid().array().notNull().default(sql`'{}'::uuid[]`),
+    createdByUserId: text().references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique().on(t.orgId, t.domain), index().on(t.domain)],
+);
+
+/**
  * Someone who opened an invitation link and asks to join (ADR 0068, 0072). An admin approves (with a role) or
  * denies (with an optional reason the person is told). Approval lets in at once only a confirmed account with
  * `email` that proved it (`verified_at`, or it asked itself); anyone else gets an email invitation to it.

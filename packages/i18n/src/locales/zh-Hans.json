@@ -1101,6 +1101,12 @@
     "personal": {
       "name": "个人"
     },
+    "domainJoin": {
+      "title": "你的团队已经在这里了",
+      "lead": "你邮箱的域名让你无需邀请即可加入。",
+      "join": "加入",
+      "joinName": "加入 {{name}}"
+    },
     "workspace": {
       "title": "你的工作区叫什么名字？",
       "lead": "团队和智能体在这里交流。",
@@ -7166,6 +7172,20 @@
       "roleTitle": "{{email}} 的角色",
       "roleText": "更改对方加入后获得的权限。链接保持不变。",
       "roleSaved": "{{email}} 将以 {{roles}} 身份加入。"
+    },
+    "domains": {
+      "title": "通过邮箱域名加入",
+      "lead": "在这些域名有已验证邮箱的人可以找到 {{org}}，无需邀请即可加入。",
+      "domain": "域名",
+      "placeholder": "company.cn",
+      "hint": "只能是你自己已验证邮箱的域名。gmail.com 等公共邮箱不行。",
+      "role": "加入身份",
+      "add": "添加域名",
+      "added": "{{domain}} 的人现在可以加入了。",
+      "removeShort": "移除",
+      "remove": "移除 {{domain}}",
+      "removed": "{{domain}} 不再让任何人加入。",
+      "rolesOf": "以 {{roles}} 身份加入"
     },
     "suggest": {
       "title": "想邀请谁加入 {{org}}？",
@@ -14538,6 +14558,13 @@
       "expired": "这个申请已过期：14 天内无人处理。",
       "codeNeeded": "请先验证你的邮箱。"
     },
+    "joinDomain": {
+      "invalid": "这不是域名。请按 company.cn 的格式填写。",
+      "public": "任何人都能在 {{domain}} 注册邮箱。请使用你公司自己的域名。",
+      "notYours": "你只能添加自己已验证邮箱的域名。",
+      "tooMany": "一个工作区最多可以有 {{max}} 个域名。",
+      "notAllowed": "这个工作区不再接受你邮箱的域名。请让那里的人邀请你。"
+    },
     "code": {
       "wrong": "验证码错误，请重试。",
       "expired": "验证码已过期，请重新获取。",
@@ -16004,6 +16031,10 @@
     "removed": "已移除",
     "change": {
       "mergedWithoutAsking": "未经询问在 {{repo}} 中合并",
+      "joinDomain": {
+        "added": "允许 {{domain}} 的人无需邀请即可加入",
+        "removed": "不再允许 {{domain}} 的人加入"
+      },
       "dmShared": "分享了自己与智能体对话的副本",
       "pattern": "{{verb}}{{area}}",
       "approval": {

@@ -103,6 +103,9 @@ export const keys = {
   joinRequests: (orgId: string) => ["org", orgId, "invitations", "join-requests"] as const,
   mySuggestions: (orgId: string) => ["org", orgId, "invitations", "suggestions"] as const,
   inviteLinks: (orgId: string) => ["org", orgId, "invitations", "links"] as const,
+  joinDomains: (orgId: string) => ["org", orgId, "invitations", "domains"] as const,
+  /** The account's own, not a workspace's; not under `me`, which a sign-out on the invitation page keeps. */
+  domainWorkspaces: ["domain-workspaces"] as const,
   usageReport: (orgId: string) => ["org", orgId, "usage-report"] as const,
   composioUsage: (orgId: string) => ["org", orgId, "usage-composio"] as const,
   audit: (orgId: string, query: object) => ["org", orgId, "audit", query] as const,

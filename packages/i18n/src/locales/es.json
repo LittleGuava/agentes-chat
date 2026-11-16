@@ -1152,6 +1152,12 @@
     "personal": {
       "name": "Personal"
     },
+    "domainJoin": {
+      "title": "Tu equipo ya está aquí",
+      "lead": "El dominio de tu correo te deja entrar sin invitación.",
+      "join": "Entrar",
+      "joinName": "Entrar en {{name}}"
+    },
     "workspace": {
       "title": "¿Cómo se llama tu espacio de trabajo?",
       "lead": "Es donde conversan el equipo y los agentes.",
@@ -7621,6 +7627,20 @@
       "roleTitle": "Rol de {{email}}",
       "roleText": "Cambia lo que recibe al entrar. El enlace sigue siendo el mismo.",
       "roleSaved": "{{email}} entra como {{roles}}."
+    },
+    "domains": {
+      "title": "Entrar por el dominio del correo",
+      "lead": "Quien tenga un correo confirmado en estos dominios encuentra {{org}} y entra sin invitación.",
+      "domain": "Dominio",
+      "placeholder": "empresa.com",
+      "hint": "Solo un dominio de tu propio correo confirmado. No sirven proveedores públicos como gmail.com.",
+      "role": "Entra como",
+      "add": "Añadir dominio",
+      "added": "Las personas de {{domain}} ya pueden entrar.",
+      "removeShort": "Quitar",
+      "remove": "Quitar {{domain}}",
+      "removed": "{{domain}} ya no deja entrar a nadie.",
+      "rolesOf": "Entra como {{roles}}"
     },
     "suggest": {
       "title": "¿Quieres traer a alguien a {{org}}?",
@@ -15462,6 +15482,13 @@
       "expired": "Esta solicitud venció: nadie la respondió en 14 días.",
       "codeNeeded": "Primero verifica tu correo."
     },
+    "joinDomain": {
+      "invalid": "Eso no es un dominio. Escríbelo como empresa.com.",
+      "public": "Cualquiera puede tener un correo en {{domain}}. Usa el dominio de tu empresa.",
+      "notYours": "Solo puedes añadir el dominio de tu propio correo confirmado.",
+      "tooMany": "Un espacio de trabajo puede tener como máximo {{max}} dominios.",
+      "notAllowed": "Este espacio de trabajo ya no acepta el dominio de tu correo. Pide a alguien de allí que te invite."
+    },
     "code": {
       "wrong": "Código incorrecto. Intenta de nuevo.",
       "expired": "Este código venció. Pide uno nuevo.",
@@ -16966,6 +16993,10 @@
     "removed": "Eliminado",
     "change": {
       "mergedWithoutAsking": "Hizo merge en {{repo}} sin preguntar",
+      "joinDomain": {
+        "added": "Dejó entrar sin invitación a las personas de {{domain}}",
+        "removed": "Dejó de permitir que entren las personas de {{domain}}"
+      },
       "dmShared": "Compartió una copia de su conversación con un agente",
       "pattern": "{{verb}} {{area}}",
       "approval": {

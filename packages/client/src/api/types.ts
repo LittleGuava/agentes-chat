@@ -689,6 +689,22 @@ export interface CodeSent {
 export type EmailChange = { status: "sent" | "changed"; email: string } | ({ status: "code" } & CodeSent);
 
 /** A workspace's invitation link people can still ask with (admins). */
+/** A domain whose confirmed addresses join without an invitation (ADR 0068, addendum 2026-11-15). */
+export interface JoinDomain {
+  id: string;
+  domain: string;
+  /** Cargos joining starts on. */
+  roleIds: string[];
+  createdAt: string;
+}
+
+/** A workspace the account's confirmed address's domain lets it join: id, name and logo only. */
+export interface DomainWorkspace {
+  id: string;
+  name: string;
+  logo: string | null;
+}
+
 export interface InviteLink {
   id: string;
   /** Null for a link made before links could be shown again: it can only be turned off. */

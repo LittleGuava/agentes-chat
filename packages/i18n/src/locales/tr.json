@@ -1126,6 +1126,12 @@
     "personal": {
       "name": "Kişisel"
     },
+    "domainJoin": {
+      "title": "Ekibiniz zaten burada",
+      "lead": "E-postanızın alan adı davetsiz katılmanıza izin veriyor.",
+      "join": "Katıl",
+      "joinName": "{{name}} çalışma alanına katıl"
+    },
     "workspace": {
       "title": "Çalışma alanınızın adı ne?",
       "lead": "Ekibin ve ajanların konuştuğu yer.",
@@ -7365,6 +7371,20 @@
       "roleTitle": "Rol: {{email}}",
       "roleText": "Katıldığında alacağı yetkileri değiştirir. Bağlantı aynı kalır.",
       "roleSaved": "{{email}} şu rolle katılacak: {{roles}}."
+    },
+    "domains": {
+      "title": "E-posta alan adıyla katılma",
+      "lead": "Bu alan adlarında onaylı e-postası olanlar {{org}} çalışma alanını bulur ve davetsiz katılır.",
+      "domain": "Alan adı",
+      "placeholder": "sirket.com.tr",
+      "hint": "Yalnızca kendi onaylı e-postanızın alan adı. gmail.com gibi herkese açık sağlayıcılar olmaz.",
+      "role": "Şu olarak katılır",
+      "add": "Alan adı ekle",
+      "added": "{{domain}} kişileri artık katılabilir.",
+      "removeShort": "Kaldır",
+      "remove": "{{domain}} kaldır",
+      "removed": "{{domain}} artık kimseyi içeri almıyor.",
+      "rolesOf": "{{roles}} olarak katılır"
     },
     "suggest": {
       "title": "{{org}} çalışma alanına birini getirmek mi istiyorsunuz?",
@@ -14959,6 +14979,13 @@
       "expired": "Bu isteğin süresi doldu: 14 gün içinde kimse yanıtlamadı.",
       "codeNeeded": "Önce e-postanızı doğrulayın."
     },
+    "joinDomain": {
+      "invalid": "Bu bir alan adı değil. sirket.com.tr gibi yazın.",
+      "public": "{{domain}} adresinde herkes e-posta alabilir. Şirketinizin kendi alan adını kullanın.",
+      "notYours": "Yalnızca kendi onaylı e-postanızın alan adını ekleyebilirsiniz.",
+      "tooMany": "Bir çalışma alanında en fazla {{max}} alan adı olabilir.",
+      "notAllowed": "Bu çalışma alanı artık e-postanızın alan adını kabul etmiyor. Oradan birinin sizi davet etmesini isteyin."
+    },
     "code": {
       "wrong": "Kod yanlış. Tekrar deneyin.",
       "expired": "Bu kodun süresi doldu. Yeni bir kod alın.",
@@ -16444,6 +16471,10 @@
     "removed": "Kaldırıldı",
     "change": {
       "mergedWithoutAsking": "{{repo}} içinde sormadan birleştirdi",
+      "joinDomain": {
+        "added": "{{domain}} kişilerinin davetsiz katılmasına izin verdi",
+        "removed": "{{domain}} kişilerinin katılmasına artık izin vermiyor"
+      },
       "dmShared": "Bir ajanla yaptığı sohbetin kopyasını paylaştı",
       "pattern": "{{verb}}: {{area}}",
       "approval": {

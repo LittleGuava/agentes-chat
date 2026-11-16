@@ -1101,6 +1101,12 @@
     "personal": {
       "name": "Pribadi"
     },
+    "domainJoin": {
+      "title": "Timmu sudah ada di sini",
+      "lead": "Domain emailmu membuatmu bisa bergabung tanpa undangan.",
+      "join": "Gabung",
+      "joinName": "Gabung ke {{name}}"
+    },
     "workspace": {
       "title": "Apa nama ruang kerjamu?",
       "lead": "Tempat tim dan agen berbicara.",
@@ -7156,6 +7162,20 @@
       "roleTitle": "Peran {{email}}",
       "roleText": "Mengubah apa yang mereka dapat saat bergabung. Tautannya tetap sama.",
       "roleSaved": "{{email}} bergabung sebagai {{roles}}."
+    },
+    "domains": {
+      "title": "Gabung lewat domain email",
+      "lead": "Orang dengan email terkonfirmasi di domain ini menemukan {{org}} dan bergabung tanpa undangan.",
+      "domain": "Domain",
+      "placeholder": "perusahaan.co.id",
+      "hint": "Hanya domain email terkonfirmasimu sendiri. Penyedia publik seperti gmail.com tidak bisa.",
+      "role": "Bergabung sebagai",
+      "add": "Tambah domain",
+      "added": "Orang dari {{domain}} sekarang bisa bergabung.",
+      "removeShort": "Hapus",
+      "remove": "Hapus {{domain}}",
+      "removed": "{{domain}} tidak lagi mengizinkan siapa pun masuk.",
+      "rolesOf": "Bergabung sebagai {{roles}}"
     },
     "suggest": {
       "title": "Mau mengajak seseorang ke {{org}}?",
@@ -14529,6 +14549,13 @@
       "expired": "Permintaan ini kedaluwarsa: tidak ada yang menjawabnya dalam 14 hari.",
       "codeNeeded": "Verifikasi email-mu dulu."
     },
+    "joinDomain": {
+      "invalid": "Itu bukan domain. Tulis seperti perusahaan.co.id.",
+      "public": "Siapa pun bisa punya email di {{domain}}. Pakai domain perusahaanmu sendiri.",
+      "notYours": "Kamu hanya bisa menambah domain email terkonfirmasimu sendiri.",
+      "tooMany": "Satu ruang kerja bisa punya paling banyak {{max}} domain.",
+      "notAllowed": "Ruang kerja ini tidak lagi menerima domain emailmu. Minta seseorang di sana untuk mengundangmu."
+    },
     "code": {
       "wrong": "Kode salah. Coba lagi.",
       "expired": "Kode ini sudah kedaluwarsa. Minta kode baru.",
@@ -15995,6 +16022,10 @@
     "removed": "Dihapus",
     "change": {
       "mergedWithoutAsking": "Merge di {{repo}} tanpa bertanya",
+      "joinDomain": {
+        "added": "Mengizinkan orang dari {{domain}} bergabung tanpa undangan",
+        "removed": "Berhenti mengizinkan orang dari {{domain}} bergabung"
+      },
       "dmShared": "Membagikan salinan percakapannya dengan agen",
       "pattern": "{{verb}} {{area}}",
       "approval": {

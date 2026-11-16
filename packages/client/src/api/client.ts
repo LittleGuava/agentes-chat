@@ -141,6 +141,7 @@ import type {
   DirectMessage,
   DmRead,
   DmTarget,
+  DomainWorkspace,
   DuplicatedAgent,
   EmailChange,
   EndpointCheck,
@@ -194,6 +195,7 @@ import type {
   JevKeyInput,
   JoinApproval,
   JoinClaim,
+  JoinDomain,
   JoinRequest,
   LearnedSkill,
   Machine,
@@ -1954,6 +1956,21 @@ export interface ApiClient {
     claim(token: string, key: string): Promise<JoinClaim | null>;
     /** Expired email invitation: ask the inviter for a new one. */
     requestNew(token: string): Promise<void>;
+  };
+  /** Joining by the address's domain (ADR 0068, addendum 2026-11-15). */
+  joinDomains: {
+    /** The workspace's domains (admins). */
+    list(orgId: string): Promise<JoinDomain[]>;
+    /**
+     * Names a domain, or changes the cargos of one named (admins). Refused: `join_domain.invalid`, `.public`,
+     * `.not_yours` (not at the admin's own confirmed address), `.too_many`.
+     */
+    add(orgId: string, input: { domain: string; roleIds?: string[] }): Promise<JoinDomain>;
+    remove(orgId: string, domainId: string): Promise<void>;
+    /** Workspaces this account's confirmed address's domain lets it join. */
+    workspaces(): Promise<DomainWorkspace[]>;
+    /** Joins one: `join_domain.not_allowed` (403), `org.members_full` (409). */
+    join(orgId: string): Promise<{ orgId: string }>;
   };
   /** Requests to join through the invitation link, for admins (ADR 0068). */
   joinRequests: {

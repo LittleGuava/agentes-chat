@@ -1126,6 +1126,12 @@
     "personal": {
       "name": "Persoonlijk"
     },
+    "domainJoin": {
+      "title": "Je team is er al",
+      "lead": "Met het domein van je e-mailadres kun je meedoen zonder uitnodiging.",
+      "join": "Meedoen",
+      "joinName": "Meedoen met {{name}}"
+    },
     "workspace": {
       "title": "Hoe heet je werkruimte?",
       "lead": "Hier praten het team en de agents.",
@@ -7445,6 +7451,20 @@
       "roleTitle": "Rol van {{email}}",
       "roleText": "Wijzigt wat die persoon krijgt bij het meedoen. De link blijft dezelfde.",
       "roleSaved": "{{email}} doet mee als {{roles}}."
+    },
+    "domains": {
+      "title": "Meedoen via het e-maildomein",
+      "lead": "Wie een bevestigd e-mailadres op deze domeinen heeft, vindt {{org}} en doet mee zonder uitnodiging.",
+      "domain": "Domein",
+      "placeholder": "bedrijf.nl",
+      "hint": "Alleen een domein van je eigen bevestigde e-mailadres. Openbare providers zoals gmail.com kunnen niet.",
+      "role": "Doet mee als",
+      "add": "Domein toevoegen",
+      "added": "Mensen van {{domain}} kunnen nu meedoen.",
+      "removeShort": "Verwijderen",
+      "remove": "{{domain}} verwijderen",
+      "removed": "{{domain}} laat niemand meer binnen.",
+      "rolesOf": "Doet mee als {{roles}}"
     },
     "suggest": {
       "title": "Wil je iemand naar {{org}} halen?",
@@ -15087,6 +15107,13 @@
       "expired": "Dit verzoek is verlopen: niemand heeft het binnen 14 dagen beantwoord.",
       "codeNeeded": "Bevestig eerst je e-mailadres."
     },
+    "joinDomain": {
+      "invalid": "Dat is geen domein. Schrijf het als bedrijf.nl.",
+      "public": "Iedereen kan een e-mailadres op {{domain}} hebben. Gebruik het eigen domein van je bedrijf.",
+      "notYours": "Je kunt alleen het domein van je eigen bevestigde e-mailadres toevoegen.",
+      "tooMany": "Een werkruimte kan hoogstens {{max}} domeinen hebben.",
+      "notAllowed": "Deze werkruimte laat het domein van je e-mailadres niet meer binnen. Vraag iemand daar om je uit te nodigen."
+    },
     "code": {
       "wrong": "Verkeerde code. Probeer het opnieuw.",
       "expired": "Deze code is verlopen. Vraag een nieuwe aan.",
@@ -16572,6 +16599,10 @@
     "removed": "Verwijderd",
     "change": {
       "mergedWithoutAsking": "Gemerged in {{repo}} zonder te vragen",
+      "joinDomain": {
+        "added": "Liet mensen van {{domain}} meedoen zonder uitnodiging",
+        "removed": "Laat mensen van {{domain}} niet meer meedoen"
+      },
       "dmShared": "Deelde een kopie van het eigen gesprek met een agent",
       "pattern": "{{verb}}: {{area}}",
       "approval": {

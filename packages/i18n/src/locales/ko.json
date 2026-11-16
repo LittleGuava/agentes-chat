@@ -1101,6 +1101,12 @@
     "personal": {
       "name": "개인"
     },
+    "domainJoin": {
+      "title": "팀이 이미 여기 있어요",
+      "lead": "이메일 도메인 덕분에 초대 없이 참여할 수 있어요.",
+      "join": "참여",
+      "joinName": "{{name}}에 참여"
+    },
     "workspace": {
       "title": "워크스페이스 이름이 뭔가요?",
       "lead": "팀과 에이전트가 대화하는 곳이에요.",
@@ -7124,6 +7130,20 @@
       "roleTitle": "{{email}}의 역할",
       "roleText": "참여할 때 받을 권한이 바뀌어요. 링크는 그대로예요.",
       "roleSaved": "{{email}}은(는) {{roles}}(으)로 참여해요."
+    },
+    "domains": {
+      "title": "이메일 도메인으로 참여",
+      "lead": "이 도메인의 확인된 이메일을 가진 사람은 {{org}}을(를) 찾아 초대 없이 참여해요.",
+      "domain": "도메인",
+      "placeholder": "company.co.kr",
+      "hint": "내 확인된 이메일의 도메인만 돼요. gmail.com 같은 공개 서비스는 안 돼요.",
+      "role": "참여 역할",
+      "add": "도메인 추가",
+      "added": "이제 {{domain}} 사람들이 참여할 수 있어요.",
+      "removeShort": "제거",
+      "remove": "{{domain}} 제거",
+      "removed": "{{domain}}(으)로는 더 이상 아무도 들어올 수 없어요.",
+      "rolesOf": "{{roles}}(으)로 참여"
     },
     "suggest": {
       "title": "{{org}}에 누군가를 데려오고 싶나요?",
@@ -14468,6 +14488,13 @@
       "expired": "이 요청은 만료됐어요. 14일 동안 아무도 답하지 않았어요.",
       "codeNeeded": "먼저 이메일을 인증하세요."
     },
+    "joinDomain": {
+      "invalid": "도메인이 아니에요. company.co.kr처럼 입력하세요.",
+      "public": "{{domain}} 이메일은 누구나 만들 수 있어요. 회사 도메인을 쓰세요.",
+      "notYours": "내 확인된 이메일의 도메인만 추가할 수 있어요.",
+      "tooMany": "워크스페이스에는 도메인을 최대 {{max}}개까지 둘 수 있어요.",
+      "notAllowed": "이 워크스페이스는 더 이상 내 이메일 도메인을 받지 않아요. 그곳 사람에게 초대를 요청하세요."
+    },
     "code": {
       "wrong": "코드가 틀렸어요. 다시 시도하세요.",
       "expired": "이 코드는 만료됐어요. 새 코드를 받으세요.",
@@ -15932,6 +15959,10 @@
     "removed": "삭제됨",
     "change": {
       "mergedWithoutAsking": "{{repo}}에서 묻지 않고 병합했어요",
+      "joinDomain": {
+        "added": "{{domain}} 사람들이 초대 없이 참여하게 했어요",
+        "removed": "{{domain}} 사람들의 참여를 막았어요"
+      },
       "dmShared": "에이전트와의 대화 사본을 공유했습니다",
       "pattern": "{{area}} {{verb}}",
       "approval": {

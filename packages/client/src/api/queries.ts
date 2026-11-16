@@ -3159,6 +3159,50 @@ export function useResendInvitation(orgId: string) {
   });
 }
 
+/** The domains whose confirmed addresses join without an invitation (admins, ADR 0068, addendum 2026-11-15). */
+export const useJoinDomains = (orgId: string, enabled = true) => {
+  const api = useApi();
+  return useQuery({ queryKey: keys.joinDomains(orgId), queryFn: () => api.joinDomains.list(orgId), enabled });
+};
+
+export function useAddJoinDomain(orgId: string) {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { domain: string; roleIds?: string[] }) => api.joinDomains.add(orgId, input),
+    onSettled: () => qc.invalidateQueries({ queryKey: keys.joinDomains(orgId) }),
+  });
+}
+
+export function useRemoveJoinDomain(orgId: string) {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (domainId: string) => api.joinDomains.remove(orgId, domainId),
+    onSettled: () => qc.invalidateQueries({ queryKey: keys.joinDomains(orgId) }),
+  });
+}
+
+/** Workspaces the account's confirmed address's domain lets it join. */
+export const useDomainWorkspaces = (enabled = true) => {
+  const api = useApi();
+  return useQuery({ queryKey: keys.domainWorkspaces, queryFn: () => api.joinDomains.workspaces(), enabled });
+};
+
+/** Joins one: the account's workspaces read again, so it opens as one of them. */
+export function useJoinByDomain() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (orgId: string) => api.joinDomains.join(orgId),
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: keys.me }),
+        qc.invalidateQueries({ queryKey: keys.domainWorkspaces }),
+      ]),
+  });
+}
+
 /** The workspace's invitation links (admins, ADR 0068). */
 export const useInviteLinks = (orgId: string, enabled = true) => {
   const api = useApi();

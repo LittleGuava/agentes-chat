@@ -102,6 +102,10 @@ export function auditPhrase(t: TFunction, row: AuditRow, locale?: string): strin
     const app = auditStr(row.details.app) ?? auditStr(row.details.client);
     if (what && app) return t(`audit.change.apps.${what}`, { app });
   }
+  // A domain whose addresses join without an invitation (ADR 0068, addendum 2026-11-15), named or removed.
+  if (area === "join_domain" && (rest === "added" || rest === "removed")) {
+    return t(`audit.change.joinDomain.${rest}`, { domain: auditStr(row.details.domain) ?? "" });
+  }
   // The Vault (ADR 0144): its own sentences, since a value shown or copied and a password manager connected don't
   // read as "<verb> <area>".
   if (area === "vault") {

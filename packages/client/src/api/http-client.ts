@@ -107,6 +107,7 @@ import type {
   DevicesList,
   DirectMessage,
   DmRead,
+  DomainWorkspace,
   DuplicatedAgent,
   EmailChange,
   EndpointCheck,
@@ -147,6 +148,7 @@ import type {
   JevKey,
   JoinApproval,
   JoinClaim,
+  JoinDomain,
   JoinRequest,
   LearnedSkill,
   Machine,
@@ -1541,6 +1543,14 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       requestNew: (token) => request<void>(`/api/app/invitations/${enc(token)}/request-new`, { json: {} }),
       claim: (token, key) =>
         nullOn(404, () => request<JoinClaim>(`/api/app/invitations/${enc(token)}/requests/claim`, { json: { key } })),
+    },
+    joinDomains: {
+      list: async (orgId) => (await request<{ domains: JoinDomain[] }>(`${org(orgId)}/join-domains`)).domains,
+      add: (orgId, input) => request<JoinDomain>(`${org(orgId)}/join-domains`, { json: input }),
+      remove: (orgId, domainId) => request<void>(`${org(orgId)}/join-domains/${enc(domainId)}`, { method: "DELETE" }),
+      workspaces: async () =>
+        (await request<{ workspaces: DomainWorkspace[] }>("/api/app/domain-workspaces")).workspaces,
+      join: (orgId) => request<{ orgId: string }>(`/api/app/domain-workspaces/${enc(orgId)}/join`, { json: {} }),
     },
     joinRequests: {
       list: async (orgId) => (await request<{ requests: JoinRequest[] }>(`${org(orgId)}/join-requests`)).requests,

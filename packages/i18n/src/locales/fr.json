@@ -1153,6 +1153,12 @@
     "personal": {
       "name": "Personnel"
     },
+    "domainJoin": {
+      "title": "Votre équipe est déjà là",
+      "lead": "Le domaine de votre e-mail vous permet de rejoindre sans invitation.",
+      "join": "Rejoindre",
+      "joinName": "Rejoindre {{name}}"
+    },
     "workspace": {
       "title": "Comment s'appelle votre espace de travail ?",
       "lead": "C'est là que l'équipe et les agents se parlent.",
@@ -7673,6 +7679,20 @@
       "roleTitle": "Rôle de {{email}}",
       "roleText": "Change ce que la personne obtient en rejoignant. Le lien reste le même.",
       "roleSaved": "{{email}} rejoint en tant que {{roles}}."
+    },
+    "domains": {
+      "title": "Rejoindre par le domaine de l'e-mail",
+      "lead": "Les personnes ayant un e-mail confirmé sur ces domaines trouvent {{org}} et le rejoignent sans invitation.",
+      "domain": "Domaine",
+      "placeholder": "entreprise.fr",
+      "hint": "Uniquement un domaine de votre propre e-mail confirmé. Les fournisseurs publics comme gmail.com ne sont pas acceptés.",
+      "role": "Rejoint en tant que",
+      "add": "Ajouter un domaine",
+      "added": "Les personnes de {{domain}} peuvent maintenant rejoindre.",
+      "removeShort": "Retirer",
+      "remove": "Retirer {{domain}}",
+      "removed": "{{domain}} ne laisse plus entrer personne.",
+      "rolesOf": "Rejoint en tant que {{roles}}"
     },
     "suggest": {
       "title": "Vous voulez faire venir quelqu'un dans {{org}} ?",
@@ -15533,6 +15553,13 @@
       "expired": "Cette demande a expiré : personne n'y a répondu en 14 jours.",
       "codeNeeded": "Vérifiez d'abord votre e-mail."
     },
+    "joinDomain": {
+      "invalid": "Ce n'est pas un domaine. Écrivez-le comme entreprise.fr.",
+      "public": "N'importe qui peut avoir un e-mail sur {{domain}}. Utilisez le domaine de votre entreprise.",
+      "notYours": "Vous ne pouvez ajouter que le domaine de votre propre e-mail confirmé.",
+      "tooMany": "Un espace de travail peut avoir au plus {{max}} domaines.",
+      "notAllowed": "Cet espace de travail n'accepte plus le domaine de votre e-mail. Demandez à quelqu'un sur place de vous inviter."
+    },
     "code": {
       "wrong": "Code incorrect. Réessayez.",
       "expired": "Ce code a expiré. Demandez-en un nouveau.",
@@ -17037,6 +17064,10 @@
     "removed": "Retiré",
     "change": {
       "mergedWithoutAsking": "A mergé dans {{repo}} sans demander",
+      "joinDomain": {
+        "added": "A laissé les personnes de {{domain}} rejoindre sans invitation",
+        "removed": "Ne laisse plus les personnes de {{domain}} rejoindre"
+      },
       "dmShared": "A partagé une copie de sa conversation avec un agent",
       "pattern": "{{verb}} {{area}}",
       "approval": {
