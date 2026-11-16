@@ -15,3 +15,9 @@ declare module "*.txt" {
   const source: string;
   export default source;
 }
+
+/** The Windows desktop helper's C# source, compiled by Windows PowerShell when it starts. */
+declare module "*.cs" {
+  const source: string;
+  export default source;
+}
