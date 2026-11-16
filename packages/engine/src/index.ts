@@ -91,6 +91,7 @@ export { type Plan, planConsolidation } from "./context/judgments";
 export * from "./context/learn";
 export * from "./context/learned-skills";
 export * from "./context/outcomes";
+export * from "./context/period";
 export * from "./context/proposals";
 export * from "./context/reflect";
 export * from "./context/rules";

@@ -41,6 +41,7 @@ import type { ToolContext, ToolDefinition, ToolSource } from "../tools/types";
 import { neutralizeUntrusted, untrustedBlock } from "../untrusted";
 import { wikiHitsForAgent } from "../wiki";
 import { inWorkspaceWords } from "../workspace-mode";
+import { safeZone, zoneOf } from "../zones";
 import { recordContextUse } from "./feedback";
 import {
   accessSql,
@@ -70,6 +71,7 @@ import {
 } from "./items";
 import { kindFamily, overlap } from "./judgments";
 import { learnTrust, ownWords } from "./learn";
+import { localStamp, PERIOD_WORDS, type Period, resolvePeriod } from "./period";
 import { CARD_MAX_AGENTS, ownerDecides, type Proposal, proposeChange } from "./proposals";
 import { type ContextDeps, ensureThreadSummary, judgeOf, memoryJudging } from "./summaries";
 
@@ -181,12 +183,22 @@ export function createContextToolSource(deps: ContextDeps): ToolSource {
     {
       name: "search_context",
       description:
-        "Search this organization's messages, summaries, decisions, facts and lessons that you can see, what the team did outside (emails sent, pull requests opened, posts: kind `action`) and, without `kinds`, your own earlier tool calls (commands, requests, scripts). Use it before answering questions about past work and before a task you or a teammate may have done before. Outside your direct messages with the person who asked, it also reads them (marked private).",
+        "Search this organization's messages, summaries, decisions, facts and lessons that you can see, what the team did outside (emails sent, pull requests opened, posts: kind `action`) and, without `kinds`, your own earlier tool calls (commands, requests, scripts). Use it before answering questions about past work and before a task you or a teammate may have done before. Outside your direct messages with the person who asked, it also reads them (marked private). For what happened in a stretch of time (a standup, what was done yesterday), give `since` and/or `until`, with or without `query`: without it you get what the stretch holds, oldest first; with it, only what matches there.",
       scope: "context:read",
       inputSchema: {
         type: "object",
         properties: {
           query: { type: "string", minLength: 1, maxLength: 500 },
+          since: {
+            type: "string",
+            maxLength: 40,
+            description: `From when (a day or a word counts from its start): ${PERIOD_WORDS}.`,
+          },
+          until: {
+            type: "string",
+            maxLength: 40,
+            description: `Up to when (a day or a word counts to its end, so since and until "yesterday" is all of yesterday): ${PERIOD_WORDS}.`,
+          },
           kinds: {
             type: "array",
             items: {
@@ -196,35 +208,60 @@ export function createContextToolSource(deps: ContextDeps): ToolSource {
           },
           limit: { type: "integer", minimum: 1, maximum: 20 },
         },
-        required: ["query"],
         additionalProperties: false,
       },
       async execute(input, ctx) {
+        const query = str(input.query).trim();
+        const since = str(input.since);
+        const until = str(input.until);
+        const dated = Boolean(since.trim() || until.trim());
+        if (!query && !dated) return { content: "Give `query`, a period (`since`, `until`) or both.", isError: true };
         const [{ channels, own: ownScope, asker }, person, reader] = await Promise.all([
           recallScope(ctx),
           personRequester(ctx),
           rightHandReader(ctx),
         ]);
+        // The period is in the person's days (their zone, else the workspace's), as they'd say "yesterday".
+        const zone = dated ? safeZone(await zoneOf(ctx.db, ctx.orgId, person)) : "UTC";
+        const resolved = dated ? resolvePeriod({ since, until }, zone) : null;
+        if (resolved && !resolved.ok) return { content: resolved.error, isError: true };
+        const period = resolved?.ok ? resolved.period : {};
         const dm = await agentsDmReads(ctx.db, ctx.orgId, ctx.channelId, () => readerOfCall(ctx));
         // Only where no person reads the answer: a channel never gets what someone said in their DM.
         const theirDm = dm ? await dmWithRunPerson(ctx) : null;
         const kinds = Array.isArray(input.kinds) ? (input.kinds as never[]) : undefined;
-        const limit = typeof input.limit === "number" ? input.limit : 8;
-        const [found, steps] = await Promise.all([
-          (reader
-            ? searchForUser(deps, reader, ctx.orgId, { text: str(input.query), kinds, limit, reach: channels })
+        // Without words, the newest of the period (a day's worth by default): one more than shown tells whether the
+        // list was cut.
+        const listing = dated && !query;
+        const limit = typeof input.limit === "number" ? input.limit : listing ? 20 : 8;
+        const filters = { ...period, sort: listing ? ("newest" as const) : undefined };
+        const asked = listing ? limit + 1 : limit;
+        const [indexed, steps] = await Promise.all([
+          reader
+            ? searchForUser(deps, reader, ctx.orgId, { text: query, kinds, limit: asked, reach: channels, ...filters })
             : searchVisible(deps, {
                 orgId: ctx.orgId,
-                text: str(input.query),
+                text: query,
                 visibleChannelIds: theirDm && !channels.includes(theirDm) ? [...channels, theirDm] : channels,
                 kinds,
-                limit,
-              })
-          ).then(async (found) => wikiHitsForAgent(ctx.db, await wikiActorOfCall(ctx), found)),
+                limit: asked,
+                ...filters,
+              }),
           kinds
             ? []
-            : ownPastSteps(ctx.db, ctx.orgId, ctx.agentId, ctx.runId, ownScope ?? channels, str(input.query), dm),
+            : ownPastSteps(
+                ctx.db,
+                ctx.orgId,
+                ctx.agentId,
+                ctx.runId,
+                ownScope ?? channels,
+                query,
+                dm,
+                dated ? { ...period, zone } : null,
+              ),
         ]);
+        const cut = indexed.length > limit;
+        const found = await wikiHitsForAgent(ctx.db, await wikiActorOfCall(ctx), indexed.slice(0, limit));
         if (found.length === 0 && steps.length === 0) return { content: "No results." };
         const items = new Map(
           (
@@ -282,18 +319,24 @@ export function createContextToolSource(deps: ContextDeps): ToolSource {
             const m = said.get(h.sourceId);
             const theirs = asker && h.channelIds.includes(asker.channelId) ? privateFrom(asker.name) : null;
             const by = m ? ` ${m.who} in ${theirs ?? m.where} ${m.link}` : theirs ? ` from ${theirs}` : "";
-            const text = `${label} id=${h.sourceId} (${h.createdAt.toISOString().slice(0, 10)})${by} ${h.snippet.replace(/\s+/g, " ")}`;
+            const when = dated ? localStamp(h.createdAt, zone) : h.createdAt.toISOString().slice(0, 10);
+            const text = `${label} id=${h.sourceId} (${when})${by} ${h.snippet.replace(/\s+/g, " ")}`;
             // Only what came from outside stays in the envelope (ADR 0167): the team's trusted memory, its messages
             // that relay nothing from outside and the wiki read as the team's.
             const inside = item ? item.trust === "low" : m ? m.meta?.readOutside === true : h.kind !== "wiki";
             return { text, inside };
           });
+        // A list by time reads in order: oldest first.
+        if (listing) shown.reverse();
         const own = shown.filter((l) => !l.inside).map((l) => neutralizeUntrusted(l.text));
         const outside = [...shown.filter((l) => l.inside).map((l) => l.text), ...steps];
+        const header = dated ? [periodLine(period, zone, listing, cut ? limit : null)] : [];
         return {
-          content: [...own, ...(outside.length ? [untrustedBlock("workspace search", outside.join("\n"))] : [])].join(
-            "\n",
-          ),
+          content: [
+            ...header,
+            ...own,
+            ...(outside.length ? [untrustedBlock("workspace search", outside.join("\n"))] : []),
+          ].join("\n"),
           data: { hits: hits.length + steps.length },
         };
       },
@@ -1737,6 +1780,15 @@ export function pickDistinct(candidates: ContextItem[], known: string): ContextI
 }
 
 /** Tools whose calls say nothing about how a task was done. */
+/** What a search over a period says first: the stretch it read, in the person's zone, and whether the list was cut. */
+function periodLine(period: Period, zone: string, listing: boolean, cutAt: number | null) {
+  const from = period.after ? localStamp(period.after, zone) : "the start";
+  const to = period.before ? localStamp(period.before, zone) : "now";
+  const order = listing ? ", oldest first" : "";
+  const more = cutAt ? `; the newest ${cutAt} shown, more in this period (narrow it or raise \`limit\`)` : "";
+  return `Period: ${from} to ${to} (${zone})${order}${more}.`;
+}
+
 const STEP_NOISE = ["search_context", "get_summary", "expand", "react", "ask_user", "save_how_to"];
 /** Words too common to tell one step from another (English and Portuguese). */
 const STEP_STOP_WORDS = new Set(
@@ -1761,6 +1813,8 @@ async function ownPastSteps(
   channelIds: string[],
   query: string,
   dm: AgentsDmReads | null,
+  /** Only steps in this period, dated in its zone. */
+  period: (Period & { zone: string }) | null = null,
 ): Promise<string[]> {
   const words = [...new Set(query.toLowerCase().split(/[^\p{L}\p{N}]+/u))]
     .filter((w) => w.length >= 3 && !STEP_STOP_WORDS.has(w))
@@ -1791,6 +1845,8 @@ async function ownPastSteps(
         )})
         and r.created_at > now() - make_interval(days => ${STEP_DAYS})
         and s.kind = 'tool_call'
+        ${period?.after ? sql`and s.created_at >= ${period.after.toISOString()}::timestamptz` : sql``}
+        ${period?.before ? sql`and s.created_at < ${period.before.toISOString()}::timestamptz` : sql``}
         and coalesce(s.data->>'name', '') not in (${sql.join(
           STEP_NOISE.map((n) => sql`${n}`),
           sql`, `,
@@ -1807,7 +1863,7 @@ async function ownPastSteps(
     .slice(0, STEPS_SHOWN)
     .map(
       (r) =>
-        `[your earlier step] (${new Date(r.created_at).toISOString().slice(0, 10)}) ${r.data.name ?? "?"} ${cutText(JSON.stringify(r.data.input ?? {}), 300)} (${r.failed ? "error" : "ok"})`,
+        `[your earlier step] (${period ? localStamp(new Date(r.created_at), period.zone) : new Date(r.created_at).toISOString().slice(0, 10)}) ${r.data.name ?? "?"} ${cutText(JSON.stringify(r.data.input ?? {}), 300)} (${r.failed ? "error" : "ok"})`,
     );
 }
 

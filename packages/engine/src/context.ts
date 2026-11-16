@@ -76,6 +76,9 @@ import { neutralizeUntrusted, untrustedBlock } from "./untrusted";
 import { waitingOnPerson, waitingOnPersonBlock } from "./waiting";
 import { workBrief } from "./works";
 import { workspaceMode } from "./workspace-mode";
+import { safeZone, zoneOf } from "./zones";
+
+export { zoneOf };
 
 const {
   messages,
@@ -1737,25 +1740,6 @@ async function forSamePerson(db: Database, run: AgentRun, history: Message[], tr
   };
 }
 
-/** The person's IANA zone in this organization, else the organization's ("UTC" without either). */
-export async function zoneOf(db: Database, orgId: string, userId: string | null) {
-  return (await caches.zones.getOrLoad(`${orgId}:${userId ?? ""}`, () => loadZone(db, orgId, userId))) as string;
-}
-
-async function loadZone(db: Database, orgId: string, userId: string | null) {
-  const { organizationMembers, organizationSettings } = schema;
-  const [row] = await db
-    .select({ mine: organizationMembers.timezone, org: organizationSettings.timezone })
-    .from(organizations)
-    .leftJoin(organizationSettings, eq(organizationSettings.orgId, organizations.id))
-    .leftJoin(
-      organizationMembers,
-      and(eq(organizationMembers.orgId, organizations.id), eq(organizationMembers.userId, userId ?? "")),
-    )
-    .where(eq(organizations.id, orgId));
-  return row?.mine ?? row?.org ?? "UTC";
-}
-
 /**
  * In one read, the language the person's app shows, for what the agent writes for the app rather than the chat (a
  * file's title, a form's labels; replies still follow the language the person writes in), and how they want agents to
@@ -1790,16 +1774,6 @@ async function personNotes(
       : null;
   const style = want.style ? agentStyleLine(isAgentStyle(row?.style) ? row.style : null) : null;
   return [language, style].filter((l): l is string => l !== null);
-}
-
-/** A zone the formatter knows, else "UTC". */
-function safeZone(zone: string) {
-  try {
-    new Intl.DateTimeFormat("en-US", { timeZone: zone });
-    return zone;
-  } catch {
-    return "UTC";
-  }
 }
 
 /** "# Now\nTue, Oct 21, 2026, 07:40 for Ana (America/Sao_Paulo); the previous message here was 14 h ago." */
