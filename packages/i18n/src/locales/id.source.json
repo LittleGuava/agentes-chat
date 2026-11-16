@@ -9502,6 +9502,12 @@
   "agentActions.workspace.changed_remove_ai_key": {
     "value": "Deleted the API key <b>{{name}}</b>"
   },
+  "agentActions.files.changed": {
+    "value": "Changed <b>{{count}} files</b> on the computer: {{files}}"
+  },
+  "agentActions.files.changed_single": {
+    "value": "Changed <b>{{file}}</b> on the computer"
+  },
   "agentActions.other": {
     "value": "Made a change"
   },
@@ -9666,6 +9672,9 @@
   },
   "agentActions.errors.generic": {
     "value": "Could not undo. Try again."
+  },
+  "agentActions.errors.busy": {
+    "value": "The agent is working in that folder now. Try again when it finishes."
   },
   "inlineProposal.group": {
     "value": "Change proposed by {{name}}"
@@ -36835,6 +36844,9 @@
   },
   "errors.said.profileBusy": {
     "value": "Someone else is using this profile."
+  },
+  "errors.said.agentWorkingHere": {
+    "value": "The agent is working in that folder now. Try again when it finishes."
   },
   "errors.said.nameTaken": {
     "value": "That name is already in use. Pick another one."

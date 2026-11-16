@@ -4007,6 +4007,10 @@
       "changed_invite_people": "Invité a <b>{{invited}}</b> al espacio de trabajo",
       "changed_remove_ai_key": "Eliminé la clave de API <b>{{name}}</b>"
     },
+    "files": {
+      "changed": "Cambié <b>{{count}} archivos</b> en la computadora: {{files}}",
+      "changed_single": "Cambié <b>{{file}}</b> en la computadora"
+    },
     "other": "Hice un cambio",
     "copyWebhook": "Copiar dirección del webhook",
     "issueFields": {
@@ -4085,7 +4089,8 @@
       "not_allowed": "Solo quien lo pidió, el responsable del agente o un admin pueden deshacerlo.",
       "not_found": "Este cambio ya no existe.",
       "target_gone": "Lo que se cambió ya no existe.",
-      "generic": "No se pudo deshacer. Inténtalo de nuevo."
+      "generic": "No se pudo deshacer. Inténtalo de nuevo.",
+      "busy": "El agente está trabajando en esa carpeta ahora. Inténtalo de nuevo cuando termine."
     }
   },
   "inlineProposal": {
@@ -15430,6 +15435,7 @@
       "blockSpec": "Este bloque tiene un error en sus partes o fórmulas, así que no se puede mostrar. Corrígelo e inténtalo de nuevo.",
       "takeControl": "Toma primero el control del perfil.",
       "profileBusy": "Otra persona está usando este perfil.",
+      "agentWorkingHere": "El agente está trabajando en esa carpeta ahora. Inténtalo de nuevo cuando termine.",
       "nameTaken": "Ese nombre ya está en uso. Elige otro.",
       "deleteName": "Escribe el nombre del canal para borrarlo.",
       "generalKept": "#general no se puede borrar.",

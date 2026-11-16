@@ -714,6 +714,37 @@ export interface CliInstall {
  */
 export const COPILOT_PROTOCOL = 68;
 /**
+ * From this protocol on (ADR 0193): the runner records a work turn's folder before and after it in a git repository of
+ * its own (never the folder's), a turn whose files changed says so on its `done` event (`checkpoint`), and
+ * `checkpoint.restore` puts those files back as they were before the turn (`undo`) or as it left them (`redo`). The
+ * server never sends `checkpoint.restore` to an older runner.
+ */
+export const CHECKPOINTS_PROTOCOL = 73;
+/** How many of a checkpoint's paths an answer lists, and the longest path it carries (characters). */
+export const CHECKPOINT_LIMITS = { paths: 20, path: 400 } as const;
+/** A checkpoint's id: 32 lower-case hex characters the runner chose (never a revision git would read). */
+export const isCheckpointId = (v: unknown): v is string => typeof v === "string" && /^[0-9a-f]{32}$/.test(v);
+/** What a turn changed in its folder (`done.checkpoint`): how many files, and the first of them relative to it. */
+export interface TurnCheckpoint {
+  id: string;
+  count: number;
+  paths: string[];
+}
+/** `checkpoint.restore` (protocol 73): the turn's files as before it (`undo`) or as it left them (`redo`). */
+export interface CheckpointRestoreRequest {
+  id: string;
+  direction: "undo" | "redo";
+}
+/**
+ * `restored`: done (`paths`, the first of the files written). `conflict`: a file differs from what the turn left
+ * (`undo`) or found (`redo`), nothing written (`paths`, those files). `busy`: a turn of the agent runs in that folder.
+ * `gone`: the computer no longer has it.
+ */
+export interface CheckpointRestoreReply {
+  status: "restored" | "conflict" | "busy" | "gone";
+  paths: string[];
+}
+/**
  * From this protocol on (ADR 0215): `mcp.stdio`, one MCP operation (`tools/list` or `tools/call`) of a local stdio MCP
  * program the request names, started for that call alone as the request's agent, under the command policy, and stopped
  * before the answer. The server never sends it to an older runner.
@@ -2140,7 +2171,8 @@ export type WireBrainEvent =
       maxContext?: number;
     }
   | { type: "limit"; resetsAt?: string }
-  | { type: "done"; text: string; session?: { id: string }; timings?: BrainTurnTimings }
+  /** `checkpoint`: protocol 73, the turn changed files in its folder (ADR 0193). */
+  | { type: "done"; text: string; session?: { id: string }; timings?: BrainTurnTimings; checkpoint?: TurnCheckpoint }
   /**
    * `worked`: on a `plan_limit`, whether the turn used any tool before it was cut (an older runner leaves it out:
    * the engine counts that as worked).
@@ -2622,6 +2654,8 @@ export type MachineRequest = (
   | ({ op: "brain.steer" } & BrainSteerRequest)
   /** Protocol 24: a plan picks who answers a message (ADR 0074); the request's agent is the one it is lent to. */
   | ({ op: "brain.route" } & BrainRouteRequest)
+  /** Protocol 73: a turn's files back as before it, or as it left them (ADR 0193). */
+  | ({ op: "checkpoint.restore" } & CheckpointRestoreRequest)
   /** Protocol 11: clone or update the agent's checkouts through our git proxy. */
   | ({ op: "git.sync" } & GitSyncRequest)
   /** Protocol 14: the mission's worktree (ADR 0044). */
@@ -2891,6 +2925,7 @@ export const MACHINE_OPS: readonly MachineOp[] = [
   "cli.install",
   "xcode.open",
   "mcp.stdio",
+  "checkpoint.restore",
 ];
 
 /** What each op answers with `ok: true`. */
@@ -2955,6 +2990,7 @@ export interface MachineReplies {
   "brain.turn": { runId: string; final: WireBrainEvent };
   "brain.steer": BrainSteerReply;
   "brain.route": BrainRouteReply;
+  "checkpoint.restore": CheckpointRestoreReply;
   "git.sync": { repos: GitSyncRepo[] };
   /** `remove` answers `{ removed }` (`false`: the folder was already gone). */
   "mission.worktree": Partial<MissionWorktreeEnsured> & { removed?: boolean };
@@ -3637,6 +3673,17 @@ const cutJson = (v: unknown, max: number): unknown => {
 };
 
 /** One `brain.event` event, checked and cut; null when it isn't one. */
+/** A `done` event's `checkpoint` from the runner, checked and cut to `CHECKPOINT_LIMITS`; null when it isn't one. */
+export function parseTurnCheckpoint(v: unknown): TurnCheckpoint | null {
+  if (!isObject(v) || !isCheckpointId(v.id) || !Array.isArray(v.paths)) return null;
+  const count = finite(v.count);
+  if (count === undefined || count < 1) return null;
+  const paths = v.paths
+    .filter((p): p is string => isString(p) && p.length > 0 && p.length <= CHECKPOINT_LIMITS.path)
+    .slice(0, CHECKPOINT_LIMITS.paths);
+  return { id: v.id, count: Math.min(Math.round(count), 1_000_000), paths };
+}
+
 export function parseBrainEvent(v: unknown): WireBrainEvent | null {
   if (!isObject(v) || !isString(v.type)) return null;
   const num = (x: unknown) => Math.max(0, Math.round(finite(x) ?? 0));
@@ -3683,10 +3730,12 @@ export function parseBrainEvent(v: unknown): WireBrainEvent | null {
       const t = isObject(v.timings) && typeof v.timings.warm === "boolean" ? v.timings : null;
       const initMs = ms(t?.initMs);
       const firstEventMs = ms(t?.firstEventMs);
+      const checkpoint = parseTurnCheckpoint(v.checkpoint);
       return {
         type: "done",
         text: v.text.slice(0, BRAIN_LIMITS.doneText),
         ...(session ? { session } : {}),
+        ...(checkpoint ? { checkpoint } : {}),
         ...(t
           ? {
               timings: {

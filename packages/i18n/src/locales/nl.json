@@ -3881,6 +3881,10 @@
       "changed_invite_people": "<b>{{invited}}</b> uitgenodigd voor de werkruimte",
       "changed_remove_ai_key": "API-sleutel <b>{{name}}</b> verwijderd"
     },
+    "files": {
+      "changed": "<b>{{count}} bestanden</b> op de computer gewijzigd: {{files}}",
+      "changed_single": "<b>{{file}}</b> op de computer gewijzigd"
+    },
     "other": "Iets gewijzigd",
     "copyWebhook": "Webhookadres kopiëren",
     "issueFields": {
@@ -3958,7 +3962,8 @@
       "not_allowed": "Alleen wie het vroeg, de eigenaar van de agent of een beheerder kan dit ongedaan maken.",
       "not_found": "Deze wijziging bestaat niet meer.",
       "target_gone": "Wat gewijzigd werd, bestaat niet meer.",
-      "generic": "Ongedaan maken lukte niet. Probeer het opnieuw."
+      "generic": "Ongedaan maken lukte niet. Probeer het opnieuw.",
+      "busy": "De agent werkt nu in die map. Probeer het opnieuw als hij klaar is."
     }
   },
   "inlineProposal": {
@@ -15052,6 +15057,7 @@
       "blockSpec": "Dit blok bevat een fout in de onderdelen of formules, dus het kan niet worden getoond. Verbeter het en probeer het opnieuw.",
       "takeControl": "Neem eerst de controle over het profiel.",
       "profileBusy": "Iemand anders gebruikt dit profiel.",
+      "agentWorkingHere": "De agent werkt nu in die map. Probeer het opnieuw als hij klaar is.",
       "nameTaken": "Die naam is al in gebruik. Kies een andere.",
       "deleteName": "Typ de naam van het kanaal om het te verwijderen.",
       "generalKept": "#general kan niet worden verwijderd.",

@@ -782,6 +782,8 @@ export async function runWorker(o: WorkerOptions): Promise<number> {
     fetch: link.fetch,
     secretsDir,
     gitDir: path.join(home, "git"),
+    // Each work turn's folder recorded before and after it, as this process's user (ADR 0193).
+    checkpointsDir: path.join(home, "checkpoints"),
     cloneSlot: link.cloneSlot,
     cacheFill: link.cacheFill,
     tasks,

@@ -478,6 +478,7 @@ const KNOWN = {
   "action.changed_since": "errors.said.tooLateUndo",
   "action.expired": "errors.said.tooLateUndo",
   "action.not_undoable": "errors.said.tooLateUndo",
+  "action.busy": "errors.said.agentWorkingHere",
   "right_hand.changed_since": "errors.said.tooLateUndo",
   "right_hand.undo_expired": "errors.said.tooLateUndo",
   "approval_cover.ends_past": "errors.said.futureTime",

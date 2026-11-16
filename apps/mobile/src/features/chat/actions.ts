@@ -35,6 +35,7 @@ export const RECEIPT_ICONS: Record<AgentActionKind, IconName> = {
   "agent.settings_changed": "agent",
   "pr.merged": "code",
   "workspace.changed": "shield",
+  "files.changed": "file",
 };
 
 /** A kind a newer server sends that this build doesn't know yet gets the plain check. */

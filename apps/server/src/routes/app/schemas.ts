@@ -659,6 +659,7 @@ export const AgentAction = z
         "role",
         "person",
         "workspace",
+        "files",
       ]),
       id: z.string(),
       number: z.number().optional().openapi({ description: "Issues." }),

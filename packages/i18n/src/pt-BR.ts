@@ -4096,6 +4096,12 @@ export const ptBR = {
       changed_invite_people: "Convidei <b>{{invited}}</b> para o workspace",
       changed_remove_ai_key: "Apaguei a chave de API <b>{{name}}</b>",
     },
+    /** What a computer turn changed in its folder (ADR 0193): Undo puts those files back as they were before it. */
+    files: {
+      /** `files`: the first few paths, with "…" when there are more. */
+      changed: "Alterei <b>{{count}} arquivos</b> no computador: {{files}}",
+      changed_single: "Alterei <b>{{file}}</b> no computador",
+    },
     /** A kind this app doesn't know yet (a newer server's). */
     other: "Fiz uma mudança",
     /** On the line of a webhook routine the agent created: copies its secret address (only for who manages it). */
@@ -4181,6 +4187,8 @@ export const ptBR = {
       not_found: "Essa mudança não existe mais.",
       target_gone: "O que foi mudado não existe mais.",
       generic: "Não deu para desfazer. Tente de novo.",
+      /** A computer turn's files while the agent works in that folder again. */
+      busy: "O agente está trabalhando nessa pasta agora. Tente de novo quando ele terminar.",
     },
   },
   inlineProposal: {
@@ -15187,6 +15195,7 @@ export const ptBR = {
         "Este bloco tem um erro nas partes ou nas fórmulas, então não pode ser mostrado. Corrija e tente de novo.",
       takeControl: "Assuma o controle do perfil primeiro.",
       profileBusy: "Outra pessoa está usando este perfil.",
+      agentWorkingHere: "O agente está trabalhando nessa pasta agora. Tente de novo quando ele terminar.",
       nameTaken: "Esse nome já está em uso. Escolha outro.",
       deleteName: "Digite o nome do canal para apagar.",
       generalKept: "O #general não pode ser apagado.",

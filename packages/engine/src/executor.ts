@@ -5,6 +5,7 @@ import {
   type PlanUsage,
   type ProviderFailureCause,
   type PubSub,
+  type TurnCheckpoint,
 } from "@agenteschat/adapters";
 import {
   and,
@@ -38,7 +39,7 @@ import {
 import { autoPlanModel, droppedPlanModel, ownLimitsModel, planModel, planOf } from "@agenteschat/providers/plans";
 import { PLAN_NOTICE, PLAN_PAUSE } from "@agenteschat/ui/plan-state";
 import { pendingConnectors } from "./access";
-import { linkRunActions, publishMessageActions } from "./agent-actions";
+import { linkRunActions, publishMessageActions, recordAgentActions, turnFilesRecord } from "./agent-actions";
 import { withTimeout } from "./agent-media";
 import { announceAgentStatus, askRunStatus, startRunStatus, statusCandidates } from "./agent-status";
 import { TECHNICAL_STYLE_LINE } from "./agent-style";
@@ -5079,6 +5080,21 @@ async function executeRunInner(
       prof.mark(`model#${run.turns + 1}`);
       if (result.imagesLeftOut) transcript.filesTextOnly = true;
       if (result.timings) prof.brain.push(result.timings);
+      // The files the computer turn changed: a receipt with Desfazer on its reply (ADR 0193).
+      const filesOn = turnPlan.kind !== "model" ? (turnPlan.session?.machineId ?? agent.machineId) : null;
+      if (result.checkpoint && filesOn) {
+        await recordAgentActions(
+          db,
+          {
+            orgId: run.orgId,
+            agentId: agent.id,
+            runId: run.id,
+            channelId: run.channelId,
+            triggerMessageId: run.triggerMessageId,
+          },
+          [turnFilesRecord(filesOn, result.checkpoint)],
+        ).catch(() => {});
+      }
       await deferred;
       // The files its own tools made are cards on this reply too.
       await Promise.all(sharing);
@@ -5991,6 +6007,8 @@ interface BrainStep {
   imagesLeftOut?: true;
   /** How the computer started the turn (`done.timings`). */
   timings?: BrainTurnTimings;
+  /** What the computer turn changed in its folder (`done.checkpoint`, ADR 0193). */
+  checkpoint?: TurnCheckpoint;
 }
 
 /**
@@ -6046,6 +6064,7 @@ async function thinkOnce(
   let taken = false;
   let usage: Extract<BrainEvent, { type: "usage" }> | null = null;
   let timings: BrainTurnTimings | undefined;
+  let checkpoint: TurnCheckpoint | undefined;
   /** The plan said `limit`: the turn is read on until `deadline`, for the answer the brain may still finish. */
   let limit: { resetsAt?: string; deadline: number } | null = null;
   const limitFailure = (message: string, worked?: boolean) =>
@@ -6125,6 +6144,7 @@ async function thinkOnce(
     else if (event.type === "done") {
       text = event.text;
       timings = event.timings;
+      checkpoint = event.checkpoint;
     }
   }
   if (text === null) throw new Error(`The ${brain.kind} brain ended the turn without an answer`);
@@ -6155,6 +6175,7 @@ async function thinkOnce(
     toolCalls,
     executedCount,
     ...(timings ? { timings } : {}),
+    ...(checkpoint ? { checkpoint } : {}),
     model: usage?.model,
     usage: usage
       ? {

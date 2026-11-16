@@ -3880,6 +3880,10 @@
       "changed_invite_people": "<b>{{invited}}</b> in den Workspace eingeladen",
       "changed_remove_ai_key": "API-Schlüssel <b>{{name}}</b> gelöscht"
     },
+    "files": {
+      "changed": "<b>{{count}} Dateien</b> auf dem Computer geändert: {{files}}",
+      "changed_single": "<b>{{file}}</b> auf dem Computer geändert"
+    },
     "other": "Eine Änderung vorgenommen",
     "copyWebhook": "Webhook-Adresse kopieren",
     "issueFields": {
@@ -3957,7 +3961,8 @@
       "not_allowed": "Nur die Person, die gefragt hat, der Inhaber des Agenten oder ein Admin kann es rückgängig machen.",
       "not_found": "Diese Änderung gibt es nicht mehr.",
       "target_gone": "Was geändert wurde, gibt es nicht mehr.",
-      "generic": "Rückgängigmachen hat nicht geklappt. Versuch es noch einmal."
+      "generic": "Rückgängigmachen hat nicht geklappt. Versuch es noch einmal.",
+      "busy": "Der Agent arbeitet gerade in diesem Ordner. Versuch es noch einmal, wenn er fertig ist."
     }
   },
   "inlineProposal": {
@@ -14988,6 +14993,7 @@
       "blockSpec": "Dieser Block hat einen Fehler in seinen Teilen oder Formeln und kann daher nicht angezeigt werden. Korrigiere ihn und versuche es erneut.",
       "takeControl": "Übernimm zuerst die Kontrolle über das Profil.",
       "profileBusy": "Jemand anderes nutzt dieses Profil.",
+      "agentWorkingHere": "Der Agent arbeitet gerade in diesem Ordner. Versuch es noch einmal, wenn er fertig ist.",
       "nameTaken": "Dieser Name ist schon vergeben. Wähl einen anderen.",
       "deleteName": "Gib den Namen des Kanals ein, um ihn zu löschen.",
       "generalKept": "#general kann nicht gelöscht werden.",

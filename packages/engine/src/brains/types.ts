@@ -4,6 +4,7 @@ import type {
   BrainTurnRequest,
   BrainTurnTimings,
   ProviderFailureCause,
+  TurnCheckpoint,
 } from "@agenteschat/adapters";
 import type { ToolImage } from "@agenteschat/providers";
 import { planOf } from "@agenteschat/providers/plans";
@@ -223,7 +224,8 @@ export type BrainEvent =
       maxContext?: number;
     }
   | { type: "limit"; resetsAt?: string }
-  | { type: "done"; text: string; session?: { id: string }; timings?: BrainTurnTimings }
+  /** `checkpoint`: a computer turn changed files in its folder (ADR 0193). */
+  | { type: "done"; text: string; session?: { id: string }; timings?: BrainTurnTimings; checkpoint?: TurnCheckpoint }
   | {
       type: "error";
       code: string;

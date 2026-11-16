@@ -4220,6 +4220,12 @@ export const en = {
       changed_invite_people: "Invited <b>{{invited}}</b> to the workspace",
       changed_remove_ai_key: "Deleted the API key <b>{{name}}</b>",
     },
+    /** What a computer turn changed in its folder (ADR 0193): Undo puts those files back as they were before it. */
+    files: {
+      /** `files`: the first few paths, with "…" when there are more. */
+      changed: "Changed <b>{{count}} files</b> on the computer: {{files}}",
+      changed_single: "Changed <b>{{file}}</b> on the computer",
+    },
     other: "Made a change",
     /** On the line of a webhook routine the agent created: copies its secret address (only for who manages it). */
     copyWebhook: "Copy webhook address",
@@ -4303,6 +4309,8 @@ export const en = {
       not_found: "This change no longer exists.",
       target_gone: "What was changed no longer exists.",
       generic: "Could not undo. Try again.",
+      /** A computer turn's files while the agent works in that folder again. */
+      busy: "The agent is working in that folder now. Try again when it finishes.",
     },
   },
   inlineProposal: {
@@ -15236,6 +15244,7 @@ export const en = {
       blockSpec: "This block has a mistake in its parts or formulas, so it can't be shown. Fix it and try again.",
       takeControl: "Take control of the profile first.",
       profileBusy: "Someone else is using this profile.",
+      agentWorkingHere: "The agent is working in that folder now. Try again when it finishes.",
       nameTaken: "That name is already in use. Pick another one.",
       deleteName: "Type the channel's name to delete it.",
       generalKept: "#general can't be deleted.",

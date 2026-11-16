@@ -3736,6 +3736,10 @@
       "changed_invite_people": "<b>{{invited}}</b>을(를) 워크스페이스에 초대했어요",
       "changed_remove_ai_key": "API 키 <b>{{name}}</b>을(를) 삭제했어요"
     },
+    "files": {
+      "changed": "컴퓨터에서 <b>파일 {{count}}개</b>를 바꿨어요: {{files}}",
+      "changed_single": "컴퓨터에서 <b>{{file}}</b>을(를) 바꿨어요"
+    },
     "other": "변경 사항을 적용했어요",
     "copyWebhook": "웹훅 주소 복사",
     "issueFields": {
@@ -3812,7 +3816,8 @@
       "not_allowed": "요청한 사람, 에이전트 소유자 또는 관리자만 실행 취소할 수 있어요.",
       "not_found": "이 변경 사항은 더 이상 존재하지 않아요.",
       "target_gone": "변경된 대상이 더 이상 존재하지 않아요.",
-      "generic": "실행 취소하지 못했어요. 다시 시도해 주세요."
+      "generic": "실행 취소하지 못했어요. 다시 시도해 주세요.",
+      "busy": "에이전트가 지금 그 폴더에서 작업 중이에요. 끝나면 다시 시도해 주세요."
     }
   },
   "inlineProposal": {
@@ -14430,6 +14435,7 @@
       "blockSpec": "이 블록의 구성 요소나 수식에 오류가 있어 표시할 수 없어요. 고친 뒤 다시 시도해 주세요.",
       "takeControl": "먼저 프로필의 제어권을 가져오세요.",
       "profileBusy": "다른 사람이 이 프로필을 쓰고 있어요.",
+      "agentWorkingHere": "에이전트가 지금 그 폴더에서 작업 중이에요. 끝나면 다시 시도해 주세요.",
       "nameTaken": "이미 쓰고 있는 이름이에요. 다른 이름을 골라 주세요.",
       "deleteName": "삭제하려면 채널 이름을 입력해 주세요.",
       "generalKept": "#general은 삭제할 수 없어요.",

@@ -19,6 +19,7 @@ import {
   type RunnerPause,
   type RunnerTools,
   STEER_LIMITS,
+  type TurnCheckpoint,
 } from "@agenteschat/adapters/machine-protocol";
 import { redactSecrets } from "@agenteschat/adapters/secret-box";
 import { realFoldersFor } from "./access";
@@ -35,6 +36,7 @@ import { handleOpencodeBrainTurn, type OpencodeBrainTurnRequest, steerOpencodeTu
 import { routeWithPlan } from "./brain-route";
 import { type BrowserManager, browserSetupText } from "./browser";
 import type { BrowserViews } from "./browser-views";
+import { beginCheckpoint, restoreCheckpoint } from "./checkpoints";
 import { allowedMerge, commandApproval, mergeOf, ownBranches } from "./command-gate";
 import type { DesktopManager } from "./desktop";
 import { type DesktopSessions, hostMemAvailable, MIN_FREE_BYTES } from "./desktop-session";
@@ -115,6 +117,7 @@ export const NEW_WORK_OPS: ReadonlySet<string> = new Set([
   "task.start",
   "brain.turn",
   "brain.route",
+  "checkpoint.restore",
   "git.sync",
   "browser.act",
   "browser.batch",
@@ -231,6 +234,8 @@ export const OP_ROUTES: Readonly<Record<MachineOp, "machine" | "agent">> = {
   "cli.install": "machine",
   // ADR 0215: the program is one of the agent's commands, so it runs as the agent's own user.
   "mcp.stdio": "agent",
+  // As the agent's own user, in the worker that keeps its shadows (ADR 0193).
+  "checkpoint.restore": "agent",
 };
 
 type AccessRequestOp = Extract<MachineRequest, { op: "access.request" }>;
@@ -259,6 +264,11 @@ export interface HandlerContext {
   gitDir?: string;
   /** Tests: the git command (default `git` on the PATH). */
   gitCommand?: string;
+  /**
+   * `<runner home>/checkpoints` (the worker's home in system mode): the shadows that record a work turn's folder
+   * (ADR 0193). Without it turns run with no checkpoint and `checkpoint.restore` answers `gone`.
+   */
+  checkpointsDir?: string;
   /** `<runner home>/git-cache`: shared read-only mirrors for clones (ADR 0116); single-user runners only. */
   gitCache?: string;
   /** A system-mode worker: root's clone slots and shared cache (ADR 0116), so both are the computer's. */
@@ -854,7 +864,16 @@ async function routeRequest(ctx: HandlerContext, req: MachineRequest, scope: Req
   const secrets = await agentSecrets(ctx.secretsDir, req.agent);
   switch (req.op) {
     case "brain.turn":
-      return doBrainTurn(ctx, req, scope, secrets);
+      return withTurnCheckpoint(ctx, req, scope, (s) => doBrainTurn(ctx, req, s, secrets));
+    case "checkpoint.restore":
+      if (!req.agent) throw new RunnerError("bad_request", "A checkpoint belongs to an agent");
+      if (!ctx.checkpointsDir) return { status: "gone", paths: [] } satisfies MachineReplies["checkpoint.restore"];
+      return restoreCheckpoint({
+        dir: ctx.checkpointsDir,
+        agentId: String(req.agent.id),
+        id: requireString(req.id, "id"),
+        direction: req.direction === "redo" ? "redo" : "undo",
+      });
     case "brain.route":
       // Never the agent's secrets: the route reads other people's messages.
       requireTool(ctx, req.kind === "codex" ? "codex" : "claude");
@@ -1357,6 +1376,64 @@ async function doBrainTurn(
   return { runId, final };
 }
 
+/** Where a turn works: its `cwd` resolved as the brains resolve it (its agent's folder when empty), if it is a folder. */
+async function turnFolder(ctx: HandlerContext, req: Extract<MachineRequest, { op: "brain.turn" }>) {
+  if (typeof req.cwd !== "string" || !req.cwd.trim()) return ctx.workspaceReal;
+  const found = await resolvePath(ctx, req.cwd);
+  return found.exists && (await stat(found.abs)).isDirectory() ? found.abs : null;
+}
+
+/**
+ * ADR 0193: a work turn's folder is recorded before and after it. The final event and `brain.done` wait for the
+ * second snapshot, so the `done` the engine ends the turn on says what the turn changed (`checkpoint`). A turn whose
+ * folder can't be recorded runs as it would have.
+ */
+async function withTurnCheckpoint(
+  ctx: HandlerContext,
+  req: Extract<MachineRequest, { op: "brain.turn" }>,
+  scope: RequestScope,
+  turn: (scope: RequestScope) => Promise<MachineReplies["brain.turn"]>,
+): Promise<MachineReplies["brain.turn"]> {
+  const dir = ctx.checkpointsDir;
+  if (!dir || !req.agent || (req.permissions?.mode ?? "work") !== "work") return turn(scope);
+  const agentId = String(req.agent.id);
+  const folder = await turnFolder(ctx, req).catch(() => null);
+  const open = folder ? await beginCheckpoint({ dir, agentId, folder }) : null;
+  if (!open) return turn(scope);
+  const { emit } = scope;
+  const held: RunnerFrame[] = [];
+  const isEnd = (frame: RunnerFrame) =>
+    frame.type === "brain.done" ||
+    (frame.type === "brain.event" && (frame.event.type === "done" || frame.event.type === "error"));
+  const holding: RequestScope = {
+    ...scope,
+    ...(emit ? { emit: (frame: RunnerFrame) => (isEnd(frame) ? held.push(frame) : emit(frame)) } : {}),
+  };
+  let checkpoint: TurnCheckpoint | null = null;
+  let finished = false;
+  const finish = async () => {
+    if (finished) return;
+    finished = true;
+    checkpoint = await open.finish();
+  };
+  try {
+    const reply = await turn(holding);
+    await finish();
+    const cp: TurnCheckpoint | null = checkpoint;
+    return cp && reply.final.type === "done" ? { ...reply, final: { ...reply.final, checkpoint: cp } } : reply;
+  } finally {
+    await finish().catch(() => {});
+    const cp: TurnCheckpoint | null = checkpoint;
+    for (const frame of held) {
+      emit?.(
+        cp && frame.type === "brain.event" && frame.event.type === "done"
+          ? { ...frame, event: { ...frame.event, checkpoint: cp } }
+          : frame,
+      );
+    }
+  }
+}
+
 /** `brain.turn` on a Claude sign-in several agents share: root runs its CLI (`account-brains.ts`). */
 async function doHostedTurn(
   ctx: HandlerContext,
@@ -1691,6 +1768,8 @@ function describeOp(req: MachineRequest): string {
       return `task.output ${String(req.taskId ?? "")}`;
     case "brain.turn":
       return `brain.turn ${String(req.runId ?? "")} (${String(req.kind ?? "")}${req.model ? `, ${String(req.model)}` : ""})`;
+    case "checkpoint.restore":
+      return `checkpoint.restore ${String(req.id ?? "").slice(0, 8)} (${String(req.direction ?? "")})`;
     case "brain.steer":
       // Never the text: how many messages, for which run.
       return `brain.steer ${String(req.runId ?? "")} (${Array.isArray(req.messages) ? req.messages.length : 0} messages)`;

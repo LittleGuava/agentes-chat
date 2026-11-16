@@ -3739,6 +3739,10 @@
       "changed_invite_people": "邀请了 <b>{{invited}}</b> 加入工作区",
       "changed_remove_ai_key": "删除了 API 密钥 <b>{{name}}</b>"
     },
+    "files": {
+      "changed": "修改了电脑上的 <b>{{count}} 个文件</b>：{{files}}",
+      "changed_single": "修改了电脑上的 <b>{{file}}</b>"
+    },
     "other": "做了一项更改",
     "copyWebhook": "复制 Webhook 地址",
     "issueFields": {
@@ -3815,7 +3819,8 @@
       "not_allowed": "只有提出请求的人、智能体的所有者或管理员可以撤销。",
       "not_found": "这项更改已不存在。",
       "target_gone": "被修改的内容已不存在。",
-      "generic": "无法撤销，请重试。"
+      "generic": "无法撤销，请重试。",
+      "busy": "智能体正在那个文件夹里工作。等它完成后再试一次。"
     }
   },
   "inlineProposal": {
@@ -14500,6 +14505,7 @@
       "blockSpec": "此区块的组成部分或公式有误，因此无法显示。请修正后重试。",
       "takeControl": "请先接管这个配置文件。",
       "profileBusy": "其他人正在使用这个配置文件。",
+      "agentWorkingHere": "智能体正在那个文件夹里工作。等它完成后再试一次。",
       "nameTaken": "这个名称已被使用。请换一个。",
       "deleteName": "输入频道名称才能删除。",
       "generalKept": "#general 无法删除。",

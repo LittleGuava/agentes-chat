@@ -4140,6 +4140,10 @@
       "changed_invite_people": "Zaproszono <b>{{invited}}</b> do przestrzeni roboczej",
       "changed_remove_ai_key": "Usunięto klucz API <b>{{name}}</b>"
     },
+    "files": {
+      "changed": "Zmieniono pliki na komputerze (<b>{{count}}</b>): {{files}}",
+      "changed_single": "Zmieniono <b>{{file}}</b> na komputerze"
+    },
     "other": "Wprowadzono zmianę",
     "copyWebhook": "Kopiuj adres webhooka",
     "issueFields": {
@@ -4219,7 +4223,8 @@
       "not_allowed": "Cofnąć może tylko osoba, która prosiła, właściciel agenta lub administrator.",
       "not_found": "Ta zmiana już nie istnieje.",
       "target_gone": "To, co zostało zmienione, już nie istnieje.",
-      "generic": "Nie udało się cofnąć. Spróbuj ponownie."
+      "generic": "Nie udało się cofnąć. Spróbuj ponownie.",
+      "busy": "Agent pracuje teraz w tym folderze. Spróbuj ponownie, gdy skończy."
     }
   },
   "inlineProposal": {
@@ -16026,6 +16031,7 @@
       "blockSpec": "Ten blok ma błąd w częściach lub formułach, więc nie można go pokazać. Popraw go i spróbuj ponownie.",
       "takeControl": "Najpierw przejmij kontrolę nad profilem.",
       "profileBusy": "Ktoś inny używa tego profilu.",
+      "agentWorkingHere": "Agent pracuje teraz w tym folderze. Spróbuj ponownie, gdy skończy.",
       "nameTaken": "Ta nazwa jest już zajęta. Wybierz inną.",
       "deleteName": "Wpisz nazwę kanału, żeby go usunąć.",
       "generalKept": "Nie można usunąć #general.",

@@ -1510,6 +1510,8 @@ export class RunnerDaemon implements RequestObserver {
       server: config.server,
       secretsDir,
       gitDir: path.join(home, "git"),
+      // Each work turn's folder recorded before and after it, as this process's user (ADR 0193).
+      checkpointsDir: path.join(home, "checkpoints"),
       // Agents here share the runner's user, so they share one cache (system mode: root's, through each worker).
       gitCache: path.join(home, "git-cache"),
       tasks,

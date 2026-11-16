@@ -3865,6 +3865,10 @@
       "changed_invite_people": "Çalışma alanına davet ettim: <b>{{invited}}</b>",
       "changed_remove_ai_key": "<b>{{name}}</b> API anahtarını sildim"
     },
+    "files": {
+      "changed": "Bilgisayarda <b>{{count}} dosyayı</b> değiştirdim: {{files}}",
+      "changed_single": "Bilgisayarda <b>{{file}}</b> dosyasını değiştirdim"
+    },
     "other": "Bir değişiklik yaptım",
     "copyWebhook": "Webhook adresini kopyala",
     "issueFields": {
@@ -3942,7 +3946,8 @@
       "not_allowed": "Yalnızca isteyen kişi, ajanın sahibi veya bir yönetici geri alabilir.",
       "not_found": "Bu değişiklik artık yok.",
       "target_gone": "Değiştirilen şey artık yok.",
-      "generic": "Geri alınamadı. Tekrar deneyin."
+      "generic": "Geri alınamadı. Tekrar deneyin.",
+      "busy": "Ajan şu anda o klasörde çalışıyor. Bitince tekrar deneyin."
     }
   },
   "inlineProposal": {
@@ -14924,6 +14929,7 @@
       "blockSpec": "Bu bloğun parçalarında veya formüllerinde bir hata var, bu yüzden gösterilemiyor. Düzeltip tekrar deneyin.",
       "takeControl": "Önce profilin kontrolünü alın.",
       "profileBusy": "Bu profili başka biri kullanıyor.",
+      "agentWorkingHere": "Ajan şu anda o klasörde çalışıyor. Bitince tekrar deneyin.",
       "nameTaken": "Bu ad zaten kullanılıyor. Başka bir ad seçin.",
       "deleteName": "Silmek için kanalın adını yazın.",
       "generalKept": "#general silinemez.",
