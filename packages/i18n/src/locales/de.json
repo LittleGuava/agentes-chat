@@ -3087,8 +3087,8 @@
       "cursor": "Cursor ist auf diesem Computer nicht angemeldet. Verbinde ein Cursor-Konto auf der Seite von {{name}}.",
       "cursor_female": "Cursor ist auf diesem Computer nicht angemeldet. Verbinde ein Cursor-Konto auf der Seite von {{name}}.",
       "grok": "Grok ist auf diesem Computer nicht angemeldet. Verbinde ein Grok-Konto auf der Seite von {{name}}.",
-      "copilot": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "grok_female": "Grok ist auf diesem Computer nicht angemeldet. Verbinde ein Grok-Konto auf der Seite von {{name}}.",
+      "copilot": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "copilot_female": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "antigravity": "Gemini ist auf diesem Computer nicht angemeldet. Verbinde ein Gemini-Konto auf der Seite von {{name}}.",
       "antigravity_female": "Gemini ist auf diesem Computer nicht angemeldet. Verbinde ein Gemini-Konto auf der Seite von {{name}}.",
@@ -10537,6 +10537,15 @@
     "failed": "Das Mikrofon ließ sich nicht öffnen. Versuch es noch mal.",
     "noPlayback": "Gerade nicht abspielbar. Du kannst es trotzdem senden oder weiter aufnehmen.",
     "cantPlay": "Das Audio konnte nicht abgespielt werden.",
+    "dictation": {
+      "toggle": "In Text umwandeln",
+      "send": "Text ins Feld setzen",
+      "transcribing": "Wird in Text umgewandelt…",
+      "keys": "Enter wandelt in Text um · Esc löscht",
+      "keysHold": "Loslassen wandelt in Text um · Esc löscht",
+      "keysPaused": "Pausiert · Leertaste hört an · Enter wandelt in Text um · Esc löscht",
+      "failed": "Das Audio ließ sich gerade nicht in Text umwandeln. Versuch es noch mal."
+    },
     "settings": {
       "title": "Sprachnachrichten",
       "on": "Sprachnachrichten",

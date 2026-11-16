@@ -3202,8 +3202,8 @@
       "cursor": "Cursor non ha effettuato l'accesso su questo computer. Collega un account Cursor nella pagina di {{name}}.",
       "cursor_female": "Cursor non ha effettuato l'accesso su questo computer. Collega un account Cursor nella pagina di {{name}}.",
       "grok": "Grok non ha effettuato l'accesso su questo computer. Collega un account Grok nella pagina di {{name}}.",
-      "copilot": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "grok_female": "Grok non ha effettuato l'accesso su questo computer. Collega un account Grok nella pagina di {{name}}.",
+      "copilot": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "copilot_female": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "antigravity": "Gemini non ha effettuato l'accesso su questo computer. Collega un account Gemini nella pagina di {{name}}.",
       "antigravity_female": "Gemini non ha effettuato l'accesso su questo computer. Collega un account Gemini nella pagina di {{name}}.",
@@ -10964,6 +10964,15 @@
     "failed": "Impossibile aprire il microfono. Riprova.",
     "noPlayback": "Ora non si può riprodurre. Puoi comunque inviarlo o continuare a registrare.",
     "cantPlay": "Impossibile riprodurre l'audio.",
+    "dictation": {
+      "toggle": "Trasforma in testo",
+      "send": "Metti il testo nella casella",
+      "transcribing": "Trascrizione…",
+      "keys": "Invio lo trasforma in testo · Esc elimina",
+      "keysHold": "Rilascia per trasformarlo in testo · Esc elimina",
+      "keysPaused": "In pausa · Spazio ascolta · Invio lo trasforma in testo · Esc elimina",
+      "failed": "Impossibile trasformare l'audio in testo ora. Riprova."
+    },
     "settings": {
       "title": "Messaggi vocali",
       "on": "Messaggi vocali",

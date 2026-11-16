@@ -405,6 +405,8 @@ export interface FakeState {
   speechKeyRefused?: string[];
   /** `voice.allowed`'s answer (default: yes). */
   voiceAllowed?: boolean;
+  /** The words `voice.dictate` gives back (default: none heard). */
+  dictated?: string;
   /** The keys GIPHY refuses when `system.saveGifKey` checks them (422, nothing kept); any other works. */
   gifKeyRefused?: string[];
   /** Where the server keeps files itself (`storage.get`'s `platform`); unset = its disk, no folder. */
@@ -1527,6 +1529,10 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
       send: async (_orgId, channelId, input) => {
         log("voice.send", channelId, input.clientId, input.durationMs);
         return { clipId: `clip-${input.clientId}` };
+      },
+      dictate: async (_orgId, channelId, input) => {
+        log("voice.dictate", channelId, input.durationMs);
+        return { text: state.dictated ?? "" };
       },
     },
     account: {
