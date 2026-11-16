@@ -913,7 +913,8 @@ function WhoDialog({ agent, onClose, onSaved }: { agent: Agent; onClose: () => v
   const confirm = useConfirmSetup(org.id, agent.id);
   const admin = can(org, "manage_agents");
   const g = agentGrammar(agent.name);
-  const planKind = agent.brain && agent.brain.kind !== "model" ? agent.brain.kind : null;
+  // An ACP agent (ADR 0216) has no plan of ours to share.
+  const planKind = agent.brain && agent.brain.kind !== "model" && agent.brain.kind !== "acp" ? agent.brain.kind : null;
   const brain = useAgentBrain(org.id, agent.id, planKind !== null).data;
   const saved = audienceOf(agent);
   const [audience, setAudience] = useState<AgentAudience>(saved);

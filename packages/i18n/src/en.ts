@@ -12152,6 +12152,8 @@ export const en = {
       geminiAutoOf: "{{owner}}'s Gemini plan",
       zenAutoOf: "{{owner}}'s OpenCode",
       codingAutoOf: "{{owner}}'s {{plan}}",
+      /** An ACP agent its computer declares (ADR 0216): the model by that agent, as its computer's owner named it. */
+      acp: "{{model}} through {{engine}}",
       on: "{{line}} on {{computer}}",
     },
     model: "Model (API)",
@@ -12165,6 +12167,17 @@ export const en = {
       grok: "Grok Build",
       copilot: "Copilot CLI",
       antigravity: "Antigravity CLI",
+      acp: "ACP agent",
+    },
+    /** ACP agents a computer declares (ADR 0216): any agent its owner set up there, by the name they gave it. */
+    acp: {
+      name: "ACP agent",
+      group: "ACP agents",
+      defaultModel: "{{engine}}'s default",
+      defaultModelHint: "The model it uses when nobody picks one",
+      models_one: "{{count}} model",
+      models_other: "{{count}} models",
+      ownDefault: "Uses its own default model",
     },
     foot: {
       api: "Through the API",

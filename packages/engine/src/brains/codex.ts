@@ -1,4 +1,5 @@
 import {
+  ACP_ENGINE_PROTOCOL,
   type AgentScope,
   ANTIGRAVITY_PROTOCOL,
   BRAIN_PROFILES_PROTOCOL,
@@ -88,6 +89,8 @@ export interface ComputerBrainLink {
       grok?: { version: string };
       antigravity?: { version: string };
       copilot?: { version: string };
+      /** ADR 0216: the ACP agents the computer declares. */
+      acp?: { id: string; name: string }[];
       /** Every agent as its own user (`runnerUpdateWay`). */
       mode?: "system";
     };
@@ -142,6 +145,8 @@ export interface CodexBrainDeps {
   permissions?(turn: BrainTurn): Promise<BrainTurnRequest["permissions"] | undefined>;
   /** False for a background run: the runner keeps no Codex process for it after the turn. */
   keepAlive?: boolean;
+  /** `acp` (ADR 0216): the id of the ACP agent the computer declares that the agent chose (`agents.brain_engine`). */
+  engine?: string | null;
 }
 
 /** `codex-cli 0.163.0` is new enough (`CODEX_MIN_VERSION`). */
@@ -185,21 +190,25 @@ function channel<T>() {
  * protocol 36, no version gate, no live steering). Everything else, from the request to the events, is shared.
  */
 interface CliBrainSpec {
-  kind: "codex" | "cursor" | "opencode" | "grok" | "antigravity" | "copilot";
+  kind: "codex" | "cursor" | "opencode" | "grok" | "antigravity" | "copilot" | "acp";
   name: string;
   /** The runner protocol it needs. */
   protocol: number;
   /** The runner protocol it needs on Windows, where an older runner refuses its turns. */
   windowsProtocol?: number;
   /** The CLI is installed (`hello.executors`) and new enough; else why not. */
-  check(executors: {
-    codex?: { version: string };
-    cursor?: { version: string };
-    opencode?: { version: string };
-    grok?: { version: string };
-    antigravity?: { version: string };
-    copilot?: { version: string };
-  }): BrainEvent | null;
+  check(
+    executors: {
+      codex?: { version: string };
+      cursor?: { version: string };
+      opencode?: { version: string };
+      grok?: { version: string };
+      antigravity?: { version: string };
+      copilot?: { version: string };
+      acp?: { id: string; name: string }[];
+    },
+    engine?: string | null,
+  ): BrainEvent | null;
 }
 
 const CODEX_CLI: CliBrainSpec = {
@@ -304,8 +313,26 @@ const COPILOT_CLI: CliBrainSpec = {
         },
 };
 
+/** ADR 0216: an ACP agent the computer's owner declared, the one the agent chose. */
+const ACP_CLI: CliBrainSpec = {
+  kind: "acp",
+  name: "The ACP agent",
+  protocol: ACP_ENGINE_PROTOCOL,
+  check: ({ acp }, engine) =>
+    engine && acp?.some((e) => e.id === engine)
+      ? null
+      : {
+          type: "error",
+          code: "acp_engine_missing",
+          message: engine
+            ? `The computer doesn't declare the ACP agent "${engine}" anymore (its owner lists them in the runner's config.json).`
+            : "The agent has no ACP agent chosen on its computer.",
+          retryable: true,
+        },
+};
+
 export class CodexBrain implements Brain {
-  readonly kind: "codex" | "cursor" | "opencode" | "grok" | "antigravity" | "copilot";
+  readonly kind: "codex" | "cursor" | "opencode" | "grok" | "antigravity" | "copilot" | "acp";
 
   constructor(
     private readonly deps: CodexBrainDeps,
@@ -332,7 +359,10 @@ export class CodexBrain implements Brain {
       return;
     }
     const tools = status.access?.tools;
-    const toolOn = tools && (this.kind === "codex" ? tools.codex : (tools[this.kind] ?? tools.codex));
+    // An ACP agent runs by the computer's commands switch (ADR 0216 §6).
+    const toolOn =
+      tools &&
+      (this.kind === "acp" ? tools.commands : this.kind === "codex" ? tools.codex : (tools[this.kind] ?? tools.codex));
     if (tools ? toolOn !== true : !status.execAllowed) {
       yield tools
         ? {
@@ -369,12 +399,21 @@ export class CodexBrain implements Brain {
       };
       return;
     }
-    const missing = this.cli.check(status.executors);
+    const missing = this.cli.check(status.executors, this.deps.engine);
     if (missing) {
       yield missing;
       return;
     }
-    const account = accountUnavailable(status, turn.account, this.kind);
+    // An ACP agent keeps its own sign-in on the computer: never an account's (ADR 0216 §6).
+    if (this.kind === "acp" && turn.account) {
+      yield {
+        type: "error",
+        code: "acp_account",
+        message: "An ACP agent thinks with its own sign-in on the computer, never an account's.",
+      };
+      return;
+    }
+    const account = this.kind === "acp" ? null : accountUnavailable(status, turn.account, this.kind);
     if (account) {
       yield { type: "error", code: account.code, message: account.message, retryable: true };
       return;
@@ -392,6 +431,18 @@ export class CodexBrain implements Brain {
     }
     // No brain here sends each call of its own tools to our prompt: one that always asks reads only.
     const permissions = askingPermissions(await this.deps.permissions?.(turn), false);
+    // Nothing keeps an ACP agent we don't know to reads, or to our tools (ADR 0216 §6).
+    if (this.kind === "acp" && (permissions?.mode ?? "work") !== "work") {
+      yield {
+        type: "error",
+        code: "acp_profile",
+        message:
+          permissions?.mode === "chat"
+            ? "An ACP agent can't be kept to the agent's own tools, so it can't think for the team's right hand."
+            : "An ACP agent can't be kept to reading, so it can't take this turn: it only reads, or the agent always asks before acting.",
+      };
+      return;
+    }
     // An older runner ignores the profile (no approvals, network on): never more power than asked for.
     if (permissions && status.protocol !== undefined && status.protocol < BRAIN_PROFILES_PROTOCOL) {
       yield {
@@ -441,6 +492,7 @@ export class CodexBrain implements Brain {
       ...(permissions ? { permissions } : {}),
       ...(this.deps.keepAlive === false ? { keepAlive: false } : {}),
       ...(freeTier ? { freeTier } : {}),
+      ...(this.kind === "acp" && this.deps.engine ? { engine: this.deps.engine } : {}),
       ...(turn.personWaiting ? { personWaiting: true } : {}),
     };
 
@@ -559,6 +611,17 @@ export class AntigravityBrain extends CodexBrain {
 export class CopilotBrain extends CodexBrain {
   constructor(deps: CodexBrainDeps) {
     super(deps, COPILOT_CLI);
+  }
+}
+
+/**
+ * The custom ACP brain (ADR 0216): an ACP agent the computer's owner declared in the runner's `config.json`, the one
+ * the agent chose (`deps.engine`), through the same `brain.turn` as Codex (`kind: "acp"`, runner protocol 71,
+ * `brain-acp.ts` there). Only `work` turns; no account; a person's messages wait for the turn's end.
+ */
+export class AcpBrain extends CodexBrain {
+  constructor(deps: CodexBrainDeps) {
+    super(deps, ACP_CLI);
   }
 }
 

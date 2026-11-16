@@ -9,6 +9,7 @@ import type {
   MachineAccountKind,
   PlanUsage,
 } from "@agenteschat/client";
+import { acpEngines, acpThinksNow } from "@agenteschat/client/lib/acp";
 import { autonomyWords, type NewAgentStart } from "@agenteschat/client/lib/agent-setup";
 import {
   type AccountChoice,
@@ -155,14 +156,39 @@ export function accountInput(
   return { account: a?.id ?? null, model: isAuto(view.effectiveModel) ? AUTO : null };
 }
 
-type ThinkingView = Pick<AgentBrain, "brain" | "effectiveModel" | "options" | "accounts" | "account">;
+type ThinkingView = Pick<
+  AgentBrain,
+  "brain" | "effectiveModel" | "options" | "accounts" | "account" | "engine" | "acp"
+>;
 
 /** What thinks, in the one sentence every place says it: the model by the plan that pays for it, or the API's model. */
 function thinksNow(t: TFunction, view: ThinkingView): string | undefined {
-  const model = modelRows(t, view, brainPlan(view)).find((r) => r.checked)?.label;
   const ai = aiChoiceOf(view);
+  if (ai === "acp") return acpThinksNow(t, view);
+  const model = modelRows(t, view, brainPlan(view)).find((r) => r.checked)?.label;
   return ai === "key" || !model ? model : thinksWith(t, ai, model);
 }
+
+/** A row of "Agentes ACP" (ADR 0216): an ACP agent the agent's computer declares. */
+export interface AcpRow {
+  key: string;
+  label: string;
+  sub: string;
+  checked: boolean;
+}
+
+/** The ACP agents the agent's computer declares, as the web's switch screen lists them; none where it can't run one. */
+export const acpRows = (t: TFunction, view: Pick<AgentBrain, "brain" | "engine" | "acp">): AcpRow[] =>
+  acpEngines(view).map((e) => ({
+    key: e.id,
+    label: e.name,
+    sub: e.models.length > 0 ? t("brain.acp.models", { count: e.models.length }) : t("brain.acp.ownDefault"),
+    checked: view.brain === "acp" && view.engine === e.id,
+  }));
+
+/** What a tap on one saves: that ACP agent on its own default model; null for the one in use. */
+export const acpInput = (view: Pick<AgentBrain, "brain" | "engine">, id: string): AgentBrainInput | null =>
+  view.brain === "acp" && view.engine === id ? null : { brain: "acp", engine: id, model: null };
 
 /**
  * What the agent's page says once an account is saved (`saved`: the view the save returned): the account it now uses

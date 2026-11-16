@@ -335,7 +335,7 @@ const Routine = z
           "Its run waits on its plan or budget (ADR 0118); Continuar agora is `POST …/continue` (not at the limit itself), Don't run it is `POST …/stop`.",
       }),
     brain: z.object({
-      kind: z.enum(["model", "claude_code", "codex", "cursor", "opencode", "grok", "antigravity", "copilot"]),
+      kind: z.enum(["model", "claude_code", "codex", "cursor", "opencode", "grok", "antigravity", "copilot", "acp"]),
       machineName: z.string().nullable().openapi({ description: "The computer a computer brain runs on." }),
     }),
     health: z

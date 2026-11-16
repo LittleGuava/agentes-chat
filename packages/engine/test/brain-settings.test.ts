@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import {
   ACCOUNTS_PROTOCOL,
+  ACP_ENGINE_PROTOCOL,
   BRAIN_PROTOCOL,
   CODEX_WINDOWS_PROTOCOL,
   CONTEXT_LIMIT_PROTOCOL,
@@ -868,4 +869,67 @@ test("a model its plan's list dropped since: a save that repeats it goes through
   } finally {
     learnPlanModels({ opencode: table });
   }
+});
+
+describe("ACP agents the computer declares (ADR 0216)", () => {
+  async function acpWorld() {
+    const w = await world();
+    await w.fx.db
+      .update(schema.machines)
+      .set({
+        protocol: ACP_ENGINE_PROTOCOL,
+        executors: {
+          claude: { version: "2.1.304", loggedIn: true },
+          acp: [
+            { id: "vibe", name: "Mistral Vibe", models: [{ id: "vibe/devstral-3", label: "Devstral 3" }] },
+            { id: "zed", name: "Zed agent" },
+          ],
+          detectedAt: new Date().toISOString(),
+        },
+      })
+      .where(eq(schema.machines.id, w.machineId));
+    return w;
+  }
+
+  test("an agent thinks with one its computer declares: chosen by id with any model it offered, audited", async () => {
+    const { fx, deps, row, audits } = await acpWorld();
+    const view = await setAgentBrain(deps, fx.owner.id, fx.org.id, fx.agent.id, {
+      brain: "acp",
+      engine: "vibe",
+      model: "vibe/devstral-3",
+    });
+    expect(view).toMatchObject({ brain: "acp", engine: "vibe", model: "vibe/devstral-3" });
+    expect(view.acp?.engines.map((e) => e.id)).toEqual(["vibe", "zed"]);
+    // Not among `options`: the apps read every kind there as a plan's.
+    expect(view.options.some((o) => o.kind === "acp")).toBe(false);
+    expect(await row()).toMatchObject({ brain: "acp", brainEngine: "vibe", brainModel: "vibe/devstral-3" });
+    expect((await audits("agent.brain")).at(-1)?.details).toMatchObject({
+      from: { brain: "model", engine: null },
+      to: { brain: "acp", engine: "vibe" },
+    });
+    // Another one of the computer's: the model stays its own to choose.
+    expect(
+      await setAgentBrain(deps, fx.owner.id, fx.org.id, fx.agent.id, { engine: "zed", model: null }),
+    ).toMatchObject({ brain: "acp", engine: "zed", model: null });
+  });
+
+  test("one the computer doesn't declare, none at all, or an account is refused; another brain clears it", async () => {
+    const { fx, deps, row } = await acpWorld();
+    for (const engine of ["nope", undefined, 3]) {
+      await expect(
+        setAgentBrain(deps, fx.owner.id, fx.org.id, fx.agent.id, { brain: "acp", ...(engine ? { engine } : {}) }),
+      ).rejects.toBeInstanceOf(ValidationError);
+    }
+    await expect(
+      setAgentBrain(deps, fx.owner.id, fx.org.id, fx.agent.id, {
+        brain: "acp",
+        engine: "vibe",
+        account: "0193eeee-0000-7000-8000-000000000001",
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(await row()).toMatchObject({ brain: "model", brainEngine: null });
+    await setAgentBrain(deps, fx.owner.id, fx.org.id, fx.agent.id, { brain: "acp", engine: "vibe" });
+    await setAgentBrain(deps, fx.owner.id, fx.org.id, fx.agent.id, { brain: "claude_code" });
+    expect(await row()).toMatchObject({ brain: "claude_code", brainEngine: null });
+  });
 });

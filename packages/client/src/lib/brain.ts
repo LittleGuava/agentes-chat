@@ -1,5 +1,6 @@
 import type { TFunction } from "i18next";
 import type { Agent, AgentBrainLine, AiStatus, BrainKind, BrainOption, Model } from "../api/types";
+import { acpThinks } from "./acp";
 import { type PlanChoice, planLabel, planOfAccount } from "./no-ai";
 import { apiMarkOf, apiModelName, autoMakerOf, isAuto } from "./providers";
 
@@ -18,7 +19,12 @@ export function engineOfBrain(brain: BrainKind | string | null | undefined): Eng
   // ponytail: Cursor, OpenCode, Grok, Antigravity and Copilot draw Codex's terminal until they have a portrait of their own (`portrait.js`).
   return brain === "claude_code" || brain === "codex"
     ? brain
-    : brain === "cursor" || brain === "opencode" || brain === "grok" || brain === "antigravity" || brain === "copilot"
+    : brain === "cursor" ||
+        brain === "opencode" ||
+        brain === "grok" ||
+        brain === "antigravity" ||
+        brain === "copilot" ||
+        brain === "acp"
       ? "codex"
       : "agent";
 }
@@ -107,19 +113,23 @@ export function brainLine(
   }: { owner?: string | null; agents?: readonly { brain?: Pick<AgentBrainLine, "computer"> | null }[] } = {},
 ): { text: string; kind: EngineKind; mark: string | null } {
   if (!brain || brain.kind === "model") return { text: apiModelLabel, kind: "agent", mark: brain?.maker ?? null };
-  const plan = planOfAccount({ kind: brain.kind, provider: brain.provider ?? null });
-  const named = thinksWith(
-    t,
-    plan,
-    brain.model && !isAuto(brain.model) ? brain.model : null,
-    brain.computer ? null : owner,
-  );
+  const model = brain.model && !isAuto(brain.model) ? brain.model : null;
+  // An ACP agent (ADR 0216) by its own name: it has no plan of ours, and no maker's mark to show.
+  const named =
+    brain.kind === "acp"
+      ? acpThinks(t, brain.engine, model)
+      : thinksWith(
+          t,
+          planOfAccount({ kind: brain.kind, provider: brain.provider ?? null }),
+          model,
+          brain.computer ? null : owner,
+        );
   const computers = new Set(agents.flatMap((a) => (a.brain?.computer ? [a.brain.computer] : [])));
   const text =
     brain.computer && computers.size > 1 ? t("brain.line.on", { line: named, computer: brain.computer }) : named;
   return {
     text,
     kind: engineOfBrain(brain.kind),
-    mark: brain.provider ?? brain.kind,
+    mark: brain.kind === "acp" ? null : (brain.provider ?? brain.kind),
   };
 }

@@ -12,8 +12,16 @@ import { brainTool } from "./machines";
  * `GET …/machines/outages` and `POST …/machines/{id}/move-agents` fit them as they are.
  */
 
-/** The brains a computer runs. */
-export type ComputerBrain = "claude_code" | "codex" | "cursor" | "opencode" | "grok" | "antigravity" | "copilot";
+/** The brains a computer runs; `acp`, an ACP agent its owner declared (ADR 0216). */
+export type ComputerBrain =
+  | "claude_code"
+  | "codex"
+  | "cursor"
+  | "opencode"
+  | "grok"
+  | "antigravity"
+  | "copilot"
+  | "acp";
 
 export interface OutageAgentLike {
   agentId: string;
@@ -260,7 +268,8 @@ export function waitToolOff(
   if (!info?.machineId) return null;
   if (info.code === "exec_disabled") return { machineId: info.machineId, tool: "commands" };
   if (info.code !== "tool_off") return null;
-  return { machineId: info.machineId, tool: brainTool(info.brain) };
+  // An ACP agent's switch is the computer's commands (ADR 0216).
+  return { machineId: info.machineId, tool: info.brain === "acp" ? "commands" : brainTool(info.brain) };
 }
 
 const SWITCHES: readonly string[] = [

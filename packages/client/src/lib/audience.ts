@@ -242,7 +242,12 @@ export function widenQuestion(
 }
 
 /** The plan a brain thinks with, as the email to its owner says it (the engine's `planName`): a coding plan's own. */
-function planName(t: TFunction, brain: Pick<NonNullable<Agent["brain"]>, "kind" | "provider"> | null | undefined) {
+function planName(
+  t: TFunction,
+  brain: Pick<NonNullable<Agent["brain"]>, "kind" | "provider" | "engine"> | null | undefined,
+) {
+  // An ACP agent (ADR 0216) by the name its computer gave it, never as Claude.
+  if (brain?.kind === "acp") return brain.engine || t("brain.acp.name");
   const kind = brain?.kind && brain.kind !== "model" ? brain.kind : "claude_code";
   const provider = brain?.provider ?? undefined;
   const coding = planOf(provider);

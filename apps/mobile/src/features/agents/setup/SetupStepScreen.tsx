@@ -467,7 +467,8 @@ function WhoStep({ agent }: { agent: Agent }) {
   const ask = useWidenAsk(agent);
   const { busy, run } = useStepSave(agent, "who");
   const g = agentGrammar(agent.name);
-  const planKind = agent.brain && agent.brain.kind !== "model" ? agent.brain.kind : null;
+  // An ACP agent (ADR 0216) has no plan of ours to share.
+  const planKind = agent.brain && agent.brain.kind !== "model" && agent.brain.kind !== "acp" ? agent.brain.kind : null;
   const brain = useAgentBrain(orgId, agent.id, planKind !== null).data;
   const saved = audienceOf(agent);
   const [audience, setAudience] = useState<AgentAudience>(saved);

@@ -139,6 +139,10 @@ function readSetup(input: AgentSetupInput): Setup {
     ...(isCommandApproval(input.autonomy) ? { autonomy: input.autonomy } : {}),
     ...(isApprovalsLevel(input.approvalsLevel) ? { approvalsLevel: input.approvalsLevel } : {}),
   };
+  // ADR 0216: an ACP agent is chosen on the agent's page, where its computer lists the ones it declares.
+  if (input.brain === "acp") {
+    throw new ValidationError("An ACP agent is chosen on the agent's page", "brain.invalid");
+  }
   if (input.brain === "model") {
     if (typeof input.model !== "string" || !input.model) {
       throw new ValidationError("The API brain needs a model", "brain.invalid_model");

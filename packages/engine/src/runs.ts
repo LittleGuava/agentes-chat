@@ -145,6 +145,7 @@ const CLI_CODES: Readonly<Record<string, ComputerBrainKind>> = {
   grok_failed: "grok",
   antigravity_failed: "antigravity",
   copilot_failed: "copilot",
+  acp_failed: "acp",
 };
 /** The runner's causes that are the provider's answer (runner protocol 50), never the CLI's or the computer's. */
 const PROVIDER_CAUSES: ReadonlySet<string> = new Set([

@@ -1,5 +1,6 @@
 import type { AgentBrain, AgentBrainInput, BrainScope, MachineAccount } from "@agenteschat/client";
 import { keys, useAgentBrain, useAiAccounts, useApi, useMachines, useModels } from "@agenteschat/client";
+import { acpThinks, acpThinksNow } from "@agenteschat/client/lib/acp";
 import {
   accountChoices,
   offersSignInAgain,
@@ -50,6 +51,8 @@ import {
   accountKindOf,
   accountRow,
   accountSaved,
+  acpInput,
+  acpRows,
   agentAccounts,
   modelInput,
   modelRows,
@@ -138,10 +141,13 @@ export function AgentAiScreen({ agentId }: { agentId: string }) {
     (c) => c.machineId === view?.computer?.machineId,
   );
   const thinks = brainLine(t, agent?.brain, t("brain.model"), { agents: dir.agents });
+  // An ACP agent (ADR 0216) has no maker of ours to show: neither its own nor the API's.
+  const onAcp = view ? view.brain === "acp" : agent?.brain?.kind === "acp";
+  const acp = view ? acpRows(t, view) : [];
   // Through the API: its maker's mark.
   const models = useModels().data?.models;
-  const thinksMark = thinks.mark ?? apiMarkOf(agent?.model, models ?? []);
-  const model = view && kind ? modelRows(t, view, brainPlan(view)).find((r) => r.checked) : undefined;
+  const thinksMark = onAcp ? null : (thinks.mark ?? apiMarkOf(agent?.model, models ?? []));
+  const model = view && (kind || onAcp) ? modelRows(t, view, brainPlan(view)).find((r) => r.checked) : undefined;
   const accounts = view && kind ? agentAccounts(view, kind, agent?.ownerUserId, name) : [];
   const current = view ? accounts.find((a) => a.id === view.account) : undefined;
   // Another account, or one more login of `a` other agents use (`also`, its email Claude's hint): Connect an AI on that
@@ -266,7 +272,32 @@ export function AgentAiScreen({ agentId }: { agentId: string }) {
                 {accountNote ? <GroupedFooter>{accountNote}</GroupedFooter> : null}
               </>
             ) : null}
-            {kind ? (
+            {acp.length > 0 ? (
+              <>
+                <GroupedHeader>{t("brain.acp.group")}</GroupedHeader>
+                <GroupedList>
+                  {acp.map((r) => (
+                    <GroupedRow
+                      key={r.key}
+                      icon="plug"
+                      label={r.label}
+                      sub={r.sub}
+                      checked={r.checked}
+                      disabled={!mayPick || !view.canEdit}
+                      onPress={() => {
+                        const input = acpInput(view, r.key);
+                        if (input)
+                          void save(
+                            input,
+                            t("agentPage.work.saved.brain", { ...g, brain: acpThinks(t, r.label, null) }),
+                          );
+                      }}
+                    />
+                  ))}
+                </GroupedList>
+              </>
+            ) : null}
+            {kind || onAcp ? (
               <>
                 <GroupedHeader>{t("agentPage.work.brain.planModel")}</GroupedHeader>
                 <GroupedList>
@@ -442,9 +473,11 @@ export function AgentModelScreen({ agentId, scope }: { agentId: string; scope?: 
   const plan = view ? brainPlan(view) : undefined;
   const rows = view ? modelRows(t, view, plan) : [];
   const freeHint = planFreeHint(t, plan);
-  // A model without a maker of its own wears its plan's mark, else its brain's.
+  // A model without a maker of its own wears its plan's mark, else its brain's; an ACP agent's (ADR 0216) none.
+  const onAcp = view?.brain === "acp";
   const mark = (plan && view?.accounts.find((a) => a.id === view.account)?.provider) || (view?.brain ?? "");
-  const hasModels = view !== undefined && view.brain !== "model";
+  // An ACP agent's effort is its own: no dock.
+  const hasModels = view !== undefined && view.brain !== "model" && !onAcp;
   const fixed = hasModels && !isAuto(view.effectiveModel);
   const [dock, setDock] = useState(0);
   return (
@@ -469,9 +502,11 @@ export function AgentModelScreen({ agentId, scope }: { agentId: string; scope?: 
                     label={r.label}
                     {...(r.sub ? { sub: r.sub } : {})}
                     {...(r.note ? { hint: { name: t("common.about", { label: r.label }), text: r.note } } : {})}
-                    {...(isAuto(r.value)
-                      ? { icon: "sparkle" as const }
-                      : { leading: <ProviderLogo id={r.maker ?? mark} size="sm" /> })}
+                    {...(onAcp
+                      ? {}
+                      : isAuto(r.value)
+                        ? { icon: "sparkle" as const }
+                        : { leading: <ProviderLogo id={r.maker ?? mark} size="sm" /> })}
                     checked={r.checked}
                     disabled={busy || !view.canEdit}
                     onPress={() => {
@@ -479,7 +514,12 @@ export function AgentModelScreen({ agentId, scope }: { agentId: string; scope?: 
                       const ai = aiChoiceOf(view);
                       const done = t("agentPage.work.saved.brain", {
                         ...g,
-                        brain: ai === "key" ? r.label : thinksWith(t, ai, r.label),
+                        brain:
+                          ai === "acp"
+                            ? acpThinksNow(t, { ...view, effectiveModel: r.value })
+                            : ai === "key"
+                              ? r.label
+                              : thinksWith(t, ai, r.label),
                       });
                       void save(modelInput(r.value, view), done);
                     }}

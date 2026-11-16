@@ -477,6 +477,10 @@ export function modelRow(t: TFunction, brain: AgentBrainLine | undefined, apiMod
   if (brain?.kind === "model" && brain.maker)
     return { value: providerLabel(brain.maker), valueNote: t("brain.auto.label") };
   if (!brain || brain.kind === "model") return { value: apiModel, valueNote: t("brain.foot.api") };
+  if (brain.kind === "acp") {
+    const engine = brain.engine || t("brain.acp.name");
+    return { value: brain.model ?? t("brain.acp.defaultModel", { engine }), valueNote: engine };
+  }
   return {
     value: isAuto(brain.model) ? t("brain.auto.label") : (brain.model ?? apiModel),
     valueNote: planLabel(t, planOfAccount({ kind: brain.kind, provider: brain.provider ?? null })),

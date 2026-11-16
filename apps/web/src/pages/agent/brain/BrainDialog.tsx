@@ -1,5 +1,6 @@
 import type { AgentBrain, AgentBrainInput, AgentSetup, BrainKind, MachineAccount } from "@agenteschat/client";
 import { keys, useAgents, useApi, useSetComputerTarget, useUpdateAgent } from "@agenteschat/client";
+import { acpModelInput, acpThinksNow } from "@agenteschat/client/lib/acp";
 import type { BrainScreen } from "@agenteschat/client/lib/agent-edit";
 import { approvalsWords, autonomyWords, setupOutcome } from "@agenteschat/client/lib/agent-setup";
 import { signInPlan } from "@agenteschat/client/lib/ai-accounts";
@@ -19,7 +20,7 @@ import { contextSize } from "@agenteschat/client/lib/context-limits";
 import { keyRefusal } from "@agenteschat/client/lib/errors";
 import { namesText, rosterText } from "@agenteschat/client/lib/format";
 import { brainTool, installableCli } from "@agenteschat/client/lib/machines";
-import { type AiChoice, planMark } from "@agenteschat/client/lib/no-ai";
+import { planMark, type ThinkChoice } from "@agenteschat/client/lib/no-ai";
 import { can as orgCan } from "@agenteschat/client/lib/permissions";
 import { usageWhen } from "@agenteschat/client/lib/plan-usage";
 import { geminiPersonal, isPlanId, planFreeHint, signInProviderOf } from "@agenteschat/client/lib/plans";
@@ -94,6 +95,8 @@ type Screen = "glance" | "switch" | "all" | "team" | "limit" | "model" | "more" 
 /** What this agent thought with before a switch, for "Desfazer". */
 interface Before {
   brain: BrainKind;
+  /** `acp`: the ACP agent it thought with (ADR 0216). */
+  engine: string | undefined;
   account: string | null;
   model: string | null;
   machineId: string;
@@ -249,6 +252,9 @@ function BrainFlow({ view, onClose, at }: { view: AgentBrain; onClose: () => voi
       }
       return result;
     }
+    // An ACP agent of its computer (ADR 0216) starts on its own default model: another plan's models aren't its.
+    if (row.kind === "engine")
+      return api.agents.setBrain(org.id, agent.id, { brain: "acp", engine: row.engine, model: null });
     if (row.moves) await setTarget.mutateAsync({ agentId: agent.id, machineId: row.moves.machineId });
     // Another plan has other models: it starts on its own default, and an agent on Automático stays automatic.
     const auto = view.brain === "model" ? isAuto(view.effort) : isAuto(view.effectiveModel);
@@ -269,6 +275,7 @@ function BrainFlow({ view, onClose, at }: { view: AgentBrain; onClose: () => voi
     try {
       const before: Before = {
         brain: view.brain,
+        engine: view.engine,
         account: view.account,
         model: view.model,
         machineId: work.machineId,
@@ -378,7 +385,9 @@ function BrainFlow({ view, onClose, at }: { view: AgentBrain; onClose: () => voi
           agent.id,
           b.brain === "model"
             ? { brain: "model", ...share }
-            : { brain: b.brain, account: b.account, model: b.model, ...share },
+            : b.brain === "acp"
+              ? { brain: "acp", engine: b.engine, model: b.model, ...share }
+              : { brain: b.brain, account: b.account, model: b.model, ...share },
         );
       for (const o of others)
         await api.agents
@@ -419,49 +428,55 @@ function BrainFlow({ view, onClose, at }: { view: AgentBrain; onClose: () => voi
       : null;
 
   // ── the model ──
-  const modelValue = modelPick ?? (s.kind === "model" ? saved.model : s.shownModel || AUTO);
-  const modelSaved = s.kind === "model" ? saved.model : s.shownModel || AUTO;
+  // An ACP agent's (ADR 0216): one it offered, or its own default; no Automático of ours.
+  const acpModel = s.acpModels.find((m) => m.checked)?.value;
+  const modelValue = modelPick ?? acpModel ?? (s.kind === "model" ? saved.model : s.shownModel || AUTO);
+  const modelSaved = acpModel ?? (s.kind === "model" ? saved.model : s.shownModel || AUTO);
   const cursorPlanSays = s.kind === "cursor" && s.planModels.some((m) => m.inPlan);
   const autoPick: PickOption = { value: AUTO, label: t("brain.auto.label"), description: t("brain.auto.hint") };
   const modelOptions: PickOption[] =
-    s.kind === "model"
-      ? [
-          autoPick,
-          // The model it has stays a choice when its list is out of reach (OpenRouter's) or no longer has it.
-          ...(isAuto(saved.model) || s.keyModels.some((o) => o.value === saved.model)
-            ? []
-            : [{ value: saved.model, label: saved.model }]),
-          ...s.keyModels.map((o) => ({
-            value: o.value,
-            label: o.label,
-            ...(typeof o.description === "string" ? { description: o.description } : {}),
-            ...(o.group ? { group: o.group } : {}),
-            ...(o.disabled ? { disabled: true } : {}),
-            keywords: brainPickText(o),
-          })),
-        ]
-      : [
-          autoPick,
-          ...(!s.shownModel || isAuto(s.shownModel) || s.planModels.some((m) => m.value === s.shownModel)
-            ? []
-            : [{ value: s.shownModel, label: s.shownModel }]),
-          ...s.planModels.map((m) => {
-            const line = brainModelLine(t, s.kind, s.plan, m, cursorPlanSays);
-            return {
-              value: m.value,
-              label: m.label,
-              ...(line ? { description: line } : {}),
-              ...(m.needs ? { hint: t(`brain.modelNeeds.${m.needs}`) } : {}),
-              ...(m.maker ? { group: providerLabel(m.maker) } : {}),
-            };
-          }),
-        ];
+    s.kind === "acp"
+      ? s.acpModels.map((m) => ({ value: m.value, label: m.label, ...(m.sub ? { description: m.sub } : {}) }))
+      : s.kind === "model"
+        ? [
+            autoPick,
+            // The model it has stays a choice when its list is out of reach (OpenRouter's) or no longer has it.
+            ...(isAuto(saved.model) || s.keyModels.some((o) => o.value === saved.model)
+              ? []
+              : [{ value: saved.model, label: saved.model }]),
+            ...s.keyModels.map((o) => ({
+              value: o.value,
+              label: o.label,
+              ...(typeof o.description === "string" ? { description: o.description } : {}),
+              ...(o.group ? { group: o.group } : {}),
+              ...(o.disabled ? { disabled: true } : {}),
+              keywords: brainPickText(o),
+            })),
+          ]
+        : [
+            autoPick,
+            ...(!s.shownModel || isAuto(s.shownModel) || s.planModels.some((m) => m.value === s.shownModel)
+              ? []
+              : [{ value: s.shownModel, label: s.shownModel }]),
+            ...s.planModels.map((m) => {
+              const line = brainModelLine(t, s.kind, s.plan, m, cursorPlanSays);
+              return {
+                value: m.value,
+                label: m.label,
+                ...(line ? { description: line } : {}),
+                ...(m.needs ? { hint: t(`brain.modelNeeds.${m.needs}`) } : {}),
+                ...(m.maker ? { group: providerLabel(m.maker) } : {}),
+              };
+            }),
+          ];
   const modelChosen = modelOptions.find((o) => o.value === modelValue);
   const needs = s.planModels.find((m) => m.value === modelValue)?.needs;
   const saveModel = async () => {
     setBusy(true);
     try {
       if (s.kind === "model") await update.mutateAsync({ model: modelValue });
+      else if (s.kind === "acp")
+        await api.agents.setBrain(org.id, agent.id, { brain: "acp", ...acpModelInput(modelValue) });
       else {
         // An automatic model picks the effort too; a fixed one takes the ramp's level.
         const next = isAuto(modelValue) ? AUTO : s.effort;
@@ -555,7 +570,12 @@ function BrainFlow({ view, onClose, at }: { view: AgentBrain; onClose: () => voi
   };
 
   // ── "Usar em outros agentes" (ADR 0094): what is saved, each agent taking it by its own rules ──
-  const brainName = s.savedCard === "key" ? s.modelName : thinksWith(t, s.savedCard, s.modelName);
+  const brainName =
+    s.savedCard === "acp"
+      ? acpThinksNow(t, view)
+      : s.savedCard === "key"
+        ? s.modelName
+        : thinksWith(t, s.savedCard, s.modelName);
   const where = s.homeOf(s.savedCard);
   const carried = withAutonomy ? view.autonomy : undefined;
   // How much it asks goes along only from who manages agents, as on one agent (ADR 0173).
@@ -565,31 +585,34 @@ function BrainFlow({ view, onClose, at }: { view: AgentBrain; onClose: () => voi
     ...(carried ? { autonomy: carried } : {}),
     ...(carriedLevel ? { approvalsLevel: carriedLevel } : {}),
   };
+  // An ACP agent (ADR 0216) is its own computer's: nothing to take to other agents.
   const setup: AgentSetup | null =
-    s.kind === "model"
-      ? {
-          brain: "model",
-          model: saved.model,
-          // Only admins see and change the key: anyone else's leaves each agent's own.
-          // The workspace's default key is the picker's placeholder, not a key id: it goes as null.
-          ...(can("key") ? { key: saved.key === DEFAULT_KEY ? null : (saved.key ?? null) } : {}),
-          contextTokens: s.shownContext,
-          ...autonomy,
-        }
-      : where
+    s.kind === "acp"
+      ? null
+      : s.kind === "model"
         ? {
-            brain: s.kind,
-            machineId: where.machineId,
-            account: view.accountsSupported && view.computer ? view.account : null,
-            model: view.effectiveModel === s.option?.defaultModel ? null : view.effectiveModel,
-            effort: isAuto(view.effectiveModel) ? AUTO : s.effort,
-            ...(s.speedOn ? { speed: view.speed } : {}),
+            brain: "model",
+            model: saved.model,
+            // Only admins see and change the key: anyone else's leaves each agent's own.
+            // The workspace's default key is the picker's placeholder, not a key id: it goes as null.
+            ...(can("key") ? { key: saved.key === DEFAULT_KEY ? null : (saved.key ?? null) } : {}),
             contextTokens: s.shownContext,
-            fallback: view.fallback,
-            onlyOwner: view.onlyOwner,
             ...autonomy,
           }
-        : null;
+        : where
+          ? {
+              brain: s.kind,
+              machineId: where.machineId,
+              account: view.accountsSupported && view.computer ? view.account : null,
+              model: view.effectiveModel === s.option?.defaultModel ? null : view.effectiveModel,
+              effort: isAuto(view.effectiveModel) ? AUTO : s.effort,
+              ...(s.speedOn ? { speed: view.speed } : {}),
+              contextTokens: s.shownContext,
+              fallback: view.fallback,
+              onlyOwner: view.onlyOwner,
+              ...autonomy,
+            }
+          : null;
   const setupText = [
     brainName,
     ...advancedParts(t, i18n.language, {
@@ -653,7 +676,9 @@ function BrainFlow({ view, onClose, at }: { view: AgentBrain; onClose: () => voi
         : { icon: "block" as IconName, text: s.reason(s.savedCard) ?? s.side(s.savedCard)?.text ?? "" };
   // Its CLI off on its computer: the row in use says so, its way out goes under it (ADR 0036 §8).
   const offBrain =
-    view.brain !== "model" && view.options.find((o) => o.kind === view.brain)?.reason === "tool_off"
+    view.brain !== "model" &&
+    view.brain !== "acp" &&
+    view.options.find((o) => o.kind === view.brain)?.reason === "tool_off"
       ? view.brain
       : null;
   const offOn = work.machines.data?.find((x) => x.id === view.computer?.machineId) ?? null;
@@ -662,6 +687,7 @@ function BrainFlow({ view, onClose, at }: { view: AgentBrain; onClose: () => voi
   const missingReason = view.brain !== "model" ? view.options.find((o) => o.kind === view.brain)?.reason : undefined;
   const missingCli =
     view.brain !== "model" &&
+    view.brain !== "acp" &&
     (missingReason === "not_installed" || missingReason === "cant_start") &&
     installableCli(view.brain) &&
     offOn &&
@@ -684,7 +710,7 @@ function BrainFlow({ view, onClose, at }: { view: AgentBrain; onClose: () => voi
   // While the account in use is at its limit the agent sleeps under the night; another account brings the day.
   const asleep = s.limitedNow && screen !== "done";
   const day = useDawn(!asleep);
-  const markOf: AiChoice | undefined =
+  const markOf: ThinkChoice | undefined =
     screen === "switch" || screen === "all"
       ? (switchSel?.choice ?? s.savedCard)
       : screen === "limit"
@@ -1001,7 +1027,7 @@ function BrainFlow({ view, onClose, at }: { view: AgentBrain; onClose: () => voi
               onChange={(on) => setMore({ ...m, fallback: on })}
             />
           )}
-          {s.kind !== "model" && agent.ownerUserId && (
+          {s.kind !== "model" && s.kind !== "acp" && agent.ownerUserId && (
             <div className="bd-row">
               <PlanReplies
                 agent={agent.name}
@@ -1320,7 +1346,13 @@ function BrainFlow({ view, onClose, at }: { view: AgentBrain; onClose: () => voi
               </span>
               {/* Another account's mark comes in where the last one stood. */}
               <span key={markOf} className="team-scene__mark">
-                {markOf === "key" ? <Icon name="key" /> : <ProviderLogo id={planMark(markOf)} size="tile" />}
+                {markOf === "key" ? (
+                  <Icon name="key" />
+                ) : markOf === "acp" ? (
+                  <Icon name="plug" />
+                ) : (
+                  <ProviderLogo id={planMark(markOf)} size="tile" />
+                )}
               </span>
             </>
           )}

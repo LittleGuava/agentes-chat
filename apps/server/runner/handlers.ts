@@ -26,7 +26,9 @@ import { redactSecrets } from "@agenteschat/adapters/secret-box";
 import { realFoldersFor } from "./access";
 import type { AccountBrains } from "./account-brains";
 import type { AccountFolders, AccountGrant, AccountManager } from "./accounts";
+import type { AcpEngineConfig } from "./acp-engines";
 import { type BrainManager, brainKey } from "./brain";
+import { type AcpBrainTurnRequest, handleAcpBrainTurn } from "./brain-acp";
 import { type AntigravityBrainTurnRequest, handleAntigravityBrainTurn } from "./brain-antigravity";
 import { type CodexBrainEvent, type CodexBrainTurnRequest, handleCodexBrainTurn } from "./brain-codex";
 import type { CodexAppServers } from "./brain-codex-app";
@@ -320,6 +322,8 @@ export interface HandlerContext {
     accounts?: AccountFolders;
     /** How `codex exec` starts (a worker under systemd: in the agent's AI CLIs slice, `scope-gate.ts`). */
     spawn?: Spawn;
+    /** ADR 0216: the ACP agents `config.json` declares (none in system mode). */
+    acpEngines?: readonly AcpEngineConfig[];
   };
   /** Protocol 9: whether the owner paused this computer (new work is refused with `paused`). */
   paused?: () => boolean;
@@ -1436,10 +1440,12 @@ async function doBrainTurn(
     req.kind === "opencode" ||
     req.kind === "grok" ||
     req.kind === "antigravity" ||
-    req.kind === "copilot"
+    req.kind === "copilot" ||
+    req.kind === "acp"
       ? req.kind
       : null;
-  requireTool(ctx, cli ?? "claude");
+  // An ACP agent the computer's owner declared runs by the commands switch (ADR 0216 §6).
+  requireTool(ctx, cli === "acp" ? "commands" : (cli ?? "claude"));
   if (!req.agent) throw new RunnerError("bad_request", "A brain turn belongs to an agent");
   const runId = requireString(req.runId, "runId");
   // A locked-down turn (protocol 41) gets neither the agent's secrets nor its folders, and stops at the first tool
@@ -1541,7 +1547,7 @@ async function doHostedTurn(
  * Cursor, Grok, Antigravity and Copilot turns in progress, by run: `brain.steer` answers `unsupported` for them (`agent -p`,
  * `grok -p`, `agy -p` and `copilot` take nothing mid-turn).
  */
-const turnOnlyRuns = new Map<string, "Cursor" | "Grok Build" | "Antigravity CLI" | "Copilot CLI">();
+const turnOnlyRuns = new Map<string, string>();
 
 /** OpenCode turns in progress, by run: `no_turn` until the turn can take messages (`steerOpencodeTurn`). */
 const opencodeRuns = new Set<string>();
@@ -1637,21 +1643,24 @@ async function doCodexTurn(
   const grok = req.kind === "grok";
   const agy = req.kind === "antigravity";
   const copilot = req.kind === "copilot";
-  const name = cursor
-    ? "Cursor"
-    : opencode
-      ? "OpenCode"
-      : grok
-        ? "Grok Build"
-        : agy
-          ? "Antigravity CLI"
-          : copilot
-            ? "Copilot CLI"
-            : "Codex";
+  const acp = req.kind === "acp";
+  const name = acp
+    ? "ACP agent"
+    : cursor
+      ? "Cursor"
+      : opencode
+        ? "OpenCode"
+        : grok
+          ? "Grok Build"
+          : agy
+            ? "Antigravity CLI"
+            : copilot
+              ? "Copilot CLI"
+              : "Codex";
   if (!codex) throw new RunnerError("bad_request", `This runner runs no ${name} brain turns`);
   let final: CodexBrainEvent = {
     type: "error",
-    code: `${cursor ? "cursor" : opencode ? "opencode" : grok ? "grok" : agy ? "antigravity" : copilot ? "copilot" : "codex"}_failed`,
+    code: `${acp ? "acp" : cursor ? "cursor" : opencode ? "opencode" : grok ? "grok" : agy ? "antigravity" : copilot ? "copilot" : "codex"}_failed`,
     message: `${name} ended without an answer.`,
   };
   let ended = false;
@@ -1678,11 +1687,29 @@ async function doCodexTurn(
     scope.emit?.({ type: "brain.event", runId, event });
   };
   if (opencode) opencodeRuns.add(runId);
-  else if (cursor || grok || agy || copilot) {
+  else if (acp) {
+    const declared = codex.acpEngines?.find((e) => e.id === req.engine);
+    turnOnlyRuns.set(runId, declared?.name ?? name);
+  } else if (cursor || grok || agy || copilot) {
     turnOnlyRuns.set(runId, cursor ? "Cursor" : grok ? "Grok Build" : agy ? "Antigravity CLI" : "Copilot CLI");
   }
   try {
-    if (copilot) {
+    if (acp) {
+      await handleAcpBrainTurn(
+        {
+          folder,
+          exec: toolOn(ctx, "commands"),
+          runnerHome: codex.runnerHome,
+          engines: codex.acpEngines ?? [],
+          ...(ctx.secretsDir && !chat ? { secretsDir: ctx.secretsDir } : {}),
+          ...(codex.mcp ? { mcp: codex.mcp } : {}),
+          ...(ctx.grants && !chat ? { grants: ctx.grants } : {}),
+          ...(codex.spawn ? { spawn: codex.spawn } : {}),
+        },
+        req as unknown as AcpBrainTurnRequest,
+        { signal: scope.signal, emit },
+      );
+    } else if (copilot) {
       await handleCopilotBrainTurn(
         {
           folder,

@@ -1,5 +1,6 @@
 import {
   ACCOUNTS_PROTOCOL,
+  ACP_ENGINE_PROTOCOL,
   type AccountKind,
   ANTIGRAVITY_PROTOCOL,
   BRAIN_PROTOCOL,
@@ -125,6 +126,7 @@ export const BRAIN_KINDS: readonly BrainKind[] = [
   "grok",
   "antigravity",
   "copilot",
+  "acp",
 ];
 export const isBrainKind = (v: unknown): v is BrainKind =>
   typeof v === "string" && (BRAIN_KINDS as readonly string[]).includes(v);
@@ -269,7 +271,8 @@ export function defaultBrainModel(kind: BrainKind): string | null {
     kind === "opencode" ||
     kind === "grok" ||
     kind === "antigravity" ||
-    kind === "copilot"
+    kind === "copilot" ||
+    kind === "acp"
   )
     return null;
   const options = brainModelOptions(kind);
@@ -345,6 +348,22 @@ export interface BrainOption {
   defaultModel: string | null;
 }
 
+/**
+ * "Quem pensa"'s ACP agents (ADR 0216): the agents the computer declares, each with the models it offered (`models`
+ * stays empty). Kept out of `options`, whose readers take every kind there for a plan's.
+ */
+export interface AcpBrainOption extends BrainOption {
+  kind: "acp";
+  engines: AcpEngineOption[];
+}
+
+/** An ACP agent a computer declares, as "Quem pensa" offers it. */
+export interface AcpEngineOption {
+  id: string;
+  name: string;
+  models: BrainModelOption[];
+}
+
 type MachineLike = Parameters<typeof machineExecutors>[0] & {
   id: string;
   name: string;
@@ -360,6 +379,7 @@ type MachineLike = Parameters<typeof machineExecutors>[0] & {
       grok?: boolean;
       antigravity?: boolean;
       copilot?: boolean;
+      commands?: boolean;
     };
   } | null;
 } & Parameters<typeof machineOnline>[0];
@@ -419,6 +439,27 @@ function computerBrainOptions(machine: MachineLike | null): BrainOption[] {
     cliOption(machine, "antigravity"),
     cliOption(machine, "copilot"),
   ];
+}
+
+/**
+ * ACP agents the computer's owner declared (ADR 0216, runner protocol 71): by the commands switch, each engine with
+ * the models it offered (any id the agent lists; none: its own default). Not in `brainOptions`: the apps take every
+ * kind listed there for a plan's (an unknown one as Claude's), so this goes in a field of its own.
+ */
+export function acpBrainOption(machine: MachineLike | null): AcpBrainOption {
+  const tools = machine?.access?.tools;
+  const engines: AcpEngineOption[] = (machine?.executors?.acp ?? []).map((e) => ({
+    id: e.id,
+    name: e.name,
+    models: (e.models ?? []).map((m) => ({ value: m.id, label: m.label || m.id })),
+  }));
+  let reason: BrainUnavailable | undefined;
+  if (!machine) reason = "no_computer";
+  else if (!tools && !machine.execAllowed) reason = "exec_off";
+  else if (machine.protocol < ACP_ENGINE_PROTOCOL) reason = "runner_old";
+  else if (tools && tools.commands !== true) reason = "tool_off";
+  else if (!engines.length) reason = machine.executors?.detectedAt ? "not_installed" : "not_reported";
+  return { kind: "acp", available: !reason, ...(reason ? { reason } : {}), models: [], defaultModel: null, engines };
 }
 
 /**
@@ -496,6 +537,8 @@ export interface AgentBrainView {
   /** The team's right hand, `mine` only. */
   workspaceAi?: RightHandWorkspaceAi;
   brain: BrainKind;
+  /** `acp` (ADR 0216): the id of the ACP agent its computer declares that it thinks with. */
+  engine?: string;
   /** As stored (null = the brain's default). */
   model: string | null;
   /** What it runs with (`model ?? defaultModel`), null for the model brain. */
@@ -505,6 +548,8 @@ export interface AgentBrainView {
   extraUsage: boolean;
   computer: BrainComputer | null;
   options: BrainOption[];
+  /** The ACP agents its computer declares (ADR 0216); not for the team's right hand, which can't think with one. */
+  acp?: AcpBrainOption;
   /** Every computer the caller may give the agent (admins: all; its owner: the ones they connected), with its options. */
   machines: BrainMachineOptions[];
   /** The caller may change it (an admin or the agent's owner). */
@@ -687,12 +732,14 @@ function view(
   return {
     agentId: agent.id,
     brain,
+    ...(brain === "acp" && agent.brainEngine ? { engine: agent.brainEngine } : {}),
     model: brain === "model" ? null : agent.brainModel,
     effectiveModel: brain === "model" ? null : (agent.brainModel ?? defaultBrainModel(brain)),
     fallback: agent.brainFallback,
     extraUsage: agent.brainExtraUsage,
     computer: machine ? { machineId: machine.id, name: machine.name, online: machineOnline(machine) } : null,
     options: offeredTo(agent, brainOptions(machine, policy)),
+    ...(isRightHand(agent) ? {} : { acp: acpBrainOption(machine) }),
     machines: isRightHand(agent) ? machines.map((m) => ({ ...m, options: offeredTo(agent, m.options) })) : machines,
     canEdit: true,
     account: agent.brainAccountId,
@@ -1035,6 +1082,11 @@ export interface AgentBrainInput {
   speed?: unknown;
   /** One of `CONTEXT_LIMITS`, or null for the model's window; kept through brain switches. Omitted = keep it. */
   contextTokens?: unknown;
+  /**
+   * `acp` (ADR 0216): the id of an ACP agent its computer declares (`executors.acp`). Required when switching to
+   * `acp`; omitted = keep it. Cleared by any other brain.
+   */
+  engine?: unknown;
 }
 
 const EVERYONE: AgentAudience = { mode: "everyone", userIds: [], roleIds: [] };
@@ -1105,7 +1157,7 @@ export async function setAgentBrain(
     candidateMachines(deps.db, userId, orgId, admin, agent.machineId),
   ]);
   if (changed && isComputerBrain(brain)) {
-    const option = brainOptions(machine).find((o) => o.kind === brain);
+    const option = brain === "acp" ? acpBrainOption(machine) : brainOptions(machine).find((o) => o.kind === brain);
     if (!option?.available) {
       throw new ConflictError(
         machine
@@ -1120,6 +1172,11 @@ export async function setAgentBrain(
   // the next one), so an agent born automatic is automatic on Claude Code or Codex too. A fixed model belongs to
   // its brain: another brain starts on its default.
   const carried = isAutoModel(agent.brainModel) ? AUTO_MODEL : null;
+  const engine = acpEngineOf(brain, changed, agent.brainEngine, input.engine, machine);
+  // An ACP agent keeps its own sign-in on the computer: no account of ours (ADR 0216 §6).
+  if (brain === "acp" && input.account !== undefined && input.account !== null) {
+    throw new ValidationError("An ACP agent thinks with its own sign-in on the computer", "account.invalid");
+  }
   const model =
     input.model !== undefined
       ? normalizeBrainModel(brain, input.model, changed ? null : agent.brainModel)
@@ -1220,7 +1277,8 @@ export async function setAgentBrain(
     effort !== agent.brainEffort ||
     speed !== agent.brainSpeed ||
     contextTokens !== agent.contextTokens ||
-    planForOthers !== agent.planForOthers;
+    planForOthers !== agent.planForOthers ||
+    engine !== agent.brainEngine;
   if (!thinks && !audience) return view(agent, machine, machines, accounts, userId, policy);
   const { row, released } = await deps.db.transaction(async (tx) => {
     // A login made for one agent thinks for one: the check is taken again under its row's lock, so two agents
@@ -1259,6 +1317,7 @@ export async function setAgentBrain(
       .update(schema.agents)
       .set({
         brain,
+        brainEngine: engine,
         brainModel: model,
         brainFallback: fallback,
         brainExtraUsage: extraUsage,
@@ -1328,8 +1387,9 @@ export async function setAgentBrain(
           effort: agent.brainEffort,
           speed: agent.brainSpeed,
           contextTokens: agent.contextTokens,
+          engine: agent.brainEngine,
         },
-        to: { brain, model, fallback, extraUsage, account, effort, speed, contextTokens },
+        to: { brain, model, fallback, extraUsage, account, effort, speed, contextTokens, engine },
         ...(rightHand ? { planForOthers: { from: agent.planForOthers, to: planForOthers } } : {}),
         ...options.audit,
       },
@@ -1356,6 +1416,7 @@ export async function setAgentBrain(
   const saved = row ?? {
     ...agent,
     brain,
+    brainEngine: engine,
     brainModel: model,
     brainFallback: fallback,
     brainExtraUsage: extraUsage,
@@ -1390,6 +1451,30 @@ export async function setAgentBrain(
       ? await brainAccounts(deps.db, userId, orgId, shown, shownMachine)
       : accounts;
   return view(shown, shownMachine, machines, fresh, userId, policy);
+}
+
+/**
+ * The ACP agent an `acp` brain thinks with (ADR 0216): one its computer declares, chosen by id; kept when nothing asks
+ * otherwise, null for every other brain.
+ */
+function acpEngineOf(
+  brain: BrainKind,
+  changed: boolean,
+  stored: string | null,
+  input: unknown,
+  machine: MachineRow | null,
+): string | null {
+  if (brain !== "acp") return null;
+  const wanted = input === undefined ? (changed ? null : stored) : input;
+  // Kept as it is: the computer may stop declaring it, and its turns then say so (`acp_engine_missing`).
+  if (!changed && stored !== null && wanted === stored) return stored;
+  const declared = machine?.executors?.acp ?? [];
+  if (typeof wanted !== "string" || !declared.some((e) => e.id === wanted)) {
+    throw new ValidationError("Choose an ACP agent the agent's computer declares", "brain.invalid_engine", {
+      engines: declared.map((e) => e.id),
+    });
+  }
+  return wanted;
 }
 
 /**
@@ -1800,6 +1885,8 @@ export interface AgentBrainSummary {
   kind: BrainKind;
   model: string | null;
   computer?: string;
+  /** `acp` (ADR 0216): the ACP agent it thinks with, by the name its computer declares (else its id). */
+  engine?: string;
   /** A key account's coding plan (`zai`…): its maker's model thinks, through Claude Code. */
   provider?: string;
   /** The account's name ("Claude 2"); a computer's own sign-in by its maker and plan ("Claude Max"). */
@@ -1842,6 +1929,7 @@ export async function agentBrainSummaries(
     machineId: string | null;
     ownerUserId: string | null;
     brainAccountId?: string | null;
+    brainEngine?: string | null;
     brainSpeed?: string;
     builtin?: string | null;
   }[],
@@ -1892,8 +1980,9 @@ export async function agentBrainSummaries(
     const provider = kind === "claude_code" ? (row?.provider ?? undefined) : undefined;
     const ownPlan = kind === "claude_code" ? machine?.executors?.claude?.plan : undefined;
     // With no account, the computer's own sign-in thinks only for its pairer's agents (ADR 0059 §3).
+    // An ACP agent (ADR 0216) has no plan of ours to show: its sign-in is its own.
     const own =
-      kind !== "model" && !a.brainAccountId && machine?.pairer && machine.pairer === a.ownerUserId
+      kind !== "model" && kind !== "acp" && !a.brainAccountId && machine?.pairer && machine.pairer === a.ownerUserId
         ? {
             account: ownPlan
               ? `${defaultAccountLabel(kind)} ${ownPlan[0]?.toUpperCase()}${ownPlan.slice(1)}`
@@ -1902,9 +1991,16 @@ export async function agentBrainSummaries(
           }
         : null;
     const plan = row ? { account: row.label, usage: row.usage ?? undefined } : own;
+    // An ACP agent by the name its computer declares, its model by the label that agent gave it.
+    const engine =
+      kind === "acp" && a.brainEngine
+        ? (machine?.executors?.acp?.find((e) => e.id === a.brainEngine) ?? { id: a.brainEngine, name: a.brainEngine })
+        : null;
+    const engineModel = engine && "models" in engine ? engine.models?.find((m) => m.id === a.brainModel) : undefined;
     out.set(a.id, {
       kind,
-      model: brainModelLabel(kind, a.brainModel, provider),
+      model: engineModel?.label || brainModelLabel(kind, a.brainModel, provider),
+      ...(engine ? { engine: engine.name } : {}),
       ...(kind !== "model" && computer ? { computer } : {}),
       ...(provider ? { provider } : {}),
       ...(plan ? { account: plan.account } : {}),
