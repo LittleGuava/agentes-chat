@@ -66,3 +66,16 @@ Search: a limited task's document carries its own id as its scope (`channelIds: 
 - **Rotinas.** Their audience is who may see the run's conversation and its creator; they already follow `requireChannelAccess`.
 - **Missões.** They live in a channel, so they follow §5, in their list too.
 - **Channels.** Not redone: membership, role audiences (ADR 0125) and the exceptions (ADR 0134) stand.
+
+## Addendum (2026-11-15): a DM with an agent shared as a read-only copy
+
+A person's DM with an agent stayed theirs alone: a DM takes nobody else (`dms.ts`) and "Mostrar para todos" (ADR 0121 §4) is a task's. Showing a colleague or the team what an agent said meant copying and pasting it.
+
+**Decision.** The person of a DM with an agent shares it as a copy, never the DM itself. `shareDm` (`packages/engine/src/dm-share.ts`, route `POST …/dms/{channelId}/share`) posts, as them and with their note, one message whose `meta.sharedDm` holds the talk as it stands: the latest lines that fit (300 lines, 4,000 characters each, 100,000 in all, `omitted` counting the earlier ones), each with its author's name, time and whether it was in a thread. It goes to a channel they are a member of (one an administrator only reads, §5, doesn't count) or to their DM with a person, opened if new. Adding a person to the DM was the other way and was turned down: a DM's key names its two members (`dmKey`, `dmPeople`, `restoreDms`), it is closed to administrators (§5), its agent answers every message there and what the agent remembers there is the person's, all of which a third member would break.
+
+- **Who reads it.** Whoever reads the conversation it lands in, by that conversation's rules: in a channel its members and, for a channel, administrators (§5); in a DM with a person the two of them. The dialog says which before sending. The DM itself stays closed and keeps what the agent remembers there.
+- **What is copied.** Talk only: people's and agents' words. What the server words (cards, `bodyCode`), notices for the agent (all but a routine's report and a fast reply, which people read), approvals and requests waiting on a click, GIFs, stickers, voice and another copy stay out, by one list (`NOT_TALK`). No file goes with it: files keep their own audience (§8). The copy names no conversation, so nothing in it opens the DM. A DM between people is refused (`dm_share.not_agent_dm`): the other one's words aren't one side's to share.
+- **Memory and search.** Only the note is the message's text: the copy is not searched, wakes no agent (written with `startRuns: false`, and `message.posted` routes it to nobody), and no agent reads it into a prompt: a run's context and `read_conversation` show a message's text, the note, never `meta.sharedDm`. What an agent learns stays where it learned it.
+- **Final.** Nothing in the apps edits or deletes a message (only a workspace's deletion takes its messages), so the copy stays as sent. The apps confirm first (the dialog says it can't be undone) and the route takes `confirm: true`. The audit log records `dm.shared` with the agent, where it went and how many lines, never a word of it.
+
+**Later.** The phone: its chat shows the note only, without the card that opens the copy, and has no share action yet. A copy into a task's conversation. Letting agents in the destination read a copy when a person there asks them to.

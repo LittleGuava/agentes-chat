@@ -593,6 +593,8 @@ export function createJobHandlers(deps: JobDeps): JobHandlers {
       if (isMediaAfterReply(message.meta) || isMediaOnly(message)) return;
       // A routine's trigger: its background run is already started; nobody else is routed (routines.ts).
       if (message.meta.background) return;
+      // A shared DM's copy (`dm-share.ts`) is for people to read: nobody is routed.
+      if (message.meta.sharedDm) return;
       const routed = (
         strategy: "mention" | "dm" | "router" | "none",
         seenBy: string[],

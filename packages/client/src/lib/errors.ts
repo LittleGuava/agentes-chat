@@ -32,6 +32,10 @@ const KNOWN = {
   "github_event.not_found": "errors.said.gone",
   "github_event.agent_not_here": "errors.routine.agentNotInChannel",
   "channel.post_denied": "channel.perms.readOnlyComposer",
+  // Sharing a DM with an agent (ADR 0151, addendum 2026-11-15).
+  "dm_share.not_agent_dm": "dmShare.errors.notAgentDm",
+  "dm_share.target": "dmShare.errors.target",
+  "dm_share.empty": "dmShare.errors.empty",
   "channel.permission_forbidden": "channel.perms.forbidden",
   "agent.handle_taken": "newAgent.errors.handleTaken",
   "agent.right_hand_permanent": "errors.rightHand.permanent",

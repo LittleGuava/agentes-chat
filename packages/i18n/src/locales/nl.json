@@ -3086,8 +3086,8 @@
       "cursor": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "cursor_female": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "grok": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
-      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "grok_female": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
+      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "copilot_female": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "antigravity": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",
       "antigravity_female": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",
@@ -3599,6 +3599,38 @@
     "emptyAgent_female": "Vraag haar iets te onthouden, te vergeten of anders te werken.",
     "opening": "Het gesprek openen…",
     "title": "Direct bericht met {{name}}"
+  },
+  "dmShare": {
+    "action": "Gesprek delen",
+    "title": "Je gesprek met {{name}} delen",
+    "description": "Een alleen-lezen kopie van het gesprek zoals het nu is. Het gesprek zelf blijft van jou.",
+    "where": "Waar",
+    "wherePlaceholder": "Kies een kanaal of een persoon",
+    "search": "Kanalen en personen zoeken",
+    "noResults": "Niets gevonden",
+    "channels": "Kanalen",
+    "people": "Personen",
+    "note": "Bericht",
+    "noteDefault": "Mijn gesprek met {{name}}",
+    "readersChannel": "Iedereen in #{{name}} kan het lezen.",
+    "readersPrivate": "De leden van #{{name}} en de beheerders kunnen het lezen.",
+    "readersPerson": "Alleen {{name}} en jij kunnen het lezen.",
+    "submit": "Delen",
+    "sharedIn": "Gedeeld in #{{name}}",
+    "sharedWith": "Gedeeld met {{name}}",
+    "card": "Gesprek met {{name}}",
+    "open": "Lezen",
+    "lines_one": "{{count}} bericht",
+    "lines_other": "{{count}} berichten",
+    "omitted_one": "{{count}} eerder bericht staat niet in de kopie.",
+    "omitted_other": "{{count}} eerdere berichten staan niet in de kopie.",
+    "copyNote": "Een kopie, zoals het was toen het werd gedeeld.",
+    "inThread": "in een thread",
+    "errors": {
+      "notAgentDm": "Alleen een gesprek met een agent kan worden gedeeld.",
+      "target": "Deel het in een kanaal waar je in zit of met een persoon.",
+      "empty": "Dit gesprek heeft nog niets om te delen."
+    }
   },
   "memoryCard": {
     "remembered": "{{name}} heeft onthouden",
@@ -16284,6 +16316,7 @@
     "removed": "Verwijderd",
     "change": {
       "mergedWithoutAsking": "Gemerged in {{repo}} zonder te vragen",
+      "dmShared": "Deelde een kopie van het eigen gesprek met een agent",
       "pattern": "{{verb}}: {{area}}",
       "approval": {
         "approved": "Een verzoek goedgekeurd",

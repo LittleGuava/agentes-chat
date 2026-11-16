@@ -1,0 +1,4 @@
+/* A shared DM's copy on its message (ADR 0151, addendum 2026-11-15): one card as wide as the conversation's others. */
+.shared-dm-card {
+  max-width: var(--msg-card-w);
+}

@@ -3202,8 +3202,8 @@
       "cursor": "Cursor non ha effettuato l'accesso su questo computer. Collega un account Cursor nella pagina di {{name}}.",
       "cursor_female": "Cursor non ha effettuato l'accesso su questo computer. Collega un account Cursor nella pagina di {{name}}.",
       "grok": "Grok non ha effettuato l'accesso su questo computer. Collega un account Grok nella pagina di {{name}}.",
-      "copilot": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "grok_female": "Grok non ha effettuato l'accesso su questo computer. Collega un account Grok nella pagina di {{name}}.",
+      "copilot": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "copilot_female": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "antigravity": "Gemini non ha effettuato l'accesso su questo computer. Collega un account Gemini nella pagina di {{name}}.",
       "antigravity_female": "Gemini non ha effettuato l'accesso su questo computer. Collega un account Gemini nella pagina di {{name}}.",
@@ -3725,6 +3725,40 @@
     "emptyAgent_female": "Chiedile di ricordare, dimenticare o lavorare in modo diverso.",
     "opening": "Apertura della conversazione…",
     "title": "Messaggio diretto con {{name}}"
+  },
+  "dmShare": {
+    "action": "Condividi conversazione",
+    "title": "Condividi la tua conversazione con {{name}}",
+    "description": "Una copia in sola lettura della conversazione com'è ora. La conversazione resta tua.",
+    "where": "Dove",
+    "wherePlaceholder": "Scegli un canale o una persona",
+    "search": "Cerca canali e persone",
+    "noResults": "Nessun risultato",
+    "channels": "Canali",
+    "people": "Persone",
+    "note": "Messaggio",
+    "noteDefault": "La mia conversazione con {{name}}",
+    "readersChannel": "Tutti in #{{name}} possono leggerla.",
+    "readersPrivate": "I membri di #{{name}} e gli amministratori possono leggerla.",
+    "readersPerson": "Solo {{name}} e tu potete leggerla.",
+    "submit": "Condividi",
+    "sharedIn": "Condivisa in #{{name}}",
+    "sharedWith": "Condivisa con {{name}}",
+    "card": "Conversazione con {{name}}",
+    "open": "Leggi",
+    "lines_one": "{{count}} messaggio",
+    "lines_many": "{{count}} messaggi",
+    "lines_other": "{{count}} messaggi",
+    "omitted_one": "{{count}} messaggio precedente non è nella copia.",
+    "omitted_many": "{{count}} messaggi precedenti non sono nella copia.",
+    "omitted_other": "{{count}} messaggi precedenti non sono nella copia.",
+    "copyNote": "Una copia, com'era quando è stata condivisa.",
+    "inThread": "in un thread",
+    "errors": {
+      "notAgentDm": "Si può condividere solo una conversazione con un agente.",
+      "target": "Condividila in un canale di cui fai parte o con una persona.",
+      "empty": "Questa conversazione non ha ancora nulla da condividere."
+    }
   },
   "memoryCard": {
     "remembered": "{{name}} ha ricordato",
@@ -16752,6 +16786,7 @@
     "removed": "Rimosso",
     "change": {
       "mergedWithoutAsking": "Ha fatto il merge in {{repo}} senza chiedere",
+      "dmShared": "Ha condiviso una copia della propria conversazione con un agente",
       "pattern": "{{verb}} {{area}}",
       "approval": {
         "approved": "Ha approvato una richiesta",
