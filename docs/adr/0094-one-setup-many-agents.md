@@ -3,7 +3,7 @@
 - Status: Accepted (built: the server, the shared client, the web and the phone app)
 - Date: 2026-10-31
 - Extends: ADR 0029 (missions' Autonomia), ADR 0032 (who thinks), ADR 0059 (accounts belong to people), ADR 0085 (workspace roles), ADR 0086 (advanced settings)
-- Code: `packages/engine/src/agent-setup.ts`, `packages/engine/src/agents.ts` (`setupOfAgent`, `rememberAgentSetup`, `createAgent`), `packages/engine/src/brain-settings.ts` (`setAgentBrain` options), `packages/engine/src/mission-settings.ts` (`setAgentMissionApproval`), migration `0144_agent_setup`, `apps/server/src/routes/app/agents.ts` (`…/agent-setup`), `packages/client/src/lib/agent-setup.ts`, `apps/web/src/pages/agent/Work.tsx` (`SetupCopyDialog`), `apps/web/src/pages/NewAgentPage.tsx`, `apps/mobile/src/features/ai/AgentSetupScreen.tsx`, `apps/mobile/src/features/agents/NewAgentScreen.tsx`
+- Code: `packages/engine/src/agent-setup.ts`, `packages/engine/src/agents.ts` (`setupOfAgent`, `rememberAgentSetup`, `createAgent`, `updateAgent` for the approvals level), `packages/engine/src/brain-settings.ts` (`setAgentBrain` options), `packages/engine/src/mission-settings.ts` (`setAgentMissionApproval`), migration `0144_agent_setup`, `apps/server/src/routes/app/agents.ts` (`…/agent-setup`), `packages/client/src/lib/agent-setup.ts`, `apps/web/src/pages/agent/Work.tsx` (`SetupCopyDialog`), `apps/web/src/pages/NewAgentPage.tsx`, `apps/mobile/src/features/ai/AgentSetupScreen.tsx`, `apps/mobile/src/features/agents/NewAgentScreen.tsx`
 
 ## Context
 
@@ -38,3 +38,28 @@
 - **The Autonomia only with the AI.** One unit is simpler to say, but the ask was every agent at once, and another computer or another person's plan would block a setting the person may change by hand. Rejected for the Autonomia wherever the person may set it.
 - **The connectors' levels ("Ferramentas e acesso") too.** They follow each agent's job (its apps, its mail, its databases), not how it thinks; they stay each agent's own.
 - **Copying "Atende outras pessoas" to new agents.** Letting other people use a plan is its owner's choice for each agent (ADR 0059 §5); a new agent starts answering only its owner.
+
+## Addendum 2026-11-15: the approvals level goes too, only from who manages agents
+
+People who set one agent's approvals level (ADR 0173: Sempre perguntar, Só o arriscado, Nunca perguntar) asked to give
+it to several agents at once, as the model and the Autonomia already go.
+
+1. **The setup carries `approvalsLevel`** (`always`, `risky` or `never`), left out by default. Each agent picked takes
+   it through the same `updateAgent` that sets it on one agent (its `PATCH`), in the agent's savepoint, whatever its AI
+   takes, like the Autonomia. Its result says `approvalsLevel: { from, to }` beside the AI's `status`. An agent already
+   at that level is not changed, and no row is written for it.
+2. **Only who manages agents (`manage_agents`)**, the permission ADR 0173 asks for on one agent. A setup with the level
+   from anyone else is refused whole (403), preview included, before any agent changes: an owner who may give their
+   agent its AI and Autonomia gets neither when they also send the level, so no agent takes part of a setup that was
+   refused. "Nunca perguntar" asks for nothing more than the agent's own page asks for, which is this permission alone.
+3. **Audited as one agent's change**: an `agent.updated` row per agent changed, `changed: ["approvalsLevel"]`, the new
+   value and `via: "setup"`.
+4. **New agents don't start with it.** A new agent starts at `risky` (ADR 0173 §6), so the level is never kept in
+   `organization_settings.agent_setup`, like Velocidade.
+5. **In the apps.** "Levar as aprovações", over the agents beside "Levar a autonomia" on the web's dialog and the
+   phone's screen, shows this agent's level and what it means ("Nunca perguntar, como neste agente. Não pergunta nada,
+   nem em merge, deploy, pagamentos e rotinas."). Only who manages agents sees it, and it starts **off**, unlike
+   "Levar a autonomia": using a model on others never spreads how much an agent asks unless someone turns it on. On,
+   each agent's line ends with "Aprovações: Só o arriscado → Nunca perguntar", an agent whose level alone changes can
+   be picked, the setup in words ends with "Aprovações: Nunca perguntar", and the toast counts the agents that kept
+   their AI and changed their approvals apart from those that didn't change.

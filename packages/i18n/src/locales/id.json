@@ -3314,7 +3314,8 @@
     "never": {
       "title": "Jangan pernah tanya",
       "text": "Tidak pernah bertanya, termasuk untuk merge, deploy, pembayaran, dan rutinitas."
-    }
+    },
+    "changed": "Persetujuan: {{value}}"
   },
   "brakes": {
     "title": "Pekerjaan yang tidak diminta siapa pun",
@@ -5398,6 +5399,9 @@
           "autonomy": "Otonomi: {{from}} → {{to}}",
           "withAutonomy": "Sertakan otonomi",
           "withAutonomyLine": "{{value}}, seperti di agen ini. Mati: masing-masing tetap dengan miliknya.",
+          "approvals": "Persetujuan: {{from}} → {{to}}",
+          "withApprovals": "Sertakan persetujuan",
+          "withApprovalsLine": "{{value}}, seperti di agen ini. {{text}} Mati: masing-masing tetap dengan miliknya.",
           "reasons": {
             "not_allowed": "Hanya admin dan {{owner}} yang bisa mengubahnya",
             "not_allowedNobody": "Hanya admin yang bisa mengubahnya",
@@ -5416,6 +5420,7 @@
           "use_other": "Pakai di {{count}} agen",
           "done_other": "{{count}} agen sekarang berpikir dengan {{setup}}.",
           "autonomyOnly_other": "{{count}} agen hanya mengubah otonominya.",
+          "approvalsOnly_other": "{{count}} agen tetap dengan AI-nya dan mengubah persetujuannya.",
           "missed_other": "{{count}} agen tidak berubah."
         },
         "add": {

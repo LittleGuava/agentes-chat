@@ -3418,7 +3418,8 @@
     "never": {
       "title": "Hiç sorma",
       "text": "Hiç sormaz, merge, deploy, ödemeler ve rutinler dahil."
-    }
+    },
+    "changed": "Onaylar: {{value}}"
   },
   "brakes": {
     "title": "Kimsenin istemediği iş",
@@ -5563,6 +5564,9 @@
           "autonomy": "Özerklik: {{from}} → {{to}}",
           "withAutonomy": "Özerkliği de dahil et",
           "withAutonomyLine": "{{value}}, bu ajandaki gibi. Kapalıyken her biri kendininkini korur.",
+          "approvals": "Onaylar: {{from}} → {{to}}",
+          "withApprovals": "Onayları da dahil et",
+          "withApprovalsLine": "{{value}}, bu ajandaki gibi. {{text}} Kapalıyken her biri kendininkini korur.",
           "reasons": {
             "not_allowed": "Yalnızca yöneticiler ve {{owner}} değiştirebilir",
             "not_allowedNobody": "Yalnızca yöneticiler değiştirebilir",
@@ -5584,6 +5588,8 @@
           "done_other": "{{count}} ajan artık {{setup}} ile düşünüyor.",
           "autonomyOnly_one": "{{count}} ajan yalnızca özerkliğini değiştirdi.",
           "autonomyOnly_other": "{{count}} ajan yalnızca özerkliğini değiştirdi.",
+          "approvalsOnly_one": "{{count}} ajan yapay zekâsını korudu ve onaylarını değiştirdi.",
+          "approvalsOnly_other": "{{count}} ajan yapay zekâsını korudu ve onaylarını değiştirdi.",
           "missed_one": "{{count}} ajan değişmedi.",
           "missed_other": "{{count}} ajan değişmedi."
         },

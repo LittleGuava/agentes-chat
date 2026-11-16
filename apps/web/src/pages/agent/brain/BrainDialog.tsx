@@ -1,8 +1,9 @@
 import type { AgentBrain, AgentBrainInput, AgentSetup, BrainKind, MachineAccount } from "@agenteschat/client";
 import { keys, useAgents, useApi, useSetComputerTarget, useUpdateAgent } from "@agenteschat/client";
 import type { BrainScreen } from "@agenteschat/client/lib/agent-edit";
-import { autonomyWords, setupOutcome } from "@agenteschat/client/lib/agent-setup";
+import { approvalsWords, autonomyWords, setupOutcome } from "@agenteschat/client/lib/agent-setup";
 import { signInPlan } from "@agenteschat/client/lib/ai-accounts";
+import { approvalsLevelOf } from "@agenteschat/client/lib/approvals-level";
 import { EVERYONE_AUDIENCE, setupPlanQuestion } from "@agenteschat/client/lib/audience";
 import { thinksWith } from "@agenteschat/client/lib/brain";
 import {
@@ -19,6 +20,7 @@ import { keyRefusal } from "@agenteschat/client/lib/errors";
 import { namesText, rosterText } from "@agenteschat/client/lib/format";
 import { brainTool, installableCli } from "@agenteschat/client/lib/machines";
 import { type AiChoice, planMark } from "@agenteschat/client/lib/no-ai";
+import { can as orgCan } from "@agenteschat/client/lib/permissions";
 import { usageWhen } from "@agenteschat/client/lib/plan-usage";
 import { geminiPersonal, isPlanId, planFreeHint, signInProviderOf } from "@agenteschat/client/lib/plans";
 import { AUTO, isAuto, modelOnKey, providerLabel } from "@agenteschat/client/lib/providers";
@@ -180,6 +182,8 @@ function BrainFlow({ view, onClose, at }: { view: AgentBrain; onClose: () => voi
   const [machinePick, setMachinePick] = useState<string>();
   const [copying, setCopying] = useState(false);
   const [withAutonomy, setWithAutonomy] = useState(true);
+  // Off until someone turns it on: copying an AI never spreads how much an agent asks by itself (ADR 0173).
+  const [withApprovals, setWithApprovals] = useState(false);
   const [switched, setSwitched] = useState<Switched | null>(null);
   const [busy, setBusy] = useState(false);
   const [footAt, setFootAt] = useState<HTMLElement | null>(null);
@@ -554,7 +558,13 @@ function BrainFlow({ view, onClose, at }: { view: AgentBrain; onClose: () => voi
   const brainName = s.savedCard === "key" ? s.modelName : thinksWith(t, s.savedCard, s.modelName);
   const where = s.homeOf(s.savedCard);
   const carried = withAutonomy ? view.autonomy : undefined;
-  const autonomy = carried ? { autonomy: carried } : {};
+  // How much it asks goes along only from who manages agents, as on one agent (ADR 0173).
+  const approvals = orgCan(org, "manage_agents") ? approvalsLevelOf(agent) : undefined;
+  const carriedLevel = withApprovals ? approvals : undefined;
+  const autonomy = {
+    ...(carried ? { autonomy: carried } : {}),
+    ...(carriedLevel ? { approvalsLevel: carriedLevel } : {}),
+  };
   const setup: AgentSetup | null =
     s.kind === "model"
       ? {
@@ -596,6 +606,7 @@ function BrainFlow({ view, onClose, at }: { view: AgentBrain; onClose: () => voi
       },
     }),
     ...(carried ? [autonomyWords(t, carried)] : []),
+    ...(carriedLevel ? [approvalsWords(t, carriedLevel)] : []),
   ].join(" · ");
   // It thinks with nothing yet (a plan with no sign-in there): nothing to take elsewhere.
   const thinksWithNothing =
@@ -614,9 +625,10 @@ function BrainFlow({ view, onClose, at }: { view: AgentBrain; onClose: () => voi
       refresh(agentIds);
       // Nova missão starts from each agent's Autonomia.
       void qc.invalidateQueries({ queryKey: [...keys.missions(org.id), "eligible"] });
-      const { done, autonomyOnly, missed } = setupOutcome(results, agentIds.length);
+      const { done, autonomyOnly, approvalsOnly, missed } = setupOutcome(results, agentIds.length);
       if (done > 0) toast.show(t("agentPage.work.brain.copy.done", { count: done, setup: setupText }));
       if (autonomyOnly > 0) toast.show(t("agentPage.work.brain.copy.autonomyOnly", { count: autonomyOnly }));
+      if (approvalsOnly) toast.show(t("agentPage.work.brain.copy.approvalsOnly", { count: approvalsOnly }));
       if (missed > 0) toast.show(t("agentPage.work.brain.copy.missed", { count: missed }), "error");
       setCopying(false);
     } catch {
@@ -1364,6 +1376,9 @@ function BrainFlow({ view, onClose, at }: { view: AgentBrain; onClose: () => voi
           autonomy={view.autonomy}
           withAutonomy={withAutonomy}
           onWithAutonomy={setWithAutonomy}
+          approvals={approvals}
+          withApprovals={withApprovals}
+          onWithApprovals={setWithApprovals}
           busy={busy}
           onClose={() => setCopying(false)}
           onUse={(agentIds, opens) => void copyTo(agentIds, opens)}
