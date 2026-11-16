@@ -15134,6 +15134,19 @@ export const ptBR = {
       gifsOff: "Os GIFs estão desligados neste workspace.",
       gifsUnavailable: "A busca de GIFs não respondeu agora. Tente de novo daqui a pouco.",
     },
+    /** `/burst N <request>` (ADR 0192): why it can't run, before anything is posted. */
+    burst: {
+      attempts: "O /burst tenta de {{min}} a {{max}} vezes. Por exemplo: /burst 3 @agente o que fazer.",
+      noRequest: "Diga o que tentar depois de /burst.",
+      needsAgent: "Mencione o agente que deve tentar (@nome).",
+      agentUnreachable: "Você não pode falar com {{agentName}}.",
+      computerBrain:
+        "{{agentName}} pensa num computador. Por enquanto o /burst só roda agentes cujo cérebro é um modelo.",
+      overBudget:
+        "O orçamento de {{agentName}} tem US$ {{leftUsd}} sobrando este mês. {{attempts}} tentativas e a comparação precisam de cerca de US$ {{neededUsd}}.",
+      plainOnly: "O /burst só leva texto: mande sem arquivos, citação ou GIF.",
+      missionThread: "O /burst não roda na thread de uma missão. Mande fora da thread.",
+    },
     role: {
       nameRequired: "O cargo precisa de um nome.",
       nameLong: "No máximo {{max}} letras.",

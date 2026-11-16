@@ -15376,6 +15376,16 @@
       "gifsOff": "Los GIF están desactivados en este espacio de trabajo.",
       "gifsUnavailable": "La búsqueda de GIF no respondió. Intenta de nuevo en un momento."
     },
+    "burst": {
+      "attempts": "/burst lo intenta de {{min}} a {{max}} veces. Por ejemplo: /burst 3 @agente qué hacer.",
+      "noRequest": "Di qué intentar después de /burst.",
+      "needsAgent": "Menciona al agente que debe intentarlo (@nombre).",
+      "agentUnreachable": "No puedes hablar con {{agentName}}.",
+      "computerBrain": "{{agentName}} piensa en una computadora. Por ahora /burst solo ejecuta agentes cuyo cerebro es un modelo.",
+      "overBudget": "Al presupuesto de {{agentName}} le quedan US$ {{leftUsd}} este mes. {{attempts}} intentos y la comparación necesitan unos US$ {{neededUsd}}.",
+      "plainOnly": "/burst solo admite texto: envíalo sin archivos, cita ni GIF.",
+      "missionThread": "/burst no se ejecuta en el hilo de una misión. Envíalo fuera del hilo."
+    },
     "role": {
       "nameRequired": "Un rol necesita un nombre.",
       "nameLong": "Como máximo {{max}} caracteres.",

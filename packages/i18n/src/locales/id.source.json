@@ -36707,6 +36707,30 @@
   "errors.media.gifsUnavailable": {
     "value": "GIF search didn't answer just now. Try again in a moment."
   },
+  "errors.burst.attempts": {
+    "value": "/burst tries {{min}} to {{max}} times. For example: /burst 3 @agent what to do."
+  },
+  "errors.burst.noRequest": {
+    "value": "Say what to try after /burst."
+  },
+  "errors.burst.needsAgent": {
+    "value": "Mention the one agent that should try it (@name)."
+  },
+  "errors.burst.agentUnreachable": {
+    "value": "You can't talk to {{agentName}}."
+  },
+  "errors.burst.computerBrain": {
+    "value": "{{agentName}} thinks on a computer. For now /burst only runs agents whose brain is a model."
+  },
+  "errors.burst.overBudget": {
+    "value": "{{agentName}}'s budget has US$ {{leftUsd}} left this month. {{attempts}} tries and the comparison need about US$ {{neededUsd}}."
+  },
+  "errors.burst.plainOnly": {
+    "value": "/burst takes only words: send it without files, a quote or a GIF."
+  },
+  "errors.burst.missionThread": {
+    "value": "/burst can't run in a mission's thread. Send it outside the thread."
+  },
   "errors.role.nameRequired": {
     "value": "A role needs a name."
   },

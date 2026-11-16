@@ -14876,6 +14876,16 @@
       "gifsOff": "Bu çalışma alanında GIF'ler kapalı.",
       "gifsUnavailable": "GIF araması şu anda yanıt vermedi. Birazdan tekrar deneyin."
     },
+    "burst": {
+      "attempts": "/burst {{min}} ile {{max}} kez dener. Örnek: /burst 3 @ajan ne yapılacak.",
+      "noRequest": "/burst'ten sonra neyin deneneceğini yaz.",
+      "needsAgent": "Denemesi gereken tek ajanı an (@ad).",
+      "agentUnreachable": "{{agentName}} ile konuşamazsın.",
+      "computerBrain": "{{agentName}} bir bilgisayarda düşünüyor. Şimdilik /burst yalnızca beyni bir model olan ajanları çalıştırır.",
+      "overBudget": "{{agentName}} bütçesinde bu ay US$ {{leftUsd}} kaldı. {{attempts}} deneme ve karşılaştırma yaklaşık US$ {{neededUsd}} gerektiriyor.",
+      "plainOnly": "/burst yalnızca metin alır: dosya, alıntı veya GIF olmadan gönder.",
+      "missionThread": "/burst bir görevin konusunda çalışmaz. Konunun dışında gönder."
+    },
     "role": {
       "nameRequired": "Bir rolün adı olmalı.",
       "nameLong": "En fazla {{max}} karakter.",

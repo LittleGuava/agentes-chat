@@ -18,6 +18,7 @@ import type { ArtifactDeps } from "./artifacts";
 import { PLAN_OPENED_JOB } from "./audience";
 import { routinePostRun, runAuthorityById } from "./authority";
 import { AUTONOMY_REPORT_JOB, queueAutonomyEmail } from "./autonomy-report";
+import { BURST_JUDGE_JOB, judgeBurst } from "./best-of";
 import { closePoll, POLL_CLOSE_JOB } from "./blocks";
 import { PLAN_LENT_JOB } from "./brain-settings";
 import { type BrakeReport, brakeWakes, callableAgents, LATER_JOB, notCallableWhy } from "./brakes";
@@ -595,6 +596,9 @@ export function createJobHandlers(deps: JobDeps): JobHandlers {
       if (message.meta.background) return;
       // A shared DM's copy (`dm-share.ts`) is for people to read: nobody is routed.
       if (message.meta.sharedDm) return;
+      // A `/burst` (ADR 0192): its attempts are already started, and their comparison answers it; an attempt's
+      // brief is answered by its own run. Nobody else is routed, not even by mention.
+      if (message.meta.burst || message.meta.burstAttempt) return;
       const routed = (
         strategy: "mention" | "dm" | "router" | "none",
         seenBy: string[],
@@ -821,6 +825,12 @@ export function createJobHandlers(deps: JobDeps): JobHandlers {
     // A stretch's limit held a wake-up: its pause card, with Continuar (ADR 0089).
     [STRETCH_JOB]: async (job) => {
       await postStretchCard({ db: deps.db, pubsub: deps.pubsub }, orgOf(job), job.payload as unknown as StretchHold);
+    },
+    // A burst's attempt ended, or its time ran out: what came back is compared, once (ADR 0192).
+    [BURST_JUDGE_JOB]: async (job) => {
+      await judgeBurst({ db: deps.db, pubsub: deps.pubsub }, orgOf(job), String(job.payload.messageId), {
+        deadline: job.payload.deadline === true,
+      });
     },
     // A vote's time came: it closes and the agent hears the result (ADR 0113).
     [POLL_CLOSE_JOB]: async (job) => {

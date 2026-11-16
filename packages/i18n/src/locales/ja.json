@@ -14394,6 +14394,16 @@
       "gifsOff": "このワークスペースではGIFがオフになっています。",
       "gifsUnavailable": "GIF検索が応答しませんでした。少し待ってからお試しください。"
     },
+    "burst": {
+      "attempts": "/burst は {{min}}〜{{max}} 回試します。例: /burst 3 @agent やること",
+      "noRequest": "/burst のあとに試す内容を書いてください。",
+      "needsAgent": "試すエージェントを1つメンションしてください（@名前）。",
+      "agentUnreachable": "{{agentName}} とは話せません。",
+      "computerBrain": "{{agentName}} はコンピューターで考えています。今のところ /burst は頭脳がモデルのエージェントだけを実行します。",
+      "overBudget": "{{agentName}} の今月の予算の残りは US$ {{leftUsd}} です。{{attempts}} 回の試行と比較には約 US$ {{neededUsd}} かかります。",
+      "plainOnly": "/burst はテキストだけです。ファイル、引用、GIF なしで送ってください。",
+      "missionThread": "/burst はミッションのスレッドでは使えません。スレッドの外で送ってください。"
+    },
     "role": {
       "nameRequired": "ロールには名前が必要です。",
       "nameLong": "最大{{max}}文字です。",

@@ -329,6 +329,15 @@ const KNOWN = {
   "message.media_not_found": "errors.media.notFound",
   "gifs.off": "errors.media.gifsOff",
   "gifs.unavailable": "errors.media.gifsUnavailable",
+  // `/burst N <request>` (ADR 0192): refused before anything is posted.
+  "burst.attempts": "errors.burst.attempts",
+  "burst.no_request": "errors.burst.noRequest",
+  "burst.needs_agent": "errors.burst.needsAgent",
+  "burst.agent_unreachable": "errors.burst.agentUnreachable",
+  "burst.computer_brain": "errors.burst.computerBrain",
+  "burst.over_budget": "errors.burst.overBudget",
+  "burst.plain_only": "errors.burst.plainOnly",
+  "burst.mission_thread": "errors.burst.missionThread",
   // Boards and widgets (ADR 0135).
   "dashboard.not_found": "dashboards.errors.notFound",
   "dashboard.forbidden": "dashboards.errors.forbidden",

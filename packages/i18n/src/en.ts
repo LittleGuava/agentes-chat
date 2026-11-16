@@ -15171,6 +15171,18 @@ export const en = {
       gifsOff: "GIFs are off in this workspace.",
       gifsUnavailable: "GIF search didn't answer just now. Try again in a moment.",
     },
+    /** `/burst N <request>` (ADR 0192): why it can't run, before anything is posted. */
+    burst: {
+      attempts: "/burst tries {{min}} to {{max}} times. For example: /burst 3 @agent what to do.",
+      noRequest: "Say what to try after /burst.",
+      needsAgent: "Mention the one agent that should try it (@name).",
+      agentUnreachable: "You can't talk to {{agentName}}.",
+      computerBrain: "{{agentName}} thinks on a computer. For now /burst only runs agents whose brain is a model.",
+      overBudget:
+        "{{agentName}}'s budget has US$ {{leftUsd}} left this month. {{attempts}} tries and the comparison need about US$ {{neededUsd}}.",
+      plainOnly: "/burst takes only words: send it without files, a quote or a GIF.",
+      missionThread: "/burst can't run in a mission's thread. Send it outside the thread.",
+    },
     role: {
       nameRequired: "A role needs a name.",
       nameLong: "At most {{max}} characters.",

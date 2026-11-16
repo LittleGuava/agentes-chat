@@ -14458,6 +14458,16 @@
       "gifsOff": "此工作区已关闭 GIF。",
       "gifsUnavailable": "GIF 搜索暂时没有响应，请稍后再试。"
     },
+    "burst": {
+      "attempts": "/burst 会尝试 {{min}} 到 {{max}} 次。例如：/burst 3 @agent 要做的事。",
+      "noRequest": "请在 /burst 后写下要尝试的内容。",
+      "needsAgent": "请提及要尝试的那一个智能体（@名称）。",
+      "agentUnreachable": "你不能和 {{agentName}} 对话。",
+      "computerBrain": "{{agentName}} 在电脑上思考。目前 /burst 只运行以模型为大脑的智能体。",
+      "overBudget": "{{agentName}} 本月预算还剩 US$ {{leftUsd}}。{{attempts}} 次尝试和比较大约需要 US$ {{neededUsd}}。",
+      "plainOnly": "/burst 只接受文字：请不带文件、引用或 GIF 发送。",
+      "missionThread": "/burst 不能在任务的讨论串中运行。请在讨论串外发送。"
+    },
     "role": {
       "nameRequired": "角色需要一个名称。",
       "nameLong": "最多 {{max}} 个字符。",

@@ -63,6 +63,7 @@ import {
   orgAutoModels,
   withAuto,
 } from "./auto-model";
+import { burstAttemptEnded, burstOfRoom } from "./best-of";
 import type { BlockSpecReader } from "./block-state";
 import { ASK_CHOICES_TOOL, SHOW_BLOCK_TOOL, someoneAnswers } from "./blocks";
 import { brainOf } from "./brain-settings";
@@ -1499,6 +1500,9 @@ async function executeRunInner(
       await onConsultedRunFinished({ db, pubsub: deps.pubsub, judge: deps.context?.judge }, run, status, error).catch(
         () => {},
       );
+    // One of a burst's attempts ended (ADR 0192): the burst checks whether they all have.
+    if ((status === "done" || status === "failed" || status === "canceled") && burstOfRoom(channelRow?.dmKey))
+      await burstAttemptEnded(db, run, channelRow?.dmKey ?? null).catch(() => {});
     // A mission's run ended: unless it waits on a person, the mission goes on by itself a while later.
     if (status === "done" && brainPlan?.missionId && !run.background)
       await scheduleKeepGoing(db, { id: brainPlan.missionId, orgId: run.orgId }).catch(() => {});

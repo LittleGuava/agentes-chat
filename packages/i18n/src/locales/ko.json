@@ -14388,6 +14388,16 @@
       "gifsOff": "이 워크스페이스에서는 GIF가 꺼져 있어요.",
       "gifsUnavailable": "지금 GIF 검색이 응답하지 않았어요. 잠시 후 다시 시도하세요."
     },
+    "burst": {
+      "attempts": "/burst는 {{min}}~{{max}}번 시도해요. 예: /burst 3 @에이전트 할 일",
+      "noRequest": "/burst 뒤에 시도할 내용을 적어 주세요.",
+      "needsAgent": "시도할 에이전트 하나를 멘션해 주세요(@이름).",
+      "agentUnreachable": "{{agentName}}와 대화할 수 없어요.",
+      "computerBrain": "{{agentName}}는 컴퓨터에서 생각해요. 지금은 /burst가 두뇌가 모델인 에이전트만 실행해요.",
+      "overBudget": "{{agentName}}의 이번 달 예산은 US$ {{leftUsd}} 남았어요. {{attempts}}번의 시도와 비교에는 약 US$ {{neededUsd}}가 필요해요.",
+      "plainOnly": "/burst는 텍스트만 받아요. 파일, 인용, GIF 없이 보내 주세요.",
+      "missionThread": "/burst는 미션 스레드에서는 실행되지 않아요. 스레드 밖에서 보내 주세요."
+    },
     "role": {
       "nameRequired": "역할에는 이름이 필요해요.",
       "nameLong": "최대 {{max}}자예요.",

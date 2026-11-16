@@ -15004,6 +15004,16 @@
       "gifsOff": "GIF's staan uit in deze werkruimte.",
       "gifsUnavailable": "Zoeken naar GIF's gaf net geen antwoord. Probeer het zo opnieuw."
     },
+    "burst": {
+      "attempts": "/burst probeert het {{min}} tot {{max}} keer. Bijvoorbeeld: /burst 3 @agent wat er moet gebeuren.",
+      "noRequest": "Zeg na /burst wat er geprobeerd moet worden.",
+      "needsAgent": "Noem de ene agent die het moet proberen (@naam).",
+      "agentUnreachable": "Je kunt niet met {{agentName}} praten.",
+      "computerBrain": "{{agentName}} denkt op een computer. Voorlopig draait /burst alleen agents waarvan het brein een model is.",
+      "overBudget": "Het budget van {{agentName}} heeft deze maand nog US$ {{leftUsd}}. {{attempts}} pogingen en de vergelijking kosten ongeveer US$ {{neededUsd}}.",
+      "plainOnly": "/burst neemt alleen tekst: stuur het zonder bestanden, citaat of GIF.",
+      "missionThread": "/burst werkt niet in de thread van een missie. Stuur het buiten de thread."
+    },
     "role": {
       "nameRequired": "Een rol heeft een naam nodig.",
       "nameLong": "Maximaal {{max}} tekens.",

@@ -14449,6 +14449,16 @@
       "gifsOff": "GIF dinonaktifkan di ruang kerja ini.",
       "gifsUnavailable": "Pencarian GIF tidak merespons barusan. Coba lagi sebentar lagi."
     },
+    "burst": {
+      "attempts": "/burst mencoba {{min}} sampai {{max}} kali. Contoh: /burst 3 @agen apa yang harus dilakukan.",
+      "noRequest": "Tulis apa yang dicoba setelah /burst.",
+      "needsAgent": "Sebut satu agen yang harus mencobanya (@nama).",
+      "agentUnreachable": "Kamu tidak bisa bicara dengan {{agentName}}.",
+      "computerBrain": "{{agentName}} berpikir di komputer. Untuk sekarang /burst hanya menjalankan agen yang otaknya sebuah model.",
+      "overBudget": "Anggaran {{agentName}} tersisa US$ {{leftUsd}} bulan ini. {{attempts}} percobaan dan perbandingannya butuh sekitar US$ {{neededUsd}}.",
+      "plainOnly": "/burst hanya menerima teks: kirim tanpa file, kutipan, atau GIF.",
+      "missionThread": "/burst tidak bisa dijalankan di utas sebuah misi. Kirim di luar utas."
+    },
     "role": {
       "nameRequired": "Peran harus punya nama.",
       "nameLong": "Maksimal {{max}} karakter.",

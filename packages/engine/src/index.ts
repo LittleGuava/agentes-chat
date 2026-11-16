@@ -33,6 +33,7 @@ export * from "./authority";
 export * from "./auto-model";
 export * from "./autonomy-report";
 export * from "./avatars";
+export * from "./best-of";
 export * from "./billing-link";
 export * from "./block-state";
 export * from "./blocks";
