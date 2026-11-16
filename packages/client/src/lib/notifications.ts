@@ -214,6 +214,7 @@ export const askersOf = (n: Pick<AppNotification, "count" | "latest">) => ({
 export function workspaceHeadline(n: Pick<AppNotification, "kind" | "latest">) {
   if (n.kind === "computer_ready") return "computerSetup.notification.ready" as const;
   if (n.kind === "composio_limit") return "connectors.composio.limitNotice" as const;
+  if (n.kind === "webhook_disabled") return "webhooks.notice.disabled" as const;
   if (n.kind === "computer_disk_full") return "machines.shared.diskFullNotice" as const;
   if (n.kind === "computer_no_chrome") return "machines.chromeMissingNotice" as const;
   if (n.kind === "skill_update") {
@@ -409,7 +410,16 @@ export type OpenTarget =
   | {
       to: "/org/$orgId/settings/$section";
       params: {
-        section: "computers" | "members" | "invites" | "usage" | "connectors" | "billing" | "approvals" | "right_hand";
+        section:
+          | "computers"
+          | "members"
+          | "invites"
+          | "usage"
+          | "connectors"
+          | "billing"
+          | "approvals"
+          | "right_hand"
+          | "webhooks";
       };
     }
   | { to: "/org/$orgId/home"; search?: { widget: string } }
@@ -496,6 +506,8 @@ export function openTarget(n: AppNotification): OpenTarget | null {
       : s.routineId
         ? { to: "/org/$orgId/routines", search: { open: s.routineId } }
         : null;
+  // An outgoing webhook its failures turned off (ADR 0188): its list, where it is turned back on.
+  if (n.kind === "webhook_disabled") return { to: "/org/$orgId/settings/$section", params: { section: "webhooks" } };
   // The month's Composio calls are counted in Uso.
   if (n.kind === "composio_limit") return { to: "/org/$orgId/settings/$section", params: { section: "usage" } };
   // A person's limit (ADR 0141): who decides opens that person's month in Uso › Pessoas; the person, Seu uso.

@@ -92,6 +92,7 @@ export function outgoingWebhookRoutes(deps: AppDeps) {
   app.use("/organizations/*", requireSession(deps.auth));
   const hookDeps = {
     db: deps.db,
+    pubsub: deps.adapters.pubsub,
     keyWrappers: [deps.adapters.keyWrapper, ...deps.adapters.legacyKeyWrappers],
     resolveHost: deps.extras?.resolveHost,
   };

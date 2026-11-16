@@ -1182,7 +1182,11 @@ export function createJobHandlers(deps: JobDeps): JobHandlers {
     // One event to an outgoing webhook (ADR 0188); retried by the outbox until its last attempt.
     [OUTGOING_WEBHOOK_JOB]: async (job, ctx) => {
       if (!deps.outgoingWebhooks) throw new PermanentJobError("outgoing webhooks aren't set up on this server");
-      await deliverOutgoingWebhook({ db: deps.db, ...deps.outgoingWebhooks }, String(job.payload.deliveryId), ctx);
+      await deliverOutgoingWebhook(
+        { db: deps.db, pubsub: deps.pubsub, ...deps.outgoingWebhooks },
+        String(job.payload.deliveryId),
+        ctx,
+      );
     },
     // What happened on GitHub to an item an agent worked on, or naming the app (ADR 0156).
     [GITHUB_EVENT_JOB]: async (job) => {

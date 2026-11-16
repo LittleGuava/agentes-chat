@@ -14115,6 +14115,13 @@
       "invalidSecret": "Client Secretを空白なしで全部貼り付けてください。",
       "invalidRepo": "リポジトリは オーナー/名前 の形で書いてください。"
     },
+    "outgoingWebhook": {
+      "noEvents": "イベントを1つ以上選んでください。",
+      "noChannels": "メッセージを送るチャンネルを選んでください。",
+      "channel": "ワークスペースのチャンネルだけを選んでください。ダイレクトメッセージは送られません。",
+      "disabled": "テストする前に Webhook をオンにしてください。",
+      "limit": "このワークスペースの Webhook は上限に達しています。先に1つ削除してください。"
+    },
     "githubEvent": {
       "answered": "この返信はすでに誰かが頼んでいます。エージェントが対応しています。"
     },
@@ -15830,6 +15837,7 @@
       "roles": "ロール",
       "vault": "Vault",
       "access": "エージェントとアクセス",
+      "webhooks": "Webhook",
       "connectors": "コネクタとMCP",
       "skills": "スキル",
       "storage": "ストレージ",
@@ -15863,6 +15871,7 @@
       "roles": "各ロールは権限、チャンネル、エージェントを追加します。",
       "vault": "エージェントのパスワード、キー、連絡先。パスワードを見ることはありません。",
       "access": "各エージェントが使えるもの。コネクタごとに1つのレベル。",
+      "webhooks": "ワークスペースのイベントを、署名付きで自分のシステムに送ります。",
       "connectors": "ワークスペース全体で一度だけ接続するサービスとMCPサーバー。",
       "skills": "エージェントが必要なときに開くMarkdownの指示。",
       "storage": "ワークスペースのファイルの保存先。",
@@ -18478,6 +18487,87 @@
         "done": "今日完了"
       },
       "none": "{{name}}は今、手が空いています。"
+    }
+  },
+  "webhooks": {
+    "new": "新しい Webhook",
+    "emptyTitle": "Webhook はまだありません",
+    "emptyText": "このワークスペースのイベントを、シークレットで署名して自分のアドレスに送ります。",
+    "full": "このワークスペースの Webhook は {{max}} 個で、上限です。",
+    "state": {
+      "on": "オン",
+      "failures": "失敗が続いたためオフ",
+      "off": "オフ"
+    },
+    "inChannels": "({{channels}})",
+    "lastSuccess": "最終配信 {{when}}",
+    "offByFailures_other": "{{count}}回続けて配信に失敗したためオフになりました。再びオンにするまで何も送られません。",
+    "turnOn": "再びオンにする",
+    "turnOnAgain": "オンにする",
+    "turnOff": "オフにする",
+    "turnedOn": "Webhook をオンにしました",
+    "turnedOff": "Webhook をオフにしました",
+    "test": "テスト",
+    "tested": "テストを送りました。結果は配信履歴に表示されます。",
+    "edit": "編集",
+    "newSecret": "新しいシークレット",
+    "newSecretBody": "今のシークレットはすぐに署名に使われなくなります。署名を確認する側には新しいものが必要です。",
+    "secretOnce": "今すぐ署名シークレットをコピーしてください。再表示されません。",
+    "secretCopied": "シークレットをコピーしました",
+    "delete": "削除",
+    "deleteBody": "{{name}} とその配信履歴を削除します。このアドレスには何も送られなくなります。",
+    "deleted": "Webhook を削除しました",
+    "deliveries": "最近の配信",
+    "noDeliveries": "まだ何も送っていません。",
+    "attempts_other": "{{count}}回試行",
+    "event": {
+      "messagePosted": "チャンネルのメッセージ",
+      "runFinished": "エージェントの実行の終了",
+      "issueCreated": "作成されたタスク",
+      "ping": "テスト"
+    },
+    "delivery": {
+      "delivered": "配信済み ({{status}})",
+      "sending": "送信中…",
+      "retrying_other": "{{count}}回失敗しました。再試行します",
+      "retryingStatus_other": "{{count}}回失敗しました ({{status}})。再試行します",
+      "refused": "送信先に拒否されました ({{status}})",
+      "redirect": "送信先がリダイレクトしました ({{status}})。リダイレクトはたどりません",
+      "timeout": "送信先が10秒以内に応答しませんでした",
+      "network": "送信先に接続できませんでした",
+      "addressRefused": "アドレスを拒否しました: 内部ネットワークを指しています",
+      "webhookOff": "未送信: Webhook がオフでした",
+      "gone": "未送信: 伝える内容が削除されました",
+      "workspaceClosed": "未送信: ワークスペースが停止中か削除中です",
+      "failed": "未配信"
+    },
+    "form": {
+      "newTitle": "新しい Webhook",
+      "editTitle": "Webhook を編集",
+      "text": "各イベントはシークレットで署名され、POST でアドレスに送られます。",
+      "name": "名前",
+      "namePlaceholder": "営業 CRM",
+      "nameRequired": "Webhook に名前を付けてください。",
+      "url": "アドレス",
+      "urlExample": "https://example.com/agentes",
+      "urlHint": "インターネット上の https アドレス。各リクエストには、本文をシークレットで計算した HMAC-SHA256 である X-Agentes-Webhook-Signature が付きます。リダイレクトはたどりません。",
+      "urlHttps": "https:// で始まるアドレスを使ってください",
+      "urlInternal": "このアドレスは内部ネットワークを指しています。公開アドレスを使ってください。",
+      "events": "イベント",
+      "eventsHint": "メッセージ: 選んだチャンネルの新しいメッセージ。実行: 終了したエージェントの実行ごとに状態を送り、返答は送りません。タスク: 新しいタスク。一部の人だけが見られるものは除きます。",
+      "channels": "チャンネル",
+      "channelsHint": "メッセージはこれらのチャンネルからだけ送られ、実行とタスクも同じです。ダイレクトメッセージは送られません。",
+      "channelsOptionalHint": "チャンネルを選ぶと、そのチャンネルの実行とタスクだけが送られます。ダイレクトメッセージは送られません。",
+      "addChannel": "チャンネルを追加",
+      "everyChannel": "すべてのチャンネル",
+      "noChannel": "{{query}} というチャンネルはありません",
+      "noChannels": "チャンネルがありません",
+      "create": "Webhook を作成",
+      "created": "Webhook を作成しました",
+      "saved": "変更を保存しました"
+    },
+    "notice": {
+      "disabled": "Webhook {{name}} は10回続けて配信に失敗したためオフになりました"
     }
   },
   "widgets": {

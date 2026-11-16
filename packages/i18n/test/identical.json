@@ -300,7 +300,8 @@
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
       "storage.connect.provider.b2",
-      "storage.connect.awsRegion.il-central-1"
+      "storage.connect.awsRegion.il-central-1",
+      "settings.section.webhooks"
     ],
     "es": [
       "devices.iphone.path.general",
@@ -557,7 +558,8 @@
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
       "storage.connect.provider.b2",
-      "storage.connect.awsRegion.il-central-1"
+      "storage.connect.awsRegion.il-central-1",
+      "settings.section.webhooks"
     ],
     "fr": [
       "channel.tooLong.fileName",
@@ -994,7 +996,9 @@
       "storage.connect.awsRegion.eu-central-2",
       "storage.connect.awsRegion.eu-west-3",
       "storage.connect.awsRegion.eu-south-1",
-      "storage.connect.awsRegion.eu-north-1"
+      "storage.connect.awsRegion.eu-north-1",
+      "settings.section.webhooks",
+      "webhooks.event.ping"
     ],
     "de": [
       "devices.iphone.steps.account",
@@ -1456,7 +1460,12 @@
       "storage.connect.theirName.s3Secret",
       "storage.connect.theirName.b2Key",
       "storage.connect.theirName.b2Secret",
-      "storage.connect.awsRegion.il-central-1"
+      "storage.connect.awsRegion.il-central-1",
+      "settings.section.webhooks",
+      "webhooks.inChannels",
+      "webhooks.event.ping",
+      "webhooks.form.name",
+      "webhooks.form.urlExample"
     ],
     "it": [
       "shell.email.label",
@@ -1831,7 +1840,8 @@
       "appsDownload.computer",
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
-      "storage.connect.provider.b2"
+      "storage.connect.provider.b2",
+      "webhooks.inChannels"
     ],
     "nl": [
       "calendar.moreRuns",
@@ -2440,7 +2450,10 @@
       "storage.connect.theirName.s3Key",
       "storage.connect.theirName.s3Secret",
       "storage.connect.theirName.b2Key",
-      "storage.connect.theirName.b2Secret"
+      "storage.connect.theirName.b2Secret",
+      "settings.section.webhooks",
+      "webhooks.inChannels",
+      "webhooks.event.ping"
     ],
     "ja": [
       "channel.tooLong.fileName",
@@ -2615,7 +2628,8 @@
       "appsDownload.googlePlay",
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
-      "storage.connect.provider.b2"
+      "storage.connect.provider.b2",
+      "webhooks.form.urlExample"
     ],
     "ko": [
       "channel.tooLong.fileName",
@@ -2784,7 +2798,8 @@
       "appsDownload.googlePlay",
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
-      "storage.connect.provider.b2"
+      "storage.connect.provider.b2",
+      "webhooks.form.urlExample"
     ],
     "zh-Hans": [
       "channel.tooLong.fileName",
@@ -2944,7 +2959,8 @@
       "appsDownload.googlePlay",
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
-      "storage.connect.provider.b2"
+      "storage.connect.provider.b2",
+      "webhooks.form.urlExample"
     ],
     "id": [
       "shell.email.label",
@@ -3256,7 +3272,9 @@
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
       "storage.connect.provider.b2",
-      "storage.connect.awsRegion.il-central-1"
+      "storage.connect.awsRegion.il-central-1",
+      "webhooks.edit",
+      "webhooks.form.editTitle"
     ],
     "tr": [
       "devices.cpus",
@@ -3450,7 +3468,8 @@
       "appsDownload.googlePlay",
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
-      "storage.connect.provider.b2"
+      "storage.connect.provider.b2",
+      "webhooks.event.ping"
     ],
     "pl": [
       "devices.cpus",
@@ -3754,7 +3773,8 @@
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
       "storage.connect.provider.b2",
-      "storage.connect.region"
+      "storage.connect.region",
+      "webhooks.event.ping"
     ],
     "ru": [
       "channel.tooLong.fileName",
@@ -3914,7 +3934,8 @@
       "appsDownload.googlePlay",
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
-      "storage.connect.provider.b2"
+      "storage.connect.provider.b2",
+      "webhooks.form.urlExample"
     ]
   },
   "mobile-base": {

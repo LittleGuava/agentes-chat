@@ -3087,8 +3087,8 @@
       "cursor": "Cursor ist auf diesem Computer nicht angemeldet. Verbinde ein Cursor-Konto auf der Seite von {{name}}.",
       "cursor_female": "Cursor ist auf diesem Computer nicht angemeldet. Verbinde ein Cursor-Konto auf der Seite von {{name}}.",
       "grok": "Grok ist auf diesem Computer nicht angemeldet. Verbinde ein Grok-Konto auf der Seite von {{name}}.",
-      "copilot": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "grok_female": "Grok ist auf diesem Computer nicht angemeldet. Verbinde ein Grok-Konto auf der Seite von {{name}}.",
+      "copilot": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "copilot_female": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "antigravity": "Gemini ist auf diesem Computer nicht angemeldet. Verbinde ein Gemini-Konto auf der Seite von {{name}}.",
       "antigravity_female": "Gemini ist auf diesem Computer nicht angemeldet. Verbinde ein Gemini-Konto auf der Seite von {{name}}.",
@@ -14652,6 +14652,13 @@
       "invalidSecret": "Füge das ganze Client Secret ein, ohne Leerzeichen.",
       "invalidRepo": "Schreib das Repo als besitzer/name."
     },
+    "outgoingWebhook": {
+      "noEvents": "Wähle mindestens ein Ereignis.",
+      "noChannels": "Wähle die Kanäle, deren Nachrichten er sendet.",
+      "channel": "Wähle nur Kanäle des Workspace. Direktnachrichten werden nie gesendet.",
+      "disabled": "Schalte den Webhook ein, bevor du ihn testest.",
+      "limit": "Dieser Workspace hat schon so viele Webhooks wie möglich. Lösche zuerst einen."
+    },
     "githubEvent": {
       "answered": "Jemand hat schon um diese Antwort gebeten. Der Agent kümmert sich darum."
     },
@@ -16386,6 +16393,7 @@
       "roles": "Rollen",
       "vault": "Vault",
       "access": "Agenten und Zugriff",
+      "webhooks": "Webhooks",
       "connectors": "Konnektoren und MCP",
       "skills": "Skills",
       "storage": "Speicher",
@@ -16419,6 +16427,7 @@
       "roles": "Jede Rolle fügt Berechtigungen, Kanäle und Agenten hinzu.",
       "vault": "Passwörter, Schlüssel und Kontakte deiner Agenten. Passwörter sehen sie nie.",
       "access": "Was jeder Agent nutzen kann: eine Stufe pro Konnektor.",
+      "webhooks": "Sende die Ereignisse des Workspace signiert an deine eigenen Systeme.",
       "connectors": "Dienste und MCP-Server, die einmal für den ganzen Workspace verbunden werden.",
       "skills": "Markdown-Anweisungen, die Agenten öffnen, wenn sie sie brauchen.",
       "storage": "Wo die Dateien des Workspace liegen.",
@@ -19086,6 +19095,91 @@
         "done": "Heute erledigt"
       },
       "none": "{{name}} ist gerade frei."
+    }
+  },
+  "webhooks": {
+    "new": "Neuer Webhook",
+    "emptyTitle": "Noch keine Webhooks",
+    "emptyText": "Sende die Ereignisse dieses Workspace an eine eigene Adresse, signiert mit einem Secret.",
+    "full": "Dieser Workspace hat {{max}} Webhooks, das Maximum.",
+    "state": {
+      "on": "Ein",
+      "failures": "Wegen Fehlern aus",
+      "off": "Aus"
+    },
+    "inChannels": "in {{channels}}",
+    "lastSuccess": "Zuletzt zugestellt {{when}}",
+    "offByFailures_one": "Nach {{count}} fehlgeschlagenen Zustellung ausgeschaltet. Bis er wieder an ist, geht nichts raus.",
+    "offByFailures_other": "Nach {{count}} fehlgeschlagenen Zustellungen in Folge ausgeschaltet. Bis er wieder an ist, geht nichts raus.",
+    "turnOn": "Wieder einschalten",
+    "turnOnAgain": "Einschalten",
+    "turnOff": "Ausschalten",
+    "turnedOn": "Webhook eingeschaltet",
+    "turnedOff": "Webhook ausgeschaltet",
+    "test": "Testen",
+    "tested": "Test gesendet. Das Ergebnis erscheint bei den Zustellungen.",
+    "edit": "Bearbeiten",
+    "newSecret": "Neues Secret",
+    "newSecretBody": "Das aktuelle Secret signiert ab jetzt nicht mehr. Wer die Signatur prüft, braucht das neue.",
+    "secretOnce": "Kopiere das Signatur-Secret jetzt. Es wird nicht noch einmal angezeigt.",
+    "secretCopied": "Secret kopiert",
+    "delete": "Löschen",
+    "deleteBody": "{{name}} und seine Zustellungen werden gelöscht. An seine Adresse geht nichts mehr.",
+    "deleted": "Webhook gelöscht",
+    "deliveries": "Letzte Zustellungen",
+    "noDeliveries": "Noch nichts gesendet.",
+    "attempts_one": "{{count}} Versuch",
+    "attempts_other": "{{count}} Versuche",
+    "event": {
+      "messagePosted": "Nachrichten in Kanälen",
+      "runFinished": "Beendete Agentenläufe",
+      "issueCreated": "Erstellte Aufgaben",
+      "ping": "Test"
+    },
+    "delivery": {
+      "delivered": "Zugestellt ({{status}})",
+      "sending": "Wird gesendet…",
+      "retrying_one": "{{count}}-mal fehlgeschlagen. Neuer Versuch folgt",
+      "retrying_other": "{{count}}-mal fehlgeschlagen. Neuer Versuch folgt",
+      "retryingStatus_one": "{{count}}-mal fehlgeschlagen ({{status}}). Neuer Versuch folgt",
+      "retryingStatus_other": "{{count}}-mal fehlgeschlagen ({{status}}). Neuer Versuch folgt",
+      "refused": "Von der Adresse abgelehnt ({{status}})",
+      "redirect": "Die Adresse hat umgeleitet ({{status}}). Umleitungen werden nicht verfolgt",
+      "timeout": "Die Adresse hat nicht innerhalb von 10 Sekunden geantwortet",
+      "network": "Die Adresse war nicht erreichbar",
+      "addressRefused": "Adresse abgelehnt: Sie zeigt in ein internes Netz",
+      "webhookOff": "Nicht gesendet: Der Webhook war aus",
+      "gone": "Nicht gesendet: Worüber sie berichten würde, wurde gelöscht",
+      "workspaceClosed": "Nicht gesendet: Der Workspace ist gesperrt oder wird gelöscht",
+      "failed": "Nicht zugestellt"
+    },
+    "form": {
+      "newTitle": "Neuer Webhook",
+      "editTitle": "Webhook bearbeiten",
+      "text": "Jedes Ereignis geht als POST an die Adresse, signiert mit seinem Secret.",
+      "name": "Name",
+      "namePlaceholder": "Vertriebs-CRM",
+      "nameRequired": "Gib dem Webhook einen Namen.",
+      "url": "Adresse",
+      "urlExample": "https://example.com/agentes",
+      "urlHint": "Eine https-Adresse im Internet. Jede Anfrage trägt X-Agentes-Webhook-Signature, das HMAC-SHA256 des Bodys mit dem Secret. Umleitungen werden nicht verfolgt.",
+      "urlHttps": "Nutze eine Adresse, die mit https:// beginnt",
+      "urlInternal": "Diese Adresse zeigt in ein internes Netz. Nutze eine öffentliche.",
+      "events": "Ereignisse",
+      "eventsHint": "Nachrichten: jede neue Nachricht in den gewählten Kanälen. Läufe: jeder beendete Agentenlauf, mit Status und nie mit der Antwort. Aufgaben: jede neue Aufgabe, außer denen, die nur manche sehen.",
+      "channels": "Kanäle",
+      "channelsHint": "Nachrichten gehen nur aus diesen Kanälen raus, Läufe und Aufgaben auch. Direktnachrichten werden nie gesendet.",
+      "channelsOptionalHint": "Mit gewählten Kanälen gehen nur deren Läufe und Aufgaben raus. Direktnachrichten werden nie gesendet.",
+      "addChannel": "Kanal hinzufügen",
+      "everyChannel": "Alle Kanäle",
+      "noChannel": "Kein Kanal namens {{query}}",
+      "noChannels": "Keine Kanäle",
+      "create": "Webhook erstellen",
+      "created": "Webhook erstellt",
+      "saved": "Änderungen gespeichert"
+    },
+    "notice": {
+      "disabled": "Webhook {{name}} wurde nach 10 fehlgeschlagenen Zustellungen in Folge ausgeschaltet"
     }
   },
   "widgets": {

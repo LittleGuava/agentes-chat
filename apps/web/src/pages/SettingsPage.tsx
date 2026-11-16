@@ -109,6 +109,7 @@ import { OpenPrefsButton, useLocalServerHere } from "@/components/ThisMac";
 import { VoiceSettingsSection } from "@/components/VoiceSettings";
 import { VaultSection } from "@/components/vault/VaultSection";
 import { WorkspaceModeDialog } from "@/components/WorkspaceModeDialog";
+import { OutgoingWebhooksSection } from "@/components/webhooks/OutgoingWebhooksSection";
 import { ZoneSelect } from "@/components/ZoneSelect";
 import { useCentreCurrent } from "@/hooks/useCentreCurrent";
 import { usePersonalView } from "@/hooks/usePersonalView";
@@ -278,6 +279,7 @@ function Settings({
       {current === "media" && <MediaSettingsSection />}
       {current === "voice" && <VoiceSettingsSection />}
       {current === "access" && <AccessMatrixSection />}
+      {current === "webhooks" && <OutgoingWebhooksSection />}
       {current === "connectors" && (
         <ConnectorsSection connected={connected} outcome={outcome} review={review} mail={mail} account={account} />
       )}

@@ -14109,6 +14109,13 @@
       "invalidSecret": "Client Secret을 공백 없이 전부 붙여넣어 주세요.",
       "invalidRepo": "저장소를 소유자/이름 형식으로 써 주세요."
     },
+    "outgoingWebhook": {
+      "noEvents": "이벤트를 하나 이상 고르세요.",
+      "noChannels": "메시지를 보낼 채널을 고르세요.",
+      "channel": "워크스페이스의 채널만 고르세요. 다이렉트 메시지는 보내지 않아요.",
+      "disabled": "테스트하기 전에 웹훅을 켜세요.",
+      "limit": "이 워크스페이스는 웹훅을 더 만들 수 없어요. 먼저 하나를 삭제하세요."
+    },
     "githubEvent": {
       "answered": "이미 누군가 이 답변을 요청했어요. 에이전트가 처리하고 있어요."
     },
@@ -15822,6 +15829,7 @@
       "roles": "역할",
       "vault": "Vault",
       "access": "에이전트와 접근 권한",
+      "webhooks": "웹훅",
       "connectors": "커넥터와 MCP",
       "skills": "스킬",
       "storage": "저장 공간",
@@ -15855,6 +15863,7 @@
       "roles": "각 역할은 권한, 채널, 에이전트를 더해요.",
       "vault": "에이전트의 비밀번호, 키, 연락처예요. 비밀번호는 절대 보지 않아요.",
       "access": "각 에이전트가 사용할 수 있는 것이에요. 커넥터마다 하나의 수준이 있어요.",
+      "webhooks": "워크스페이스의 이벤트를 서명해서 내 시스템으로 보내요.",
       "connectors": "워크스페이스 전체에 한 번 연결하는 서비스와 MCP 서버예요.",
       "skills": "에이전트가 필요할 때 여는 Markdown 지침이에요.",
       "storage": "워크스페이스의 파일이 저장되는 곳이에요.",
@@ -18470,6 +18479,87 @@
         "done": "오늘 완료"
       },
       "none": "{{name}}은(는) 지금 하는 작업이 없어요."
+    }
+  },
+  "webhooks": {
+    "new": "새 웹훅",
+    "emptyTitle": "아직 웹훅이 없어요",
+    "emptyText": "이 워크스페이스의 이벤트를 시크릿으로 서명해서 내 주소로 보내요.",
+    "full": "이 워크스페이스에는 웹훅이 {{max}}개 있어요. 최대 개수예요.",
+    "state": {
+      "on": "켜짐",
+      "failures": "실패로 꺼짐",
+      "off": "꺼짐"
+    },
+    "inChannels": "({{channels}})",
+    "lastSuccess": "마지막 전달 {{when}}",
+    "offByFailures_other": "{{count}}번 연속 전달에 실패해서 꺼졌어요. 다시 켤 때까지 아무것도 보내지 않아요.",
+    "turnOn": "다시 켜기",
+    "turnOnAgain": "켜기",
+    "turnOff": "끄기",
+    "turnedOn": "웹훅을 켰어요",
+    "turnedOff": "웹훅을 껐어요",
+    "test": "테스트",
+    "tested": "테스트를 보냈어요. 결과는 전달 기록에 나와요.",
+    "edit": "편집",
+    "newSecret": "새 시크릿",
+    "newSecretBody": "지금 시크릿은 바로 서명에 쓰이지 않아요. 서명을 확인하는 쪽에는 새 시크릿이 필요해요.",
+    "secretOnce": "지금 서명 시크릿을 복사하세요. 다시 표시되지 않아요.",
+    "secretCopied": "시크릿을 복사했어요",
+    "delete": "삭제",
+    "deleteBody": "{{name}}와 전달 기록이 삭제돼요. 이 주소로는 더 이상 보내지 않아요.",
+    "deleted": "웹훅을 삭제했어요",
+    "deliveries": "최근 전달",
+    "noDeliveries": "아직 보낸 게 없어요.",
+    "attempts_other": "{{count}}번 시도",
+    "event": {
+      "messagePosted": "채널 메시지",
+      "runFinished": "끝난 에이전트 실행",
+      "issueCreated": "만들어진 작업",
+      "ping": "테스트"
+    },
+    "delivery": {
+      "delivered": "전달됨 ({{status}})",
+      "sending": "보내는 중…",
+      "retrying_other": "{{count}}번 실패했어요. 다시 시도해요",
+      "retryingStatus_other": "{{count}}번 실패했어요 ({{status}}). 다시 시도해요",
+      "refused": "받는 주소가 거부했어요 ({{status}})",
+      "redirect": "받는 주소가 리디렉션했어요 ({{status}}). 리디렉션은 따라가지 않아요",
+      "timeout": "받는 주소가 10초 안에 응답하지 않았어요",
+      "network": "받는 주소에 연결하지 못했어요",
+      "addressRefused": "주소를 거부했어요: 내부 네트워크를 가리켜요",
+      "webhookOff": "보내지 않음: 웹훅이 꺼져 있었어요",
+      "gone": "보내지 않음: 알릴 내용이 삭제됐어요",
+      "workspaceClosed": "보내지 않음: 워크스페이스가 정지됐거나 삭제 중이에요",
+      "failed": "전달 안 됨"
+    },
+    "form": {
+      "newTitle": "새 웹훅",
+      "editTitle": "웹훅 편집",
+      "text": "각 이벤트는 시크릿으로 서명되어 POST로 주소에 보내져요.",
+      "name": "이름",
+      "namePlaceholder": "영업 CRM",
+      "nameRequired": "웹훅 이름을 정하세요.",
+      "url": "주소",
+      "urlExample": "https://example.com/agentes",
+      "urlHint": "인터넷의 https 주소예요. 각 요청에는 본문을 시크릿으로 계산한 HMAC-SHA256인 X-Agentes-Webhook-Signature가 붙어요. 리디렉션은 따라가지 않아요.",
+      "urlHttps": "https://로 시작하는 주소를 쓰세요",
+      "urlInternal": "이 주소는 내부 네트워크를 가리켜요. 공개 주소를 쓰세요.",
+      "events": "이벤트",
+      "eventsHint": "메시지: 고른 채널의 새 메시지마다 보내요. 실행: 끝난 에이전트 실행마다 상태를 보내고 답변은 보내지 않아요. 작업: 새 작업마다 보내요. 일부 사람만 보는 작업은 빼요.",
+      "channels": "채널",
+      "channelsHint": "메시지는 이 채널에서만 보내고, 실행과 작업도 마찬가지예요. 다이렉트 메시지는 보내지 않아요.",
+      "channelsOptionalHint": "채널을 고르면 그 채널의 실행과 작업만 보내요. 다이렉트 메시지는 보내지 않아요.",
+      "addChannel": "채널 추가",
+      "everyChannel": "모든 채널",
+      "noChannel": "{{query}} 채널이 없어요",
+      "noChannels": "채널이 없어요",
+      "create": "웹훅 만들기",
+      "created": "웹훅을 만들었어요",
+      "saved": "변경 사항을 저장했어요"
+    },
+    "notice": {
+      "disabled": "웹훅 {{name}}이(가) 10번 연속 전달에 실패해서 꺼졌어요"
     }
   },
   "widgets": {

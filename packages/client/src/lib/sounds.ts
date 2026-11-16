@@ -53,6 +53,8 @@ const BY_KIND: Partial<Record<NotificationKind, SoundName>> = {
   widget_alert: "attention",
   dashboard_proposal: "attention",
   widget_failed: "error",
+  // An outgoing webhook its failures turned off (ADR 0188 §11): nothing more is sent until someone turns it back on.
+  webhook_disabled: "error",
 };
 
 /** In the background only what matters plays: something waits on you, someone called you, work ended. */

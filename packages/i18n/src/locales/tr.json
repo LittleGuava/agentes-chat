@@ -14588,6 +14588,13 @@
       "invalidSecret": "Client Secret'ın tamamını boşluksuz yapıştır.",
       "invalidRepo": "Depoyu sahip/ad biçiminde yaz."
     },
+    "outgoingWebhook": {
+      "noEvents": "En az bir olay seçin.",
+      "noChannels": "Mesajlarını göndereceği kanalları seçin.",
+      "channel": "Yalnızca çalışma alanının kanallarını seçin. Doğrudan mesajlar asla gönderilmez.",
+      "disabled": "Test etmeden önce webhook'u açın.",
+      "limit": "Bu çalışma alanında zaten olabilecek en fazla webhook var. Önce birini silin."
+    },
     "githubEvent": {
       "answered": "Bu yanıtı zaten biri istedi. Ajan bununla ilgileniyor."
     },
@@ -16322,6 +16329,7 @@
       "roles": "Roller",
       "vault": "Vault",
       "access": "Ajanlar ve erişim",
+      "webhooks": "Webhook'lar",
       "connectors": "Bağlayıcılar ve MCP'ler",
       "skills": "Beceriler",
       "storage": "Depolama",
@@ -16355,6 +16363,7 @@
       "roles": "Her rol izin, kanal ve ajan ekler.",
       "vault": "Ajanlarınızın parolaları, anahtarları ve kişileri. Parolaları asla görmezler.",
       "access": "Her ajanın neleri kullanabileceği: bağlayıcı başına bir düzey.",
+      "webhooks": "Çalışma alanının olaylarını imzalı olarak kendi sistemlerinize gönderin.",
       "connectors": "Tüm çalışma alanı için bir kez bağlanan hizmetler ve MCP sunucuları.",
       "skills": "Ajanların ihtiyaç duyduklarında açtıkları Markdown talimatları.",
       "storage": "Çalışma alanının dosyalarının durduğu yer.",
@@ -19016,6 +19025,91 @@
         "done": "Bugün bitenler"
       },
       "none": "{{name}} şu an boşta."
+    }
+  },
+  "webhooks": {
+    "new": "Yeni webhook",
+    "emptyTitle": "Henüz webhook yok",
+    "emptyText": "Bu çalışma alanının olaylarını bir gizli anahtarla imzalayıp kendi adresinize gönderin.",
+    "full": "Bu çalışma alanında {{max}} webhook var, olabilecek en fazla sayı.",
+    "state": {
+      "on": "Açık",
+      "failures": "Hatalar yüzünden kapalı",
+      "off": "Kapalı"
+    },
+    "inChannels": "({{channels}})",
+    "lastSuccess": "Son teslim {{when}}",
+    "offByFailures_one": "{{count}} başarısız teslimden sonra kapatıldı. Yeniden açılana kadar hiçbir şey gönderilmez.",
+    "offByFailures_other": "Art arda {{count}} başarısız teslimden sonra kapatıldı. Yeniden açılana kadar hiçbir şey gönderilmez.",
+    "turnOn": "Yeniden aç",
+    "turnOnAgain": "Aç",
+    "turnOff": "Kapat",
+    "turnedOn": "Webhook açıldı",
+    "turnedOff": "Webhook kapatıldı",
+    "test": "Test et",
+    "tested": "Test gönderildi. Sonucu teslimlerde görünür.",
+    "edit": "Düzenle",
+    "newSecret": "Yeni gizli anahtar",
+    "newSecretBody": "Mevcut gizli anahtar şimdi imzalamayı bırakır. İmzayı kontrol eden taraf yenisine ihtiyaç duyar.",
+    "secretOnce": "İmza gizli anahtarını şimdi kopyalayın. Bir daha gösterilmeyecek.",
+    "secretCopied": "Gizli anahtar kopyalandı",
+    "delete": "Sil",
+    "deleteBody": "{{name}} ve teslimleri silinir. Adresine artık hiçbir şey gitmez.",
+    "deleted": "Webhook silindi",
+    "deliveries": "Son teslimler",
+    "noDeliveries": "Henüz bir şey gönderilmedi.",
+    "attempts_one": "{{count}} deneme",
+    "attempts_other": "{{count}} deneme",
+    "event": {
+      "messagePosted": "Kanallardaki mesajlar",
+      "runFinished": "Biten ajan çalıştırmaları",
+      "issueCreated": "Oluşturulan görevler",
+      "ping": "Test"
+    },
+    "delivery": {
+      "delivered": "Teslim edildi ({{status}})",
+      "sending": "Gönderiliyor…",
+      "retrying_one": "{{count}} kez başarısız oldu. Yeniden deneniyor",
+      "retrying_other": "{{count}} kez başarısız oldu. Yeniden deneniyor",
+      "retryingStatus_one": "{{count}} kez başarısız oldu ({{status}}). Yeniden deneniyor",
+      "retryingStatus_other": "{{count}} kez başarısız oldu ({{status}}). Yeniden deneniyor",
+      "refused": "Adres tarafından reddedildi ({{status}})",
+      "redirect": "Adres yönlendirdi ({{status}}). Yönlendirmeler izlenmez",
+      "timeout": "Adres 10 saniye içinde yanıt vermedi",
+      "network": "Adrese ulaşılamadı",
+      "addressRefused": "Adres reddedildi: iç ağı gösteriyor",
+      "webhookOff": "Gönderilmedi: webhook kapalıydı",
+      "gone": "Gönderilmedi: bildireceği şey silindi",
+      "workspaceClosed": "Gönderilmedi: çalışma alanı askıya alındı veya siliniyor",
+      "failed": "Teslim edilmedi"
+    },
+    "form": {
+      "newTitle": "Yeni webhook",
+      "editTitle": "Webhook'u düzenle",
+      "text": "Her olay, gizli anahtarıyla imzalanmış bir POST olarak adrese gider.",
+      "name": "Ad",
+      "namePlaceholder": "Satış CRM'i",
+      "nameRequired": "Webhook'a bir ad verin.",
+      "url": "Adres",
+      "urlExample": "https://ornek.com/agentes",
+      "urlHint": "İnternette bir https adresi. Her istek, gövdenin gizli anahtarla HMAC-SHA256 değeri olan X-Agentes-Webhook-Signature başlığını taşır. Yönlendirmeler izlenmez.",
+      "urlHttps": "https:// ile başlayan bir adres kullanın",
+      "urlInternal": "Bu adres bir iç ağı gösteriyor. Herkese açık bir adres kullanın.",
+      "events": "Olaylar",
+      "eventsHint": "Mesajlar: seçilen kanallardaki her yeni mesaj. Çalıştırmalar: biten her ajan çalıştırması, durumuyla ve asla yanıtı olmadan. Görevler: yalnızca bazı kişilerin gördükleri dışında her yeni görev.",
+      "channels": "Kanallar",
+      "channelsHint": "Mesajlar yalnızca bu kanallardan gider, çalıştırmalar ve görevler de öyle. Doğrudan mesajlar asla gönderilmez.",
+      "channelsOptionalHint": "Kanal seçilince yalnızca onların çalıştırmaları ve görevleri gönderilir. Doğrudan mesajlar asla gönderilmez.",
+      "addChannel": "Kanal ekle",
+      "everyChannel": "Tüm kanallar",
+      "noChannel": "{{query}} adında kanal yok",
+      "noChannels": "Kanal yok",
+      "create": "Webhook oluştur",
+      "created": "Webhook oluşturuldu",
+      "saved": "Değişiklikler kaydedildi"
+    },
+    "notice": {
+      "disabled": "{{name}} webhook'u art arda 10 başarısız teslimden sonra kapatıldı"
     }
   },
   "widgets": {

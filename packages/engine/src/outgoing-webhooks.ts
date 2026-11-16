@@ -6,6 +6,8 @@ import { openSecret, randomToken, sealSecret } from "./crypto";
 import { NotFoundError, ValidationError } from "./errors";
 import { readableBody } from "./message-preview";
 import { assertPublicHttpsUrl, outboundFetch, type ResolveHost } from "./net-guard";
+import { notifyWebhookDisabled, resolveWebhookDisabled } from "./notification-producers";
+import type { NotificationDeps } from "./notifications";
 import { requirePermission } from "./organizations";
 import { enqueue } from "./outbox";
 import { closedOrg } from "./standing";
@@ -31,6 +33,8 @@ const MAX_URL = 2000;
 
 export interface OutgoingWebhookDeps {
   db: Database;
+  /** Live updates of the administrators' notices (turning a webhook back on closes its "turned off" notice). */
+  pubsub?: NotificationDeps["pubsub"];
   keyWrappers: KeyWrapper[];
   /** Resolves a host for the address check (injected in tests). */
   resolveHost?: ResolveHost;
@@ -221,6 +225,7 @@ export async function updateOutgoingWebhook(
     .where(and(eq(outgoingWebhooks.orgId, orgId), eq(outgoingWebhooks.id, id)))
     .returning();
   if (!row) throw new NotFoundError("Webhook not found");
+  if (!row.disabledAt && current.disabledAt) await resolveWebhookDisabled(deps, orgId, id);
   await recordAudit(db, {
     orgId,
     actor: { type: "person", id: actorId },
@@ -245,6 +250,7 @@ export async function deleteOutgoingWebhook(deps: OutgoingWebhookDeps, actorId: 
     .where(and(eq(outgoingWebhooks.orgId, orgId), eq(outgoingWebhooks.id, id)))
     .returning({ name: outgoingWebhooks.name, url: outgoingWebhooks.url });
   if (!row) throw new NotFoundError("Webhook not found");
+  await resolveWebhookDisabled(deps, orgId, id);
   await recordAudit(db, {
     orgId,
     actor: { type: "person", id: actorId },
@@ -531,6 +537,8 @@ async function eventData(
 
 export interface DeliveryDeps {
   db: Database;
+  /** Live updates of the notice its administrators get when failures turn it off. */
+  pubsub?: NotificationDeps["pubsub"];
   keyWrappers: KeyWrapper[];
   /** The fetch each attempt goes through; default `outboundFetch()`, made at send time (ADR 0188 §6). */
   fetch?: typeof fetch;
@@ -663,15 +671,15 @@ export async function deliverOutgoingWebhook(
     await db.update(deliveries).set({ attempts, responseStatus: result.status, error: result.error }).where(pending);
     throw new WebhookDeliveryRetry(result.error);
   }
-  await db.transaction(async (tx) => {
+  const turnedOff = await db.transaction(async (tx) => {
     const failed = await tx
       .update(deliveries)
       .set({ status: "failed", attempts, responseStatus: result.status, error: result.error, finishedAt: now })
       .where(pending)
       .returning({ id: deliveries.id });
-    if (failed.length === 0) return;
+    if (failed.length === 0) return false;
     const off = sql`${outgoingWebhooks.disabledAt} is null and ${outgoingWebhooks.consecutiveFailures} + 1 >= ${DISABLE_AFTER_FAILURES}`;
-    await tx
+    const [after] = await tx
       .update(outgoingWebhooks)
       .set({
         consecutiveFailures: sql`${outgoingWebhooks.consecutiveFailures} + 1`,
@@ -679,8 +687,19 @@ export async function deliverOutgoingWebhook(
         disabledAt: sql`case when ${off} then ${now.toISOString()}::timestamptz else ${outgoingWebhooks.disabledAt} end`,
         disabledReason: sql`case when ${off} then 'failures' else ${outgoingWebhooks.disabledReason} end`,
       })
-      .where(eq(outgoingWebhooks.id, webhook.id));
+      .where(eq(outgoingWebhooks.id, webhook.id))
+      .returning({ disabledAt: outgoingWebhooks.disabledAt, disabledReason: outgoingWebhooks.disabledReason });
     await prune(tx, webhook.id);
+    // This failure is the one that turned it off: its own time, the reason failures.
+    return after?.disabledReason === "failures" && after.disabledAt?.getTime() === now.getTime();
   });
+  if (turnedOff)
+    await notifyWebhookDisabled(deps, {
+      orgId: webhook.orgId,
+      webhookId: webhook.id,
+      name: webhook.name,
+      reason: result.error,
+      at: now,
+    });
   return "failed";
 }
