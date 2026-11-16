@@ -6725,6 +6725,36 @@ export function addDm(qc: QueryClient, orgId: string, dm: DirectMessage) {
   void qc.refetchQueries({ queryKey: key, exact: true, fetchStatus: "fetching" }, { cancelRefetch: false }).then(add);
 }
 
+/**
+ * Marks a channel or DM unread for me ("Marcar como não lida"): the lists show it unread at once, then read again
+ * (the server's count wins). Opening it reads it, as ever.
+ */
+export function useMarkChannelUnread(orgId: string) {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (channelId: string) => api.dms.markUnread(orgId, channelId),
+    onMutate: (channelId) => markUnread(qc, orgId, channelId),
+    onSettled: () => refreshConversations(qc, orgId),
+  });
+}
+
+/** A conversation counts one unread at least in the cached lists (marked here or on another device). */
+function markUnread(qc: QueryClient, orgId: string, channelId: string) {
+  qc.setQueryData<Channel[]>(keys.channels(orgId), (list) =>
+    list?.map((c) => (c.id === channelId ? { ...c, unreadCount: Math.max(c.unreadCount ?? 0, 1) } : c)),
+  );
+  qc.setQueryData<DirectMessage[]>(keys.dms(orgId), (list) =>
+    list?.map((d) => (d.channelId === channelId ? { ...d, unread: Math.max(d.unread, 1) } : d)),
+  );
+}
+
+/** The channel and DM lists read again. */
+function refreshConversations(qc: QueryClient, orgId: string) {
+  void qc.invalidateQueries({ queryKey: keys.channels(orgId) });
+  void qc.invalidateQueries({ queryKey: keys.dms(orgId) });
+}
+
 /** A conversation shows nothing unread in the cached lists (read here or on another device). */
 function clearUnread(qc: QueryClient, orgId: string, channelId: string) {
   qc.setQueryData<Channel[]>(keys.channels(orgId), (list) =>
@@ -6890,6 +6920,9 @@ export function applyUnreadEvent(qc: QueryClient, orgId: string, event: { type: 
     void qc.invalidateQueries({ queryKey: keys.channels(orgId) });
     void qc.invalidateQueries({ queryKey: keys.dms(orgId) });
     void qc.invalidateQueries({ queryKey: keys.unreadThreads(orgId) });
+  } else if (e.type === "channel.unread") {
+    markUnread(qc, orgId, e.channelId);
+    refreshConversations(qc, orgId);
   } else if (e.type === "channel.muted") setMuted(qc, orgId, e.channelId, e.muted);
   else if (e.type === "thread.read") {
     clearThreadUnread(qc, orgId, e.threadId);

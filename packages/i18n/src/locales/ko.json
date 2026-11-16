@@ -1596,6 +1596,7 @@
     "lookOurs": "agentes.chat",
     "lookSystem": "시스템",
     "markRead": "읽음으로 표시",
+    "markUnread": "안 읽음으로 표시",
     "muteChannel": "채널 알림 끄기",
     "unmuteChannel": "채널 알림 켜기",
     "mention": "멘션",

@@ -1646,6 +1646,7 @@
     "lookOurs": "agentes.chat",
     "lookSystem": "Systeem",
     "markRead": "Markeren als gelezen",
+    "markUnread": "Markeren als ongelezen",
     "muteChannel": "Kanaal dempen",
     "unmuteChannel": "Kanaal niet meer dempen",
     "mention": "Vermelden",

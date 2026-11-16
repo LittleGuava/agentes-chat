@@ -3877,6 +3877,13 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         const dm = state.dms.find((d) => d.channelId === channelId);
         if (dm) dm.everRead = true;
       },
+      markUnread: async (orgId, channelId) => {
+        log("dms.markUnread", orgId, channelId);
+        const c = state.channels.find((x) => x.id === channelId);
+        if (c) c.unreadCount = Math.max(c.unreadCount ?? 0, 1);
+        const dm = state.dms.find((d) => d.channelId === channelId);
+        if (dm) dm.unread = Math.max(dm.unread ?? 0, 1);
+      },
       reads: async () => [],
     },
     reads: {

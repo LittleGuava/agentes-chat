@@ -4049,6 +4049,9 @@
   "contextMenu.markRead": {
     "value": "Mark as read"
   },
+  "contextMenu.markUnread": {
+    "value": "Mark as unread"
+  },
   "contextMenu.muteChannel": {
     "value": "Mute channel"
   },

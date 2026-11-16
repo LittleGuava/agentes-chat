@@ -1698,6 +1698,7 @@
     "lookOurs": "agentes.chat",
     "lookSystem": "Sistema",
     "markRead": "Segna come letto",
+    "markUnread": "Segna come non letto",
     "muteChannel": "Silenzia canale",
     "unmuteChannel": "Riattiva canale",
     "mention": "Menziona",

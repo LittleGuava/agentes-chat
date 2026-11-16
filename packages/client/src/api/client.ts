@@ -1458,6 +1458,8 @@ export interface ApiClient {
     open(orgId: string, target: DmTarget): Promise<{ channelId: string; dm?: DirectMessage }>;
     /** Marks a channel or DM read up to now. */
     markRead(orgId: string, channelId: string): Promise<void>;
+    /** Marks a channel or DM unread for me until I read it again ("Marcar como não lida"). */
+    markUnread(orgId: string, channelId: string): Promise<void>;
     /** Where the other people of a DM stopped reading ("Visto"); empty for any other channel. */
     reads(orgId: string, channelId: string): Promise<DmRead[]>;
     /**

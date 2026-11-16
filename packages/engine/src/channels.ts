@@ -266,7 +266,7 @@ export interface ChannelListItem {
   /**
    * Messages since I last read it (from when I joined, if never), not mine;
    * a thread reply counts only in a thread I follow. At most
-   * `MAX_CHANNEL_UNREAD`; 0 when I'm not a member.
+   * `MAX_CHANNEL_UNREAD`, at least 1 while I marked it unread; 0 when I'm not a member.
    */
   unreadCount: number;
   /** Of those, the ones that mention me (the sidebar's number, even while muted). */
@@ -347,7 +347,9 @@ export async function listChannels(db: Database, userId: string, orgId: string):
         c.created_at, c.category_id, c.position,
         (cm.id is not null) as is_member,
         (cm.id is null and c.visibility <> 'public' and not ${channelAudienceSql("c", sql`${userId}`)}) as seen_as_admin,
-        coalesce(un.n, 0) as unread_count, coalesce(un.m, 0) as mention_count,
+        -- Marked unread by me (markChannelUnread): one at least.
+        greatest(coalesce(un.n, 0), case when cm.id is not null and cr.marked_unread then 1 else 0 end) as unread_count,
+        coalesce(un.m, 0) as mention_count,
         coalesce(cr.muted, false) as muted, coalesce(cr.last_read_at, cm.created_at) as last_read_at,
         lm.id as last_id, lm.body as last_body, lm.meta as last_meta, lm.created_at as last_at, lm.author_type as last_author_type,
         lm.author_user_id as last_user_id, lm.author_agent_id as last_agent_id,

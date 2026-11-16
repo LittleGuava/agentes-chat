@@ -1596,6 +1596,7 @@
     "lookOurs": "agentes.chat",
     "lookSystem": "系统",
     "markRead": "标为已读",
+    "markUnread": "标为未读",
     "muteChannel": "将频道设为静音",
     "unmuteChannel": "取消频道静音",
     "mention": "提及",

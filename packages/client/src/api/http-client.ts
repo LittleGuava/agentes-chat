@@ -1312,6 +1312,7 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       open: (orgId, target) =>
         request<{ channelId: string; dm?: DirectMessage }>(`${org(orgId)}/dms`, { json: target }),
       markRead: (orgId, channelId) => request<void>(`${org(orgId)}/channels/${enc(channelId)}/read`, { json: {} }),
+      markUnread: (orgId, channelId) => request<void>(`${org(orgId)}/channels/${enc(channelId)}/unread`, { json: {} }),
       reads: async (orgId, channelId) =>
         (await request<{ reads: DmRead[] }>(`${org(orgId)}/channels/${enc(channelId)}/reads`)).reads,
       share: (orgId, channelId, input) =>

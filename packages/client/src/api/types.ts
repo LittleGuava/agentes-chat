@@ -7359,12 +7359,14 @@ export interface ThreadFollow {
 
 /**
  * Unread marks on my own topic: a message in a conversation I'm in (no content: the lists read again), and my
- * reads and mutes from any device.
+ * reads, marks as unread and mutes from any device.
  */
 export type UnreadEvent =
   | { type: "channel.activity"; channelId: string; threadId: string | null; dm?: boolean }
   | { type: "channel.read"; channelId: string; userId: string; lastReadAt: string }
   | { type: "channel.muted"; channelId: string; muted: boolean }
+  /** I marked a conversation unread ("Marcar como não lida"): one unread at least until I read it. */
+  | { type: "channel.unread"; channelId: string }
   | { type: "thread.read"; threadId: string; channelId: string; lastReadAt: string };
 
 /** A pinned message (`GET …/channels/{id}/pins`, newest pin first). */
