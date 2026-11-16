@@ -1,4 +1,5 @@
 import type { PubSub } from "@agenteschat/adapters";
+import type { TurnCheckpoint } from "@agenteschat/adapters/machine-protocol";
 import { and, asc, type Database, type Executor, eq, inArray, isNull, schema } from "@agenteschat/db";
 import { publishChannelEvent } from "./events";
 import { personBehindCall } from "./requester";
@@ -13,6 +14,12 @@ const { agentActions, messages } = schema;
  * opens the window again from that moment.
  */
 export const UNDO_WINDOW_MS = 5 * 60_000;
+
+/** A computer turn's files (ADR 0193): the computer keeps them for 7 days, Desfazer works for a day from each use. */
+export const FILES_UNDO_WINDOW_MS = 24 * 3600_000;
+
+/** How long Desfazer (or Refazer) works for a receipt of this kind, from when it was made or last used. */
+export const undoWindowOf = (kind: string) => (kind === "files.changed" ? FILES_UNDO_WINDOW_MS : UNDO_WINDOW_MS);
 
 /**
  * What an agent did. Covered: issues (created, fields changed, assigned),
@@ -46,6 +53,8 @@ export const AGENT_ACTION_KINDS = [
   "pr.merged",
   /** A change from the right hand's catalog (`workspace-actions.ts`, `params.action` says which), at once or from its card. */
   "workspace.changed",
+  /** What a computer brain's turn changed in its folder (ADR 0193): undone and redone on the computer. */
+  "files.changed",
 ] as const;
 export type AgentActionKind = (typeof AGENT_ACTION_KINDS)[number];
 
@@ -82,7 +91,8 @@ export type AgentActionTargetType =
   | "repository"
   | "role"
   | "person"
-  | "workspace";
+  | "workspace"
+  | "files";
 
 /** What the change was made to, with enough to label it ("#23 · Prompt…"). */
 export interface AgentActionTarget {
@@ -183,12 +193,25 @@ export async function recordAgentActions(
           after: r.after ?? null,
           // Several in one call keep their order.
           createdAt: new Date(now.getTime() + i),
-          undoableUntil: new Date(now.getTime() + i + (r.final ? 0 : UNDO_WINDOW_MS)),
+          undoableUntil: new Date(now.getTime() + i + (r.final ? 0 : undoWindowOf(r.kind))),
         };
       }),
     )
     .returning({ id: agentActions.id });
   return rows.map((r) => r.id);
+}
+
+/**
+ * The receipt of a computer turn that changed files in its folder (ADR 0193): its target is the checkpoint the
+ * computer keeps (`checkpoint.restore` undoes and redoes it there), on the computer the turn ran on.
+ */
+export function turnFilesRecord(machineId: string, checkpoint: TurnCheckpoint): ActionRecord {
+  return {
+    kind: "files.changed",
+    target: { type: "files", id: checkpoint.id },
+    params: { count: checkpoint.count, paths: checkpoint.paths },
+    after: { machineId },
+  };
 }
 
 /**
@@ -311,5 +334,7 @@ export function describeAction(a: Pick<AgentActionView, "kind" | "target" | "par
       return `merged ${p.number ? `PR #${p.number}` : `${String(p.ref ?? "a branch")}`} in ${String(p.repo ?? t.title ?? "a repository")}`;
     case "workspace.changed":
       return `did ${String(p.action ?? "a change")}${t.title ? ` on ${t.title}` : ""}`;
+    case "files.changed":
+      return `changed ${typeof p.count === "number" ? p.count : "some"} file${p.count === 1 ? "" : "s"} on its computer`;
   }
 }

@@ -3184,6 +3184,7 @@ export const AGENT_ACTION_KINDS = [
   "agent.settings_changed",
   "pr.merged",
   "workspace.changed",
+  "files.changed",
 ] as const;
 export type AgentActionKind = (typeof AGENT_ACTION_KINDS)[number];
 
@@ -3232,7 +3233,8 @@ export interface AgentActionTarget {
     | "repository"
     | "role"
     | "person"
-    | "workspace";
+    | "workspace"
+    | "files";
   id: string;
   /** Issues. */
   number?: number;
@@ -3262,6 +3264,7 @@ export interface AgentActionTarget {
  * - `agent.settings_changed` (ADR 0137): `agentName`, `fields`, `proposalId` (the right hand's card, applied by the
  *   person who clicked: Undo puts each setting back; or one row applied at once from what they asked, `fields` then
  *   `instructions`, `role` or `apps`, ADR 0092 §5)
+ * - `files.changed` (ADR 0193): `count`, `paths` (the first files a computer turn changed, relative to its folder)
  */
 export type AgentActionParams = Record<string, string | number | boolean | null | string[] | ApiRule>;
 

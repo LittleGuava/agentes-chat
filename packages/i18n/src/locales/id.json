@@ -2971,8 +2971,8 @@
       "cursor": "Cursor belum masuk di komputer ini. Hubungkan akun Cursor di halaman {{name}}.",
       "cursor_female": "Cursor belum masuk di komputer ini. Hubungkan akun Cursor di halaman {{name}}.",
       "grok": "Grok belum masuk di komputer ini. Hubungkan akun Grok di halaman {{name}}.",
-      "copilot": "Copilot belum masuk di komputer ini. Hubungkan akun Copilot di halaman {{name}}.",
       "grok_female": "Grok belum masuk di komputer ini. Hubungkan akun Grok di halaman {{name}}.",
+      "copilot": "Copilot belum masuk di komputer ini. Hubungkan akun Copilot di halaman {{name}}.",
       "copilot_female": "Copilot belum masuk di komputer ini. Hubungkan akun Copilot di halaman {{name}}.",
       "antigravity": "Gemini belum masuk di komputer ini. Hubungkan akun Gemini di halaman {{name}}.",
       "antigravity_female": "Gemini belum masuk di komputer ini. Hubungkan akun Gemini di halaman {{name}}.",
@@ -3618,6 +3618,10 @@
       "changed_invite_people": "Mengundang <b>{{invited}}</b> ke ruang kerja",
       "changed_remove_ai_key": "Menghapus kunci API <b>{{name}}</b>"
     },
+    "files": {
+      "changed": "Mengubah <b>{{count}} file</b> di komputer: {{files}}",
+      "changed_single": "Mengubah <b>{{file}}</b> di komputer"
+    },
     "other": "Membuat perubahan",
     "copyWebhook": "Salin alamat webhook",
     "issueFields": {
@@ -3694,7 +3698,8 @@
       "not_allowed": "Hanya orang yang meminta, pemilik agen, atau admin yang bisa mengurungkan.",
       "not_found": "Perubahan ini sudah tidak ada.",
       "target_gone": "Yang diubah sudah tidak ada.",
-      "generic": "Tidak bisa mengurungkan. Coba lagi."
+      "generic": "Tidak bisa mengurungkan. Coba lagi.",
+      "busy": "Agen sedang bekerja di folder itu sekarang. Coba lagi setelah selesai."
     }
   },
   "inlineProposal": {
@@ -14140,6 +14145,7 @@
       "blockSpec": "Blok ini punya kesalahan di bagian atau rumusnya, jadi tidak bisa ditampilkan. Perbaiki lalu coba lagi.",
       "takeControl": "Ambil alih kontrol profil dulu.",
       "profileBusy": "Orang lain sedang memakai profil ini.",
+      "agentWorkingHere": "Agen sedang bekerja di folder itu sekarang. Coba lagi setelah selesai.",
       "nameTaken": "Nama itu sudah dipakai. Pilih yang lain.",
       "deleteName": "Ketik nama kanal untuk menghapusnya.",
       "generalKept": "#general tidak bisa dihapus.",
