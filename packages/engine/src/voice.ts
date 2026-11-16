@@ -1,4 +1,4 @@
-import type { BlobStoreResolver, PubSub, SpeechEngine } from "@agenteschat/adapters";
+import type { BlobStoreResolver, CallVoice, PubSub, SpeechEngine } from "@agenteschat/adapters";
 import { firstWords, SpeechError, typingTopic } from "@agenteschat/adapters";
 import { and, asc, count, type Database, desc, eq, gt, gte, isNull, lt, ne, schema, sql } from "@agenteschat/db";
 import { requireChannelAccess } from "./channels";
@@ -65,6 +65,8 @@ export interface VoiceDeps {
   hedgeAfterMs?: (durationMs: number) => number;
   /** Tests: how often "gravando áudio…" goes out again while the words are made out (`VOICE_BEAT_MS`). */
   beatMs?: number;
+  /** Voice calls (ADR 0198): what reads agents' replies aloud; absent or null, no calls. */
+  callVoice?: CallVoice | null;
 }
 
 /** How long an engine has a recording to itself before the next one starts beside it: 19 s for 88 s of audio. */

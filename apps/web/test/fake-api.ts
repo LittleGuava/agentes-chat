@@ -682,6 +682,7 @@ export const OPENROUTER_KEY: Credential = {
 type MediaSetting =
   | "voiceMessages"
   | "voiceAvailable"
+  | "voiceCallAvailable"
   | "gifs"
   | "gifRating"
   | "agentStickers"
@@ -709,6 +710,7 @@ function mediaSettings(state: FakeState): Pick<OrgSettings, MediaSetting> {
     agentMedia: state.media?.agentMedia ?? "sometimes",
     voiceMessages: state.media?.voiceMessages ?? true,
     voiceAvailable: state.media?.voiceAvailable ?? false,
+    voiceCallAvailable: state.media?.voiceCallAvailable ?? false,
     gifsAvailable: state.media?.gifsAvailable ?? true,
     agentMediaAvailable: state.media?.agentMediaAvailable ?? true,
   };
@@ -1541,6 +1543,10 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
       dictate: async (_orgId, channelId, input) => {
         log("voice.dictate", channelId, input.durationMs);
         return { text: state.dictated ?? "" };
+      },
+      speech: async (_orgId, messageId) => {
+        log("voice.speech", messageId);
+        return new Blob([`audio of ${messageId}`], { type: "audio/mpeg" });
       },
     },
     account: {

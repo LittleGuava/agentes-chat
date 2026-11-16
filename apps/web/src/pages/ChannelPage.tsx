@@ -180,6 +180,7 @@ import { buildTimeline, lastPostedId, mergeTimeline, type TimelineItem } from "@
 import { usageWaitOf } from "@agenteschat/client/lib/usage-pause";
 import { appVia } from "@agenteschat/client/lib/via";
 import { voiceOf } from "@agenteschat/client/lib/voice";
+import { callBusy } from "@agenteschat/client/lib/voice-call";
 import { waitingAway, waitingNotification } from "@agenteschat/client/lib/waiting";
 import { barStep, makingImage, showsActivity, splitCanceled } from "@agenteschat/client/lib/work";
 import {
@@ -404,6 +405,7 @@ import {
   useChannelThreadsView,
 } from "@/components/threads/ThreadLines";
 import { UsageWaitCancel, UsageWaitClosed } from "@/components/UsagePauseCard";
+import { VoiceCall } from "@/components/VoiceCall";
 import { PushAskContext, PushAskInline, usePushAsk } from "@/components/WebPush";
 import { useWikiLinkRenderer } from "@/components/WikiLinks";
 import {
@@ -2175,6 +2177,15 @@ function ChannelView({
   // text, to the mission. The recording goes in the box's thread, and the box stays as it was.
   const voiceSettings = useSettings(org.id);
   const voiceOn = Boolean(voiceSettings.data?.voiceAvailable && voiceSettings.data.voiceMessages);
+  // A voice call with the agent of this DM (ADR 0198): takes go as voice messages, replies are read aloud.
+  const callAgent = chrome?.dmAgentId && !thread ? dir.agentById.get(chrome.dmAgentId) : undefined;
+  const callOn = Boolean(voiceOn && voiceSettings.data?.voiceCallAvailable && callAgent && !chrome?.locked);
+  // The conversation the call is in: leaving it (or calls going away) ends the call.
+  const [callIn, setCallIn] = useState<string | null>(null);
+  const calling = callOn && callIn === channel.id;
+  const callRunsBusy = useStreams((s) => callBusy(scopedRuns(s)));
+  // The DM's own line: a reply in one of its threads is not the call's.
+  const callMessages = useMemo(() => (channelMessages.data ?? []).filter((m) => !m.threadId), [channelMessages.data]);
   const voice: ComposerVoice | undefined =
     voiceOn && !chrome?.locked && !missionReply
       ? {
@@ -2187,6 +2198,9 @@ function ChannelView({
           // "gravando áudio…" for the others while it records and while it uploads (then the server keeps it until the
           // message comes); the throttle makes it one frame every 3 s, and holds the upload's while they write.
           onRecording: () => sendTyping(undefined, "voice"),
+          call: callOn
+            ? { label: t("voiceCall.start", { name: callAgent?.name ?? "" }), onStart: () => setCallIn(channel.id) }
+            : undefined,
           onTake: ({ blob, durationMs, peaks }) => {
             toBottom(true);
             setQuote(null);
@@ -2876,6 +2890,30 @@ function ChannelView({
                               <Icon name="lock" size={16} />
                               <span>{t("channel.perms.readOnlyComposer")}</span>
                             </p>
+                          ) : calling && dmAgent ? (
+                            <VoiceCall
+                              orgId={org.id}
+                              agentName={dmAgent.name}
+                              messages={callMessages}
+                              busy={callRunsBusy}
+                              sendTake={({ blob, durationMs, peaks }, clientId) => {
+                                toBottom(true);
+                                void sendVoice({
+                                  blob,
+                                  durationMs,
+                                  peaks,
+                                  clientId,
+                                  threadId: null,
+                                  replyTo: null,
+                                  language: i18n.language.split("-")[0] ?? null,
+                                });
+                              }}
+                              onSpeaking={() => sendTyping(undefined, "voice")}
+                              onMicProblem={(problem) =>
+                                toast.show(t(problem === "blocked" ? "voice.blockedWeb" : `voice.${problem}`), "error")
+                              }
+                              onEnd={() => setCallIn(null)}
+                            />
                           ) : (
                             <>
                               <Composer

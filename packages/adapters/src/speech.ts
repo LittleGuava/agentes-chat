@@ -131,7 +131,7 @@ const MAX_PROMPT_TERMS = 40;
 const defaultSleep = (ms: number) => new Promise<void>((done) => setTimeout(done, ms));
 
 /** A failed answer as an error that says whether another try can work. Never carries the key. */
-async function refuse(res: Response, name: string): Promise<SpeechError> {
+export async function refuse(res: Response, name: string): Promise<SpeechError> {
   const detail = (await res.text().catch(() => "")).slice(0, 200);
   const text = `${name} answered ${res.status}: ${detail}`;
   if (res.status === 401 || res.status === 403) return new SpeechError("auth", text);
