@@ -556,7 +556,8 @@
       "tools": "Tools",
       "updates": "Updates",
       "activity": "Activiteit",
-      "advanced": "Geavanceerd"
+      "advanced": "Geavanceerd",
+      "sync": "Bestanden van agents"
     },
     "general": {
       "title": "Algemeen",
@@ -897,5 +898,22 @@
     "bringAllToFront": "Alles naar voorgrond",
     "help": "Help",
     "downloaded": "Download voltooid"
+  },
+  "folderSync": {
+    "dmFolder": "Directe berichten",
+    "title": "Bestanden van agents",
+    "lead": "Wat agents maken in de gesprekken die je kiest, gedownload naar een map op deze {{device}}.",
+    "on": "Bestanden van agents downloaden",
+    "onHint": "Nieuwe versies komen binnen zodra agents ze opslaan. Een bestand dat je hebt gewijzigd blijft zoals het is, en de nieuwe versie komt ernaast. Er wordt niets verwijderd.",
+    "folder": "Map",
+    "last": "Laatste download",
+    "notYet": "Nog niet",
+    "someFailed": "Sommige bestanden kwamen niet binnen. Over een paar minuten opnieuw.",
+    "unreachable": "De server was niet bereikbaar. Over een paar minuten opnieuw.",
+    "conversations": "Gesprekken",
+    "loading": "Gesprekken lezen",
+    "loadFailed": "De gesprekken konden niet worden gelezen.",
+    "none": "Hier zijn nog geen gesprekken.",
+    "noWorkspace": "Meld je eerst aan bij een werkruimte."
   }
 }

@@ -552,7 +552,8 @@
       "tools": "도구",
       "updates": "업데이트",
       "activity": "활동",
-      "advanced": "고급"
+      "advanced": "고급",
+      "sync": "에이전트 파일"
     },
     "general": {
       "title": "일반",
@@ -892,5 +893,22 @@
     "bringAllToFront": "모두 앞으로 가져오기",
     "help": "도움말",
     "downloaded": "다운로드 완료"
+  },
+  "folderSync": {
+    "dmFolder": "다이렉트 메시지",
+    "title": "에이전트 파일",
+    "lead": "선택한 대화에서 에이전트가 만든 것을 이 {{device}}의 폴더로 내려받아요.",
+    "on": "에이전트 파일 내려받기",
+    "onHint": "에이전트가 저장하면 새 버전을 내려받아요. 직접 바꾼 파일은 그대로 두고, 새 버전은 그 옆에 놓아요. 아무것도 지우지 않아요.",
+    "folder": "폴더",
+    "last": "마지막 다운로드",
+    "notYet": "아직 없음",
+    "someFailed": "일부 파일을 내려받지 못했어요. 몇 분 뒤에 다시 시도해요.",
+    "unreachable": "서버에 연결할 수 없었어요. 몇 분 뒤에 다시 시도해요.",
+    "conversations": "대화",
+    "loading": "대화를 읽는 중",
+    "loadFailed": "대화를 읽지 못했어요.",
+    "none": "아직 대화가 없어요.",
+    "noWorkspace": "먼저 워크스페이스에 로그인하세요."
   }
 }

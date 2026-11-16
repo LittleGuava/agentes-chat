@@ -602,6 +602,7 @@ export const desktopPtBR = {
       updates: "Atualizações",
       activity: "Atividade",
       advanced: "Avançado",
+      sync: "Arquivos dos agentes",
     },
     general: {
       title: "Geral",
@@ -956,5 +957,23 @@ export const desktopPtBR = {
     bringAllToFront: "Trazer tudo para a frente",
     help: "Ajuda",
     downloaded: "Download concluído",
+  },
+  folderSync: {
+    dmFolder: "Mensagens diretas",
+    title: "Arquivos dos agentes",
+    lead: "O que os agentes fazem nas conversas que você escolher, baixado para uma pasta deste {{device}}.",
+    on: "Baixar os arquivos dos agentes",
+    onHint:
+      "Versões novas descem quando os agentes salvam. Um arquivo que você mudou fica como está, e a versão nova vai ao lado. Nada é apagado.",
+    folder: "Pasta",
+    last: "Último download",
+    notYet: "Ainda não",
+    someFailed: "Alguns arquivos não desceram. Eles são tentados de novo em alguns minutos.",
+    unreachable: "O servidor não respondeu. Tentando de novo em alguns minutos.",
+    conversations: "Conversas",
+    loading: "Lendo as conversas",
+    loadFailed: "Não foi possível ler as conversas.",
+    none: "Nenhuma conversa aqui ainda.",
+    noWorkspace: "Entre num workspace primeiro.",
   },
 } satisfies LocaleStrings;

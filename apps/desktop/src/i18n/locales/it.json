@@ -560,7 +560,8 @@
       "tools": "Strumenti",
       "updates": "Aggiornamenti",
       "activity": "Attività recenti",
-      "advanced": "Avanzate"
+      "advanced": "Avanzate",
+      "sync": "File degli agenti"
     },
     "general": {
       "title": "Generali",
@@ -902,5 +903,22 @@
     "bringAllToFront": "Porta tutto in primo piano",
     "help": "Aiuto",
     "downloaded": "Download completato"
+  },
+  "folderSync": {
+    "dmFolder": "Messaggi diretti",
+    "title": "File degli agenti",
+    "lead": "Quello che gli agenti creano nelle conversazioni che scegli, scaricato in una cartella di questo {{device}}.",
+    "on": "Scarica i file degli agenti",
+    "onHint": "Le nuove versioni arrivano appena gli agenti le salvano. Un file che hai modificato resta com'è, e la nuova versione va accanto. Non si cancella nulla.",
+    "folder": "Cartella",
+    "last": "Ultimo download",
+    "notYet": "Non ancora",
+    "someFailed": "Alcuni file non sono arrivati. Nuovo tentativo tra qualche minuto.",
+    "unreachable": "Il server non era raggiungibile. Nuovo tentativo tra qualche minuto.",
+    "conversations": "Conversazioni",
+    "loading": "Lettura delle conversazioni",
+    "loadFailed": "Impossibile leggere le conversazioni.",
+    "none": "Ancora nessuna conversazione qui.",
+    "noWorkspace": "Accedi prima a un workspace."
   }
 }

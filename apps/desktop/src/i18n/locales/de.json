@@ -556,7 +556,8 @@
       "tools": "Tools",
       "updates": "Updates",
       "activity": "Aktivität",
-      "advanced": "Erweitert"
+      "advanced": "Erweitert",
+      "sync": "Dateien der Agenten"
     },
     "general": {
       "title": "Allgemein",
@@ -897,5 +898,22 @@
     "bringAllToFront": "Alle nach vorne bringen",
     "help": "Hilfe",
     "downloaded": "Download abgeschlossen"
+  },
+  "folderSync": {
+    "dmFolder": "Direktnachrichten",
+    "title": "Dateien der Agenten",
+    "lead": "Was Agenten in den Unterhaltungen erstellen, die du auswählst, heruntergeladen in einen Ordner auf diesem {{device}}.",
+    "on": "Dateien der Agenten herunterladen",
+    "onHint": "Neue Versionen kommen herunter, sobald Agenten sie speichern. Eine Datei, die du geändert hast, bleibt, wie sie ist, und die neue Version kommt daneben. Nichts wird gelöscht.",
+    "folder": "Ordner",
+    "last": "Letzter Download",
+    "notYet": "Noch nicht",
+    "someFailed": "Einige Dateien kamen nicht an. Neuer Versuch in ein paar Minuten.",
+    "unreachable": "Der Server war nicht erreichbar. Neuer Versuch in ein paar Minuten.",
+    "conversations": "Unterhaltungen",
+    "loading": "Unterhaltungen werden gelesen",
+    "loadFailed": "Die Unterhaltungen konnten nicht gelesen werden.",
+    "none": "Hier gibt es noch keine Unterhaltungen.",
+    "noWorkspace": "Melde dich zuerst bei einem Workspace an."
   }
 }

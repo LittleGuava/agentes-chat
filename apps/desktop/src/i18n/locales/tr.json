@@ -556,7 +556,8 @@
       "tools": "Araçlar",
       "updates": "Güncellemeler",
       "activity": "Etkinlik",
-      "advanced": "Gelişmiş"
+      "advanced": "Gelişmiş",
+      "sync": "Ajanların dosyaları"
     },
     "general": {
       "title": "Genel",
@@ -897,5 +898,22 @@
     "bringAllToFront": "Tümünü öne getir",
     "help": "Yardım",
     "downloaded": "İndirme tamamlandı"
+  },
+  "folderSync": {
+    "dmFolder": "Doğrudan mesajlar",
+    "title": "Ajanların dosyaları",
+    "lead": "Ajanların seçtiğin konuşmalarda ürettikleri, bu {{device}} üzerindeki bir klasöre indirilir.",
+    "on": "Ajanların dosyalarını indir",
+    "onHint": "Ajanlar yeni sürümleri kaydettikçe indirilir. Değiştirdiğin bir dosya olduğu gibi kalır, yeni sürüm yanına konur. Hiçbir şey silinmez.",
+    "folder": "Klasör",
+    "last": "Son indirme",
+    "notYet": "Henüz yok",
+    "someFailed": "Bazı dosyalar inmedi. Birkaç dakika içinde yeniden denenecek.",
+    "unreachable": "Sunucuya ulaşılamadı. Birkaç dakika içinde yeniden denenecek.",
+    "conversations": "Konuşmalar",
+    "loading": "Konuşmalar okunuyor",
+    "loadFailed": "Konuşmalar okunamadı.",
+    "none": "Burada henüz konuşma yok.",
+    "noWorkspace": "Önce bir çalışma alanında oturum aç."
   }
 }

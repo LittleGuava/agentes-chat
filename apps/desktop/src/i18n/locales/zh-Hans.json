@@ -552,7 +552,8 @@
       "tools": "工具",
       "updates": "更新",
       "activity": "动态",
-      "advanced": "高级"
+      "advanced": "高级",
+      "sync": "智能体的文件"
     },
     "general": {
       "title": "通用",
@@ -892,5 +893,22 @@
     "bringAllToFront": "全部置于顶层",
     "help": "帮助",
     "downloaded": "下载完成"
+  },
+  "folderSync": {
+    "dmFolder": "私信",
+    "title": "智能体的文件",
+    "lead": "把智能体在你所选对话中做出的内容下载到这台 {{device}} 上的一个文件夹。",
+    "on": "下载智能体的文件",
+    "onHint": "智能体保存新版本后就会下载。你改过的文件保持原样，新版本放在它旁边。不会删除任何内容。",
+    "folder": "文件夹",
+    "last": "上次下载",
+    "notYet": "尚未下载",
+    "someFailed": "部分文件没有下载成功，几分钟后会再试。",
+    "unreachable": "无法连接服务器，几分钟后会再试。",
+    "conversations": "对话",
+    "loading": "正在读取对话",
+    "loadFailed": "无法读取对话。",
+    "none": "这里还没有对话。",
+    "noWorkspace": "请先登录一个工作区。"
   }
 }

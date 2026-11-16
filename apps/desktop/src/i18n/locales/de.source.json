@@ -1523,6 +1523,9 @@
   "prefs.nav.advanced": {
     "value": "Advanced"
   },
+  "prefs.nav.sync": {
+    "value": "Agents' files"
+  },
   "prefs.general.title": {
     "value": "General"
   },
@@ -2455,5 +2458,50 @@
   },
   "menu.downloaded": {
     "value": "Download complete"
+  },
+  "folderSync.dmFolder": {
+    "value": "Direct messages"
+  },
+  "folderSync.title": {
+    "value": "Agents' files"
+  },
+  "folderSync.lead": {
+    "value": "What agents make in the conversations you choose, downloaded to a folder on this {{device}}."
+  },
+  "folderSync.on": {
+    "value": "Download agents' files"
+  },
+  "folderSync.onHint": {
+    "value": "New versions come down as agents save them. A file you changed stays as it is, and the new version goes next to it. Nothing is deleted."
+  },
+  "folderSync.folder": {
+    "value": "Folder"
+  },
+  "folderSync.last": {
+    "value": "Last download"
+  },
+  "folderSync.notYet": {
+    "value": "Not yet"
+  },
+  "folderSync.someFailed": {
+    "value": "Some files didn't come down. They're tried again in a few minutes."
+  },
+  "folderSync.unreachable": {
+    "value": "The server couldn't be reached. Trying again in a few minutes."
+  },
+  "folderSync.conversations": {
+    "value": "Conversations"
+  },
+  "folderSync.loading": {
+    "value": "Reading the conversations"
+  },
+  "folderSync.loadFailed": {
+    "value": "Couldn't read the conversations."
+  },
+  "folderSync.none": {
+    "value": "No conversations here yet."
+  },
+  "folderSync.noWorkspace": {
+    "value": "Sign in to a workspace first."
   }
 }

@@ -564,7 +564,8 @@
       "tools": "Narzędzia",
       "updates": "Aktualizacje",
       "activity": "Aktywność",
-      "advanced": "Zaawansowane"
+      "advanced": "Zaawansowane",
+      "sync": "Pliki agentów"
     },
     "general": {
       "title": "Ogólne",
@@ -907,5 +908,22 @@
     "bringAllToFront": "Przenieś wszystko na wierzch",
     "help": "Pomoc",
     "downloaded": "Pobieranie zakończone"
+  },
+  "folderSync": {
+    "dmFolder": "Wiadomości bezpośrednie",
+    "title": "Pliki agentów",
+    "lead": "To, co agenci tworzą w wybranych rozmowach, pobierane do folderu na tym urządzeniu ({{device}}).",
+    "on": "Pobieraj pliki agentów",
+    "onHint": "Nowe wersje pobierają się, gdy agenci je zapiszą. Plik, który zmieniłeś, zostaje bez zmian, a nowa wersja trafia obok. Nic nie jest usuwane.",
+    "folder": "Folder",
+    "last": "Ostatnie pobieranie",
+    "notYet": "Jeszcze nie",
+    "someFailed": "Niektóre pliki się nie pobrały. Kolejna próba za kilka minut.",
+    "unreachable": "Nie udało się połączyć z serwerem. Kolejna próba za kilka minut.",
+    "conversations": "Rozmowy",
+    "loading": "Odczytywanie rozmów",
+    "loadFailed": "Nie udało się odczytać rozmów.",
+    "none": "Nie ma tu jeszcze rozmów.",
+    "noWorkspace": "Najpierw zaloguj się do przestrzeni roboczej."
   }
 }

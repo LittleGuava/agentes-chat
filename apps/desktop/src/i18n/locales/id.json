@@ -552,7 +552,8 @@
       "tools": "Alat",
       "updates": "Pembaruan",
       "activity": "Aktivitas",
-      "advanced": "Lanjutan"
+      "advanced": "Lanjutan",
+      "sync": "File agen"
     },
     "general": {
       "title": "Umum",
@@ -892,5 +893,22 @@
     "bringAllToFront": "Bawa semua ke depan",
     "help": "Bantuan",
     "downloaded": "Unduhan selesai"
+  },
+  "folderSync": {
+    "dmFolder": "Pesan langsung",
+    "title": "File agen",
+    "lead": "Apa yang dibuat agen dalam percakapan yang kamu pilih, diunduh ke folder di {{device}} ini.",
+    "on": "Unduh file agen",
+    "onHint": "Versi baru diunduh begitu agen menyimpannya. File yang kamu ubah tetap seperti adanya, dan versi baru diletakkan di sebelahnya. Tidak ada yang dihapus.",
+    "folder": "Folder",
+    "last": "Unduhan terakhir",
+    "notYet": "Belum",
+    "someFailed": "Beberapa file tidak terunduh. Dicoba lagi dalam beberapa menit.",
+    "unreachable": "Server tidak bisa dijangkau. Dicoba lagi dalam beberapa menit.",
+    "conversations": "Percakapan",
+    "loading": "Membaca percakapan",
+    "loadFailed": "Tidak bisa membaca percakapan.",
+    "none": "Belum ada percakapan di sini.",
+    "noWorkspace": "Masuk ke workspace dulu."
   }
 }

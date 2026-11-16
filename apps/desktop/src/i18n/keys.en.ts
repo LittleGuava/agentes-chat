@@ -630,6 +630,7 @@ export const desktopEn = {
       updates: "Updates",
       activity: "Activity",
       advanced: "Advanced",
+      sync: "Agents' files",
     },
     general: {
       title: "General",
@@ -987,6 +988,25 @@ export const desktopEn = {
     bringAllToFront: "Bring all to front",
     help: "Help",
     downloaded: "Download complete",
+  },
+  /** The agents' folder on this computer (ADR 0204): the folder of an agent's direct messages, under the agent's own. */
+  folderSync: {
+    dmFolder: "Direct messages",
+    title: "Agents' files",
+    lead: "What agents make in the conversations you choose, downloaded to a folder on this {{device}}.",
+    on: "Download agents' files",
+    onHint:
+      "New versions come down as agents save them. A file you changed stays as it is, and the new version goes next to it. Nothing is deleted.",
+    folder: "Folder",
+    last: "Last download",
+    notYet: "Not yet",
+    someFailed: "Some files didn't come down. They're tried again in a few minutes.",
+    unreachable: "The server couldn't be reached. Trying again in a few minutes.",
+    conversations: "Conversations",
+    loading: "Reading the conversations",
+    loadFailed: "Couldn't read the conversations.",
+    none: "No conversations here yet.",
+    noWorkspace: "Sign in to a workspace first.",
   },
 };
 

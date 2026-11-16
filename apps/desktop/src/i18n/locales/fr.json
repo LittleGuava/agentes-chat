@@ -560,7 +560,8 @@
       "tools": "Outils",
       "updates": "Mises à jour",
       "activity": "Activité",
-      "advanced": "Avancé"
+      "advanced": "Avancé",
+      "sync": "Fichiers des agents"
     },
     "general": {
       "title": "Général",
@@ -902,5 +903,22 @@
     "bringAllToFront": "Tout ramener au premier plan",
     "help": "Aide",
     "downloaded": "Téléchargement terminé"
+  },
+  "folderSync": {
+    "dmFolder": "Messages directs",
+    "title": "Fichiers des agents",
+    "lead": "Ce que les agents créent dans les conversations que vous choisissez, téléchargé dans un dossier de ce {{device}}.",
+    "on": "Télécharger les fichiers des agents",
+    "onHint": "Les nouvelles versions arrivent dès que les agents les enregistrent. Un fichier que vous avez modifié reste tel quel, et la nouvelle version se place à côté. Rien n'est supprimé.",
+    "folder": "Dossier",
+    "last": "Dernier téléchargement",
+    "notYet": "Pas encore",
+    "someFailed": "Certains fichiers ne sont pas arrivés. Nouvel essai dans quelques minutes.",
+    "unreachable": "Le serveur est injoignable. Nouvel essai dans quelques minutes.",
+    "conversations": "Conversations",
+    "loading": "Lecture des conversations",
+    "loadFailed": "Impossible de lire les conversations.",
+    "none": "Aucune conversation ici pour l'instant.",
+    "noWorkspace": "Connectez-vous d'abord à un espace de travail."
   }
 }
