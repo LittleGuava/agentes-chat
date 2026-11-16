@@ -3086,8 +3086,8 @@
       "cursor": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "cursor_female": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "grok": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
-      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "grok_female": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
+      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "copilot_female": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "antigravity": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",
       "antigravity_female": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",
@@ -16611,6 +16611,13 @@
       "see": "Bekijk wat er wordt verstuurd",
       "dialogTitle": "Wat er wordt verstuurd",
       "dialogText": "Eén keer per dag. Dit is precies het volgende rapport."
+    },
+    "serverUpdate": {
+      "title": "agentes.chat {{version}} is beschikbaar",
+      "current": "Deze server draait {{version}}.",
+      "notes": "Release-opmerkingen",
+      "docker": "Voer dit uit in de map met docker-compose.yml om bij te werken:",
+      "native": "Pak het nieuwe pakket uit naast het huidige en voer dan uit om bij te werken:"
     },
     "tileState": {
       "members_one": "{{count}} lid",

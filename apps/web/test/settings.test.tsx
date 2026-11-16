@@ -94,6 +94,44 @@ describe("Configurações do workspace", () => {
     expect(state.calls.findLast((c) => c.method === "orgs.updateSettings")?.args[1]).toEqual({ actionCheck: false });
   });
 
+  test("a newer release: the installation's owner sees its notes and the command that installs it", async () => {
+    const notesUrl = "https://github.com/agentes-chat/agentes-chat/releases/tag/v1.5.0";
+    const command = [
+      "curl -fsSLO https://raw.githubusercontent.com/agentes-chat/agentes-chat/v1.5.0/docker-compose.yml",
+      "docker compose pull",
+      "docker compose up -d",
+    ].join("\n");
+    await go(
+      seedState({
+        serverUpdate: {
+          version: "1.4.2",
+          latest: { version: "1.5.0", publishedAt: "2026-11-13T00:00:00Z", notesUrl },
+          updateAvailable: true,
+          install: "docker",
+          command,
+        },
+      }),
+    );
+    const card = screen().getByRole("region", { name: "agentes.chat 1.5.0 está disponível" });
+    expect(card.textContent).toContain("Este servidor está na 1.4.2.");
+    const notes = within(card).getByRole("link", { name: "Notas da versão" });
+    expect(notes.getAttribute("href")).toBe(notesUrl);
+    expect(notes.getAttribute("target")).toBe("_blank");
+    expect(card.querySelector("pre")?.textContent).toBe(command);
+    expect(within(card).getByRole("button", { name: "Copiar" })).toBeTruthy();
+    cleanup();
+    // Up to date, or not the owner: no card.
+    await go(
+      seedState({
+        serverUpdate: { version: "1.5.0", latest: null, updateAvailable: false, install: "docker", command: null },
+      }),
+    );
+    expect(screen().queryByText(/está disponível/)).toBeNull();
+    cleanup();
+    await go();
+    expect(screen().queryByText(/está disponível/)).toBeNull();
+  });
+
   test("usage statistics: the installation's owner gets the switch and sees exactly what is sent", async () => {
     const { state } = await go(
       seedState({ telemetry: { enabled: true, envOff: false, report: { report: 1, people: { total: 3 } } } }),

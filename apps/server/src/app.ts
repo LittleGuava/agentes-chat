@@ -59,6 +59,7 @@ import { roleRoutes } from "./routes/app/roles";
 import { routineRoutes } from "./routes/app/routines";
 import { sandboxRoutes } from "./routes/app/sandboxes";
 import { secretRoutes } from "./routes/app/secrets";
+import { serverUpdateRoutes } from "./routes/app/server-update";
 import { skillRoutes } from "./routes/app/skills";
 import { storageRoutes } from "./routes/app/storage";
 import { teamWeekRoutes } from "./routes/app/team-week";
@@ -225,6 +226,7 @@ export function createApp(options: AppOptions) {
     api.route("/app", teamWeekRoutes(deps));
     api.route("/app", dashboardRoutes(deps));
     api.route("/app", telemetryRoutes(deps));
+    api.route("/app", serverUpdateRoutes(deps));
     api.route("/app", jevRoutes(deps));
     api.route("/app", feedbackRoutes(deps));
     api.route("/app", gifKeyRoutes(deps));

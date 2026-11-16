@@ -3202,8 +3202,8 @@
       "cursor": "Cursor non ha effettuato l'accesso su questo computer. Collega un account Cursor nella pagina di {{name}}.",
       "cursor_female": "Cursor non ha effettuato l'accesso su questo computer. Collega un account Cursor nella pagina di {{name}}.",
       "grok": "Grok non ha effettuato l'accesso su questo computer. Collega un account Grok nella pagina di {{name}}.",
-      "copilot": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "grok_female": "Grok non ha effettuato l'accesso su questo computer. Collega un account Grok nella pagina di {{name}}.",
+      "copilot": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "copilot_female": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "antigravity": "Gemini non ha effettuato l'accesso su questo computer. Collega un account Gemini nella pagina di {{name}}.",
       "antigravity_female": "Gemini non ha effettuato l'accesso su questo computer. Collega un account Gemini nella pagina di {{name}}.",
@@ -17079,6 +17079,13 @@
       "see": "Vedi cosa viene inviato",
       "dialogTitle": "Cosa viene inviato",
       "dialogText": "Una volta al giorno. Questo è esattamente il prossimo report."
+    },
+    "serverUpdate": {
+      "title": "agentes.chat {{version}} è disponibile",
+      "current": "Questo server esegue la {{version}}.",
+      "notes": "Note di rilascio",
+      "docker": "Per aggiornare, esegui questo nella cartella di docker-compose.yml:",
+      "native": "Per aggiornare, estrai il nuovo pacchetto accanto a quello attuale, poi esegui:"
     },
     "tileState": {
       "members_one": "{{count}} membro",
