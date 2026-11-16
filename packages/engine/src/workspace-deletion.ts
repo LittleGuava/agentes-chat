@@ -81,6 +81,7 @@ const {
   mailAccounts,
   mailWatches,
   connectorConnections,
+  connectorPersonalAccounts,
   oauthStates,
   githubAppInstallations,
   auditLog,
@@ -660,6 +661,25 @@ async function revokeGrants(deps: PurgeDeps, orgId: string): Promise<string[]> {
         .update(connectorConnections)
         .set({ composioAccountId: null, revokedAt: sql`coalesce(${connectorConnections.revokedAt}, now())` })
         .where(eq(connectorConnections.id, account.id));
+    }
+    // Each person's own live accounts on per-person connections (ADR 0195), marked as they go; one replaced or
+    // disconnected went away at Composio then, and its Connect Link's account is forgotten below all the same.
+    const personal = await db
+      .select({ id: connectorPersonalAccounts.id, accountId: connectorPersonalAccounts.composioAccountId })
+      .from(connectorPersonalAccounts)
+      .where(and(eq(connectorPersonalAccounts.orgId, orgId), isNull(connectorPersonalAccounts.revokedAt)));
+    for (const account of personal) {
+      try {
+        await composio.client.deleteConnectedAccount(account.accountId, { revoke: false });
+      } catch {
+        left.push(account.id);
+        continue;
+      }
+      forgotten.add(account.accountId);
+      await db
+        .update(connectorPersonalAccounts)
+        .set({ revokedAt: new Date() })
+        .where(eq(connectorPersonalAccounts.id, account.id));
     }
     // A link's account that no connection holds: a sign-in that never finished, or one someone else finished on it.
     const links = await db
