@@ -80,3 +80,12 @@ html:not([data-pointer]) .cn-line__toggle:focus-visible {
   align-self: stretch;
   max-width: 520px;
 }
+
+/* Who picked the agent, under its reply, where the workspace shows it (RouterCaption.tsx, ADR 0074 addendum
+   2026-11-16): one quiet line in the receipt's own size and color, its meaning behind an ⓘ. */
+.msg-picked {
+  margin: 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--ink-muted);
+}

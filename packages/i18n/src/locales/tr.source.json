@@ -7607,6 +7607,27 @@
   "routing.model.saved": {
     "value": "Model saved."
   },
+  "routing.picked.jev": {
+    "value": "Picked by Jev"
+  },
+  "routing.picked.model": {
+    "value": "Picked by {{model}}"
+  },
+  "routing.picked.planYours": {
+    "value": "Picked by your {{brand}} plan"
+  },
+  "routing.picked.planOf": {
+    "value": "Picked by {{person}}'s {{brand}} plan"
+  },
+  "routing.picked.hint": {
+    "value": "Nobody was mentioned, so the AI that picks who answers called this agent. An admin can hide this line in Settings › AI and usage."
+  },
+  "routing.caption.title": {
+    "value": "Show who picked the agent"
+  },
+  "routing.caption.hint": {
+    "value": "Under the reply of an agent nobody mentioned, a quiet line names the AI that picked it."
+  },
   "noAi.banner.org": {
     "value": "Your agents don't have an AI yet."
   },

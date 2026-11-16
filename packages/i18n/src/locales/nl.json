@@ -3064,6 +3064,17 @@
       "auto": "Automatisch",
       "autoWith": "Automatisch · {{model}}",
       "saved": "Model opgeslagen."
+    },
+    "picked": {
+      "jev": "Gekozen door Jev",
+      "model": "Gekozen door {{model}}",
+      "planYours": "Gekozen door je {{brand}}-abonnement",
+      "planOf": "Gekozen door het {{brand}}-abonnement van {{person}}",
+      "hint": "Niemand werd genoemd, dus de AI die kiest wie antwoordt, riep deze agent. Een admin kan deze regel verbergen in Instellingen › AI en gebruik."
+    },
+    "caption": {
+      "title": "Tonen wie de agent koos",
+      "hint": "Onder het antwoord van een agent die niemand noemde, noemt een rustige regel de AI die hem koos."
     }
   },
   "noAi": {

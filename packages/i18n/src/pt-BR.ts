@@ -3200,6 +3200,17 @@ export const ptBR = {
       autoWith: "Automático · {{model}}",
       saved: "Modelo salvo.",
     },
+    picked: {
+      jev: "Escolhido pelo Jev",
+      model: "Escolhido pelo {{model}}",
+      planYours: "Escolhido pelo seu plano do {{brand}}",
+      planOf: "Escolhido pelo plano do {{brand}} de {{person}}",
+      hint: "Ninguém foi mencionado, então a IA que escolhe quem responde chamou este agente. Um admin pode esconder esta linha em Configurações › IA e uso.",
+    },
+    caption: {
+      title: "Mostrar quem escolheu o agente",
+      hint: "Sob a resposta de um agente que ninguém mencionou, uma linha discreta diz qual IA o escolheu.",
+    },
   },
   /** No AI connected (ADR 0061): the banner, the agent's card, its chip and the receipt under a message. */
   noAi: {

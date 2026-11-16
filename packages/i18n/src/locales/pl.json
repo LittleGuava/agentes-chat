@@ -3301,6 +3301,17 @@
       "auto": "Automatycznie",
       "autoWith": "Automatycznie · {{model}}",
       "saved": "Model zapisany."
+    },
+    "picked": {
+      "jev": "Wybrane przez Jev",
+      "model": "Wybrane przez {{model}}",
+      "planYours": "Wybrane przez twój plan {{brand}}",
+      "planOf": "Wybrane przez plan {{brand}}: {{person}}",
+      "hint": "Nikt nie został wspomniany, więc AI, która wybiera, kto odpowiada, wezwała tego agenta. Administrator może ukryć ten wiersz w Ustawienia › AI i zużycie."
+    },
+    "caption": {
+      "title": "Pokazuj, kto wybrał agenta",
+      "hint": "Pod odpowiedzią agenta, o którym nikt nie wspomniał, dyskretny wiersz podaje AI, która go wybrała."
     }
   },
   "noAi": {

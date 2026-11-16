@@ -364,6 +364,11 @@ export const organizationSettings = pgTable("organization_settings", {
   /** Agents check what the team already did before an outside action (ADR 0064). On unless an admin turns it off. */
   actionCheck: boolean().notNull().default(true),
   /**
+   * "Mostrar quem escolheu o agente": under the reply of an agent the router's AI picked (Jev, a small model, a
+   * plan), a quiet line naming it. Off unless an admin turns it on (ADR 0074 addendum 2026-11-16).
+   */
+  routerCaption: boolean().notNull().default(false),
+  /**
    * The models "Automático" picks per tier on a provider's key where the workspace chose its own
    * (`{ openrouter: { small, medium, large } }`); a tier left out is the provider's default (ADR 0087).
    */

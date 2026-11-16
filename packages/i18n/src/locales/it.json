@@ -3180,6 +3180,17 @@
       "auto": "Automatico",
       "autoWith": "Automatico · {{model}}",
       "saved": "Modello salvato."
+    },
+    "picked": {
+      "jev": "Scelto da Jev",
+      "model": "Scelto da {{model}}",
+      "planYours": "Scelto dal tuo piano {{brand}}",
+      "planOf": "Scelto dal piano {{brand}} di {{person}}",
+      "hint": "Nessuno è stato menzionato, quindi l'IA che sceglie chi risponde ha chiamato questo agente. Un admin può nascondere questa riga in Impostazioni › IA e consumi."
+    },
+    "caption": {
+      "title": "Mostra chi ha scelto l'agente",
+      "hint": "Sotto la risposta di un agente che nessuno ha menzionato, una riga discreta indica l'IA che l'ha scelto."
     }
   },
   "noAi": {

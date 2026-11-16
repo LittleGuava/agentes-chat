@@ -3309,6 +3309,22 @@ export const en = {
       autoWith: "Automatic · {{model}}",
       saved: "Model saved.",
     },
+    /**
+     * Under the reply of an agent the router's AI picked, when the workspace shows it (ADR 0074 addendum 2026-11-16):
+     * the words the receipt said before. `hint`: behind its ⓘ.
+     */
+    picked: {
+      jev: "Picked by Jev",
+      model: "Picked by {{model}}",
+      planYours: "Picked by your {{brand}} plan",
+      planOf: "Picked by {{person}}'s {{brand}} plan",
+      hint: "Nobody was mentioned, so the AI that picks who answers called this agent. An admin can hide this line in Settings › AI and usage.",
+    },
+    /** The workspace's switch for that line, off by default. */
+    caption: {
+      title: "Show who picked the agent",
+      hint: "Under the reply of an agent nobody mentioned, a quiet line names the AI that picked it.",
+    },
   },
   noAi: {
     banner: {

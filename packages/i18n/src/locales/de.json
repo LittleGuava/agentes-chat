@@ -3065,6 +3065,17 @@
       "auto": "Automatisch",
       "autoWith": "Automatisch · {{model}}",
       "saved": "Modell gespeichert."
+    },
+    "picked": {
+      "jev": "Ausgewählt von Jev",
+      "model": "Ausgewählt von {{model}}",
+      "planYours": "Ausgewählt von deinem {{brand}}-Abo",
+      "planOf": "Ausgewählt vom {{brand}}-Abo von {{person}}",
+      "hint": "Niemand wurde erwähnt, also hat die KI, die entscheidet, wer antwortet, diesen Agenten gerufen. Ein Admin kann diese Zeile unter Einstellungen › KI und Verbrauch ausblenden."
+    },
+    "caption": {
+      "title": "Anzeigen, wer den Agenten ausgewählt hat",
+      "hint": "Unter der Antwort eines Agenten, den niemand erwähnt hat, nennt eine dezente Zeile die KI, die ihn ausgewählt hat."
     }
   },
   "noAi": {

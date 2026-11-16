@@ -2949,6 +2949,17 @@
       "auto": "Otomatis",
       "autoWith": "Otomatis · {{model}}",
       "saved": "Model disimpan."
+    },
+    "picked": {
+      "jev": "Dipilih oleh Jev",
+      "model": "Dipilih oleh {{model}}",
+      "planYours": "Dipilih oleh paket {{brand}} milikmu",
+      "planOf": "Dipilih oleh paket {{brand}} milik {{person}}",
+      "hint": "Tidak ada yang disebut, jadi AI yang memilih siapa yang menjawab memanggil agen ini. Admin bisa menyembunyikan baris ini di Pengaturan › AI dan pemakaian."
+    },
+    "caption": {
+      "title": "Tampilkan siapa yang memilih agen",
+      "hint": "Di bawah jawaban agen yang tidak disebut siapa pun, satu baris samar menyebut AI yang memilihnya."
     }
   },
   "noAi": {

@@ -16,6 +16,7 @@ import {
   deleteCredential,
   drainOutbox,
   ForbiddenError,
+  getOrgSettings,
   inviteMany,
   joinChannel,
   listAgentChannels,
@@ -66,6 +67,23 @@ describe("organization settings", () => {
     await postPersonMessage({ db: f.db, pubsub: f.pubsub }, f.owner.id, f.org.id, f.general.id, { body: "@dev hi" });
     await drainOutbox(f.db, f.handlers);
     expect(JSON.stringify(f.provider.calls[0]?.request.system)).toContain("We deploy on Fridays never.");
+  });
+
+  test("the line on who picked an agent is off until an admin turns it on (ADR 0074, 2026-11-16)", async () => {
+    f = await setup();
+    const member = await addMember(f.db, f.org.id, "member");
+    expect((await getOrgSettings(f.db, member.id, f.org.id)).routerCaption).toBe(false);
+    await expect(updateOrgSettings(f.db, member.id, f.org.id, { routerCaption: true })).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
+    expect((await updateOrgSettings(f.db, f.owner.id, f.org.id, { routerCaption: true })).routerCaption).toBe(true);
+    // Every member's app reads it, to show the line under the agents' replies.
+    expect((await getOrgSettings(f.db, member.id, f.org.id)).routerCaption).toBe(true);
+    // Another setting saved later leaves it as it is.
+    await updateOrgSettings(f.db, f.owner.id, f.org.id, { timezone: "UTC" });
+    expect((await getOrgSettings(f.db, f.owner.id, f.org.id)).routerCaption).toBe(true);
+    await updateOrgSettings(f.db, f.owner.id, f.org.id, { routerCaption: false });
+    expect((await getOrgSettings(f.db, member.id, f.org.id)).routerCaption).toBe(false);
   });
 });
 

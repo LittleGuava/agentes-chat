@@ -3180,6 +3180,17 @@
       "auto": "Automático",
       "autoWith": "Automático · {{model}}",
       "saved": "Modelo guardado."
+    },
+    "picked": {
+      "jev": "Elegido por Jev",
+      "model": "Elegido por {{model}}",
+      "planYours": "Elegido por tu plan de {{brand}}",
+      "planOf": "Elegido por el plan de {{brand}} de {{person}}",
+      "hint": "Nadie fue mencionado, así que la IA que elige quién responde llamó a este agente. Un admin puede ocultar esta línea en Configuración › IA y uso."
+    },
+    "caption": {
+      "title": "Mostrar quién eligió al agente",
+      "hint": "Bajo la respuesta de un agente que nadie mencionó, una línea discreta dice qué IA lo eligió."
     }
   },
   "noAi": {

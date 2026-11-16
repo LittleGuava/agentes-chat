@@ -336,6 +336,8 @@ export interface FakeState {
   audit?: AuditRow[];
   /** The workspace switch "Agentes conferem o que o time já fez" (on when unset). */
   actionCheck?: boolean;
+  /** The workspace switch "Mostrar quem escolheu o agente" (ADR 0074 addendum 2026-11-16; off when unset). */
+  routerCaption?: boolean;
   /** Automático's models per provider and tier (Settings › Chaves); none when unset. */
   autoModels?: OrgSettings["autoModels"];
   /**
@@ -1974,6 +1976,7 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         summaryModel: null,
         timezone: "America/Sao_Paulo",
         actionCheck: state.actionCheck ?? true,
+        routerCaption: state.routerCaption ?? false,
         autoModels: state.autoModels ?? {},
         teamWatch: state.lodiSwitches?.teamWatch ?? true,
         welcomePeople: state.lodiSwitches?.welcomePeople ?? true,
@@ -1997,6 +2000,7 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         if (input.defaultCredentialId !== undefined) state.defaultCredentialId = input.defaultCredentialId;
         if (input.defaultAgentBudgetUsd !== undefined) state.defaultAgentBudgetUsd = input.defaultAgentBudgetUsd;
         if (input.actionCheck !== undefined) state.actionCheck = input.actionCheck;
+        if (input.routerCaption !== undefined) state.routerCaption = input.routerCaption;
         if (input.routerModel !== undefined) state.routerModel = input.routerModel;
         if (input.teamWatch !== undefined || input.welcomePeople !== undefined)
           state.lodiSwitches = {
@@ -2028,6 +2032,7 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
           summaryModel: null,
           timezone: input.timezone ?? "America/Sao_Paulo",
           actionCheck: state.actionCheck ?? true,
+          routerCaption: state.routerCaption ?? false,
           autoModels: state.autoModels ?? {},
           teamWatch: state.lodiSwitches?.teamWatch ?? true,
           welcomePeople: state.lodiSwitches?.welcomePeople ?? true,
