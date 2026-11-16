@@ -1,10 +1,12 @@
 import type { ConnectorCategory } from "./catalog";
+import type { AskReason } from "./classify";
 import { canonicalResource } from "./oauth-mcp";
 
 /**
  * One-click connectors: vendors' official remote MCP servers that speak MCP
  * OAuth with Dynamic Client Registration (no app of ours to register). Each
- * was checked (2026-10-15, and 2026-10-28 from GitLab on): the server
+ * was checked (2026-10-15, 2026-10-28 from GitLab on, and 2026-11-15 from
+ * AgentMail on): the server
  * answers 401 with OAuth, its authorization server publishes a
  * `registration_endpoint` and PKCE S256.
  * They connect like any custom MCP server; after the OAuth, our suggested
@@ -20,7 +22,9 @@ import { canonicalResource } from "./oauth-mcp";
  * Left out as servers of their own: HubSpot (its authorization server has
  * no dynamic registration: it needs an app registered with HubSpot). Slack,
  * Zendesk, Box, Render, PagerDuty, Front, Pipedrive, Shopify and Microsoft 365
- * also need an app registered with them.
+ * also need an app registered with them. Telnyx (`api.telnyx.com/v2/mcp`) and
+ * Agentcard (`mcp.agentcard.sh/mcp`) answer `initialize` without credentials
+ * (checked 2026-11-15), so connecting one would store it signed in as nobody.
  *
  * A preset with a `composio` way (ADR 0107) also connects through Composio, on
  * Composio's own OAuth app only (`ComposioWay.auth`): a service with no server
@@ -53,8 +57,19 @@ export interface McpPreset {
    * workspace connects its own data, which is what those tokens are for, so the key stays.
    */
   cloudOAuthOnly?: true;
+  /**
+   * Its server takes no API key in `Authorization`, here or self-hosted: Vapi's refuses them ("The hosted server no
+   * longer accepts Vapi API keys", docs.vapi.ai/sdk/mcp-server), AgentMail's wants one in `x-api-key` and Whop's
+   * documents OAuth only.
+   */
+  oauthOnly?: true;
   /** How its server takes an API key in `Authorization` (Semrush: `Apikey <key>`); default `Bearer`. */
   keyScheme?: string;
+  /**
+   * Tools that call, buy or write to people under words our verbs don't catch (`make_call`, `buy_number`): they always
+   * ask, locked like a send or a payment, with why, whatever the server says of them.
+   */
+  askTools?: Readonly<Record<string, AskReason>>;
   /**
    * The read-only tool that lists the accounts a sign-in reaches: its answer (JSON) keeps them at `list`, each one's
    * id made of the values at `id` and its name at `name` (dotted paths). Two connections are the same account when
@@ -1268,9 +1283,65 @@ export const MCP_PRESETS: readonly McpPreset[] = [
       ],
     },
   },
+  {
+    id: "agentmail",
+    category: "dev",
+    label: "AgentMail",
+    description: "AgentMail inboxes for agents: email, threads and drafts.",
+    icon: "agentmail",
+    serverUrl: "https://mcp.agentmail.to/mcp",
+    oauthOnly: true,
+    // Each sends an email under a verb ours read as neither a send nor a write.
+    askTools: { reply_to_message: "reaches_people", forward_message: "reaches_people" },
+  },
+  {
+    id: "agentphone",
+    category: "dev",
+    label: "AgentPhone",
+    description: "AgentPhone numbers, texts and calls for agents.",
+    icon: "agentphone",
+    serverUrl: "https://mcp.agentphone.ai/mcp",
+    askTools: {
+      make_call: "reaches_people",
+      make_conversation_call: "reaches_people",
+      buy_number: "spends_money",
+    },
+  },
+  {
+    id: "vapi",
+    category: "dev",
+    label: "Vapi",
+    description: "Vapi voice assistants, phone calls and numbers.",
+    icon: "vapi",
+    serverUrl: "https://mcp.vapi.ai/mcp",
+    oauthOnly: true,
+    // Placing a call is `create_call`, a write by its name.
+    askTools: { create_call: "reaches_people" },
+  },
+  {
+    id: "whop",
+    category: "payments",
+    label: "Whop",
+    description: "Whop payments, memberships and products.",
+    icon: "whop",
+    serverUrl: "https://mcp.whop.com/mcp",
+    oauthOnly: true,
+  },
+  {
+    id: "youcom",
+    category: "data",
+    label: "You.com",
+    description: "You.com web search, page contents and research.",
+    icon: "youcom",
+    serverUrl: "https://api.you.com/mcp",
+  },
 ];
 
 export const mcpPreset = (id: string) => MCP_PRESETS.find((p) => p.id === id) ?? null;
+
+/** Whether this server asks for an API key as a way in: never for `oauthOnly`, nor on the Cloud for `cloudOAuthOnly`. */
+export const takesKey = (preset: Pick<McpPreset, "oauthOnly" | "cloudOAuthOnly"> | null, cloud: boolean) =>
+  !preset?.oauthOnly && !(preset?.cloudOAuthOnly && cloud);
 
 /** The preset a connection came from, by either of its addresses (its server's or its Composio toolkit's), if any. */
 export function presetForServer(serverUrl: string | null | undefined) {

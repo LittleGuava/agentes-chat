@@ -36,6 +36,8 @@ export const JUDGE_REASONS = [
   "deletes_data",
 ] as const;
 export type JudgeReason = (typeof JUDGE_REASONS)[number];
+/** Why a preset's tool asks (`McpPreset.askTools`): the judge's own words for it. */
+export type AskReason = Extract<JudgeReason, "spends_money" | "reaches_people">;
 export type ReasonCode =
   | "read_only_hint"
   | "destructive_hint"
@@ -168,20 +170,25 @@ export function verbIndex(words: string[], known: (w: string) => boolean = isVer
 const ruleVerb = (w: string) => READ_VERBS.has(w) || WRITE_VERBS.has(w) || SENSITIVE_VERBS.has(w);
 
 /**
- * Annotations, a preset's read-only list, its posts (`writeTools`, writes whatever their name), then the verb. Null =
+ * A preset's tools that ask (`askTools`: they call, buy or write to people under words our verbs don't know), then
+ * annotations, a preset's read-only list, its posts (`writeTools`, writes whatever their name), then the verb. Null =
  * ambiguous (the judge decides).
  */
 export function classifyByRules(
   tool: ToolToClassify,
   readTools: readonly string[] = [],
   writeTools: readonly string[] = [],
+  askTools: Readonly<Record<string, AskReason>> = {},
 ): ToolClass | null {
-  if (tool.readOnlyHint === true)
-    return { level: "read", source: "annotation", reason: "read_only_hint", sensitive: false };
   const words = nameWords(tool.name);
   const verb = words[verbIndex(words, ruleVerb)];
   const locked: ToolClass = { level: "approval", source: "verb", reason: "verb_sensitive", sensitive: true };
   const byVerb = verb && SENSITIVE_VERBS.has(verb) ? locked : null;
+  // Locked like one of our sensitive verbs, whatever the server says of it.
+  const asks = Object.hasOwn(askTools, tool.name) ? askTools[tool.name] : undefined;
+  if (asks) return byVerb ?? { level: "approval", source: "preset", reason: asks, sensitive: true };
+  if (tool.readOnlyHint === true)
+    return { level: "read", source: "annotation", reason: "read_only_hint", sensitive: false };
   // The server's warning only suggests asking: the lock comes from our own words. With the warning, one of them
   // anywhere in the name locks (`create_and_send_invoice`), not only in the verb's place.
   if (tool.destructiveHint === true)
@@ -414,6 +421,7 @@ export async function classifyTools(
     judge?: Judge;
     readTools?: readonly string[];
     writeTools?: readonly string[];
+    askTools?: Readonly<Record<string, AskReason>>;
     /** Earlier judge answers for this connection, by tool name. */
     cached?: Map<string, ToolClass>;
   },
@@ -421,7 +429,7 @@ export async function classifyTools(
   const out = new Map<string, ToolClass>();
   const ask: ToolToClassify[] = [];
   for (const tool of tools) {
-    const byRules = classifyByRules(tool, options.readTools, options.writeTools);
+    const byRules = classifyByRules(tool, options.readTools, options.writeTools, options.askTools);
     const hit = options.cached?.get(tool.name);
     if (byRules) out.set(tool.name, byRules);
     else if (hit && hit.source === "judge") out.set(tool.name, hit);

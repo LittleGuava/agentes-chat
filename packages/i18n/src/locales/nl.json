@@ -13028,6 +13028,29 @@
         "2": "Berichtsjablonen maken",
         "ask": "Berichten versturen vraagt altijd om jouw goedkeuring"
       },
+      "agentmail": {
+        "1": "Inboxen, threads en berichten lezen",
+        "2": "Inboxen aanmaken en concepten schrijven",
+        "ask": "E-mails versturen, beantwoorden en doorsturen vraagt altijd om jouw goedkeuring"
+      },
+      "agentphone": {
+        "1": "Gesprekken, sms'jes en conversaties bekijken",
+        "2": "Spraakagenten en webhooks instellen",
+        "ask": "Sms'en, bellen en een nummer kopen vraagt altijd om jouw goedkeuring"
+      },
+      "vapi": {
+        "1": "Assistenten, gesprekken en telefoonnummers bekijken",
+        "2": "Assistenten en tools maken en bewerken",
+        "ask": "Een gesprek starten vraagt altijd om jouw goedkeuring"
+      },
+      "whop": {
+        "1": "Betalingen, lidmaatschappen en producten bekijken",
+        "2": "Producten, prijzen en lidmaatschappen beheren"
+      },
+      "youcom": {
+        "1": "Op het web zoeken",
+        "2": "Hele pagina's lezen en onderzoeken met bronnen"
+      },
       "database": {
         "1": "De tabellen bekijken",
         "2": "De data bevragen om te antwoorden",
@@ -13179,7 +13202,12 @@
       "youtube": "Video's, reacties, afspeellijsten en statistieken van het YouTube-kanaal.",
       "pinterest": "Pins, borden en statistieken op Pinterest.",
       "reddit": "Posts, reacties en community's op Reddit.",
-      "whatsapp": "Berichten en sjablonen van WhatsApp Business."
+      "whatsapp": "Berichten en sjablonen van WhatsApp Business.",
+      "agentmail": "E-mailinboxen voor agenten: berichten, threads en concepten.",
+      "agentphone": "Telefoonnummers, sms'jes en gesprekken voor agenten.",
+      "vapi": "Spraakassistenten, gesprekken en telefoonnummers.",
+      "whop": "Betalingen, lidmaatschappen en producten.",
+      "youcom": "Zoeken op het web, pagina-inhoud en onderzoek."
     }
   },
   "toolNames": {

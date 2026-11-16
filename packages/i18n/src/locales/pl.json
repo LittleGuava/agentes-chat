@@ -13902,6 +13902,29 @@
         "2": "Tworzenie szablonów wiadomości",
         "ask": "Wysyłanie wiadomości zawsze prosi o twoje zatwierdzenie"
       },
+      "agentmail": {
+        "1": "Odczyt skrzynek, wątków i wiadomości",
+        "2": "Tworzenie skrzynek i pisanie wersji roboczych",
+        "ask": "Wysyłanie, odpowiadanie i przekazywanie e-maili zawsze prosi o twoje zatwierdzenie"
+      },
+      "agentphone": {
+        "1": "Podgląd połączeń, SMS-ów i rozmów",
+        "2": "Konfigurowanie agentów głosowych i webhooków",
+        "ask": "Wysyłanie SMS-ów, dzwonienie i kupno numeru zawsze prosi o twoje zatwierdzenie"
+      },
+      "vapi": {
+        "1": "Podgląd asystentów, połączeń i numerów telefonów",
+        "2": "Tworzenie i edycja asystentów i narzędzi",
+        "ask": "Wykonanie połączenia zawsze prosi o twoje zatwierdzenie"
+      },
+      "whop": {
+        "1": "Podgląd płatności, członkostw i produktów",
+        "2": "Zarządzanie produktami, cenami i członkostwami"
+      },
+      "youcom": {
+        "1": "Wyszukiwanie w sieci",
+        "2": "Czytanie całych stron i research ze źródłami"
+      },
       "database": {
         "1": "Podgląd tabel",
         "2": "Zapytania do danych, żeby odpowiedzieć",
@@ -14063,7 +14086,12 @@
       "youtube": "Filmy, komentarze, playlisty i statystyki kanału YouTube.",
       "pinterest": "Piny, tablice i statystyki na Pintereście.",
       "reddit": "Posty, komentarze i społeczności na Reddicie.",
-      "whatsapp": "Wiadomości i szablony WhatsApp Business."
+      "whatsapp": "Wiadomości i szablony WhatsApp Business.",
+      "agentmail": "Skrzynki e-mail dla agentów: wiadomości, wątki i wersje robocze.",
+      "agentphone": "Numery telefonów, SMS-y i połączenia dla agentów.",
+      "vapi": "Asystenci głosowi, połączenia i numery telefonów.",
+      "whop": "Płatności, członkostwa i produkty.",
+      "youcom": "Wyszukiwanie w sieci, treść stron i research."
     }
   },
   "toolNames": {

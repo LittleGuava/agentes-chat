@@ -13358,6 +13358,29 @@
         "2": "Crear plantillas de mensajes",
         "ask": "Enviar mensajes siempre pide tu aprobación"
       },
+      "agentmail": {
+        "1": "Leer bandejas de entrada, hilos y mensajes",
+        "2": "Crear bandejas de entrada y escribir borradores",
+        "ask": "Enviar, responder y reenviar correos siempre pide tu aprobación"
+      },
+      "agentphone": {
+        "1": "Ver llamadas, SMS y conversaciones",
+        "2": "Configurar agentes de voz y webhooks",
+        "ask": "Enviar SMS, llamar y comprar un número siempre pide tu aprobación"
+      },
+      "vapi": {
+        "1": "Ver asistentes, llamadas y números de teléfono",
+        "2": "Crear y editar asistentes y herramientas",
+        "ask": "Hacer una llamada siempre pide tu aprobación"
+      },
+      "whop": {
+        "1": "Ver pagos, membresías y productos",
+        "2": "Gestionar productos, precios y membresías"
+      },
+      "youcom": {
+        "1": "Buscar en la web",
+        "2": "Leer páginas completas e investigar con fuentes"
+      },
       "database": {
         "1": "Ver las tablas",
         "2": "Consultar los datos para responder",
@@ -13514,7 +13537,12 @@
       "youtube": "Videos, comentarios, listas de reproducción y estadísticas del canal de YouTube.",
       "pinterest": "Pines, tableros y estadísticas de Pinterest.",
       "reddit": "Publicaciones, comentarios y comunidades de Reddit.",
-      "whatsapp": "Mensajes y plantillas de WhatsApp Business."
+      "whatsapp": "Mensajes y plantillas de WhatsApp Business.",
+      "agentmail": "Bandejas de correo para agentes: mensajes, hilos y borradores.",
+      "agentphone": "Números de teléfono, SMS y llamadas para agentes.",
+      "vapi": "Asistentes de voz, llamadas y números de teléfono.",
+      "whop": "Pagos, membresías y productos.",
+      "youcom": "Búsqueda web, contenido de páginas e investigación."
     }
   },
   "toolNames": {

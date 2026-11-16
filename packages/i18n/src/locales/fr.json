@@ -13429,6 +13429,29 @@
         "2": "Créer des modèles de message",
         "ask": "L'envoi de messages demande toujours votre approbation"
       },
+      "agentmail": {
+        "1": "Lire les boîtes de réception, les fils et les messages",
+        "2": "Créer des boîtes de réception et rédiger des brouillons",
+        "ask": "L'envoi, la réponse et le transfert d'e-mails demandent toujours votre approbation"
+      },
+      "agentphone": {
+        "1": "Voir les appels, les SMS et les conversations",
+        "2": "Configurer des agents vocaux et des webhooks",
+        "ask": "L'envoi de SMS, les appels et l'achat d'un numéro demandent toujours votre approbation"
+      },
+      "vapi": {
+        "1": "Voir les assistants, les appels et les numéros de téléphone",
+        "2": "Créer et modifier des assistants et des outils",
+        "ask": "Passer un appel demande toujours votre approbation"
+      },
+      "whop": {
+        "1": "Voir les paiements, les abonnements et les produits",
+        "2": "Gérer les produits, les prix et les abonnements"
+      },
+      "youcom": {
+        "1": "Chercher sur le web",
+        "2": "Lire des pages entières et faire des recherches sourcées"
+      },
       "database": {
         "1": "Voir les tables",
         "2": "Interroger les données pour répondre",
@@ -13585,7 +13608,12 @@
       "youtube": "Vidéos, commentaires, playlists et statistiques de la chaîne YouTube.",
       "pinterest": "Épingles, tableaux et statistiques Pinterest.",
       "reddit": "Publications, commentaires et communautés Reddit.",
-      "whatsapp": "Messages et modèles WhatsApp Business."
+      "whatsapp": "Messages et modèles WhatsApp Business.",
+      "agentmail": "Boîtes e-mail pour agents : messages, fils et brouillons.",
+      "agentphone": "Numéros de téléphone, SMS et appels pour agents.",
+      "vapi": "Assistants vocaux, appels et numéros de téléphone.",
+      "whop": "Paiements, abonnements et produits.",
+      "youcom": "Recherche web, contenu des pages et recherches."
     }
   },
   "toolNames": {

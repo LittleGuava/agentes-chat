@@ -31450,6 +31450,45 @@
   "connectors.can.whatsapp.ask": {
     "value": "Sending messages always asks for your approval"
   },
+  "connectors.can.agentmail.1": {
+    "value": "Read inboxes, threads and messages"
+  },
+  "connectors.can.agentmail.2": {
+    "value": "Create inboxes and write drafts"
+  },
+  "connectors.can.agentmail.ask": {
+    "value": "Sending, replying to and forwarding email always ask for your approval"
+  },
+  "connectors.can.agentphone.1": {
+    "value": "See calls, texts and conversations"
+  },
+  "connectors.can.agentphone.2": {
+    "value": "Set up voice agents and webhooks"
+  },
+  "connectors.can.agentphone.ask": {
+    "value": "Texting, calling and buying a number always ask for your approval"
+  },
+  "connectors.can.vapi.1": {
+    "value": "See assistants, calls and phone numbers"
+  },
+  "connectors.can.vapi.2": {
+    "value": "Create and edit assistants and tools"
+  },
+  "connectors.can.vapi.ask": {
+    "value": "Placing a call always asks for your approval"
+  },
+  "connectors.can.whop.1": {
+    "value": "See payments, memberships and products"
+  },
+  "connectors.can.whop.2": {
+    "value": "Manage products, prices and memberships"
+  },
+  "connectors.can.youcom.1": {
+    "value": "Search the web"
+  },
+  "connectors.can.youcom.2": {
+    "value": "Read whole pages and research with sources"
+  },
   "connectors.can.database.1": {
     "value": "See the tables"
   },
@@ -31869,6 +31908,21 @@
   },
   "connectors.descriptions.whatsapp": {
     "value": "WhatsApp Business messages and templates."
+  },
+  "connectors.descriptions.agentmail": {
+    "value": "Email inboxes for agents: messages, threads and drafts."
+  },
+  "connectors.descriptions.agentphone": {
+    "value": "Phone numbers, texts and calls for agents."
+  },
+  "connectors.descriptions.vapi": {
+    "value": "Voice assistants, phone calls and numbers."
+  },
+  "connectors.descriptions.whop": {
+    "value": "Payments, memberships and products."
+  },
+  "connectors.descriptions.youcom": {
+    "value": "Web search, page contents and research."
   },
   "toolNames.order": {
     "value": "modifiers-first"

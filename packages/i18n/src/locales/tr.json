@@ -12900,6 +12900,29 @@
         "2": "Mesaj şablonları oluşturur",
         "ask": "Mesaj göndermek her zaman onayınızı ister"
       },
+      "agentmail": {
+        "1": "Gelen kutularını, yazışmaları ve mesajları okur",
+        "2": "Gelen kutusu oluşturur ve taslak yazar",
+        "ask": "E-posta göndermek, yanıtlamak ve iletmek her zaman onayınızı ister"
+      },
+      "agentphone": {
+        "1": "Aramaları, SMS'leri ve konuşmaları görür",
+        "2": "Sesli ajanları ve webhook'ları kurar",
+        "ask": "SMS göndermek, arama yapmak ve numara satın almak her zaman onayınızı ister"
+      },
+      "vapi": {
+        "1": "Asistanları, aramaları ve telefon numaralarını görür",
+        "2": "Asistan ve araç oluşturur ve düzenler",
+        "ask": "Arama yapmak her zaman onayınızı ister"
+      },
+      "whop": {
+        "1": "Ödemeleri, üyelikleri ve ürünleri görür",
+        "2": "Ürünleri, fiyatları ve üyelikleri yönetir"
+      },
+      "youcom": {
+        "1": "Web'de arar",
+        "2": "Sayfaları baştan sona okur ve kaynaklı araştırma yapar"
+      },
       "database": {
         "1": "Tabloları görür",
         "2": "Yanıt vermek için verileri sorgular",
@@ -13051,7 +13074,12 @@
       "youtube": "YouTube kanalının videoları, yorumları, oynatma listeleri ve analizleri.",
       "pinterest": "Pinterest pinleri, panoları ve analizleri.",
       "reddit": "Reddit gönderileri, yorumları ve toplulukları.",
-      "whatsapp": "WhatsApp Business mesajları ve şablonları."
+      "whatsapp": "WhatsApp Business mesajları ve şablonları.",
+      "agentmail": "Ajanlar için e-posta gelen kutuları: mesajlar, yazışmalar ve taslaklar.",
+      "agentphone": "Ajanlar için telefon numaraları, SMS ve aramalar.",
+      "vapi": "Sesli asistanlar, aramalar ve telefon numaraları.",
+      "whop": "Ödemeler, üyelikler ve ürünler.",
+      "youcom": "Web araması, sayfa içerikleri ve araştırma."
     }
   },
   "toolNames": {

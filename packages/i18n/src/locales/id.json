@@ -12517,6 +12517,29 @@
         "2": "Membuat template pesan",
         "ask": "Mengirim pesan selalu meminta persetujuanmu"
       },
+      "agentmail": {
+        "1": "Membaca kotak masuk, utas, dan pesan",
+        "2": "Membuat kotak masuk dan menulis draf",
+        "ask": "Mengirim, membalas, dan meneruskan email selalu meminta persetujuanmu"
+      },
+      "agentphone": {
+        "1": "Melihat panggilan, SMS, dan percakapan",
+        "2": "Menyiapkan agen suara dan webhook",
+        "ask": "Mengirim SMS, menelepon, dan membeli nomor selalu meminta persetujuanmu"
+      },
+      "vapi": {
+        "1": "Melihat asisten, panggilan, dan nomor telepon",
+        "2": "Membuat dan mengedit asisten dan alat",
+        "ask": "Melakukan panggilan selalu meminta persetujuanmu"
+      },
+      "whop": {
+        "1": "Melihat pembayaran, keanggotaan, dan produk",
+        "2": "Mengelola produk, harga, dan keanggotaan"
+      },
+      "youcom": {
+        "1": "Mencari di web",
+        "2": "Membaca halaman utuh dan meriset dengan sumber"
+      },
       "database": {
         "1": "Melihat tabel",
         "2": "Menjalankan query ke data untuk menjawab",
@@ -12663,7 +12686,12 @@
       "youtube": "Video, komentar, playlist, dan analitik kanal YouTube.",
       "pinterest": "Pin, papan, dan analitik Pinterest.",
       "reddit": "Postingan, komentar, dan komunitas Reddit.",
-      "whatsapp": "Pesan dan template WhatsApp Business."
+      "whatsapp": "Pesan dan template WhatsApp Business.",
+      "agentmail": "Kotak email untuk agen: pesan, utas, dan draf.",
+      "agentphone": "Nomor telepon, SMS, dan panggilan untuk agen.",
+      "vapi": "Asisten suara, panggilan, dan nomor telepon.",
+      "whop": "Pembayaran, keanggotaan, dan produk.",
+      "youcom": "Pencarian web, isi halaman, dan riset."
     }
   },
   "toolNames": {

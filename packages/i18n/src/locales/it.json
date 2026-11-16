@@ -13442,6 +13442,29 @@
         "2": "Creare modelli di messaggio",
         "ask": "L'invio di messaggi chiede sempre la tua approvazione"
       },
+      "agentmail": {
+        "1": "Leggere caselle di posta, conversazioni e messaggi",
+        "2": "Creare caselle di posta e scrivere bozze",
+        "ask": "Inviare, rispondere e inoltrare email chiede sempre la tua approvazione"
+      },
+      "agentphone": {
+        "1": "Vedere chiamate, SMS e conversazioni",
+        "2": "Configurare agenti vocali e webhook",
+        "ask": "Inviare SMS, chiamare e comprare un numero chiede sempre la tua approvazione"
+      },
+      "vapi": {
+        "1": "Vedere assistenti, chiamate e numeri di telefono",
+        "2": "Creare e modificare assistenti e strumenti",
+        "ask": "Fare una chiamata chiede sempre la tua approvazione"
+      },
+      "whop": {
+        "1": "Vedere pagamenti, abbonamenti e prodotti",
+        "2": "Gestire prodotti, prezzi e abbonamenti"
+      },
+      "youcom": {
+        "1": "Cercare sul web",
+        "2": "Leggere pagine intere e fare ricerche con le fonti"
+      },
       "database": {
         "1": "Vedere le tabelle",
         "2": "Interrogare i dati per rispondere",
@@ -13598,7 +13621,12 @@
       "youtube": "Video, commenti, playlist e statistiche del canale YouTube.",
       "pinterest": "Pin, bacheche e statistiche di Pinterest.",
       "reddit": "Post, commenti e community di Reddit.",
-      "whatsapp": "Messaggi e modelli di WhatsApp Business."
+      "whatsapp": "Messaggi e modelli di WhatsApp Business.",
+      "agentmail": "Caselle email per agenti: messaggi, conversazioni e bozze.",
+      "agentphone": "Numeri di telefono, SMS e chiamate per agenti.",
+      "vapi": "Assistenti vocali, chiamate e numeri di telefono.",
+      "whop": "Pagamenti, abbonamenti e prodotti.",
+      "youcom": "Ricerca web, contenuto delle pagine e ricerche."
     }
   },
   "toolNames": {

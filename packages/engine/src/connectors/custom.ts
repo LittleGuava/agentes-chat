@@ -61,6 +61,7 @@ import {
   type McpPreset,
   presetForServer,
   serverUrlShown,
+  takesKey,
 } from "./presets";
 import { checkRequestHeaders, type RequestHeader } from "./request-headers";
 import { type McpServerInfo, refreshServerIcon } from "./server-icon";
@@ -692,6 +693,7 @@ export async function syncCustomTools(deps: CustomDeps, c: ConnectorConnection) 
     judge: deps.judge,
     readTools: preset?.readTools,
     writeTools,
+    askTools: preset?.askTools,
     cached,
   });
   const seen = new Set<string>();
@@ -699,7 +701,8 @@ export async function syncCustomTools(deps: CustomDeps, c: ConnectorConnection) 
     seen.add(tool.name);
     const old = byName.get(tool.name);
     const description = (tool.description ?? "").slice(0, 2000);
-    const cls = classes.get(tool.name) ?? classifyByRules(tool, preset?.readTools, writeTools) ?? UNKNOWN_CLASS;
+    const cls =
+      classes.get(tool.name) ?? classifyByRules(tool, preset?.readTools, writeTools, preset?.askTools) ?? UNKNOWN_CLASS;
     const suggestion = {
       suggestedAccess: cls.level,
       suggestionSource: cls.source,
@@ -836,8 +839,9 @@ export async function connectCustomServer(
     };
   };
   if (apiKey && apiKey.length < 8) throw new ValidationError("The key looks too short", "connector.key_too_short");
-  // The vendor's terms forbid asking for a token: on the Cloud it signs in only (ADR 0107).
-  if ((apiKey || headers) && presetForServer(serverUrl)?.cloudOAuthOnly && isAgentesCloud(deps.publicUrl)) {
+  // Its server takes no key, or on the Cloud the vendor's terms forbid asking for one (ADR 0016, ADR 0107): it
+  // signs in only, and takes no headers in a key's place either.
+  if ((apiKey || headers) && !takesKey(presetForServer(serverUrl), isAgentesCloud(deps.publicUrl))) {
     throw signInOnly();
   }
   if (apiKey) return stored("api_key", { apiKey, ...(headers ? { headers } : {}) });

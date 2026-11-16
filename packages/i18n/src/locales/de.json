@@ -12964,6 +12964,29 @@
         "2": "Nachrichtenvorlagen erstellen",
         "ask": "Nachrichten senden fragt immer nach deiner Freigabe"
       },
+      "agentmail": {
+        "1": "Postfächer, Verläufe und Nachrichten lesen",
+        "2": "Postfächer anlegen und Entwürfe schreiben",
+        "ask": "E-Mails senden, beantworten und weiterleiten fragt immer nach deiner Freigabe"
+      },
+      "agentphone": {
+        "1": "Anrufe, SMS und Unterhaltungen ansehen",
+        "2": "Sprachagenten und Webhooks einrichten",
+        "ask": "SMS senden, anrufen und eine Nummer kaufen fragt immer nach deiner Freigabe"
+      },
+      "vapi": {
+        "1": "Assistenten, Anrufe und Telefonnummern ansehen",
+        "2": "Assistenten und Tools anlegen und bearbeiten",
+        "ask": "Einen Anruf tätigen fragt immer nach deiner Freigabe"
+      },
+      "whop": {
+        "1": "Zahlungen, Mitgliedschaften und Produkte ansehen",
+        "2": "Produkte, Preise und Mitgliedschaften verwalten"
+      },
+      "youcom": {
+        "1": "Im Web suchen",
+        "2": "Ganze Seiten lesen und mit Quellen recherchieren"
+      },
       "database": {
         "1": "Tabellen ansehen",
         "2": "Daten abfragen, um zu antworten",
@@ -13115,7 +13138,12 @@
       "youtube": "Videos, Kommentare, Playlists und Statistiken des YouTube-Kanals.",
       "pinterest": "Pins, Pinnwände und Statistiken auf Pinterest.",
       "reddit": "Beiträge, Kommentare und Communitys auf Reddit.",
-      "whatsapp": "Nachrichten und Vorlagen von WhatsApp Business."
+      "whatsapp": "Nachrichten und Vorlagen von WhatsApp Business.",
+      "agentmail": "E-Mail-Postfächer für Agenten: Nachrichten, Verläufe und Entwürfe.",
+      "agentphone": "Telefonnummern, SMS und Anrufe für Agenten.",
+      "vapi": "Sprachassistenten, Anrufe und Telefonnummern.",
+      "whop": "Zahlungen, Mitgliedschaften und Produkte.",
+      "youcom": "Websuche, Seiteninhalte und Recherche."
     }
   },
   "toolNames": {
