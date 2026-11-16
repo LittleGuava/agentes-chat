@@ -8846,7 +8846,8 @@
         "event": "Gebeurtenis",
         "email": "E-mail",
         "webhook": "Webhook",
-        "connector": "MillionSend-mail"
+        "connector": "MillionSend-mail",
+        "connectorSlack": "Slack-bericht"
       },
       "frequency": "Frequentie",
       "frequencyPlaceholder": "Bijv.: elke maandag om 9:00",
@@ -14876,8 +14877,12 @@
       "when": "Als er een mail binnenkomt op {{address}}",
       "whenFolder": "Als er een mail binnenkomt op {{address}} ({{folder}})",
       "whenMillionSend": "Als er een mail binnenkomt op MillionSend",
+      "whenSlack": "Als er een bericht binnenkomt in Slack",
       "inboxAddress": "Adres van de mailbox",
       "inboxAddressHelp": "Leeg = elke MillionSend-mailbox.",
+      "connection": "Verbinding",
+      "slackChannel": "Kanaal-ID",
+      "slackChannelHelp": "Leeg = alle kanalen. De ID staat in de kanaaldetails, zoals C0123ABC.",
       "unknownMailbox": "een mailbox",
       "waiting": "Wachten op een mail",
       "thisWeek_one": "{{count}} mail deze week",

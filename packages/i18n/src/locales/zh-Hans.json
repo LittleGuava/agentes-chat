@@ -8534,7 +8534,8 @@
         "event": "事件",
         "email": "邮件",
         "webhook": "Webhook",
-        "connector": "MillionSend 邮件"
+        "connector": "MillionSend 邮件",
+        "connectorSlack": "Slack 消息"
       },
       "frequency": "频率",
       "frequencyPlaceholder": "例如：每周一上午 9 点",
@@ -14329,8 +14330,12 @@
       "when": "当 {{address}} 收到邮件时",
       "whenFolder": "当 {{address}}（{{folder}}）收到邮件时",
       "whenMillionSend": "当 MillionSend 收到邮件时",
+      "whenSlack": "当 Slack 收到消息时",
       "inboxAddress": "邮箱地址",
       "inboxAddressHelp": "留空 = 任意 MillionSend 邮箱。",
+      "connection": "连接",
+      "slackChannel": "频道 ID",
+      "slackChannelHelp": "留空 = 所有频道。ID 在频道详情中，例如 C0123ABC。",
       "unknownMailbox": "某个邮箱",
       "waiting": "等待邮件中",
       "thisWeek_other": "本周 {{count}} 封邮件",

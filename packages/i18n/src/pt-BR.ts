@@ -9232,6 +9232,8 @@ export const ptBR = {
         email: "Email",
         webhook: "Webhook",
         connector: "Email no MillionSend",
+        /** A routine on a new Slack message (ADR 0196). */
+        connectorSlack: "Mensagem no Slack",
       },
       frequency: "Frequência",
       frequencyPlaceholder: "Ex.: toda segunda às 9h",
@@ -15054,8 +15056,13 @@ export const ptBR = {
       whenFolder: "Quando chegar um email em {{address}} ({{folder}})",
       /** A routine on MillionSend's received email (ADR 0130) that names no inbox. */
       whenMillionSend: "Quando chegar um email no MillionSend",
+      /** A routine on a new Slack message (ADR 0196). */
+      whenSlack: "Quando chegar uma mensagem no Slack",
       inboxAddress: "Endereço da caixa",
       inboxAddressHelp: "Vazio = qualquer caixa do MillionSend.",
+      connection: "Conexão",
+      slackChannel: "ID do canal",
+      slackChannelHelp: "Vazio = todos os canais. O ID fica nos detalhes do canal, como C0123ABC.",
       unknownMailbox: "uma caixa de email",
       waiting: "Esperando um email",
       thisWeek_one: "{{count}} email esta semana",

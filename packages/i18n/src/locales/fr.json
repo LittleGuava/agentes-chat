@@ -9108,7 +9108,8 @@
         "event": "Événement",
         "email": "E-mail",
         "webhook": "Webhook",
-        "connector": "E-mail MillionSend"
+        "connector": "E-mail MillionSend",
+        "connectorSlack": "Message Slack"
       },
       "frequency": "Fréquence",
       "frequencyPlaceholder": "Ex. : tous les lundis à 9 h",
@@ -15320,8 +15321,12 @@
       "when": "Quand un e-mail arrive sur {{address}}",
       "whenFolder": "Quand un e-mail arrive sur {{address}} ({{folder}})",
       "whenMillionSend": "Quand un e-mail arrive sur MillionSend",
+      "whenSlack": "Quand un message arrive dans Slack",
       "inboxAddress": "Adresse de la boîte",
       "inboxAddressHelp": "Vide = n'importe quelle boîte MillionSend.",
+      "connection": "Connexion",
+      "slackChannel": "ID du canal",
+      "slackChannelHelp": "Vide = tous les canaux. L'ID se trouve dans les détails du canal, comme C0123ABC.",
       "unknownMailbox": "une boîte mail",
       "waiting": "En attente d'un e-mail",
       "thisWeek_one": "{{count}} e-mail cette semaine",

@@ -629,7 +629,21 @@ describe("Composio webhooks", () => {
       metadata: { trigger_slug: "GITHUB_COMMIT_EVENT", trigger_id: "ti_x", connected_account_id: "ca_x" },
       data: { commit_sha: "a1b2" },
     });
-    expect(client.verifyWebhook(sign(github), github)).toEqual({ type: "other" });
+    // Any trigger that isn't mail is a connector event the engine matches to its routine (ADR 0196).
+    expect(client.verifyWebhook(sign(github), github)).toEqual({
+      type: "trigger.event",
+      triggerId: "ti_x",
+      connectedAccountId: "ca_x",
+      slug: "GITHUB_COMMIT_EVENT",
+      payload: { commit_sha: "a1b2" },
+    });
+    const unnamed = JSON.stringify({
+      id: "msg_7",
+      type: "composio.trigger.message",
+      metadata: { trigger_id: "ti_y", connected_account_id: "ca_x" },
+      data: {},
+    });
+    expect(client.verifyWebhook(sign(unnamed), unnamed)).toEqual({ type: "other" });
   });
 });
 

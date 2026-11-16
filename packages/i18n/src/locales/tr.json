@@ -8756,7 +8756,8 @@
         "event": "Olay",
         "email": "E-posta",
         "webhook": "Webhook",
-        "connector": "MillionSend e-postası"
+        "connector": "MillionSend e-postası",
+        "connectorSlack": "Slack mesajı"
       },
       "frequency": "Sıklık",
       "frequencyPlaceholder": "Örn.: her pazartesi saat 9'da",
@@ -14748,8 +14749,12 @@
       "when": "{{address}} adresine bir e-posta geldiğinde",
       "whenFolder": "{{address}} adresine ({{folder}}) bir e-posta geldiğinde",
       "whenMillionSend": "MillionSend'e bir e-posta geldiğinde",
+      "whenSlack": "Slack'e bir mesaj geldiğinde",
       "inboxAddress": "Posta kutusu adresi",
       "inboxAddressHelp": "Boş = herhangi bir MillionSend posta kutusu.",
+      "connection": "Bağlantı",
+      "slackChannel": "Kanal kimliği",
+      "slackChannelHelp": "Boş = tüm kanallar. Kimlik, kanal ayrıntılarında yer alır (ör. C0123ABC).",
       "unknownMailbox": "bir posta kutusu",
       "waiting": "E-posta bekleniyor",
       "thisWeek_one": "Bu hafta {{count}} e-posta",

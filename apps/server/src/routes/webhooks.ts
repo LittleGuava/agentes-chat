@@ -46,17 +46,19 @@ const HOOK_REFUSALS = {
  */
 export function registerWebhookReceiver(api: OpenAPIHono, deps: AppDeps) {
   const webhookDeps = { db: deps.db, keyWrappers: [deps.adapters.keyWrapper, ...deps.adapters.legacyKeyWrappers] };
-  // Composio (ADR 0038): new mail for routines, expired accounts. One endpoint for the whole server,
-  // signed with the subscription's secret (checked by the Composio client). Before the generic route.
+  // Composio (ADR 0038, 0196): new mail and connector events for routines, expired accounts. One endpoint for the
+  // whole server, signed with the subscription's secret (checked by the Composio client). Before the generic route.
+  const composioDeps = {
+    db: deps.db,
+    mail: deps.adapters.mail,
+    judge: deps.extras?.context?.judge,
+    hooks: routineHookDeps(deps),
+  };
   api.post("/webhooks/composio", async (c) => {
     const raw = await readWebhookText(c.req.raw, 1_000_000);
     if (raw === null) return c.json({ error: "too large" }, 413);
     try {
-      const result = await handleComposioWebhook(
-        { db: deps.db, mail: deps.adapters.mail, judge: deps.extras?.context?.judge },
-        c.req.raw.headers,
-        raw,
-      );
+      const result = await handleComposioWebhook(composioDeps, c.req.raw.headers, raw);
       if (result.fired > 0) deps.wakeWorkers?.();
       return c.json({ ok: true, type: result.type, fired: result.fired }, 202);
     } catch (error) {

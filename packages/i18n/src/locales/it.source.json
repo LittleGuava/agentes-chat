@@ -21360,6 +21360,9 @@
   "routines.form.kind.connector": {
     "value": "MillionSend email"
   },
+  "routines.form.kind.connectorSlack": {
+    "value": "Slack message"
+  },
   "routines.form.frequency": {
     "value": "Frequency"
   },
@@ -36416,11 +36419,23 @@
   "mail.routine.whenMillionSend": {
     "value": "When an email arrives in MillionSend"
   },
+  "mail.routine.whenSlack": {
+    "value": "When a message arrives in Slack"
+  },
   "mail.routine.inboxAddress": {
     "value": "Inbox address"
   },
   "mail.routine.inboxAddressHelp": {
     "value": "Empty = any MillionSend inbox."
+  },
+  "mail.routine.connection": {
+    "value": "Connection"
+  },
+  "mail.routine.slackChannel": {
+    "value": "Channel ID"
+  },
+  "mail.routine.slackChannelHelp": {
+    "value": "Empty = every channel. The ID is in the channel's details, like C0123ABC."
   },
   "mail.routine.unknownMailbox": {
     "value": "a mailbox"

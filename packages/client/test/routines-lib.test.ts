@@ -1,7 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import type { Message } from "../src/index";
 import {
+  cleanConnectorFilter,
   connectionReader,
+  connectorChoiceKey,
+  connectorDraftFor,
+  connectorEventChoices,
+  connectorEventOfChoice,
+  connectorWhenWords,
   hookCurl,
   isRefusedHookCall,
   isRoutineCall,
@@ -156,5 +162,72 @@ describe("what a routine's email trigger offers for its agent", () => {
     expect([mail("a"), mail("b"), mail("c")]).toEqual([false, true, false]);
     const grants = connectionReader([{ connectionId: "c1", scope: "custom:c1:read" }]);
     expect([grants("c1"), grants("c2")]).toEqual([true, false]);
+  });
+});
+
+describe("a routine's connector event in words (ADR 0130, 0196)", () => {
+  const trigger = (event: "millionsend.email.received" | "slack.message.received", filter = {}) => ({
+    type: "connector" as const,
+    connectionId: "c1",
+    event,
+    inboxId: null,
+    filter,
+    status: "active" as const,
+    lastError: null,
+  });
+
+  test("an email names its inbox or the service; a Slack message names Slack", () => {
+    expect(connectorWhenWords(trigger("millionsend.email.received", { to: "vendas@loja.example" }))).toEqual({
+      key: "mail.routine.when",
+      values: { address: "vendas@loja.example" },
+    });
+    expect(connectorWhenWords(trigger("millionsend.email.received"))).toEqual({ key: "mail.routine.whenMillionSend" });
+    expect(connectorWhenWords(trigger("slack.message.received", { channel: "C0SALES" }))).toEqual({
+      key: "mail.routine.whenSlack",
+    });
+  });
+
+  test("the forms send back only the filters that say something, a Slack message's included", () => {
+    expect(
+      cleanConnectorFilter({
+        to: " Vendas@Loja.example ",
+        from: [],
+        subject: " ",
+        channel: " c0sales ",
+        text: " pedido ",
+      }),
+    ).toEqual({ to: "vendas@loja.example", channel: "C0SALES", text: "pedido" });
+    expect(cleanConnectorFilter({})).toEqual({});
+  });
+});
+
+describe("which connector events Quando offers (ADR 0130, 0196)", () => {
+  const server = (events: ("millionsend.email.received" | "slack.message.received")[]) => ({ events });
+
+  test("one choice per event a connection of the workspace brings, in a fixed order, plus the routine's own", () => {
+    expect(connectorEventChoices([])).toEqual([]);
+    expect(connectorEventChoices([server(["slack.message.received"]), {}])).toEqual(["slack.message.received"]);
+    expect(connectorEventChoices([server(["slack.message.received"]), server(["millionsend.email.received"])])).toEqual(
+      ["millionsend.email.received", "slack.message.received"],
+    );
+    // A routine whose connection is gone still shows its own event, so it can be read and moved.
+    expect(connectorEventChoices([], "slack.message.received")).toEqual(["slack.message.received"]);
+  });
+
+  test("each choice has its own key in the When picker, read back to its event", () => {
+    expect(connectorChoiceKey("slack.message.received")).toBe("connector:slack.message.received");
+    expect(connectorEventOfChoice(connectorChoiceKey("slack.message.received"))).toBe("slack.message.received");
+    expect(connectorEventOfChoice("connector:github.issue")).toBeNull();
+    expect(connectorEventOfChoice("schedule")).toBeNull();
+  });
+
+  test("picking another event starts its connection and filters over; the same event keeps them", () => {
+    const email = { connectionId: "ms-1", event: "millionsend.email.received" as const, filter: { to: "a@b.example" } };
+    expect(connectorDraftFor(email, "slack.message.received")).toEqual({
+      connectionId: "",
+      event: "slack.message.received",
+      filter: {},
+    });
+    expect(connectorDraftFor(email, "millionsend.email.received")).toBe(email);
   });
 });

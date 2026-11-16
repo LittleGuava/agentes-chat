@@ -4285,16 +4285,22 @@ export interface RoutineMeetingTrigger {
   lastError: string | null;
 }
 
-/** A connector's event (ADR 0130): "Quando chegar um e-mail no MillionSend", from an inbox or all of them. */
+/**
+ * A connector's event (ADR 0130): "Quando chegar um e-mail no MillionSend", from an inbox or all of them; or a new
+ * Slack message through Composio (ADR 0196).
+ */
 export interface RoutineConnectorTrigger {
   type: "connector";
   connectionId: string;
-  event: "millionsend.email.received";
-  /** Null: every inbox of the team. */
+  event: "millionsend.email.received" | "slack.message.received";
+  /** Null: every inbox of the team (MillionSend's only). */
   inboxId: string | null;
-  /** `to`: the inbox's address ("Quando chegar um e-mail em vendas@…"). */
-  filter: Pick<RoutineEmailFilter, "from" | "subject"> & { to?: string };
-  /** `error`: the service refused the webhook (`lastError`); saving the routine again retries. */
+  /**
+   * An email's: `to`, the inbox's address ("Quando chegar um e-mail em vendas@…"), senders and subject. A Slack
+   * message's: `channel` (its id) and `text` (words it contains).
+   */
+  filter: Pick<RoutineEmailFilter, "from" | "subject"> & { to?: string; channel?: string; text?: string };
+  /** `error`: the service refused the webhook or trigger (`lastError`); saving the routine again retries. */
   status: "active" | "error";
   lastError: string | null;
 }

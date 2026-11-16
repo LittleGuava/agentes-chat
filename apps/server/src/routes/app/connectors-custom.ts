@@ -65,7 +65,8 @@ const CustomServer = z
         "`needs_reconnect`: its Composio account stopped working, and agents get no tool of it until Reconectar.",
     }),
     events: z.array(z.enum(CONNECTOR_EVENTS)).openapi({
-      description: "What routines can wait on from it (ADR 0130): `millionsend.email.received`.",
+      description:
+        "What routines can wait on from it (ADR 0130, 0196): `millionsend.email.received`, `slack.message.received`.",
     }),
     perPerson: z.boolean().openapi({
       description:

@@ -1,7 +1,6 @@
 import type {
   MailFolder,
   Routine,
-  RoutineConnectorTrigger,
   RoutineEmailFilter,
   RoutineEvent,
   RoutineInput,
@@ -12,6 +11,7 @@ import type {
 } from "@agenteschat/client";
 import type { RunStatus } from "@agenteschat/client/lib/calendar";
 import { type RoutineFix, runPixels } from "@agenteschat/client/lib/routine-view";
+import { type ConnectorDraftShape, cleanConnectorFilter } from "@agenteschat/client/lib/routines";
 import type { IconName } from "@/ui";
 import { defaultRule, fromApiRule, onceAt, onceRule, type RecurrenceRule, toApiRule } from "./rule";
 
@@ -346,23 +346,16 @@ export const emailDraftOf = (r: Routine | undefined): EmailDraft =>
 
 export type TriggerKind = "schedule" | "event" | "email" | "webhook" | "connector";
 
-/** "Email no MillionSend" (ADR 0130): the connection and the inbox's address, sender and subject filters. */
-export interface ConnectorDraft {
-  connectionId: string;
-  filter: RoutineConnectorTrigger["filter"];
-}
-
-/** Only the filters that say something. */
-export const cleanConnectorFilter = (f: RoutineConnectorTrigger["filter"]): RoutineConnectorTrigger["filter"] => ({
-  ...(f.to?.trim() ? { to: f.to.trim().toLowerCase() } : {}),
-  ...(f.from?.length ? { from: f.from } : {}),
-  ...(f.subject?.trim() ? { subject: f.subject.trim() } : {}),
-});
+/**
+ * A connector's event (ADR 0130, 0196): the connection, then MillionSend's inbox address, sender and subject filters,
+ * or a Slack message's channel and words.
+ */
+export type ConnectorDraft = ConnectorDraftShape;
 
 const connectorTrigger = (c: ConnectorDraft) => ({
   type: "connector" as const,
   connectionId: c.connectionId,
-  event: "millionsend.email.received" as const,
+  event: c.event,
   inboxId: null,
   filter: cleanConnectorFilter(c.filter),
 });
@@ -418,8 +411,8 @@ export function draftOf(r: Routine | undefined, zone: string, today = new Date()
     email: emailDraftOf(r),
     connector:
       r?.trigger.type === "connector"
-        ? { connectionId: r.trigger.connectionId, filter: r.trigger.filter }
-        : { connectionId: "", filter: {} },
+        ? { connectionId: r.trigger.connectionId, event: r.trigger.event, filter: r.trigger.filter }
+        : { connectionId: "", event: "millionsend.email.received", filter: {} },
     rule: ruleOf(r, zone, today),
     active: r?.active ?? true,
     report: r?.report ?? "when_new",
@@ -486,7 +479,13 @@ export function draftChanges(r: Routine, d: RoutineDraft, savedRule: string, rul
       : d.kind === "connector"
         ? r.trigger.type !== "connector" ||
           JSON.stringify(connectorTrigger(d.connector)) !==
-            JSON.stringify(connectorTrigger({ connectionId: r.trigger.connectionId, filter: r.trigger.filter }))
+            JSON.stringify(
+              connectorTrigger({
+                connectionId: r.trigger.connectionId,
+                event: r.trigger.event,
+                filter: r.trigger.filter,
+              }),
+            )
         : d.kind === "webhook"
           ? r.trigger.type !== "webhook"
           : d.kind === "email"

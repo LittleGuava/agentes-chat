@@ -9349,7 +9349,8 @@
         "event": "Событие",
         "email": "Почта",
         "webhook": "Вебхук",
-        "connector": "Почта MillionSend"
+        "connector": "Почта MillionSend",
+        "connectorSlack": "Сообщение в Slack"
       },
       "frequency": "Частота",
       "frequencyPlaceholder": "Например: каждый понедельник в 9:00",
@@ -15790,8 +15791,12 @@
       "when": "Когда на {{address}} приходит письмо",
       "whenFolder": "Когда на {{address}} ({{folder}}) приходит письмо",
       "whenMillionSend": "Когда в MillionSend приходит письмо",
+      "whenSlack": "Когда в Slack приходит сообщение",
       "inboxAddress": "Адрес ящика",
       "inboxAddressHelp": "Пусто = любой ящик MillionSend.",
+      "connection": "Подключение",
+      "slackChannel": "ID канала",
+      "slackChannelHelp": "Пусто = все каналы. ID есть в сведениях о канале, например C0123ABC.",
       "unknownMailbox": "почтовый ящик",
       "waiting": "Ждём письмо",
       "thisWeek_one": "{{count}} письмо на этой неделе",

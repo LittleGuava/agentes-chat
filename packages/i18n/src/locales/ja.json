@@ -8489,7 +8489,8 @@
         "event": "イベント",
         "email": "メール",
         "webhook": "Webhook",
-        "connector": "MillionSend のメール"
+        "connector": "MillionSend のメール",
+        "connectorSlack": "Slack のメッセージ"
       },
       "frequency": "頻度",
       "frequencyPlaceholder": "例: 毎週月曜の9時",
@@ -14265,8 +14266,12 @@
       "when": "{{address}}にメールが届いたとき",
       "whenFolder": "{{address}}（{{folder}}）にメールが届いたとき",
       "whenMillionSend": "MillionSend にメールが届いたとき",
+      "whenSlack": "Slack にメッセージが届いたとき",
       "inboxAddress": "メールボックスのアドレス",
       "inboxAddressHelp": "空欄の場合は MillionSend のどのメールボックスでも。",
+      "connection": "接続",
+      "slackChannel": "チャンネル ID",
+      "slackChannelHelp": "空欄 = すべてのチャンネル。ID はチャンネルの詳細にあります（例: C0123ABC）。",
       "unknownMailbox": "メールボックス",
       "waiting": "メールを待っています",
       "thisWeek_other": "今週のメール {{count}}件",

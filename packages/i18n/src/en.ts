@@ -9260,7 +9260,15 @@ export const en = {
       whatPlaceholder: "E.g.: Summarize what happened this week in #eng and #product.",
       name: "Name (optional)",
       when: "When",
-      kind: { schedule: "Time", event: "Event", email: "Email", webhook: "Webhook", connector: "MillionSend email" },
+      kind: {
+        schedule: "Time",
+        event: "Event",
+        email: "Email",
+        webhook: "Webhook",
+        connector: "MillionSend email",
+        /** A routine on a new Slack message (ADR 0196). */
+        connectorSlack: "Slack message",
+      },
       frequency: "Frequency",
       frequencyPlaceholder: "E.g.: every Monday at 9am",
       timezone: "Time zone",
@@ -15099,8 +15107,13 @@ export const en = {
       whenFolder: "When an email arrives at {{address}} ({{folder}})",
       /** A routine on MillionSend's received email (ADR 0130) that names no inbox. */
       whenMillionSend: "When an email arrives in MillionSend",
+      /** A routine on a new Slack message (ADR 0196). */
+      whenSlack: "When a message arrives in Slack",
       inboxAddress: "Inbox address",
       inboxAddressHelp: "Empty = any MillionSend inbox.",
+      connection: "Connection",
+      slackChannel: "Channel ID",
+      slackChannelHelp: "Empty = every channel. The ID is in the channel's details, like C0123ABC.",
       unknownMailbox: "a mailbox",
       waiting: "Waiting for an email",
       thisWeek_one: "{{count}} email this week",

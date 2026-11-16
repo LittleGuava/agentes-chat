@@ -8527,7 +8527,8 @@
         "event": "Peristiwa",
         "email": "Email",
         "webhook": "Webhook",
-        "connector": "Email MillionSend"
+        "connector": "Email MillionSend",
+        "connectorSlack": "Pesan Slack"
       },
       "frequency": "Frekuensi",
       "frequencyPlaceholder": "Misalnya: setiap Senin pukul 9 pagi",
@@ -14320,8 +14321,12 @@
       "when": "Saat email masuk ke {{address}}",
       "whenFolder": "Saat email masuk ke {{address}} ({{folder}})",
       "whenMillionSend": "Saat email masuk ke MillionSend",
+      "whenSlack": "Saat pesan masuk di Slack",
       "inboxAddress": "Alamat kotak surat",
       "inboxAddressHelp": "Kosong = kotak surat MillionSend mana pun.",
+      "connection": "Koneksi",
+      "slackChannel": "ID channel",
+      "slackChannelHelp": "Kosong = semua channel. ID ada di detail channel, seperti C0123ABC.",
       "unknownMailbox": "sebuah kotak surat",
       "waiting": "Menunggu email",
       "thisWeek_other": "{{count}} email minggu ini",
