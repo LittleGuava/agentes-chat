@@ -80,6 +80,7 @@ import {
   createSessionScreening,
   createSetStatusToolSource,
   createSetupToolSource,
+  createSiteRelay,
   createSkillToolSource,
   createSpeechSettings,
   createStreamBroker,
@@ -134,6 +135,7 @@ import {
   type StorageDeps,
   setWorkOrgCap,
   shareSavedFile,
+  siteRelayFromDb,
   smallModelFor,
   standingJudge,
   streamClosed,
@@ -143,6 +145,7 @@ import {
   warmAgentBrowser,
   withComposio,
   withJudgeFallback,
+  withRelaySites,
 } from "@agenteschat/engine";
 import {
   createImageProviders,
@@ -624,6 +627,12 @@ export function buildEngine(o: EngineOptions) {
       }
     },
   });
+  // Sites that refuse data centers open through a person's own computer (ADR 0203): two runners' data sockets paired.
+  const siteRelay = createSiteRelay({ hub: machineHub, ...siteRelayFromDb(db), log: o.log });
+  machineHub.setRelayHooks({
+    want: (machine, frame) => siteRelay.want(machine, frame),
+    agents: (orgId, machineId, agents) => withRelaySites(db, orgId, machineId, agents),
+  });
   // agentes.chat Cloud reads the screen's text while a person is in control (ADR 0076); a self-hosted server never.
   const sessions = config.SESSION_SCREENING ? createSessionScreening({ db, hub: machineHub, log: o.log }) : null;
   // Agents' desktops and terminals (ADR 0058): each person's stream paired with the runner's data socket for it,
@@ -647,8 +656,10 @@ export function buildEngine(o: EngineOptions) {
     },
     recheck: (stream) => recheckStream(db, stream),
     reauthorize: (stream, mode) => reauthorizeStream(db, stream, mode),
-    // An agent browser's live view has a data socket of its own too (ADR 0040 §7.1).
-    claim: (streamId, machineId, socket) => browserLive.claimView(streamId, machineId, socket),
+    // An agent browser's live view has a data socket of its own too (ADR 0040 §7.1), and so has each end of a
+    // tunnel through a person's computer (ADR 0203).
+    claim: (streamId, machineId, socket) =>
+      browserLive.claimView(streamId, machineId, socket) ?? siteRelay.claim(streamId, machineId, socket),
     onReady: sessions ? (stream) => sessions.ready(stream) : undefined,
     onClosed: (stream) => Promise.all([streamClosed(db, stream), sessions?.closed(stream)]),
     log: o.log,
