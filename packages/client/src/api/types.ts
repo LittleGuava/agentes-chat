@@ -3077,6 +3077,8 @@ export interface CustomServer {
   perPerson?: boolean;
   /** The caller's own account on a per-person connection; null when they have none. */
   mine?: PersonalAccount | null;
+  /** Whether a meeting routine can watch it (ADR 0190): a Google Calendar. Older servers leave it out. */
+  meetings?: boolean;
   /** Last time an admin saved the classification; null = never (nothing exposed). */
   reviewedAt: string | null;
   createdAt: string;
@@ -4237,8 +4239,8 @@ export type RoutineTrigger =
   | RoutineMeetingTrigger;
 
 /**
- * "Antes de cada reunião" (ADR 0190): `leadMinutes` before each meeting of a Google Calendar connection. Made through
- * the API for now; the apps only show it.
+ * "Antes de uma reunião" (ADR 0190): `leadMinutes` before each meeting of a Google Calendar connection. The routine
+ * form sets it (its rules in `lib/routines.ts`).
  */
 export interface RoutineMeetingTrigger {
   type: "meeting";
@@ -4247,6 +4249,13 @@ export interface RoutineMeetingTrigger {
   /** `error`: the last look at the calendar failed, or the agent can no longer read it (`lastError`). */
   status: "active" | "error";
   lastError: string | null;
+}
+
+/** A meeting trigger as the API takes it: without `leadMinutes`, 15. */
+export interface RoutineMeetingTriggerInput {
+  type: "meeting";
+  connectionId: string;
+  leadMinutes?: number;
 }
 
 /**
@@ -4523,7 +4532,8 @@ export interface RoutineInput {
     | { type: "once"; at: string; timezone?: string }
     | Omit<RoutineEmailTrigger, "status">
     | { type: "webhook"; methods?: RoutineHookMethod[] }
-    | Omit<RoutineConnectorTrigger, "status" | "lastError">;
+    | Omit<RoutineConnectorTrigger, "status" | "lastError">
+    | RoutineMeetingTriggerInput;
   /** Ignored: every routine acts (ADR 0109). */
   access?: RoutineAccess;
   /** Default `when_new` ("Só quando tiver novidade"). */

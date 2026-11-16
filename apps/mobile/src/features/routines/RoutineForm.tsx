@@ -30,6 +30,8 @@ import {
   connectorEventOfChoice,
   connectorKindKey,
   mailboxReader,
+  meetingCalendars,
+  meetingLeadOf,
   SLACK_MESSAGE,
   timezoneName,
   triggerChoices,
@@ -88,7 +90,9 @@ import {
   targetChoice,
   targetIcon,
   toastParts,
+  triggerReady,
   wasUtc,
+  withKind,
   zoneOf,
 } from "./logic";
 import { AgentAccessNote } from "./parts";
@@ -112,7 +116,7 @@ import { setRoutineZone, useRoutineZone } from "./zone";
 
 const PROMPT_LIMIT = { max: FIELD_LIMITS.routinePrompt };
 
-type Open = "agent" | "target" | "mailbox" | "folder" | "connection" | null;
+type Open = "agent" | "target" | "mailbox" | "folder" | "connection" | "calendar" | null;
 
 const close = () => goBack("/routines");
 
@@ -166,6 +170,7 @@ function Form({ routine }: { routine: Routine | undefined }) {
   const channels = useChannels(orgId);
   const mailboxes = useMailAccounts(orgId);
   const servers = useCustomServers(orgId).data ?? [];
+  const calendars = meetingCalendars(servers);
   const targetLabel = useTargetLabel();
   const action = useRoutineAction(orgId);
   const agents = dir.agents;
@@ -399,13 +404,17 @@ function Form({ routine }: { routine: Routine | undefined }) {
   const [msFromText, setMsFromText] = useState(() => (d.connector.filter.from ?? []).join(", "));
   const pickWhen = (choice: string) => {
     const picked = connectorEventOfChoice(choice);
-    const plain = (["schedule", "event", "email", "webhook"] as const).find((k) => k === choice);
+    const plain = (["schedule", "event", "email", "meeting", "webhook"] as const).find((k) => k === choice);
     if (picked) {
       if (picked !== d.connector.event) setMsFromText("");
-      setD((x) => ({ ...x, kind: "connector", connector: connectorDraftFor(x.connector, picked) }));
-    } else if (plain) set({ kind: plain });
+      setD((x) => ({ ...withKind(x, "connector", reportPicked), connector: connectorDraftFor(x.connector, picked) }));
+    } else if (plain) setD((x) => withKind(x, plain, reportPicked));
   };
-  const grants = useAgentScopes(orgId, d.agentId, d.kind === "connector" && Boolean(d.agentId));
+  const grants = useAgentScopes(
+    orgId,
+    d.agentId,
+    (d.kind === "connector" || d.kind === "meeting") && Boolean(d.agentId),
+  );
   const connectionPick = triggerChoices(
     eventConnections,
     d.agentId && grants.data ? connectionReader(grants.data) : undefined,
@@ -425,6 +434,22 @@ function Form({ routine }: { routine: Routine | undefined }) {
     text?: string;
   }) => setD((x) => ({ ...x, connector: { ...x.connector, filter: { ...x.connector.filter, ...patch } } }));
   const msFromBad = d.kind === "connector" && msFrom.invalid.length > 0;
+  // "Antes de uma reunião" (ADR 0190): the first calendar its agent reads, until the person picks, and the minutes.
+  const hasCalendar = d.kind === "meeting" || calendars.length > 0;
+  const calendarPick = triggerChoices(
+    calendars,
+    d.agentId && grants.data ? connectionReader(grants.data) : undefined,
+    d.meeting.connectionId,
+  );
+  const firstCalendar = d.agentId && grants.isPending ? undefined : calendarPick.options[0]?.id;
+  useEffect(() => {
+    if (d.kind === "meeting" && !d.meeting.connectionId && firstCalendar)
+      setD((x) => ({ ...x, meeting: { ...x.meeting, connectionId: firstCalendar } }));
+  }, [d.kind, d.meeting.connectionId, firstCalendar]);
+  const calendarName = (calendars.find((s) => s.id === d.meeting.connectionId) ?? calendars[0])?.label ?? "";
+  const leadBad = d.kind === "meeting" && meetingLeadOf(d.meeting.lead) === null;
+  // A new routine's "Quando posta" follows its kind (a meeting's prep always posts) until the person picks one.
+  const [reportPicked, setReportPicked] = useState(editing);
 
   // A routine on someone's computer that runs hourly or more often: how often it wakes that computer.
   const brain = dir.agentById.get(d.agentId)?.brain;
@@ -439,14 +464,7 @@ function Form({ routine }: { routine: Routine | undefined }) {
       : null;
 
   const promptHidden = routine !== undefined && routine.prompt === null;
-  const scheduleOk =
-    d.kind === "event" ||
-    d.kind === "webhook" ||
-    (d.kind === "connector"
-      ? Boolean(d.connector.connectionId) && !msFromBad
-      : d.kind === "email"
-        ? Boolean(d.email.accountId) && !fromBad
-        : !phraseFailed);
+  const scheduleOk = triggerReady(d) && !msFromBad && !fromBad && !(schedule && phraseFailed);
   const [template, setTemplate] = useState<RoutineTemplateOption>();
   const unfilled = blankLeft(d.prompt, template);
   const ready =
@@ -464,6 +482,7 @@ function Form({ routine }: { routine: Routine | undefined }) {
     setTemplate(o);
     setPhrase("");
     setPhraseTyped(false);
+    setReportPicked(true);
     setD((x) => ({
       ...x,
       prompt: o.prompt,
@@ -647,6 +666,7 @@ function Form({ routine }: { routine: Routine | undefined }) {
               { key: "event", label: t("routines.form.kind.event") },
               ...(hasMail ? [{ key: "email", label: t("routines.form.kind.email") }] : []),
               ...connectorEvents.map((e) => ({ key: connectorChoiceKey(e), label: t(connectorKindKey(e)) })),
+              ...(hasCalendar ? [{ key: "meeting", label: t("routines.form.kind.meeting") }] : []),
               { key: "webhook", label: t("routines.form.kind.webhook") },
             ]}
             value={d.kind === "connector" ? connectorChoiceKey(d.connector.event) : d.kind}
@@ -1016,6 +1036,66 @@ function Form({ routine }: { routine: Routine | undefined }) {
             </>
           ) : null}
 
+          {d.kind === "meeting" ? (
+            <>
+              {calendarPick.cantRead ? (
+                <AgentAccessNote
+                  agentId={d.agentId}
+                  words={
+                    calendarPick.options.length === 0
+                      ? "mail.routine.connectorReadsNone"
+                      : "mail.routine.connectorCantRead"
+                  }
+                  values={{ connector: calendarName }}
+                />
+              ) : null}
+              {calendarPick.options.length > 0 ? (
+                <>
+                  <View style={styles.gap} />
+                  <GroupedList>
+                    <GroupedRow
+                      icon="calendar"
+                      label={t("routines.meeting.calendar")}
+                      value={calendarName}
+                      chevron={calendarPick.options.length > 1}
+                      onPress={calendarPick.options.length > 1 ? () => toggle("calendar") : undefined}
+                    />
+                    {open === "calendar"
+                      ? calendarPick.options
+                          .filter((s) => s.id !== d.meeting.connectionId)
+                          .map((s) => (
+                            <GroupedRow
+                              key={s.id}
+                              label={s.label}
+                              onPress={() => {
+                                setD((x) => ({ ...x, meeting: { ...x.meeting, connectionId: s.id } }));
+                                setOpen(null);
+                              }}
+                            />
+                          ))
+                      : null}
+                    <StackedField label={t("routines.meeting.lead")}>
+                      <TextInput
+                        value={d.meeting.lead}
+                        onChangeText={(lead) => setD((x) => ({ ...x, meeting: { ...x.meeting, lead } }))}
+                        keyboardType="number-pad"
+                        accessibilityLabel={t("routines.meeting.lead")}
+                        style={input}
+                      />
+                    </StackedField>
+                  </GroupedList>
+                  {leadBad ? (
+                    <Text variant="footnote" tone="danger" style={styles.error} accessibilityLiveRegion="polite">
+                      {t("errors.said.meetingLead")}
+                    </Text>
+                  ) : (
+                    <GroupedFooter>{t("routines.meeting.leadExample")}</GroupedFooter>
+                  )}
+                </>
+              ) : null}
+            </>
+          ) : null}
+
           {d.kind === "webhook" ? (
             routine?.trigger.type === "webhook" ? (
               <WebhookCard routine={routine} runs={routine.recentRuns} />
@@ -1042,7 +1122,10 @@ function Form({ routine }: { routine: Routine | undefined }) {
                 key={v}
                 label={t(`routines.report.${v}`)}
                 checked={d.report === v}
-                onPress={() => set({ report: v })}
+                onPress={() => {
+                  set({ report: v });
+                  setReportPicked(true);
+                }}
               />
             ))}
           </GroupedList>

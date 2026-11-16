@@ -8032,7 +8032,12 @@
     "copyWebhook": "Salin URL webhook",
     "webhookCopied": "URL webhook disalin.",
     "meeting": {
-      "when": "{{minutes}} menit sebelum setiap rapat"
+      "when": "{{minutes}} menit sebelum setiap rapat",
+      "calendar": "Kalender",
+      "lead": "Menit sebelumnya",
+      "leadExample": "Dari 5 sampai 240.",
+      "every": "Memeriksa kalender setiap 15 menit dan berjalan sekali sebelum setiap rapat dengan orang lain.",
+      "waiting": "Menunggu rapat berikutnya"
     },
     "webhook": {
       "when": "Saat webhook-nya dipanggil",
@@ -8483,6 +8488,7 @@
         "email": "Email",
         "webhook": "Webhook",
         "connector": "Email MillionSend",
+        "meeting": "Sebelum rapat",
         "connectorSlack": "Pesan Slack"
       },
       "frequency": "Frekuensi",
@@ -14466,6 +14472,7 @@
       "createRefused": "Kamu tidak bisa membuat ruang kerja sekarang.",
       "noAgentToRemind": "Tidak ada agen di percakapan ini yang bisa mengingatkanmu.",
       "agentCantRead": "Izinkan agen membaca ini dulu, di akses agen.",
+      "meetingLead": "Pilih 5 sampai 240 menit.",
       "neverHappens": "Jadwal ini tidak pernah terjadi.",
       "soleOwner": "Kamu satu-satunya pemilik ruang kerja yang punya anggota lain. Jadikan orang lain pemilik, atau hapus ruang kerjanya, lebih dulu.",
       "testFirst": "Uji koneksi dengan pengaturan ini sebelum menyalakannya.",
@@ -14692,8 +14699,7 @@
       "actionsNeedApprover": "Hanya pemilik agen atau orang yang menyetujui tindakannya yang bisa membiarkan rutinitas bertindak sendiri.",
       "editorOnly": "Hanya pembuat rutinitas, pemilik agen, atau Admin yang bisa mengubahnya.",
       "widgetFixed": "Rutinitas ini menjaga widget tetap terbaru. Ubah dari widget-nya.",
-      "connectorChannelInvalid": "Itu bukan ID kanal Slack. Salin dari detail kanal di Slack.",
-      "meetingLeadInvalid": "Pilih antara {{min}} dan {{max}} menit sebelum rapat."
+      "connectorChannelInvalid": "Itu bukan ID kanal Slack. Salin dari detail kanal di Slack."
     },
     "run": {
       "notContinuable": "Jawaban ini sudah tidak bisa dilanjutkan.",

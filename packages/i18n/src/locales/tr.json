@@ -8258,7 +8258,12 @@
     "copyWebhook": "Webhook URL'sini kopyala",
     "webhookCopied": "Webhook URL'si kopyalandı.",
     "meeting": {
-      "when": "Her toplantıdan {{minutes}} dk önce"
+      "when": "Her toplantıdan {{minutes}} dk önce",
+      "calendar": "Takvim",
+      "lead": "Kaç dakika önce",
+      "leadExample": "5 ile 240 arası.",
+      "every": "Takvime 15 dakikada bir bakar ve başka biriyle yapılan her toplantıdan önce bir kez çalışır.",
+      "waiting": "Sonraki toplantı bekleniyor"
     },
     "webhook": {
       "when": "Webhook'u çağrıldığında",
@@ -8711,6 +8716,7 @@
         "email": "E-posta",
         "webhook": "Webhook",
         "connector": "MillionSend e-postası",
+        "meeting": "Bir toplantıdan önce",
         "connectorSlack": "Slack mesajı"
       },
       "frequency": "Sıklık",
@@ -14898,6 +14904,7 @@
       "createRefused": "Şu anda çalışma alanı oluşturamazsınız.",
       "noAgentToRemind": "Bu sohbette size hatırlatabilecek bir ajan yok.",
       "agentCantRead": "Önce ajanın erişim ayarlarından bunu okumasına izin verin.",
+      "meetingLead": "5 ile 240 dakika arasında seçin.",
       "neverHappens": "Bu zamanlama hiç gerçekleşmiyor.",
       "soleOwner": "Başka üyeleri olan bir çalışma alanının tek sahibi sizsiniz. Önce başka birini sahip yapın veya çalışma alanını silin.",
       "testFirst": "Açmadan önce bağlantıyı bu ayarlarla test edin.",
@@ -15124,8 +15131,7 @@
       "actionsNeedApprover": "Bir rutinin kendi başına hareket etmesine yalnızca ajanın sahibi veya eylemlerini onaylayan kişi izin verebilir.",
       "editorOnly": "Rutini yalnızca oluşturan kişi, ajanın sahibi veya bir yönetici değiştirebilir.",
       "widgetFixed": "Bu rutin bir widget'ı güncel tutar. Widget'ından değiştirin.",
-      "connectorChannelInvalid": "Bu bir Slack kanalı kimliği değil. Slack'te kanal ayrıntılarından kopyalayın.",
-      "meetingLeadInvalid": "Toplantıdan {{min}} ile {{max}} dakika öncesini seçin."
+      "connectorChannelInvalid": "Bu bir Slack kanalı kimliği değil. Slack'te kanal ayrıntılarından kopyalayın."
     },
     "run": {
       "notContinuable": "Bu yanıta artık devam edilemez.",

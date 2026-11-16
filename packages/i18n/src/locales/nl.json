@@ -8348,7 +8348,12 @@
     "copyWebhook": "Webhook-URL kopiëren",
     "webhookCopied": "Webhook-URL gekopieerd.",
     "meeting": {
-      "when": "{{minutes}} min vóór elke vergadering"
+      "when": "{{minutes}} min vóór elke vergadering",
+      "calendar": "Agenda",
+      "lead": "Minuten van tevoren",
+      "leadExample": "Van 5 tot 240.",
+      "every": "Kijkt elke 15 minuten in de agenda en draait één keer vóór elke vergadering met iemand anders.",
+      "waiting": "Wacht op de volgende vergadering"
     },
     "webhook": {
       "when": "Als de webhook wordt aangeroepen",
@@ -8801,6 +8806,7 @@
         "email": "E-mail",
         "webhook": "Webhook",
         "connector": "MillionSend-mail",
+        "meeting": "Voor een vergadering",
         "connectorSlack": "Slack-bericht"
       },
       "frequency": "Frequentie",
@@ -15026,6 +15032,7 @@
       "createRefused": "Je kunt nu geen werkruimte maken.",
       "noAgentToRemind": "Geen agent in dit gesprek kan je eraan herinneren.",
       "agentCantRead": "Laat de agent dit eerst lezen, bij de toegang van de agent.",
+      "meetingLead": "Kies 5 tot 240 minuten.",
       "neverHappens": "Deze planning komt nooit voor.",
       "soleOwner": "Je bent de enige eigenaar van een werkruimte met andere leden. Maak eerst iemand anders eigenaar of verwijder de werkruimte.",
       "testFirst": "Test de verbinding met deze gegevens voordat je hem aanzet.",
@@ -15252,8 +15259,7 @@
       "actionsNeedApprover": "Alleen de eigenaar van de agent of wie zijn acties goedkeurt, kan een routine zelfstandig laten handelen.",
       "editorOnly": "Alleen wie de routine maakte, de eigenaar van de agent of een beheerder kan hem wijzigen.",
       "widgetFixed": "Deze routine houdt een widget bij. Wijzig hem via de widget.",
-      "connectorChannelInvalid": "Dat is geen ID van een Slack-kanaal. Kopieer het uit de kanaaldetails in Slack.",
-      "meetingLeadInvalid": "Kies {{min}} tot {{max}} minuten voor de vergadering."
+      "connectorChannelInvalid": "Dat is geen ID van een Slack-kanaal. Kopieer het uit de kanaaldetails in Slack."
     },
     "run": {
       "notContinuable": "Dit antwoord kan niet meer voortgezet worden.",

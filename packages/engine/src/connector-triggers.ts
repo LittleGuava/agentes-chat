@@ -7,7 +7,7 @@ import { presetForServer } from "./connectors/presets";
 import { ValidationError } from "./errors";
 import { composioUserId } from "./mail/accounts";
 import { isEmailAddress, matchesAddressRules, normalizeAddressRule } from "./mail/text";
-import { hasScope } from "./tools/scopes";
+import { ALL_TOOLS, CONNECTOR_ALL, freshGrantedKeys, grantKey } from "./tools/scopes";
 
 const { connectorConnections, routineHooks } = schema;
 
@@ -243,6 +243,10 @@ export const connectorEventsOf = (serverUrl: string): ConnectorEventId[] => {
   return CONNECTOR_EVENTS.filter((e) => EVENTS[e].preset === preset);
 };
 
+/** The calendars a meeting routine can watch (ADR 0190): Google Calendar, through Composio. */
+export const MEETING_CALENDAR_PRESET = "google-calendar";
+export const isMeetingCalendar = (serverUrl: string) => presetForServer(serverUrl)?.id === MEETING_CALENDAR_PRESET;
+
 export const isConnectorEvent = (v: unknown): v is ConnectorEventId =>
   typeof v === "string" && (CONNECTOR_EVENTS as readonly string[]).includes(v);
 
@@ -307,6 +311,20 @@ export async function markComposioTriggerOff(db: Database, triggerId: string) {
 }
 
 /**
+ * Whether an agent may read a connection's tools, as the Tool Gateway reads its grants (`toolAccess`): the read
+ * scope, the whole connection (`connector:*`, what its Access switch and connecting it for everyone grant) or every
+ * tool (`*`). Write alone reads nothing. Read fresh: a grant taken back counts at once.
+ */
+export async function agentReadsConnection(db: Database, orgId: string, agentId: string, connectionId: string) {
+  const keys = await freshGrantedKeys(db, orgId, agentId);
+  return [
+    grantKey(connectionId, customScope(connectionId, "read")),
+    grantKey(connectionId, CONNECTOR_ALL),
+    grantKey(null, ALL_TOOLS),
+  ].some((k) => keys.has(k));
+}
+
+/**
  * The connection a routine's agent may take this event from: active in the workspace, made from the event's
  * service, and one whose tools its owner let the agent read (ADR 0016 §2), so the agent never learns of mail it
  * couldn't read itself.
@@ -330,7 +348,7 @@ export async function checkConnectorTrigger(
   if (!connection || presetForServer(connection.serverUrl)?.id !== EVENTS[input.event].preset) {
     throw new ValidationError("Pick a connected service", "routine.connector_not_found");
   }
-  if (!(await hasScope(db, orgId, agentId, connection.id, customScope(connection.id, "read")))) {
+  if (!(await agentReadsConnection(db, orgId, agentId, connection.id))) {
     throw new ValidationError(
       "Let the agent read this connection before a routine can wait on it",
       "routine.connector_agent_cannot_read",

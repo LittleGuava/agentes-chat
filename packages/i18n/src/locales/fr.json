@@ -8601,7 +8601,12 @@
     "copyWebhook": "Copier l'URL du webhook",
     "webhookCopied": "URL du webhook copiée.",
     "meeting": {
-      "when": "{{minutes}} min avant chaque réunion"
+      "when": "{{minutes}} min avant chaque réunion",
+      "calendar": "Agenda",
+      "lead": "Minutes avant",
+      "leadExample": "De 5 à 240.",
+      "every": "Consulte l'agenda toutes les 15 minutes et s'exécute une fois avant chaque réunion avec quelqu'un d'autre.",
+      "waiting": "En attente de la prochaine réunion"
     },
     "webhook": {
       "when": "Quand son webhook est appelé",
@@ -9062,6 +9067,7 @@
         "email": "E-mail",
         "webhook": "Webhook",
         "connector": "E-mail MillionSend",
+        "meeting": "Avant une réunion",
         "connectorSlack": "Message Slack"
       },
       "frequency": "Fréquence",
@@ -15476,6 +15482,7 @@
       "createRefused": "Vous ne pouvez pas créer d'espace de travail pour le moment.",
       "noAgentToRemind": "Aucun agent de cette conversation ne peut vous le rappeler.",
       "agentCantRead": "Laissez d'abord l'agent lire ceci, dans ses accès.",
+      "meetingLead": "Choisissez entre 5 et 240 minutes.",
       "neverHappens": "Cette planification n'arrive jamais.",
       "soleOwner": "Vous êtes le seul propriétaire d'un espace de travail avec d'autres membres. Nommez un autre propriétaire ou supprimez l'espace de travail d'abord.",
       "testFirst": "Testez la connexion avec ces réglages avant de l'activer.",
@@ -15702,8 +15709,7 @@
       "actionsNeedApprover": "Seuls le responsable de l'agent ou une personne qui approuve ses actions peuvent laisser une routine agir seule.",
       "editorOnly": "Seuls la personne qui a créé la routine, le responsable de l'agent ou un admin peuvent la modifier.",
       "widgetFixed": "Cette routine tient un widget à jour. Modifiez-la depuis son widget.",
-      "connectorChannelInvalid": "Ce n'est pas l'ID d'un canal Slack. Copiez-le depuis les détails du canal dans Slack.",
-      "meetingLeadInvalid": "Choisissez entre {{min}} et {{max}} minutes avant la réunion."
+      "connectorChannelInvalid": "Ce n'est pas l'ID d'un canal Slack. Copiez-le depuis les détails du canal dans Slack."
     },
     "run": {
       "notContinuable": "Cette réponse ne peut plus être poursuivie.",

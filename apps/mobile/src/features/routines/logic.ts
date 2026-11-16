@@ -11,7 +11,17 @@ import type {
 } from "@agenteschat/client";
 import type { RunStatus } from "@agenteschat/client/lib/calendar";
 import { type RoutineFix, runPixels } from "@agenteschat/client/lib/routine-view";
-import { type ConnectorDraftShape, cleanConnectorFilter } from "@agenteschat/client/lib/routines";
+import {
+  type ConnectorDraftShape,
+  cleanConnectorFilter,
+  defaultReportFor,
+  formKindOf,
+  type MeetingDraft,
+  meetingDraftOf,
+  meetingTriggerChanged,
+  meetingTriggerOf,
+  type RoutineFormKind,
+} from "@agenteschat/client/lib/routines";
 import type { IconName } from "@/ui";
 import { defaultRule, fromApiRule, onceAt, onceRule, type RecurrenceRule, toApiRule } from "./rule";
 
@@ -34,7 +44,9 @@ export const isEventDriven = (r: Pick<Routine, "trigger">) =>
   r.trigger.type !== "schedule" && r.trigger.type !== "once";
 /** An email routine whose mailbox needs reconnecting (or whose watch fails, or that MillionSend refused). */
 export const mailTrouble = (r: Pick<Routine, "trigger">) =>
-  (r.trigger.type === "email" || r.trigger.type === "connector") && r.trigger.status && r.trigger.status !== "active"
+  (r.trigger.type === "email" || r.trigger.type === "connector" || r.trigger.type === "meeting") &&
+  r.trigger.status &&
+  r.trigger.status !== "active"
     ? r.trigger.status
     : null;
 /** A run of it is working now (Parar stops it). */
@@ -180,7 +192,7 @@ export type NextLine =
   | { kind: "fired"; at: string }
   | { kind: "canceled" }
   | { kind: "paused" }
-  | { kind: "event" | "email" | "webhook"; week: number }
+  | { kind: "event" | "email" | "webhook" | "meeting"; week: number }
   | { kind: "none" }
   | { kind: "soon" }
   | { kind: "minutes"; minutes: number }
@@ -197,7 +209,7 @@ export function nextLine(
   if (isEventDriven(r)) {
     const week = r.recentRuns.filter((x) => now.getTime() - new Date(x.at).getTime() < 7 * 86_400_000).length;
     const kind = r.trigger.type === "connector" ? "email" : r.trigger.type;
-    return { kind: kind === "email" || kind === "webhook" ? kind : "event", week };
+    return { kind: kind === "email" || kind === "webhook" || kind === "meeting" ? kind : "event", week };
   }
   if (!r.nextRunAt) return { kind: "none" };
   const ms = new Date(r.nextRunAt).getTime() - now.getTime();
@@ -344,7 +356,7 @@ export const emailDraftOf = (r: Routine | undefined): EmailDraft =>
 
 // ── The form ────────────────────────────────────────────────────────────────
 
-export type TriggerKind = "schedule" | "event" | "email" | "webhook" | "connector";
+export type TriggerKind = RoutineFormKind;
 
 /**
  * A connector's event (ADR 0130, 0196): the connection, then MillionSend's inbox address, sender and subject filters,
@@ -393,6 +405,8 @@ export interface RoutineDraft {
   event: RoutineEvent;
   email: EmailDraft;
   connector: ConnectorDraft;
+  /** "Antes de uma reunião" (ADR 0190): the calendar and the minutes as typed. */
+  meeting: MeetingDraft;
   rule: RecurrenceRule;
   active: boolean;
   report: RoutineReport;
@@ -405,14 +419,14 @@ export function draftOf(r: Routine | undefined, zone: string, today = new Date()
     target: targetChoice(r?.target),
     prompt: r?.prompt ?? "",
     name: r?.name ?? "",
-    // A meeting trigger (ADR 0190) has no place in the form yet: it opens as the form's default and stays as it was.
-    kind: r && isEventDriven(r) && r.trigger.type !== "meeting" ? (r.trigger.type as TriggerKind) : "schedule",
+    kind: formKindOf(r),
     event: r?.trigger.type === "event" ? r.trigger.event : "sentry.issue_created",
     email: emailDraftOf(r),
     connector:
       r?.trigger.type === "connector"
         ? { connectionId: r.trigger.connectionId, event: r.trigger.event, filter: r.trigger.filter }
         : { connectionId: "", event: "millionsend.email.received", filter: {} },
+    meeting: meetingDraftOf(r),
     rule: ruleOf(r, zone, today),
     active: r?.active ?? true,
     report: r?.report ?? "when_new",
@@ -432,10 +446,37 @@ const emailTrigger = (e: EmailDraft) => ({
   filter: cleanFilter(e.filter),
 });
 
+/**
+ * The draft with another kind: a new routine's "Quando posta" follows the kind's default (a meeting's prep always
+ * posts) until the person picks one (`reportPicked`).
+ */
+export const withKind = (d: RoutineDraft, kind: TriggerKind, reportPicked: boolean): RoutineDraft => ({
+  ...d,
+  kind,
+  ...(reportPicked ? {} : { report: defaultReportFor(kind) }),
+});
+
+/**
+ * Whether what starts it is whole enough to save, as far as the draft knows: a meeting's calendar and minutes it can
+ * keep, a connector's connection, an email's mailbox. Typed addresses and a phrase are the form's to check.
+ */
+export function triggerReady(d: Pick<RoutineDraft, "kind" | "email" | "connector" | "meeting">): boolean {
+  if (d.kind === "meeting") return meetingTriggerOf(d.meeting) !== null;
+  if (d.kind === "connector") return Boolean(d.connector.connectionId);
+  if (d.kind === "email") return Boolean(d.email.accountId);
+  return true;
+}
+
 /** What starts it, as the API takes it: a webhook call, an email, an event, a one-off (its instant) or the rule. */
 export function draftTrigger(
-  d: Pick<RoutineDraft, "kind" | "event" | "email" | "connector" | "rule">,
+  d: Pick<RoutineDraft, "kind" | "event" | "email" | "connector" | "meeting" | "rule">,
 ): RoutineInput["trigger"] {
+  if (d.kind === "meeting") {
+    // `triggerReady` keeps the form from saving before it has a calendar and minutes the server keeps.
+    const meeting = meetingTriggerOf(d.meeting);
+    if (!meeting) throw new Error("meeting trigger incomplete");
+    return meeting;
+  }
   if (d.kind === "connector") return connectorTrigger(d.connector);
   if (d.kind === "webhook") return { type: "webhook" };
   if (d.kind === "email") return emailTrigger(d.email);
@@ -472,10 +513,9 @@ export function draftChanges(r: Routine, d: RoutineDraft, savedRule: string, rul
   if (d.agentId !== r.agentId) patch.agentId = d.agentId;
   if (d.target !== TARGET_KEEP && d.target !== targetChoice(r.target)) patch.target = draftTarget(d);
   const once = d.rule.freq === "once";
-  // The form can't set a meeting trigger (ADR 0190): it keeps it, whatever the form shows.
   const triggerChanged =
-    r.trigger.type === "meeting"
-      ? false
+    d.kind === "meeting"
+      ? meetingTriggerChanged(r, d.meeting)
       : d.kind === "connector"
         ? r.trigger.type !== "connector" ||
           JSON.stringify(connectorTrigger(d.connector)) !==

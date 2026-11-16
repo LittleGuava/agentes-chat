@@ -9,6 +9,7 @@ import {
   createRoutine,
   executeRoutineRun,
   getRoutineView,
+  listCustomServers,
   MEETING_EVENT,
   meetingEventText,
   pollMeetingWatches,
@@ -17,7 +18,7 @@ import {
   ValidationError,
   withComposio,
 } from "../src";
-import { type Fixture, setup } from "./fixtures";
+import { addMember, type Fixture, setup } from "./fixtures";
 import { agentRunRow, briefs, routineDeps, routineRunRow } from "./routine-fixtures";
 
 /** ADR 0190: a routine fired before each meeting of a Google Calendar connection, looked at by code. */
@@ -299,6 +300,44 @@ test("a meeting routine needs a calendar its agent can read, and a lead it can k
   });
   expect(scheduled.trigger.type).toBe("schedule");
   expect(await f.db.select().from(schema.meetingWatches)).toHaveLength(0);
+});
+
+test("an agent that may only write to the calendar reads none of it: no meeting routine on it", async () => {
+  const { connection, deps } = await calendar({ grant: null });
+  await f.db.insert(schema.agentScopes).values({
+    orgId: f.org.id,
+    agentId: f.agent.id,
+    connectionId: connection.id,
+    scope: `custom:${connection.id}:write`,
+  });
+  await expect(prepRoutine(deps, connection.id)).rejects.toMatchObject({
+    code: "routine.connector_agent_cannot_read",
+  });
+});
+
+test("the apps learn which connections a meeting routine can watch, members too (who never see the address)", async () => {
+  const { connection } = await calendar();
+  await f.db.insert(schema.connectorConnections).values({
+    orgId: f.org.id,
+    connector: "mcp_millionsend",
+    label: "MillionSend",
+    serverUrl: "https://api.millionsend.com/mcp",
+    authType: "none",
+    toolPrefix: "millionsend",
+  });
+  // The connectors screen lists what was connected there, each named after its own id.
+  for (const c of await f.db.select({ id: schema.connectorConnections.id }).from(schema.connectorConnections)) {
+    await f.db
+      .update(schema.connectorConnections)
+      .set({ connector: `custom:${c.id}` })
+      .where(eq(schema.connectorConnections.id, c.id));
+  }
+  const member = await addMember(f.db, f.org.id, "member", "reader");
+  for (const who of [f.owner.id, member.id]) {
+    const listed = await listCustomServers(f.db, who, f.org.id);
+    const named = listed.map((s) => [s.id === connection.id ? "calendar" : s.label, s.meetings] as const);
+    expect(Object.fromEntries(named)).toEqual({ calendar: true, MillionSend: false });
+  }
 });
 
 test("a meeting's run starts the agent in the background, with the meeting in its context and hand_off to report", async () => {

@@ -369,6 +369,10 @@ function Details({ routine: r, refetch }: { routine: Routine; refetch: () => Pro
                 <Text variant="footnote" tone="muted">
                   {t("mail.routine.every")}
                 </Text>
+              ) : r.trigger.type === "meeting" ? (
+                <Text variant="footnote" tone="muted">
+                  {t("routines.meeting.every")}
+                </Text>
               ) : r.trigger.type === "webhook" ? (
                 <Text variant="footnote" tone="muted">
                   {t("common.joinSentences", {

@@ -592,6 +592,7 @@ const KNOWN = {
   "reminder.no_agent": "errors.said.noAgentToRemind",
   "routine.connector_agent_cannot_read": "errors.said.agentCantRead",
   "routine.mail_agent_cannot_read": "errors.said.agentCantRead",
+  "routine.meeting_lead_invalid": "errors.said.meetingLead",
   "schedule.never": "errors.said.neverHappens",
   sole_owner: "errors.said.soleOwner",
   "storage.test_first": "errors.said.testFirst",
@@ -648,7 +649,6 @@ const KNOWN = {
   "read_aloud.not_agent": "errors.readAloud.notAgent",
   "read_aloud.unavailable": "errors.said.offHere",
   "routine.connector_channel_invalid": "errors.routine.connectorChannelInvalid",
-  "routine.meeting_lead_invalid": "errors.routine.meetingLeadInvalid",
   // A recording turned into text (ADR 0100).
   "voice.busy": "errors.voice.busy",
   "voice.no_words": "errors.voice.noWords",
