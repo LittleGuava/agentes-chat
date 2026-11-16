@@ -2200,6 +2200,8 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         const page = rows.slice(from, from + limit);
         return { rows: page, next: from + limit < rows.length ? (page.at(-1)?.id ?? null) : null };
       },
+      auditCsvUrl: (orgId, query = {}) =>
+        `/api/app/organizations/${orgId}/audit.csv?${new URLSearchParams(Object.entries(query).map(([k, v]) => [k, String(v)]))}`,
       usageReport: async () => ({
         since: minutesAgo(60 * 24 * 14),
         defaultAgentBudgetUsd: state.defaultAgentBudgetUsd ?? 50,

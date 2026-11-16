@@ -8068,11 +8068,11 @@
   "connectAi.plan.grok.title": {
     "value": "Your Grok plan"
   },
-  "connectAi.plan.copilot.title": {
-    "value": "Your GitHub Copilot plan"
-  },
   "connectAi.plan.grok.tiers": {
     "value": "SuperGrok, SuperGrok Heavy or X Premium+"
+  },
+  "connectAi.plan.copilot.title": {
+    "value": "Your GitHub Copilot plan"
   },
   "connectAi.plan.copilot.tiers": {
     "value": "Copilot Pro, Pro+, Business or Enterprise"
@@ -40131,6 +40131,9 @@
   },
   "audit.loadMore": {
     "value": "Load more"
+  },
+  "audit.export": {
+    "value": "Export CSV"
   },
   "audit.outcome.done": {
     "value": "Done"

@@ -61,6 +61,7 @@ import type {
   ArtifactVersion,
   AskToJoinResult,
   AuditPage,
+  AuditQuery,
   AuthConfig,
   BatchInviteResult,
   BlockState,
@@ -296,6 +297,16 @@ const threadQuery = (f: Partial<ThreadFilters>) => ({
 });
 
 const csv = (list: readonly string[] | undefined) => (list?.length ? list.join(",") : undefined);
+
+/** The audit's filters as `GET …/audit` and its CSV read them. */
+const auditQuery = (q: AuditQuery) => ({
+  actorType: q.actorType,
+  actorId: q.actorId,
+  via: q.via,
+  outcome: csv(q.outcome),
+  waiting: q.waiting ? "true" : undefined,
+  kind: q.kind,
+});
 
 /** The Drive's filters as `GET …/artifacts` reads them. */
 const artifactQuery = (f: ArtifactFilters) => ({
@@ -778,17 +789,14 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         request<void>(`${org(orgId)}/team-week/${enc(messageId)}`, { json: act }),
       audit: (orgId, query = {}) =>
         request<AuditPage>(`${org(orgId)}/audit`, {
-          query: {
-            actorType: query.actorType,
-            actorId: query.actorId,
-            via: query.via,
-            outcome: query.outcome?.length ? query.outcome.join(",") : undefined,
-            waiting: query.waiting ? "true" : undefined,
-            kind: query.kind,
-            before: query.before,
-            limit: query.limit,
-          },
+          query: { ...auditQuery(query), before: query.before, limit: query.limit },
         }),
+      auditCsvUrl: (orgId, query = {}) => {
+        const qs = new URLSearchParams(
+          Object.entries(auditQuery(query)).filter((e): e is [string, string] => e[1] !== undefined),
+        );
+        return `${base}${org(orgId)}/audit.csv${qs.size ? `?${qs}` : ""}`;
+      },
     },
     roles: {
       list: (orgId) => request<OrgRoles>(`${org(orgId)}/roles`),

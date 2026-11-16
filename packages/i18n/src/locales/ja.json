@@ -15744,6 +15744,7 @@
     "emptyTitle": "エージェントの行動はすべて記録されます",
     "emptyFiltered": "この絞り込みに該当するものはありません。",
     "loadMore": "さらに読み込む",
+    "export": "CSVを書き出す",
     "outcome": {
       "done": "完了",
       "failed": "失敗",

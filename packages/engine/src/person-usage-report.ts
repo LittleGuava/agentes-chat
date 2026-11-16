@@ -2,6 +2,7 @@ import { and, type Database, eq, gte, inArray, isNull, lt, rowsOf, schema, sql }
 import { nanoUsdToUsd } from "@agenteschat/providers";
 import { accountablePerson, runAuthority } from "./authority";
 import { readableChannelIds } from "./channels";
+import { csvOf } from "./csv";
 import { ForbiddenError, NotFoundError } from "./errors";
 import { can, requireActiveMembership } from "./organizations";
 import {
@@ -609,12 +610,6 @@ export async function personUsageDetail(
   };
 }
 
-const csvCell = (v: string | number) => {
-  // A name starting with = + - @ would run as a formula in a spreadsheet: a leading ' keeps it text.
-  const s = typeof v === "string" && /^[=+\-@\t\r]/.test(v) ? `'${v}` : String(v);
-  return /[",\n\r]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s;
-};
-
 /**
  * The export (ADR 0141): one row per person per day, never a message's text. Amounts in US$; a plan's at what its
  * tokens would cost through the API, apart.
@@ -703,5 +698,5 @@ export async function peopleUsageCsv(db: Database, actorId: string, orgId: strin
       [...d.agents].sort().join("; "),
     ]);
   }
-  return `${lines.map((l) => l.map(csvCell).join(",")).join("\n")}\n`;
+  return csvOf(lines);
 }

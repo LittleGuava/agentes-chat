@@ -249,7 +249,8 @@ function Settings({
         current !== "invites" &&
         current !== "general" &&
         current !== "roles" &&
-        current !== "vault" && (
+        current !== "vault" &&
+        current !== "audit" && (
           <PageHeader
             level={2}
             title={sectionName(current)}

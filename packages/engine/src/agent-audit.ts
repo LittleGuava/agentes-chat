@@ -3,6 +3,7 @@ import { recordAudit } from "./audit";
 import type { RunAuthority } from "./authority";
 import { readableChannelIds } from "./channels";
 import { serverUrlShown } from "./connectors/presets";
+import { csvOf } from "./csv";
 import { cutText } from "./format";
 import { can, requirePermission } from "./organizations";
 import { MAKE_KEY_TOOL, REQUEST_SECRET_TOOL } from "./secrets";
@@ -432,4 +433,68 @@ export async function listAudit(
     })),
     next: found.length > limit ? (page.at(-1)?.id ?? null) : null,
   };
+}
+
+/** The most rows one export holds, the newest: past it, a narrower filter. */
+export const AUDIT_CSV_MAX = 10_000;
+
+const AUDIT_CSV_HEADER = [
+  "at",
+  "actor_type",
+  "actor_id",
+  "actor",
+  "action",
+  "target_type",
+  "target_id",
+  "outcome",
+  "channel_id",
+  "channel",
+  "on_behalf_of",
+  "approval",
+  "approval_decided_by",
+  "secret",
+  "run_id",
+  "details",
+];
+
+/**
+ * The audit log as CSV, newest first: the rows `listAudit` gives this reader with the same filter, read page by page,
+ * so its permission, the rows it leaves out and the details it cleans or hides are the export's too.
+ */
+export async function auditCsv(
+  db: Database,
+  actorId: string,
+  orgId: string,
+  filter: Omit<AuditFilter, "before" | "limit"> = {},
+  max = AUDIT_CSV_MAX,
+): Promise<string> {
+  const rows: AuditRow[] = [];
+  let before: string | undefined;
+  do {
+    const limit = Math.min(AUDIT_PAGE_MAX, max - rows.length);
+    const page = await listAudit(db, actorId, orgId, { ...filter, before, limit });
+    rows.push(...page.rows);
+    before = page.next ?? undefined;
+  } while (before && rows.length < max);
+  return csvOf([
+    AUDIT_CSV_HEADER,
+    ...rows.map((r) => [
+      r.at,
+      r.actor.type,
+      r.actor.id ?? "",
+      r.actor.name ?? "",
+      r.action,
+      r.target.type,
+      r.target.id ?? "",
+      r.outcome ?? "",
+      r.channelId ?? "",
+      r.channel?.name ?? "",
+      r.onBehalfOf ? (r.onBehalfOf.name ?? r.onBehalfOf.id) : "",
+      r.approval?.status ?? "",
+      r.approval?.decidedBy ? (r.approval.decidedBy.name ?? r.approval.decidedBy.id) : "",
+      r.secret?.status ?? "",
+      r.runId ?? "",
+      JSON.stringify(r.details),
+    ]),
+  ]);
 }

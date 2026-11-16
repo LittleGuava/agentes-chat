@@ -686,6 +686,8 @@ export interface ApiClient {
     actOnTeamWeek(orgId: string, messageId: string, act: TeamWeekAct): Promise<void>;
     /** The audit log, newest first (admins): agents' tool calls and people's changes. `before`: `next`. */
     audit(orgId: string, query?: AuditQuery & { before?: string; limit?: number }): Promise<AuditPage>;
+    /** Where the audit log downloads from as CSV, with the list's filters: its newest rows, up to the server's cap. */
+    auditCsvUrl(orgId: string, query?: AuditQuery): string;
   };
   /** A workspace's roles (ADR 0085): every member reads them; who may manage roles changes those below theirs. */
   roles: {

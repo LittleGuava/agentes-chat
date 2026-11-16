@@ -16752,6 +16752,7 @@
     "emptyTitle": "Todo lo que hacen los agentes queda registrado",
     "emptyFiltered": "Nada con este filtro.",
     "loadMore": "Cargar más",
+    "export": "Exportar CSV",
     "outcome": {
       "done": "Hecho",
       "failed": "Falló",

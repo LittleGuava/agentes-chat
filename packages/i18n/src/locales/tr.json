@@ -16239,6 +16239,7 @@
     "emptyTitle": "Ajanların yaptığı her şey kayıt altındadır",
     "emptyFiltered": "Bu filtreyle bir şey yok.",
     "loadMore": "Daha fazla yükle",
+    "export": "CSV dışa aktar",
     "outcome": {
       "done": "Bitti",
       "failed": "Başarısız",

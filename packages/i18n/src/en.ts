@@ -16616,6 +16616,7 @@ export const en = {
     emptyTitle: "Everything agents do is on record",
     emptyFiltered: "Nothing with this filter.",
     loadMore: "Load more",
+    export: "Export CSV",
     outcome: {
       done: "Done",
       failed: "Failed",

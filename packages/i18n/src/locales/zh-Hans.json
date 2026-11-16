@@ -15808,6 +15808,7 @@
     "emptyTitle": "智能体做的每件事都有记录",
     "emptyFiltered": "此筛选下没有内容。",
     "loadMore": "加载更多",
+    "export": "导出 CSV",
     "outcome": {
       "done": "完成",
       "failed": "失败",

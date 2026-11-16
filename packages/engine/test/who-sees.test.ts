@@ -5,6 +5,7 @@ import {
   addChannelMember,
   archiveChannel,
   askAgentToImplement,
+  auditCsv,
   buildTeamWeek,
   calendarRange,
   channelCard,
@@ -362,6 +363,19 @@ describe("the audit log, for calls that wrote on what the reader doesn't see", (
     const asAuditor = JSON.stringify((await rows(auditor.id)).rows);
     expect(asAuditor).not.toContain("Demissão confirmada");
     expect(asAuditor).not.toContain("Outra página");
+  });
+
+  test("its CSV keeps from view_audit alone what the list keeps", async () => {
+    const { ana } = await team();
+    const role = await createRole(f.db, f.owner.id, f.org.id, { name: "Auditoria", permissions: ["view_audit"] });
+    const auditor = await addMember(f.db, f.org.id, "member", "auditor");
+    await setMemberRoles(f.db, f.owner.id, f.org.id, auditor.id, [role.id]);
+    const task = await createIssue(deps(), person(f.owner.id), f.org.id, { title: "Sigilo", audience: only(ana.id) });
+    await (await toolsIn(f.general.id))("comment_issue", { issue: `#${task.number}`, text: "Demissão confirmada" });
+    expect(await auditCsv(f.db, f.owner.id, f.org.id, { kind: "tool" })).toContain("Demissão confirmada");
+    const asAuditor = await auditCsv(f.db, auditor.id, f.org.id, { kind: "tool" });
+    expect(asAuditor).toContain("tool.call");
+    expect(asAuditor).not.toContain("Demissão confirmada");
   });
 });
 

@@ -76,3 +76,54 @@ test("the audit log: admins read agents' calls and people's changes, filtered; m
   await member(`/api/app/invitations/${url.split("/invite/")[1]}/accept`, { json: {} });
   expect((await member(`/api/app/organizations/${orgId}/audit`)).status).toBe(403);
 });
+
+test("the audit log as CSV: the list's filters, nothing secret, a file to save; members get 403", async () => {
+  const owner = browser(t);
+  await signUp(owner, "owner@example.com");
+  const ownerId = ((await (await owner("/api/app/me")).json()) as { user: { id: string } }).user.id;
+  const { orgId, agentId, channelId } = await seedOrg(owner);
+  await recordAudit(t.db, {
+    orgId,
+    actor: { type: "person", id: ownerId },
+    action: "storage.activated",
+    target: { type: "storage", id: null },
+  });
+  await recordToolCall(t.db, {
+    orgId,
+    agentId,
+    runId: null,
+    channelId,
+    authority: { kind: "person", personId: ownerId },
+    tool: "mail_sales_send",
+    kind: "external",
+    connector: "Gmail",
+    input: { to: "joao@acme.com", apiKey: "sk-ant-api-secret-9876" },
+    outcome: "done",
+  });
+
+  const res = await owner(`/api/app/organizations/${orgId}/audit.csv`);
+  expect(res.status).toBe(200);
+  expect(res.headers.get("content-type")).toContain("text/csv");
+  expect(res.headers.get("content-disposition")).toMatch(/^attachment; filename="audit-\d{4}-\d{2}-\d{2}\.csv"/);
+  const text = await res.text();
+  expect(text).not.toContain("sk-ant-api-secret-9876");
+  const lines = text.trimEnd().split("\n");
+  expect(lines[0]).toStartWith("at,actor_type,actor_id,actor,action,");
+  expect(lines[1]).toContain(",tool.call,");
+  expect(lines[1]).toContain("joao@acme.com");
+
+  const changes = await (await owner(`/api/app/organizations/${orgId}/audit.csv?kind=change`)).text();
+  expect(changes).toContain(",storage.activated,");
+  expect(changes).not.toContain(",tool.call,");
+  const wrong = await (await owner(`/api/app/organizations/${orgId}/audit.csv?outcome=refused,failed`)).text();
+  expect(wrong.trimEnd().split("\n")).toHaveLength(1);
+  expect((await owner(`/api/app/organizations/${orgId}/audit.csv?outcome=done,nope`)).status).toBe(400);
+
+  const member = browser(t);
+  await signUp(member, "ana@example.com");
+  const { url } = (await (
+    await owner(`/api/app/organizations/${orgId}/invitations`, { json: { email: "ana@example.com", role: "member" } })
+  ).json()) as { url: string };
+  await member(`/api/app/invitations/${url.split("/invite/")[1]}/accept`, { json: {} });
+  expect((await member(`/api/app/organizations/${orgId}/audit.csv`)).status).toBe(403);
+});

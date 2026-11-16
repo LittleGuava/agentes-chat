@@ -16536,6 +16536,7 @@ export const ptBR = {
     emptyTitle: "Tudo o que os agentes fazem fica registrado",
     emptyFiltered: "Nada com esse filtro.",
     loadMore: "Carregar mais",
+    export: "Exportar CSV",
     outcome: {
       done: "Feito",
       failed: "Falhou",
