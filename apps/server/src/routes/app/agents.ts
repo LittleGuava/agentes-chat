@@ -2083,7 +2083,7 @@ export function agentRoutes(deps: AppDeps) {
       tags,
       security,
       summary:
-        'Use one agent\'s "Quem pensa" and its Autonomia on these agents (ADR 0094), each by its own rules: who may change it, whose plan thinks for it. Each change is audited as its own (`agent.brain`, `agent.mission_command_approval`, `via: setup`); `preview` says what each would do and keeps nothing. Applied, it is what new agents start with.',
+        'Use one agent\'s "Quem pensa", its Autonomia and its approvals level on these agents (ADR 0094), each by its own rules: who may change it, whose plan thinks for it; the approvals level only with Manage agents (ADR 0173). Each change is audited as its own (`agent.brain`, `agent.mission_command_approval`, `agent.updated`, `via: setup`); `preview` says what each would do and keeps nothing. Applied, it is what new agents start with, the approvals level left out.',
       request: {
         params: OrgParams,
         body: body(
@@ -2103,6 +2103,9 @@ export function agentRoutes(deps: AppDeps) {
       // Their computers hear which account each agent thinks with now (system mode lends the folders by it).
       if (!input.preview && results.some((r) => r.status === "applied")) {
         await publishMachineAgentsChanged(adapters.pubsub, orgId);
+        await publishAgentsChanged(adapters.pubsub, orgId);
+      } else if (!input.preview && results.some((r) => r.approvalsLevel)) {
+        // The agents' list shows each one's level.
         await publishAgentsChanged(adapters.pubsub, orgId);
       }
       return c.json({ results }, 200);

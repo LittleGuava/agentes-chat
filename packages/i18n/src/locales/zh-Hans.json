@@ -3316,6 +3316,7 @@
       "title": "从不询问",
       "text": "从不询问，包括合并、部署、付款和例程。"
     },
+    "changed": "审批：{{value}}",
     "change": "更改何时询问",
     "now": "{{name}} 现在：{{level}}。",
     "nowEveryAgent": "所有智能体现在：{{level}}。",
@@ -5424,6 +5425,9 @@
           "autonomy": "自主权限：{{from}} → {{to}}",
           "withAutonomy": "包括自主权限",
           "withAutonomyLine": "{{value}}，与这个智能体相同。关闭时，各自保留自己的设置。",
+          "approvals": "审批：{{from}} → {{to}}",
+          "withApprovals": "包括审批",
+          "withApprovalsLine": "{{value}}，与这个智能体相同。{{text}} 关闭时，各自保留自己的设置。",
           "reasons": {
             "not_allowed": "只有管理员和 {{owner}} 可以更改",
             "not_allowedNobody": "只有管理员可以更改",
@@ -5442,6 +5446,7 @@
           "use_other": "用于 {{count}} 个智能体",
           "done_other": "{{count}} 个智能体现在使用 {{setup}} 思考。",
           "autonomyOnly_other": "{{count}} 个智能体只更改了自主权限。",
+          "approvalsOnly_other": "{{count}} 个智能体保留了自己的 AI，只更改了审批。",
           "missed_other": "{{count}} 个智能体未更改。"
         },
         "add": {

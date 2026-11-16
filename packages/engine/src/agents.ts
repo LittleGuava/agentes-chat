@@ -494,7 +494,8 @@ export async function updateAgent(
   orgId: string,
   agentId: string,
   patch: Partial<AgentInput>,
-  options: { remember?: boolean; pubsub?: PubSub } = {},
+  /** `audit`: added to the `agent.updated` row's details (`via: "setup"`, ADR 0094). */
+  options: { remember?: boolean; pubsub?: PubSub; audit?: Record<string, unknown> } = {},
 ): Promise<Agent> {
   const membership = await updateAgentMembership(db, actorId, orgId, agentId, patch);
   await refuseRightHandFields(db, orgId, agentId, patch);
@@ -625,7 +626,7 @@ export async function updateAgent(
       actor: { type: "person", id: actorId },
       action: "agent.updated",
       target: { type: "agent", id: agentId },
-      details: { name: agent.name, changed, ...shown },
+      details: { name: agent.name, changed, ...shown, ...options.audit },
     });
   }
   if (input.monthlyBudgetNanoUsd !== undefined) {

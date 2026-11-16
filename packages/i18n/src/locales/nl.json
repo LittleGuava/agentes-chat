@@ -3443,6 +3443,7 @@
       "title": "Nooit vragen",
       "text": "Vraagt nooit, ook niet bij merge, deploy, betalingen en routines."
     },
+    "changed": "Goedkeuringen: {{value}}",
     "change": "Wijzigen wanneer hij vraagt",
     "now": "{{name}} nu: {{level}}.",
     "nowEveryAgent": "Alle agents nu: {{level}}.",
@@ -5624,6 +5625,9 @@
           "autonomy": "Autonomie: {{from}} → {{to}}",
           "withAutonomy": "Autonomie meenemen",
           "withAutonomyLine": "{{value}}, zoals bij deze agent. Uit: elk houdt de eigen autonomie.",
+          "approvals": "Goedkeuringen: {{from}} → {{to}}",
+          "withApprovals": "Goedkeuringen meenemen",
+          "withApprovalsLine": "{{value}}, zoals bij deze agent. {{text}} Uit: elk houdt de eigen goedkeuringen.",
           "reasons": {
             "not_allowed": "Alleen beheerders en {{owner}} wijzigen dit",
             "not_allowedNobody": "Alleen beheerders wijzigen dit",
@@ -5645,6 +5649,8 @@
           "done_other": "{{count}} agents denken nu met {{setup}}.",
           "autonomyOnly_one": "Bij {{count}} agent is alleen de autonomie gewijzigd.",
           "autonomyOnly_other": "Bij {{count}} agents is alleen de autonomie gewijzigd.",
+          "approvalsOnly_one": "{{count}} agent hield zijn AI en wijzigde de goedkeuringen.",
+          "approvalsOnly_other": "{{count}} agents hielden hun AI en wijzigden de goedkeuringen.",
           "missed_one": "{{count}} agent is niet gewijzigd.",
           "missed_other": "{{count}} agents zijn niet gewijzigd."
         },

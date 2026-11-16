@@ -1170,6 +1170,10 @@ export const AgentSetup = z
       description:
         "Its Autonomia, set wherever the caller may set it by hand (an admin or the agent's owner), whatever the AI takes; omitted = each agent keeps its own.",
     }),
+    approvalsLevel: ApprovalsLevel.optional().openapi({
+      description:
+        "How much each agent asks (ADR 0173), set on every agent picked whatever the AI takes; only with Manage agents (403 otherwise, nothing changed); omitted = each agent keeps its own. Never part of what new agents start with.",
+    }),
   })
   .openapi("AgentSetup");
 
@@ -1183,6 +1187,9 @@ export const AgentSetupResult = z
     autonomy: z.object({ from: CommandApproval, to: CommandApproval }).optional().openapi({
       description:
         "Its Autonomia changes (in a preview: would), whatever its AI does: wherever the caller may set it by hand, `skipped` agents too.",
+    }),
+    approvalsLevel: z.object({ from: ApprovalsLevel, to: ApprovalsLevel }).optional().openapi({
+      description: "Its approvals level changes (in a preview: would), whatever its AI does, `skipped` agents too.",
     }),
     keeps: z.object({ account: z.string().nullable() }).optional().openapi({
       description: "It keeps the account it has (another person's plan): its name; null = its computer's own.",

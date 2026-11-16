@@ -3740,6 +3740,8 @@ export const en = {
     workspaceHelp: "Each agent follows this choice until someone changes its own on the agent's page.",
     ownAgents_one: "{{count}} agent has its own choice and won't change.",
     ownAgents_other: "{{count}} agents have their own choice and won't change.",
+    /** The level in the words of a setup used on other agents, after the autonomy. */
+    changed: "Approvals: {{value}}",
   },
   /** Agent settings: what it may start that nobody asked for directly, and which agents it may call (ADR 0131). */
   brakes: {
@@ -6003,6 +6005,10 @@ export const en = {
           autonomy: "Autonomy: {{from}} → {{to}}",
           withAutonomy: "Include the autonomy",
           withAutonomyLine: "{{value}}, as on this agent. Off: each keeps its own.",
+          approvals: "Approvals: {{from}} → {{to}}",
+          /** Only for who manages agents, off when it opens: on, each agent picked asks as this one does (ADR 0173). */
+          withApprovals: "Include the approvals",
+          withApprovalsLine: "{{value}}, as on this agent. {{text}} Off: each keeps its own.",
           reasons: {
             not_allowed: "Only admins and {{owner}} change it",
             not_allowedNobody: "Only admins change it",
@@ -6024,6 +6030,8 @@ export const en = {
           done_other: "{{count}} agents now think with {{setup}}.",
           autonomyOnly_one: "{{count}} agent changed only its autonomy.",
           autonomyOnly_other: "{{count}} agents changed only their autonomy.",
+          approvalsOnly_one: "{{count}} agent kept its AI and changed its approvals.",
+          approvalsOnly_other: "{{count}} agents kept their AI and changed their approvals.",
           missed_one: "{{count}} agent didn't change.",
           missed_other: "{{count}} agents didn't change.",
         },

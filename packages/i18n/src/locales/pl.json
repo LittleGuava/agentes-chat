@@ -3675,6 +3675,7 @@
       "title": "Nigdy nie pytaj",
       "text": "Nigdy nie pyta, także przy merge, deploy, płatnościach i rutynach."
     },
+    "changed": "Zatwierdzenia: {{value}}",
     "change": "Zmień, kiedy pyta",
     "now": "{{name}} teraz: {{level}}.",
     "nowEveryAgent": "Wszyscy agenci teraz: {{level}}.",
@@ -5991,6 +5992,9 @@
           "autonomy": "Autonomia: {{from}} → {{to}}",
           "withAutonomy": "Przenieś też autonomię",
           "withAutonomyLine": "{{value}}, jak u tego agenta. Wyłączone: każdy zachowuje swoją.",
+          "approvals": "Zatwierdzenia: {{from}} → {{to}}",
+          "withApprovals": "Przenieś też zatwierdzenia",
+          "withApprovalsLine": "{{value}}, jak u tego agenta. {{text}} Wyłączone: każdy zachowuje swoje.",
           "reasons": {
             "not_allowed": "Zmienić mogą tylko administratorzy i {{owner}}",
             "not_allowedNobody": "Zmienić mogą tylko administratorzy",
@@ -6018,6 +6022,10 @@
           "autonomyOnly_few": "{{count}} agenci zmienili tylko autonomię.",
           "autonomyOnly_many": "{{count}} agentów zmieniło tylko autonomię.",
           "autonomyOnly_other": "{{count}} agenta zmieniło tylko autonomię.",
+          "approvalsOnly_one": "{{count}} agent zachował swoją AI i zmienił zatwierdzenia.",
+          "approvalsOnly_few": "{{count}} agenci zachowali swoją AI i zmienili zatwierdzenia.",
+          "approvalsOnly_many": "{{count}} agentów zachowało swoją AI i zmieniło zatwierdzenia.",
+          "approvalsOnly_other": "{{count}} agenta zachowało swoją AI i zmieniło zatwierdzenia.",
           "missed_one": "{{count}} agent się nie zmienił.",
           "missed_few": "{{count}} agenci się nie zmienili.",
           "missed_many": "{{count}} agentów się nie zmieniło.",

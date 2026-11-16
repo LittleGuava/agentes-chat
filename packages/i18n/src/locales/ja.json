@@ -3313,6 +3313,7 @@
       "title": "確認しない",
       "text": "マージ、デプロイ、支払い、ルーティンを含め、一切確認しません。"
     },
+    "changed": "承認: {{value}}",
     "change": "確認するタイミングを変更",
     "now": "{{name}} は今後：{{level}}。",
     "nowEveryAgent": "すべてのエージェントは今後：{{level}}。",
@@ -5401,6 +5402,9 @@
           "autonomy": "自律性: {{from}} → {{to}}",
           "withAutonomy": "自律性も含める",
           "withAutonomyLine": "このエージェントと同じ{{value}}にします。オフにすると、それぞれの設定のままです。",
+          "approvals": "承認: {{from}} → {{to}}",
+          "withApprovals": "承認も含める",
+          "withApprovalsLine": "このエージェントと同じ{{value}}にします。{{text}} オフにすると、それぞれの設定のままです。",
           "reasons": {
             "not_allowed": "変更できるのは管理者と{{owner}}だけです",
             "not_allowedNobody": "変更できるのは管理者だけです",
@@ -5419,6 +5423,7 @@
           "use_other": "{{count}}体のエージェントに適用",
           "done_other": "{{count}}体のエージェントが{{setup}}で考えるようになりました。",
           "autonomyOnly_other": "{{count}}体のエージェントは自律性だけが変更されました。",
+          "approvalsOnly_other": "{{count}}体のエージェントはAIはそのままで、承認だけが変更されました。",
           "missed_other": "{{count}}体のエージェントは変更されませんでした。"
         },
         "add": {

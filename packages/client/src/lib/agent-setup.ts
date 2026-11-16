@@ -4,6 +4,7 @@ import type {
   AgentBrainInput,
   AgentSetup,
   AgentSetupResult,
+  ApprovalsLevel,
   BrainMachine,
   CommandApproval,
   Model,
@@ -18,9 +19,9 @@ import { planModel, planOf } from "./plans";
 import { isAuto } from "./providers";
 
 /*
- * One agent's "Quem pensa" and its Autonomia on others (ADR 0094), the same on the web (a dialog over "Quem pensa")
- * and the phone (a screen from "Pensa com"), and the setup a new agent starts with. The server decides what each agent
- * takes.
+ * One agent's "Quem pensa", its Autonomia and its approvals level on others (ADR 0094), the same on the web (a dialog
+ * over "Quem pensa") and the phone (a screen from "Pensa com"), and the setup a new agent starts with. The server
+ * decides what each agent takes.
  */
 
 /** The setup an agent's saved "Quem pensa" and Autonomia say, for a computer brain (the phone's "Pensa com"). */
@@ -40,8 +41,9 @@ export function setupOfBrain(view: AgentBrain): AgentSetup | null {
   };
 }
 
-/** It changes: it takes the AI, or its Autonomia (even where its AI can't change). */
-export const changes = (r: AgentSetupResult) => r.status === "applied" || r.autonomy !== undefined;
+/** It changes: it takes the AI, or its Autonomia or approvals level (even where its AI can't change). */
+export const changes = (r: AgentSetupResult) =>
+  r.status === "applied" || r.autonomy !== undefined || r.approvalsLevel !== undefined;
 
 const rank = (r: AgentSetupResult) => {
   if (!changes(r)) return r.status === "same" ? 2 : 3;
@@ -57,11 +59,23 @@ export const sortedResults = (results: readonly AgentSetupResult[]) => [...resul
 /** The agents "Todos" picks: those that change. */
 export const takers = (results: readonly AgentSetupResult[]) => results.filter(changes).map((r) => r.agentId);
 
-/** After "Usar": how many think with the setup now, how many took only its Autonomia, how many didn't change. */
-export function setupOutcome(results: readonly AgentSetupResult[], asked: number) {
+/**
+ * After "Usar": how many think with the setup now, how many kept their AI and took only its Autonomia, how many kept
+ * their AI and took its approvals level (`approvalsOnly`, only when some did), how many didn't change.
+ */
+export function setupOutcome(
+  results: readonly AgentSetupResult[],
+  asked: number,
+): { done: number; autonomyOnly: number; approvalsOnly?: number; missed: number } {
   const done = results.filter((r) => r.status !== "skipped").length;
-  const autonomyOnly = results.filter((r) => r.status === "skipped" && r.autonomy).length;
-  return { done, autonomyOnly, missed: asked - done - autonomyOnly };
+  const kept = results.filter((r) => r.status === "skipped" && changes(r));
+  const approvalsOnly = kept.filter((r) => r.approvalsLevel).length;
+  return {
+    done,
+    autonomyOnly: kept.length - approvalsOnly,
+    ...(approvalsOnly > 0 ? { approvalsOnly } : {}),
+    missed: asked - done - kept.length,
+  };
 }
 
 /** A new agent's Autonomia when nobody chose one, as the engine's `DEFAULT_MISSION_COMMAND_APPROVAL`. */
@@ -74,20 +88,33 @@ export const autonomyName = (t: TFunction, a: CommandApproval) => t(`missions.co
 export const autonomyWords = (t: TFunction, a: CommandApproval) =>
   t("missions.commandApproval.changed", { value: autonomyName(t, a) });
 
+/** "Nunca perguntar": an approvals level's name (ADR 0173). */
+export const approvalsName = (t: TFunction, level: ApprovalsLevel) => t(`approvalsLevel.${level}.title`);
+
+/** "Aprovações: Nunca perguntar", after the Autonomia in a setup's words. */
+export const approvalsWords = (t: TFunction, level: ApprovalsLevel) =>
+  t("approvalsLevel.changed", { value: approvalsName(t, level) });
+
 /**
  * The line under an agent: what it thinks with now (`now`), what it keeps, that it already thinks so, or why it
- * can't take it (`owner`: the agent's owner's first name, for who else may change it); then its Autonomia's change.
+ * can't take it (`owner`: the agent's owner's first name, for who else may change it); then its Autonomia's change
+ * and its approvals level's.
  */
 export function setupResultLine(
   t: TFunction,
   r: AgentSetupResult,
   o: { now: string; owner?: string | null | undefined },
 ): string {
-  const ai = aiLine(t, r, o);
-  if (!r.autonomy) return ai;
-  const { from, to } = r.autonomy;
-  const autonomy = t("agentPage.work.brain.copy.autonomy", { from: autonomyName(t, from), to: autonomyName(t, to) });
-  return `${ai} · ${autonomy}`;
+  const parts = [aiLine(t, r, o)];
+  if (r.autonomy) {
+    const { from, to } = r.autonomy;
+    parts.push(t("agentPage.work.brain.copy.autonomy", { from: autonomyName(t, from), to: autonomyName(t, to) }));
+  }
+  if (r.approvalsLevel) {
+    const { from, to } = r.approvalsLevel;
+    parts.push(t("agentPage.work.brain.copy.approvals", { from: approvalsName(t, from), to: approvalsName(t, to) }));
+  }
+  return parts.join(" · ");
 }
 
 function aiLine(t: TFunction, r: AgentSetupResult, o: { now: string; owner?: string | null | undefined }): string {

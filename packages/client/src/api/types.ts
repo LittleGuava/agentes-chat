@@ -6201,6 +6201,8 @@ export interface AgentSetup {
   onlyOwner?: boolean;
   /** Its Autonomia, wherever the caller may set it by hand, whatever the AI takes; omitted = each keeps its own. */
   autonomy?: CommandApproval;
+  /** How much each agent asks (ADR 0173), only from who manages agents; omitted = each keeps its own. */
+  approvalsLevel?: ApprovalsLevel;
 }
 
 /** Why an agent can't take a setup. */
@@ -6225,6 +6227,8 @@ export interface AgentSetupResult {
   params?: Record<string, string>;
   /** Its Autonomia changes, whatever its AI does: wherever the caller may set it by hand, `skipped` agents too. */
   autonomy?: { from: CommandApproval; to: CommandApproval };
+  /** Its approvals level changes, whatever its AI does, `skipped` agents too. */
+  approvalsLevel?: { from: ApprovalsLevel; to: ApprovalsLevel };
   /** It lets more people talk to it on its owner's plan, someone else's: the apps ask first (`setupPlanQuestion`). */
   opensPlan?: true;
 }

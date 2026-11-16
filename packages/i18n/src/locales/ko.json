@@ -3311,6 +3311,7 @@
       "title": "묻지 않기",
       "text": "머지, 배포, 결제, 루틴을 포함해 아무것도 묻지 않습니다."
     },
+    "changed": "승인: {{value}}",
     "change": "묻는 시점 바꾸기",
     "now": "{{name}} 이제: {{level}}.",
     "nowEveryAgent": "모든 에이전트 이제: {{level}}.",
@@ -5399,6 +5400,9 @@
           "autonomy": "자율성: {{from}} → {{to}}",
           "withAutonomy": "자율성 포함",
           "withAutonomyLine": "이 에이전트처럼 {{value}}. 끄면 각자 자기 설정을 유지해요.",
+          "approvals": "승인: {{from}} → {{to}}",
+          "withApprovals": "승인 포함",
+          "withApprovalsLine": "이 에이전트처럼 {{value}}. {{text}} 끄면 각자 자기 설정을 유지해요.",
           "reasons": {
             "not_allowed": "관리자와 {{owner}}님만 바꿀 수 있어요",
             "not_allowedNobody": "관리자만 바꿀 수 있어요",
@@ -5417,6 +5421,7 @@
           "use_other": "에이전트 {{count}}개에 사용",
           "done_other": "이제 에이전트 {{count}}개가 {{setup}}(으)로 생각해요.",
           "autonomyOnly_other": "에이전트 {{count}}개는 자율성만 바뀌었어요.",
+          "approvalsOnly_other": "에이전트 {{count}}개는 AI는 그대로 두고 승인만 바뀌었어요.",
           "missed_other": "에이전트 {{count}}개는 바뀌지 않았어요."
         },
         "add": {

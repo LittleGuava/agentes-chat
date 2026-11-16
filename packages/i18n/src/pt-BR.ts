@@ -3640,6 +3640,8 @@ export const ptBR = {
     workspaceHelp: "Cada agente segue esta escolha até alguém mudar a dele na página do agente.",
     ownAgents_one: "{{count}} agente tem a própria escolha e não muda.",
     ownAgents_other: "{{count}} agentes têm a própria escolha e não mudam.",
+    /** O nível nas palavras de uma configuração usada em outros agentes, depois da autonomia. */
+    changed: "Aprovações: {{value}}",
   },
   /** Configurações do agente: o que ele pode começar sem ninguém pedir diretamente, e quais agentes pode chamar (ADR 0131). */
   brakes: {
@@ -5902,6 +5904,10 @@ export const ptBR = {
           /** A switch over the agents: off, the setup leaves each agent's Autonomia as it is. */
           withAutonomy: "Levar a autonomia",
           withAutonomyLine: "{{value}}, como neste agente. Desligado, cada um fica com a sua.",
+          approvals: "Aprovações: {{from}} → {{to}}",
+          /** Só para quem gerencia agentes, desligado ao abrir: ligado, cada agente escolhido passa a perguntar como este (ADR 0173). */
+          withApprovals: "Levar as aprovações",
+          withApprovalsLine: "{{value}}, como neste agente. {{text}} Desligado, cada um fica com as suas.",
           reasons: {
             not_allowed: "Só admins e {{owner}} mudam",
             not_allowedNobody: "Só admins mudam",
@@ -5923,6 +5929,8 @@ export const ptBR = {
           done_other: "{{count}} agentes agora pensam com {{setup}}.",
           autonomyOnly_one: "{{count}} agente mudou só a autonomia.",
           autonomyOnly_other: "{{count}} agentes mudaram só a autonomia.",
+          approvalsOnly_one: "{{count}} agente ficou com a IA dele e mudou as aprovações.",
+          approvalsOnly_other: "{{count}} agentes ficaram com a IA deles e mudaram as aprovações.",
           missed_one: "{{count}} agente não mudou.",
           missed_other: "{{count}} agentes não mudaram.",
         },

@@ -97,6 +97,8 @@ export type InternalArea =
 export const APPROVALS_LEVELS = ["always", "risky", "never"] as const;
 export type ApprovalsLevel = (typeof APPROVALS_LEVELS)[number];
 export const DEFAULT_APPROVALS_LEVEL: ApprovalsLevel = "risky";
+export const isApprovalsLevel = (v: unknown): v is ApprovalsLevel =>
+  (APPROVALS_LEVELS as readonly unknown[]).includes(v);
 
 /** An agent's level, read fresh on every call: narrowing it asks at once. */
 export async function approvalsLevelOf(db: Executor, orgId: string, agentId: string): Promise<ApprovalsLevel> {

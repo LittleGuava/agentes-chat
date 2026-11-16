@@ -3562,6 +3562,7 @@
       "title": "Non chiedere mai",
       "text": "Non chiede mai, nemmeno per merge, deploy, pagamenti e routine."
     },
+    "changed": "Approvazioni: {{value}}",
     "change": "Cambia quando chiede",
     "now": "{{name}} ora: {{level}}.",
     "nowEveryAgent": "Tutti gli agenti ora: {{level}}.",
@@ -5795,6 +5796,9 @@
           "autonomy": "Autonomia: {{from}} → {{to}}",
           "withAutonomy": "Includi l'autonomia",
           "withAutonomyLine": "{{value}}, come su questo agente. Disattivato: ognuno mantiene la sua.",
+          "approvals": "Approvazioni: {{from}} → {{to}}",
+          "withApprovals": "Includi le approvazioni",
+          "withApprovalsLine": "{{value}}, come su questo agente. {{text}} Disattivato: ognuno mantiene le sue.",
           "reasons": {
             "not_allowed": "Solo gli admin e {{owner}} possono cambiarla",
             "not_allowedNobody": "Solo gli admin possono cambiarla",
@@ -5819,6 +5823,9 @@
           "autonomyOnly_one": "{{count}} agente ha cambiato solo l'autonomia.",
           "autonomyOnly_many": "{{count}} agenti hanno cambiato solo l'autonomia.",
           "autonomyOnly_other": "{{count}} agenti hanno cambiato solo l'autonomia.",
+          "approvalsOnly_one": "{{count}} agente ha mantenuto la sua IA e cambiato le approvazioni.",
+          "approvalsOnly_many": "{{count}} agenti hanno mantenuto la loro IA e cambiato le approvazioni.",
+          "approvalsOnly_other": "{{count}} agenti hanno mantenuto la loro IA e cambiato le approvazioni.",
           "missed_one": "{{count}} agente non è cambiato.",
           "missed_many": "{{count}} agenti non sono cambiati.",
           "missed_other": "{{count}} agenti non sono cambiati."

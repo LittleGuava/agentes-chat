@@ -3554,6 +3554,7 @@
       "title": "No preguntar nunca",
       "text": "No pregunta nada, tampoco en merge, deploy, pagos y rutinas."
     },
+    "changed": "Aprobaciones: {{value}}",
     "change": "Cambiar cuándo pregunta",
     "now": "{{name}} ahora: {{level}}.",
     "nowEveryAgent": "Todos los agentes ahora: {{level}}.",
@@ -5766,6 +5767,9 @@
           "autonomy": "Autonomía: {{from}} → {{to}}",
           "withAutonomy": "Incluir la autonomía",
           "withAutonomyLine": "{{value}}, como en este agente. Desactivado: cada uno mantiene la suya.",
+          "approvals": "Aprobaciones: {{from}} → {{to}}",
+          "withApprovals": "Incluir las aprobaciones",
+          "withApprovalsLine": "{{value}}, como en este agente. {{text}} Desactivado: cada uno mantiene las suyas.",
           "reasons": {
             "not_allowed": "Solo los admins y {{owner}} lo cambian",
             "not_allowedNobody": "Solo los admins lo cambian",
@@ -5790,6 +5794,9 @@
           "autonomyOnly_one": "{{count}} agente cambió solo su autonomía.",
           "autonomyOnly_many": "{{count}} agentes cambiaron solo su autonomía.",
           "autonomyOnly_other": "{{count}} agentes cambiaron solo su autonomía.",
+          "approvalsOnly_one": "{{count}} agente mantuvo su IA y cambió sus aprobaciones.",
+          "approvalsOnly_many": "{{count}} agentes mantuvieron su IA y cambiaron sus aprobaciones.",
+          "approvalsOnly_other": "{{count}} agentes mantuvieron su IA y cambiaron sus aprobaciones.",
           "missed_one": "{{count}} agente no cambió.",
           "missed_many": "{{count}} agentes no cambiaron.",
           "missed_other": "{{count}} agentes no cambiaron."

@@ -8419,6 +8419,9 @@
   "approvalsLevel.never.text": {
     "value": "Never asks, merge, deploy, payments and routines included."
   },
+  "approvalsLevel.changed": {
+    "value": "Approvals: {{value}}"
+  },
   "approvalsLevel.change": {
     "value": "Change when it asks"
   },
@@ -13767,6 +13770,15 @@
   "agentPage.work.brain.copy.withAutonomyLine": {
     "value": "{{value}}, as on this agent. Off: each keeps its own."
   },
+  "agentPage.work.brain.copy.approvals": {
+    "value": "Approvals: {{from}} → {{to}}"
+  },
+  "agentPage.work.brain.copy.withApprovals": {
+    "value": "Include the approvals"
+  },
+  "agentPage.work.brain.copy.withApprovalsLine": {
+    "value": "{{value}}, as on this agent. {{text}} Off: each keeps its own."
+  },
   "agentPage.work.brain.copy.reasons.not_allowed": {
     "value": "Only admins and {{owner}} change it"
   },
@@ -13822,6 +13834,12 @@
     "value": {
       "one": "{{count}} agent changed only its autonomy.",
       "other": "{{count}} agents changed only their autonomy."
+    }
+  },
+  "agentPage.work.brain.copy.approvalsOnly": {
+    "value": {
+      "one": "{{count}} agent kept its AI and changed its approvals.",
+      "other": "{{count}} agents kept their AI and changed their approvals."
     }
   },
   "agentPage.work.brain.copy.missed": {
