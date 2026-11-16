@@ -10,6 +10,7 @@ import type { PubSub } from "./pubsub";
 import type { PushSender } from "./push";
 import type { RateLimiter } from "./rate-limiter";
 import type { SearchIndexResolver } from "./search";
+import type { ServerUpdater } from "./server-updater";
 import type { VaultSources } from "./vault/source";
 import type { WebPushSender } from "./web-push";
 
@@ -48,6 +49,7 @@ export * from "./s3-fake";
 export * from "./sandbox";
 export * from "./search";
 export * from "./secret-box";
+export * from "./server-updater";
 export * from "./speech";
 export * from "./standard-webhooks";
 export * from "./stopwords";
@@ -99,4 +101,6 @@ export interface Adapters {
    * The built-in source is the engine's own. null/absent = only built-in items.
    */
   vaultSources?: VaultSources | null;
+  /** Updates from the app (ADR 0200), with `SERVER_UPDATER_DIR`; null/absent = none. */
+  serverUpdater?: ServerUpdater | null;
 }
