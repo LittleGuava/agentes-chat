@@ -63,6 +63,8 @@ export async function missingPermissions(ctx: Pick<ToolContext, "db" | "orgId" |
       and(
         eq(p.orgId, ctx.orgId),
         isNull(p.deletedAt),
+        // A person's own browser of an agent is never granted, so never asked for.
+        isNull(p.personUserId),
         onSingleModeMachine,
         sql`not exists (select 1 from ${g} where ${g.profileId} = ${p.id} and ${g.agentId} = ${ctx.agentId})`,
       ),

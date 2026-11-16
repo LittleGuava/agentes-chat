@@ -1748,6 +1748,8 @@ export const isProfileKey = (key: string) => key.startsWith("profile:");
 
 export class BrowserManager {
   private readonly sessions = new Map<string, Session>();
+  /** A person's own browser's session → the agent's folder its files go to (`useFilesFolder`). */
+  private readonly filesFolders = new Map<string, string>();
   /** A person's turn in each agent's browser, as the server last told (`browser.handoff`). */
   private readonly handoffs = new Map<string, BrowserHandoffInfo>();
   /** Handoffs forgotten when the server connection dropped: their browsers stay open until it says again, or a while. */
@@ -1969,7 +1971,13 @@ export class BrowserManager {
     actor: AgentScope = agent,
   ): Promise<BrowserAnswer & { setup?: BrowserSetup; tabs?: BrowserTabs }> {
     const allowed = allowedDomainsOf(req.allowedDomains);
-    const prepared = this.checkCommand(req.command, req.args, req.timeoutSeconds, folder, allowed);
+    const prepared = this.checkCommand(
+      req.command,
+      req.args,
+      req.timeoutSeconds,
+      this.filesOf(agent.id, folder),
+      allowed,
+    );
     const setup: BrowserSetup = {};
     const session = await this.timedSession(agent, folder, setup);
     const desktop = req.desktop === true;
@@ -2010,7 +2018,7 @@ export class BrowserManager {
     }
     const allowed = allowedDomainsOf(req.allowedDomains);
     const prepared = list.map((c) => ({
-      ...this.checkCommand(c?.command, c?.args, c?.timeoutSeconds, folder, allowed),
+      ...this.checkCommand(c?.command, c?.args, c?.timeoutSeconds, this.filesOf(agent.id, folder), allowed),
       tolerate: c?.tolerate === true,
     }));
     const setup: BrowserSetup = {};
@@ -2271,7 +2279,9 @@ export class BrowserManager {
     // A screenshot or PDF into a folder that isn't there yet (`screenshots/…`): made first.
     if (FILE_OUTPUTS.has(command)) {
       for (const a of args) {
-        if (path.isAbsolute(a) && isInside(session.folder, a)) await mkdir(path.dirname(a), { recursive: true });
+        if (path.isAbsolute(a) && isInside(this.filesOf(session.agentId, session.folder), a)) {
+          await mkdir(path.dirname(a), { recursive: true });
+        }
       }
     }
     if (command === "close") {
@@ -3189,8 +3199,26 @@ export class BrowserManager {
     return path.join(this.opts.home, "browser-profiles", profileId);
   }
 
+  /**
+   * Protocol 70 (ADR 0110 addendum 2026-11-15): a person's own browser of an agent keeps that agent's files in its
+   * folder (`files`), as its own browser does, while its Chrome stays in the profile's. Said by every agent command
+   * there and kept until the runner stops; a person's own commands (Fazer login) carry no agent, so before the
+   * agent's first command since the runner started their downloads land in the profile's folder.
+   */
+  async useFilesFolder(sessionId: string, files: string) {
+    await mkdir(path.join(files, "screenshots"), { recursive: true });
+    await mkdir(path.join(files, "downloads"), { recursive: true });
+    this.filesFolders.set(sessionId, files);
+  }
+
+  /** Where a session's files are read and written: its own folder, unless `useFilesFolder` said another. */
+  private filesOf(sessionId: string, folder: string) {
+    return this.filesFolders.get(sessionId) ?? folder;
+  }
+
   /** `browser.profile.delete`: its Chrome stops and its folder goes (logins with it). */
   async deleteProfile(agent: AgentScope, folder: string): Promise<{ deleted: boolean }> {
+    this.filesFolders.delete(agent.id);
     await this.stop(agent);
     await rm(folder, { recursive: true, force: true });
     return { deleted: true };
@@ -3318,9 +3346,9 @@ export class BrowserManager {
       `${Math.round(this.idleMs / 1000)}s`,
       "--no-webmcp",
       "--download-path",
-      path.join(session.folder, "downloads"),
+      path.join(this.filesOf(session.agentId, session.folder), "downloads"),
       "--screenshot-dir",
-      path.join(session.folder, "screenshots"),
+      path.join(this.filesOf(session.agentId, session.folder), "screenshots"),
     ];
   }
 

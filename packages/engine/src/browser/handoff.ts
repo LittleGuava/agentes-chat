@@ -67,7 +67,7 @@ import { SandboxUnavailableError } from "../sandbox";
 import { closedRefusal } from "../standing";
 import { grantedScopeKeys, isAllowed, toolAccess } from "../tools/scopes";
 import type { ToolContext, ToolDefinition, ToolOutput, ToolSource } from "../tools/types";
-import { getBrowserProfile, runBrowserProfile } from "./profiles";
+import { getBrowserProfile, personalBrowserProfile, personalBrowserReader, runBrowserProfile } from "./profiles";
 import { agentBrowserStatus, browserUnavailableText } from "./status";
 import {
   BROWSER_SCOPE,
@@ -996,6 +996,25 @@ export function createBrowserHandoffToolSource(
     }
     const place = await places[screen](ctx);
     if ("unavailable" in place) return { content: place.unavailable, isError: true };
+    // In a person's own browser of the agent (their DM with it, ADR 0110 addendum 2026-11-15) only they see and drive
+    // it: they sign in from the card's live view themselves, and no take over of the agent's shared browser is asked.
+    const reader = screen === "browser" && !profileId ? await personalBrowserReader(ctx.db, ctx) : null;
+    if (
+      reader &&
+      hub &&
+      (await personalBrowserProfile(ctx.db, hub, {
+        orgId: ctx.orgId,
+        agentId: ctx.agentId,
+        personUserId: reader,
+        machineId: place.machineId,
+      }))
+    ) {
+      return {
+        content:
+          'Nothing was asked: this conversation uses the person\'s own browser, which only they can see and drive. Tell them in your reply what to do there (sign in, a code); they press "Fazer login" on the browser card in this conversation, and hand it back when done. Then go on.',
+        isError: true,
+      };
+    }
     if (!place.online) {
       return {
         content: `Your computer ${place.name} is offline, so no one can use your ${s.what} now. Say so in your reply.`,
