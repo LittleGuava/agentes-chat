@@ -173,6 +173,7 @@ import { OpenOnPhoneDialog } from "./OpenOnPhone";
 import { useOrg } from "./org-context";
 import { StatusLine } from "./Presence";
 import { MyFace, OrgMark } from "./ProfilePhoto";
+import { SidebarLinkRows, useHasSidebarLinks } from "./SidebarLinks";
 import { sectionName, useSectionOrder } from "./SidebarOrder";
 import { SIDEBAR_TOOLS, SidebarSetupDialog, ToolList } from "./SidebarSetup";
 import { AgentGlow, AgentTrail, colorOf, MenuHorizon, SidebarHorizon, WorkspaceSky } from "./Sky";
@@ -332,6 +333,8 @@ export function Sidebar() {
   const toolOrder = sidebarItemOrder(personal);
   const listed = toolOrder.filter((id) => inSidebarList(sidebarPlace(sidebarItems, id, personal), counts[id] ?? 0));
   const inMore = toolOrder.filter((id) => !listed.includes(id));
+  // The person's own links, under the tools (ADR 0083, amendment of 2026-11-15).
+  const hasLinks = useHasSidebarLinks(orgId);
   const countOf = (id: SidebarItem) =>
     id === "waiting" && waitingOnMe > 0 ? (
       <CountBadge aria-label={t("notifications.summaryWaiting", { count: waitingOnMe })}>
@@ -658,9 +661,10 @@ export function Sidebar() {
     // A personal workspace's list is its conversations (ADR 0159): a tool comes into sight only while something
     // waits in it, or once the person put it there; Início, Go to… and the other tools are in More at the end.
     tools: personal ? (
-      listed.length > 0 && (
+      (listed.length > 0 || hasLinks) && (
         <div className="sidebar__group sidebar__tools">
           <ToolList items={listed} row={toolRow} />
+          <SidebarLinkRows orgId={orgId} />
         </div>
       )
     ) : (
@@ -671,6 +675,7 @@ export function Sidebar() {
           <span className="sidebar__item-label">{t("shell.home")}</span>
         </Link>
         <ToolList items={listed} row={toolRow} />
+        <SidebarLinkRows orgId={orgId} />
         <MoreTools items={inMore} row={toolRow} countOf={countOf} onCustomize={() => setCustomizing(true)} />
       </div>
     ),

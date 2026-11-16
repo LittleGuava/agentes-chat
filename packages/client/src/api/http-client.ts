@@ -229,6 +229,7 @@ import type {
   ServerUpdaterStatus,
   SidebarItem,
   SidebarItems,
+  SidebarLink,
   SidebarSection,
   SidebarView,
   SignInOptions,
@@ -735,6 +736,15 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       sidebarView: async (orgId) => (await request<{ view: SidebarView }>(`${org(orgId)}/me/sidebar/view`)).view,
       setSidebarView: async (orgId, view) =>
         (await request<{ view: SidebarView }>(`${org(orgId)}/me/sidebar/view`, { method: "PUT", json: { view } })).view,
+      sidebarLinks: async (orgId) => (await request<{ links: SidebarLink[] }>(`${org(orgId)}/me/sidebar/links`)).links,
+      addSidebarLink: async (orgId, link) =>
+        (await request<{ links: SidebarLink[] }>(`${org(orgId)}/me/sidebar/links`, { json: link })).links,
+      removeSidebarLink: async (orgId, linkId) =>
+        (
+          await request<{ links: SidebarLink[] }>(`${org(orgId)}/me/sidebar/links/${enc(linkId)}`, {
+            method: "DELETE",
+          })
+        ).links,
       sidebarToolOrder: async (orgId) =>
         (await request<{ order: SidebarItem[] }>(`${org(orgId)}/me/sidebar/tools`)).order,
       setSidebarToolOrder: async (orgId, order) =>

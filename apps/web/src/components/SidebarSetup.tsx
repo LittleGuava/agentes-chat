@@ -34,6 +34,7 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { useOrg } from "./org-context";
+import { SidebarLinksSetup } from "./SidebarLinks";
 import { sectionName, useSectionOrder } from "./SidebarOrder";
 
 /** The tools at the top of the sidebar: the page each opens and its icon. */
@@ -268,6 +269,7 @@ export function SidebarSetupDialog({ open, onClose }: { open: boolean; onClose: 
             </li>
           ))}
         </ol>
+        <SidebarLinksSetup orgId={org.id} />
       </DialogBody>
       <DialogFooter>
         <Button

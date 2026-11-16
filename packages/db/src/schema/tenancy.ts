@@ -245,6 +245,32 @@ export const organizationMemberRoles = pgTable(
 );
 
 /**
+ * Pages a person keeps at hand in their sidebar, in this workspace (ADR 0083, amendment of 2026-11-15): a title and an
+ * https address, opened in a new tab. Leaving the workspace takes them away. `packages/engine/src/sidebar-links.ts`
+ * checks the address and the limit.
+ */
+export const sidebarLinks = pgTable(
+  "sidebar_links",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    orgId: uuid().notNull(),
+    userId: text().notNull(),
+    title: text().notNull(),
+    url: text().notNull(),
+    /** Order in the sidebar, from 0. */
+    position: integer().notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.orgId, t.userId],
+      foreignColumns: [organizationMembers.orgId, organizationMembers.userId],
+    }).onDelete("cascade"),
+    index().on(t.orgId, t.userId, t.position),
+  ],
+);
+
+/**
  * Pending invitations. The link carries a random token; only its SHA-256 is
  * stored. Accepting requires signing in with the invited email address. A
  * pending invitation is the only thing that lets an email sign up when sign-up
