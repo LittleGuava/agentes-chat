@@ -11849,6 +11849,7 @@
       "inPlan": "In je Cursor-abonnement",
       "apiPrice": "Door Cursor gefactureerd tegen API-prijzen"
     },
+    "ruledOut": "Niet toegestaan in deze workspace",
     "reasons": {
       "no_computer": "Kies een gekoppelde computer bij Computer om dit te gebruiken.",
       "exec_off": "De computer is gekoppeld zonder toestemming om programma's uit te voeren.",
@@ -11863,6 +11864,7 @@
       "codexRecheckHere": "Kies na het bijwerken Opnieuw controleren bij Codex in Voorkeuren › Tools.",
       "codexRecheckThere": "Werk Codex CLI bij op {{computer}}. Als daar de desktopapp draait, kies je Opnieuw controleren bij Codex in Voorkeuren › Tools.",
       "system": "{{program}} werkt nog niet op het systeem van {{computer}}.",
+      "not_allowed": "De regels van deze workspace staan {{program}} niet toe. Een beheerder kan ze wijzigen in Instellingen › AI.",
       "no_computerCloud": "Klaar zodra {{computer}} klaar is."
     },
     "notAvailableNow": "Gekozen, maar nu niet beschikbaar.",
@@ -15264,6 +15266,8 @@
       "ownerOrAdmin": "Alleen de eigenaar van de agent of een beheerder kan dit doen.",
       "detailsHidden": "Alleen wie met {{agentName}} praat, ziet hoe het werkt.",
       "extraOwnerOnly": "Alleen de eigenaar van de agent zet het betaalde extra gebruik van het abonnement aan of uit.",
+      "brainNotAllowed": "De regels van deze workspace staan dat brein of model niet toe. Vraag het een beheerder, of kies iets anders.",
+      "brainPolicyInvalid": "Die regel kan niet worden opgeslagen: laat in elke lijst minstens één keuze staan, en alleen modellen van de aanbieders die hij toestaat.",
       "undoForbidden": "Alleen de persoon voor wie de agent werkte, zijn eigenaar of een beheerder kan dit ongedaan maken.",
       "undoSkillsAdmins": "Alleen een beheerder kan een wijziging in de skills van een agent ongedaan maken of opnieuw doen."
     },
@@ -17037,6 +17041,16 @@
     "usageAgentMeter": "Gebruikt budget van {{name}}",
     "defaultBudgetTitle": "Standaardbudget per agent",
     "defaultBudgetSaved": "Standaardbudget opgeslagen.",
+    "allowedBrains": {
+      "title": "Wat agents mogen gebruiken",
+      "hint": "De breinen, aanbieders en modellen waarmee elke agent hier mag denken, die van beheerders inbegrepen. Wat erbuiten valt, staat grijs in de keuzelijsten, en een agent die het al gebruikt stopt tot iemand iets anders kiest.",
+      "brains": "Breinen",
+      "providers": "API-aanbieders",
+      "onlySome": "Alleen sommige modellen",
+      "models": "Modellen",
+      "empty": "Laat in elke lijst minstens één keuze staan.",
+      "saved": "Regels opgeslagen."
+    },
     "defaultBudget": "Maandbudget per agent (US$)",
     "defaultBudgetHelp": "Agents zonder eigen budget gebruiken dit. Wijzig het eigen budget van een agent op zijn pagina. Beheerders zien bedragen, leden zien percentages.",
     "usageTotal": "{{amount}} in totaal sinds {{since}}",

@@ -4,6 +4,7 @@ import {
   useAgentBrain,
   useAiAccounts,
   useApi,
+  useBrainPolicy,
   useCredentials,
   useModels,
   usePlatformKey,
@@ -388,6 +389,7 @@ function RightHandForm({ agent }: { agent: Agent }) {
   const models = useModels();
   const credentials = useCredentials(org.id, can(org, "manage_credentials"));
   const platform = usePlatformKey(org.id);
+  const policy = useBrainPolicy(org.id);
   const usesApi = useWorkspaceUsesApi(org.id);
   const { solo } = usePersonalView();
   const [name, setName] = useState(agent.name);
@@ -444,7 +446,7 @@ function RightHandForm({ agent }: { agent: Agent }) {
   const list = modelOptions(
     t,
     i18n.language,
-    modelChoices(models.data?.models ?? [], credentials.data ?? [], platform.data ?? false),
+    modelChoices(models.data?.models ?? [], credentials.data ?? [], platform.data ?? false, policy),
   );
   // Plans it may think with for everyone: the admin's own, and everyone's that serve the whole workspace.
   const plans = (view?.accounts ?? []).filter((a) => a.status === "active");

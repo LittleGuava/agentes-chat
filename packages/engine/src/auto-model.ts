@@ -2,13 +2,16 @@ import { and, type Database, desc, type Executor, eq, isNull, schema } from "@ag
 import {
   endpointModelId,
   isAutoModel,
+  listedModels,
   MODEL_TIERS,
   type ModelTier,
   modelForTier,
   modelInfo,
+  nearestTier,
   parseCustomModel,
 } from "@agenteschat/providers";
 import type { Agent } from "./agents";
+import { orgBrainPolicy, providerAllowed } from "./brain-policy";
 import { agentBrainSummaries, brainOf, CLAUDE_CODE_MODELS } from "./brain-settings";
 import type { BrainPlan } from "./brains/select";
 import type { BrainKind } from "./brains/types";
@@ -249,6 +252,8 @@ export function autoModelFor(
   tier: ModelTier,
   tiers?: Partial<Record<ModelTier, string>>,
   endpoint?: AutoEndpoint | null,
+  /** The workspace's rule (ADR 0191, `modelAllowed`): a pick it leaves out gives way to the allowed one nearest the tier. */
+  allows: (model: string) => boolean = () => true,
 ): string | null {
   const own = tiers?.[tier];
   // Another provider's (or another endpoint's) model needs another key: only this line's own pick stands.
@@ -257,10 +262,18 @@ export function autoModelFor(
       ? endpoint?.credentialId === parseCustomModel(own)?.credentialId
       : modelInfo(own)?.provider === provider
     : false;
-  if (own && ownHere) return own;
+  if (own && ownHere && allows(own)) return own;
+  const allowed = (model: string | null) => (model && allows(model) ? model : null);
   // An endpoint declares no catalog tiers: its one best model answers for every tier.
-  if (provider === "custom") return endpoint ? endpointModelId(endpoint.credentialId, endpoint.models) : null;
-  return modelForTier(provider, tier) ?? (provider === "openrouter" ? null : modelForTier("anthropic", tier));
+  if (provider === "custom") return endpoint ? allowed(endpointModelId(endpoint.credentialId, endpoint.models)) : null;
+  const line = allowed(modelForTier(provider, tier));
+  if (line) return line;
+  // The rule left the tier's model out: the nearest of the line's models it allows, a tiered one first.
+  const theirs = listedModels().filter(([id, m]) => m.provider === provider && allows(id));
+  const near = nearestTier(theirs, tier, ([, m]) => m.tier)?.[0] ?? theirs[0]?.[0];
+  if (near) return near;
+  if (modelForTier(provider, tier)) return null;
+  return provider === "openrouter" ? null : allowed(modelForTier("anthropic", tier));
 }
 
 /**
@@ -277,10 +290,12 @@ export function autoApplied(
   provider: string,
   tiers?: Partial<Record<ModelTier, string>>,
   endpoint?: AutoEndpoint | null,
+  /** The workspace's rule on the API's models (ADR 0191). */
+  allows?: (model: string) => boolean,
 ): AutoApplied {
   const out: AutoApplied = {};
   if (isAutoModel(agent.model)) {
-    const model = choice.apiModel ?? autoModelFor(provider, choice.tier, tiers, endpoint);
+    const model = choice.apiModel ?? autoModelFor(provider, choice.tier, tiers, endpoint, allows);
     if (model) out.apiModel = model;
   }
   if (plan.kind === "model") {
@@ -340,6 +355,11 @@ export interface AutoLine {
   provider: string;
   /** With `custom`: the workspace endpoint's models (ADR 0146). */
   endpoint?: AutoEndpoint;
+  /**
+   * Set when the workspace's rule (ADR 0191) moved the line off the agent's own key's provider: the key its calls go
+   * with now (null: the workspace's default for that provider, else the platform's).
+   */
+  key?: string | null;
 }
 
 /**
@@ -348,6 +368,24 @@ export interface AutoLine {
  * `custom` key resolves to a model only that key can call.
  */
 export async function autoLine(db: Executor, agent: Pick<Agent, "orgId" | "credentialId">): Promise<AutoLine> {
+  const line = await keyLine(db, agent);
+  const policy = await orgBrainPolicy(db, agent.orgId);
+  if (!policy || providerAllowed(policy, line.provider)) return line;
+  // The rule leaves the key's provider out (ADR 0191): the newest live key of a provider it allows gives the line, else
+  // Claude on the platform's key where the rule allows it. None: the line stays, and the gateway refuses its pick.
+  const keys = await db
+    .select({ id: schema.providerCredentials.id, provider: schema.providerCredentials.provider })
+    .from(schema.providerCredentials)
+    .where(and(eq(schema.providerCredentials.orgId, agent.orgId), isNull(schema.providerCredentials.revokedAt)))
+    .orderBy(desc(schema.providerCredentials.createdAt));
+  const other = keys.find((k) => providerAllowed(policy, k.provider));
+  if (!other) return providerAllowed(policy, "anthropic") ? { provider: "anthropic", key: null } : line;
+  const endpoint = endpointOf(await usableCredentialRow(db, agent.orgId, other.id));
+  return { provider: other.provider, key: other.id, ...(endpoint ? { endpoint } : {}) };
+}
+
+/** The line of the agent's key, or the workspace's, before the rule (`autoLine`). */
+async function keyLine(db: Executor, agent: Pick<Agent, "orgId" | "credentialId">): Promise<AutoLine> {
   if (agent.credentialId) {
     const own = await usableCredentialRow(db, agent.orgId, agent.credentialId);
     if (own) {

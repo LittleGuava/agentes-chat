@@ -11298,6 +11298,7 @@
       "inPlan": "내 Cursor 요금제에 포함",
       "apiPrice": "Cursor가 API 가격으로 청구"
     },
+    "ruledOut": "이 워크스페이스에서는 허용되지 않아요",
     "reasons": {
       "no_computer": "사용하려면 컴퓨터에서 연결된 컴퓨터를 선택하세요.",
       "exec_off": "프로그램 실행 권한 없이 연결된 컴퓨터예요.",
@@ -11312,6 +11313,7 @@
       "codexRecheckHere": "업데이트한 뒤 환경설정 › 도구의 Codex 행에서 다시 확인을 선택하세요.",
       "codexRecheckThere": "{{computer}}에서 Codex CLI를 업데이트하세요. 데스크톱 앱이 있다면 환경설정 › 도구의 Codex 행에서 다시 확인을 선택하세요.",
       "system": "{{program}}은(는) 아직 {{computer}}의 시스템에서 실행되지 않아요.",
+      "not_allowed": "이 워크스페이스의 규칙은 {{program}}을(를) 허용하지 않아요. 관리자가 설정 › AI에서 바꿀 수 있어요.",
       "no_computerCloud": "{{computer}}이(가) 준비되면 바로 쓸 수 있어요."
     },
     "notAvailableNow": "선택했지만 지금은 사용할 수 없어요.",
@@ -14644,6 +14646,8 @@
       "ownerOrAdmin": "에이전트 소유자나 관리자만 할 수 있어요.",
       "detailsHidden": "{{agentName}}에게 말할 수 있는 사람만 작동 방식을 볼 수 있어요.",
       "extraOwnerOnly": "에이전트 소유자만 요금제의 유료 추가 사용량을 켜거나 끌 수 있어요.",
+      "brainNotAllowed": "이 워크스페이스의 규칙은 그 두뇌나 모델을 허용하지 않아요. 관리자에게 요청하거나 다른 것을 고르세요.",
+      "brainPolicyInvalid": "이 규칙은 저장할 수 없어요. 각 목록에 적어도 하나를 남기고, 허용한 제공업체의 모델만 고르세요.",
       "undoForbidden": "에이전트가 도와준 사람, 에이전트 소유자 또는 관리자만 되돌릴 수 있어요.",
       "undoSkillsAdmins": "에이전트의 스킬 변경은 관리자만 되돌리거나 다시 할 수 있어요."
     },
@@ -16386,6 +16390,16 @@
     "usageAgentMeter": "{{name}}의 예산 사용량",
     "defaultBudgetTitle": "에이전트 기본 예산",
     "defaultBudgetSaved": "기본 예산을 저장했어요.",
+    "allowedBrains": {
+      "title": "에이전트가 쓸 수 있는 것",
+      "hint": "관리자의 에이전트를 포함해 이곳의 모든 에이전트가 생각하는 데 쓸 수 있는 두뇌, 제공업체, 모델이에요. 제외한 항목은 선택기에서 흐리게 보이고, 이미 쓰고 있는 에이전트는 누군가 다른 것을 고를 때까지 멈춰요.",
+      "brains": "두뇌",
+      "providers": "API 제공업체",
+      "onlySome": "일부 모델만",
+      "models": "모델",
+      "empty": "각 목록에 적어도 하나는 남겨 두세요.",
+      "saved": "규칙을 저장했어요."
+    },
     "defaultBudget": "에이전트별 월 예산(US$)",
     "defaultBudgetHelp": "자체 예산이 없는 에이전트는 이 예산을 사용해요. 에이전트별 예산은 각 에이전트 페이지에서 바꾸세요. 관리자는 금액을, 멤버는 비율을 봐요.",
     "usageTotal": "{{since}} 이후 총 {{amount}}",

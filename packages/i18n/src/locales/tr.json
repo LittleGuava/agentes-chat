@@ -11722,6 +11722,7 @@
       "inPlan": "Cursor planınıza dahil",
       "apiPrice": "Cursor tarafından API fiyatlarıyla faturalanır"
     },
+    "ruledOut": "Bu çalışma alanında izin verilmiyor",
     "reasons": {
       "no_computer": "Kullanmak için Bilgisayar bölümünden bağlı bir bilgisayar seçin.",
       "exec_off": "Bilgisayar, program çalıştırma izni olmadan bağlandı.",
@@ -11736,6 +11737,7 @@
       "codexRecheckHere": "Güncellemeden sonra Tercihler › Araçlar bölümünde Codex satırındaki Tekrar kontrol et seçeneğini seçin.",
       "codexRecheckThere": "Codex CLI aracını {{computer}} üzerinde güncelleyin. Bu bilgisayarda masaüstü uygulaması çalışıyorsa Tercihler › Araçlar bölümünde Codex satırındaki Tekrar kontrol et seçeneğini seçin.",
       "system": "{{program}} henüz {{computer}} sisteminde çalışmıyor.",
+      "not_allowed": "Bu çalışma alanının kuralları {{program}} kullanımına izin vermiyor. Bir yönetici bunları Ayarlar › Yapay zekâ bölümünden değiştirebilir.",
       "no_computerCloud": "{{computer}} hazır olur olmaz hazır."
     },
     "notAvailableNow": "Seçildi ama şu anda kullanılamıyor.",
@@ -15136,6 +15138,8 @@
       "ownerOrAdmin": "Bunu yalnızca ajanın sahibi veya bir yönetici yapabilir.",
       "detailsHidden": "Nasıl çalıştığını yalnızca {{agentName}} ile konuşanlar görür.",
       "extraOwnerOnly": "Planın ücretli ek kullanımını yalnızca ajanın sahibi açıp kapatabilir.",
+      "brainNotAllowed": "Bu çalışma alanının kuralları bu beyne veya modele izin vermiyor. Bir yöneticiye sorun ya da başka birini seçin.",
+      "brainPolicyInvalid": "Bu kural kaydedilemiyor: her listede en az bir seçim bırakın ve yalnızca izin verdiği sağlayıcıların modellerini seçin.",
       "undoForbidden": "Bunu yalnızca ajanın çalıştığı kişi, sahibi veya bir yönetici geri alabilir.",
       "undoSkillsAdmins": "Bir ajanın becerilerindeki değişikliği yalnızca bir yönetici geri alabilir veya yineleyebilir."
     },
@@ -16909,6 +16913,16 @@
     "usageAgentMeter": "{{name}} ajanının kullanılan bütçesi",
     "defaultBudgetTitle": "Varsayılan ajan bütçesi",
     "defaultBudgetSaved": "Varsayılan bütçe kaydedildi.",
+    "allowedBrains": {
+      "title": "Ajanların kullanabilecekleri",
+      "hint": "Buradaki her ajanın, yöneticilerinkiler de dahil, düşünmek için kullanabileceği beyinler, sağlayıcılar ve modeller. Dışarıda kalanlar seçicilerde gri görünür ve onu zaten kullanan bir ajan, biri başka bir şey seçene kadar durur.",
+      "brains": "Beyinler",
+      "providers": "API sağlayıcıları",
+      "onlySome": "Yalnızca bazı modeller",
+      "models": "Modeller",
+      "empty": "Her listede en az bir seçim bırakın.",
+      "saved": "Kurallar kaydedildi."
+    },
     "defaultBudget": "Ajan başına aylık bütçe (US$)",
     "defaultBudgetHelp": "Kendi bütçesi olmayan ajanlar bunu kullanır. Bir ajanın kendi bütçesini onun sayfasından değiştirin. Yöneticiler tutarları, üyeler yüzdeleri görür.",
     "usageTotal": "{{since}} tarihinden bu yana toplam {{amount}}",

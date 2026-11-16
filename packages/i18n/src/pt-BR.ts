@@ -12166,6 +12166,8 @@ export const ptBR = {
     opencodeText: "Os modelos grátis do OpenCode, ou a chave do OpenCode de quem conectou o computador.",
     /** Cursor's models (ADR 0114), where its CLI said which the plan includes. */
     cursorModel: { inPlan: "No seu plano do Cursor", apiPrice: "O Cursor cobra pelo preço da API" },
+    /** An API model the workspace's rule leaves out (ADR 0191). */
+    ruledOut: "Não permitido neste workspace",
     reasons: {
       no_computer: "Escolha um computador conectado em Computador para usar.",
       exec_off: "O computador foi conectado sem permissão para rodar programas.",
@@ -12184,6 +12186,9 @@ export const ptBR = {
       codexRecheckThere:
         "Atualize o Codex CLI no {{computer}}. Se ele usa o app para computador, clique em Verificar de novo na linha do Codex em Preferências › Ferramentas.",
       system: "O {{program}} ainda não roda no sistema do {{computer}}.",
+      /** The workspace's rule leaves this brain out (ADR 0191). */
+      not_allowed:
+        "As regras deste workspace não permitem o {{program}}. Um admin pode mudar isso em Configurações › IA.",
       no_computerCloud: "Disponível assim que o {{computer}} ficar pronto.",
     },
     notAvailableNow: "Escolhido, mas indisponível agora.",
@@ -15417,6 +15422,10 @@ export const ptBR = {
       ownerOrAdmin: "Só o dono do agente ou um admin pode fazer isso.",
       detailsHidden: "Só quem conversa com {{agentName}} vê como funciona.",
       extraOwnerOnly: "Só o dono do agente liga ou desliga o uso extra pago do plano.",
+      brainNotAllowed:
+        "As regras deste workspace não permitem esse cérebro ou modelo. Peça a um admin, ou escolha outro.",
+      brainPolicyInvalid:
+        "Não dá para salvar essa regra: deixe ao menos uma opção em cada lista, e só modelos dos provedores que ela permite.",
       undoForbidden: "Só a pessoa para quem o agente trabalhou, o dono dele ou um admin pode desfazer isso.",
       undoSkillsAdmins: "Só um admin desfaz ou refaz uma mudança nas skills de um agente.",
     },
@@ -17244,6 +17253,17 @@ export const ptBR = {
     usageAgentMeter: "Orçamento usado de {{name}}",
     defaultBudgetTitle: "Orçamento padrão dos agentes",
     defaultBudgetSaved: "Orçamento padrão salvo.",
+    /** The workspace's rule on what agents think with (ADR 0191), for admins. */
+    allowedBrains: {
+      title: "O que os agentes podem usar",
+      hint: "Os cérebros, provedores e modelos com que cada agente daqui pode pensar, inclusive os dos admins. O que ficar de fora aparece apagado nos seletores, e um agente que já usa isso para até alguém escolher outro.",
+      brains: "Cérebros",
+      providers: "Provedores da API",
+      onlySome: "Só alguns modelos",
+      models: "Modelos",
+      empty: "Deixe pelo menos uma opção em cada lista.",
+      saved: "Regras salvas.",
+    },
     defaultBudget: "Orçamento mensal por agente (US$)",
     defaultBudgetHelp:
       "Agentes sem orçamento próprio usam este. O de cada agente muda na página dele. Admins veem valores e membros veem porcentagens.",

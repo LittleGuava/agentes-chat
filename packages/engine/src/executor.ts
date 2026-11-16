@@ -55,6 +55,7 @@ import {
   type AutoModels,
   autoApplied,
   autoLine,
+  autoModelFor,
   autoWanted,
   chooseAutoModel,
   fallbackChoice,
@@ -66,11 +67,13 @@ import {
 import { burstAttemptEnded, burstOfRoom } from "./best-of";
 import type { BlockSpecReader } from "./block-state";
 import { ASK_CHOICES_TOOL, SHOW_BLOCK_TOOL, someoneAnswers } from "./blocks";
+import { brainPolicyRefusal, modelAllowed, orgBrainPolicy } from "./brain-policy";
 import { brainOf } from "./brain-settings";
 import { brainSessionId, missingTurnFolder, recordPlanUsage } from "./brains/claude-code";
 import { ModelBrain } from "./brains/model";
 import type { ComputerTurn } from "./brains/prompt";
 import {
+  BRAIN_NOT_ALLOWED,
   type BrainPlan,
   type BrainUnavailability,
   bindingReset,
@@ -2953,6 +2956,11 @@ async function executeRunInner(
     if (brainPlan.kind === "model") transcript.fallback = fallback;
     await addRunStep(db, run, "context", { brainFallback: fallback });
   }
+  // A brain the workspace's rule leaves out (ADR 0191): it fails now in the rule's words, with no wait and no stand-in.
+  if (brainPlan.unavailable?.code === BRAIN_NOT_ALLOWED) {
+    const { message } = brainPlan.unavailable;
+    return fail(message, { code: BRAIN_NOT_ALLOWED, detail: message });
+  }
   // The agent's model left its plan's live list, so this turn runs another: its owner hears it, never silently.
   const dropped =
     brainPlan.kind === "claude_code" && !brainPlan.missionId && agent.brain === "claude_code"
@@ -3027,15 +3035,21 @@ async function executeRunInner(
     const kept = t.autoModel;
     const choice: AutoModelRecord =
       kept ?? (await (autoAsked ?? (needsContext ? askAuto() : Promise.resolve(fallbackChoice("kept")))));
-    const line: AutoLine =
-      isAutoModel(agent.model) && !choice.apiModel
-        ? await autoLine(db, agent).catch((): AutoLine => ({ provider: "anthropic" }))
-        : { provider: "anthropic" };
+    // A kept choice's model needs its line again only for the key the workspace's rule moved it to (ADR 0191).
+    const line: AutoLine = isAutoModel(agent.model)
+      ? await autoLine(db, agent).catch((): AutoLine => ({ provider: "anthropic" }))
+      : { provider: "anthropic" };
     const { provider, endpoint } = line;
     // OpenRouter's line is its list: in place before a tier maps onto it.
-    if (provider === "openrouter") await ensureOpenRouterModels();
+    if (provider === "openrouter" && !choice.apiModel) await ensureOpenRouterModels();
     const tiers = (await orgAutoModels(db, run.orgId).catch((): AutoModels => ({})))[provider];
-    const applied = autoApplied(agent, brainPlan, choice, provider, tiers, endpoint);
+    const policy = await orgBrainPolicy(db, run.orgId);
+    const allows = policy ? (model: string) => modelAllowed(policy, model) : undefined;
+    const applied = autoApplied(agent, brainPlan, choice, provider, tiers, endpoint, allows);
+    // The rule left out every model the line has for it (ADR 0191): no wait ends that, so it fails in the rule's words.
+    const unruled = allows && !applied.apiModel ? autoModelFor(provider, choice.tier, tiers, endpoint) : null;
+    const ruledOut = brainPlan.kind === "model" && unruled ? brainPolicyRefusal(policy, "model", unruled) : null;
+    if (ruledOut) return fail(ruledOut.message, { code: ruledOut.code, detail: ruledOut.message });
     // No model for the tier: OpenRouter's list couldn't be read, or an endpoint offers none (never a call on the
     // wrong provider's line). Waited out like a provider outage, with the choice kept for the next attempt.
     if (brainPlan.kind === "model" && isAutoModel(agent.model) && !applied.apiModel) {
@@ -3048,6 +3062,7 @@ async function executeRunInner(
       throw outage;
     }
     ({ agent: thinker, plan: brainPlan } = withAuto(agent, brainPlan, applied));
+    if (line.key !== undefined && applied.apiModel) thinker = { ...thinker, credentialId: line.key };
     if (autoBrain) {
       const model = autoPlanModel(brainPlan.account?.provider, brainPlan.model, brainPlan.usage);
       if (model) brainPlan = { ...brainPlan, model };

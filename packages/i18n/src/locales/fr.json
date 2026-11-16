@@ -12228,6 +12228,7 @@
       "inPlan": "Inclus dans votre abonnement Cursor",
       "apiPrice": "Facturé par Cursor au prix de l'API"
     },
+    "ruledOut": "Non autorisé dans cet espace de travail",
     "reasons": {
       "no_computer": "Choisissez un ordinateur connecté dans Ordinateur pour l'utiliser.",
       "exec_off": "L'ordinateur a été connecté sans permission d'exécuter des programmes.",
@@ -12242,6 +12243,7 @@
       "codexRecheckHere": "Après la mise à jour, cliquez sur Vérifier à nouveau dans la ligne Codex des préférences, sous Outils.",
       "codexRecheckThere": "Mettez à jour Codex CLI sur {{computer}}. Si l’application de bureau y est installée, cliquez sur Vérifier à nouveau dans la ligne Codex des préférences, sous Outils.",
       "system": "{{program}} ne fonctionne pas encore sur le système de {{computer}}.",
+      "not_allowed": "Les règles de cet espace de travail n'autorisent pas {{program}}. Un administrateur peut les modifier dans Paramètres › IA.",
       "no_computerCloud": "Prêt dès que {{computer}} l'est."
     },
     "notAvailableNow": "Choisi, mais indisponible pour le moment.",
@@ -15711,6 +15713,8 @@
       "ownerOrAdmin": "Seuls le responsable de l'agent ou un admin peuvent faire cela.",
       "detailsHidden": "Seules les personnes qui parlent à {{agentName}} voient comment cela fonctionne.",
       "extraOwnerOnly": "Seul le responsable de l'agent active ou désactive l'usage supplémentaire payant de l'abonnement.",
+      "brainNotAllowed": "Les règles de cet espace de travail n'autorisent pas ce cerveau ou ce modèle. Demandez à un administrateur, ou choisissez-en un autre.",
+      "brainPolicyInvalid": "Impossible d'enregistrer cette règle : laissez au moins un choix dans chaque liste, et seulement des modèles des fournisseurs qu'elle autorise.",
       "undoForbidden": "Seuls la personne pour qui l'agent a travaillé, son responsable ou un admin peuvent annuler cela.",
       "undoSkillsAdmins": "Seul un admin peut annuler ou rétablir une modification des compétences d’un agent."
     },
@@ -17513,6 +17517,16 @@
     "usageAgentMeter": "Budget utilisé par {{name}}",
     "defaultBudgetTitle": "Budget par défaut des agents",
     "defaultBudgetSaved": "Budget par défaut enregistré.",
+    "allowedBrains": {
+      "title": "Ce que les agents peuvent utiliser",
+      "hint": "Les cerveaux, fournisseurs et modèles avec lesquels chaque agent d'ici peut réfléchir, y compris ceux des administrateurs. Ce qui est exclu apparaît grisé dans les sélecteurs, et un agent qui l'utilise déjà s'arrête jusqu'à ce que quelqu'un en choisisse un autre.",
+      "brains": "Cerveaux",
+      "providers": "Fournisseurs d'API",
+      "onlySome": "Seulement certains modèles",
+      "models": "Modèles",
+      "empty": "Laissez au moins un choix dans chaque liste.",
+      "saved": "Règles enregistrées."
+    },
     "defaultBudget": "Budget mensuel par agent (US$)",
     "defaultBudgetHelp": "Les agents sans budget propre utilisent celui-ci. Modifiez le budget d'un agent sur sa page. Les admins voient les montants, les membres les pourcentages.",
     "usageTotal": "{{amount}} au total depuis {{since}}",

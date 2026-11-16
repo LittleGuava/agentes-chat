@@ -11782,6 +11782,7 @@
       "inPlan": "In deinem Cursor-Abo",
       "apiPrice": "Von Cursor zu API-Preisen abgerechnet"
     },
+    "ruledOut": "In diesem Workspace nicht erlaubt",
     "reasons": {
       "no_computer": "Wähle unter Computer einen verbundenen Computer, um es zu nutzen.",
       "exec_off": "Der Computer wurde ohne die Berechtigung verbunden, Programme auszuführen.",
@@ -11796,6 +11797,7 @@
       "codexRecheckHere": "Wähle nach dem Update in den Einstellungen unter Tools bei Codex „Erneut prüfen“.",
       "codexRecheckThere": "Aktualisiere Codex CLI auf {{computer}}. Falls dort die Desktop-App läuft, wähle in den Einstellungen unter Tools bei Codex „Erneut prüfen“.",
       "system": "{{program}} läuft noch nicht auf dem System von {{computer}}.",
+      "not_allowed": "Die Regeln dieses Workspaces erlauben {{program}} nicht. Ein Admin kann sie unter Einstellungen › KI ändern.",
       "no_computerCloud": "Bereit, sobald {{computer}} es ist."
     },
     "notAvailableNow": "Ausgewählt, aber gerade nicht verfügbar.",
@@ -15200,6 +15202,8 @@
       "ownerOrAdmin": "Nur der Inhaber des Agenten oder ein Admin kann das tun.",
       "detailsHidden": "Nur wer mit {{agentName}} spricht, sieht, wie es funktioniert.",
       "extraOwnerOnly": "Nur der Inhaber des Agenten schaltet die bezahlte Zusatznutzung des Abos ein oder aus.",
+      "brainNotAllowed": "Die Regeln dieses Workspaces erlauben dieses Gehirn oder Modell nicht. Frag einen Admin oder wähle etwas anderes.",
+      "brainPolicyInvalid": "Diese Regel lässt sich nicht speichern: Lass in jeder Liste mindestens eine Auswahl und nur Modelle der Anbieter, die sie erlaubt.",
       "undoForbidden": "Nur die Person, für die der Agent gearbeitet hat, sein Inhaber oder ein Admin kann das rückgängig machen.",
       "undoSkillsAdmins": "Nur ein Admin kann eine Änderung an den Skills eines Agenten rückgängig machen oder wiederholen."
     },
@@ -16973,6 +16977,16 @@
     "usageAgentMeter": "Verbrauchtes Budget von {{name}}",
     "defaultBudgetTitle": "Standardbudget für Agenten",
     "defaultBudgetSaved": "Standardbudget gespeichert.",
+    "allowedBrains": {
+      "title": "Was Agenten nutzen dürfen",
+      "hint": "Die Gehirne, Anbieter und Modelle, mit denen jeder Agent hier denken darf, auch die der Admins. Was ausgeschlossen ist, erscheint in den Auswahlen ausgegraut, und ein Agent, der es schon nutzt, hält an, bis jemand etwas anderes wählt.",
+      "brains": "Gehirne",
+      "providers": "API-Anbieter",
+      "onlySome": "Nur einige Modelle",
+      "models": "Modelle",
+      "empty": "Lass in jeder Liste mindestens eine Auswahl.",
+      "saved": "Regeln gespeichert."
+    },
     "defaultBudget": "Monatsbudget pro Agent (US$)",
     "defaultBudgetHelp": "Agenten ohne eigenes Budget nutzen dieses. Das eigene Budget eines Agenten änderst du auf seiner Seite. Admins sehen Beträge, Mitglieder sehen Prozente.",
     "usageTotal": "{{amount}} insgesamt seit {{since}}",

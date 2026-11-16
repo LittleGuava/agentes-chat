@@ -108,6 +108,7 @@ import {
   AgentAppearance,
   AgentAudience,
   ApprovalsLevel,
+  BrainPolicy,
   CanceledReturn,
   ChatPrefs,
   Credential,
@@ -238,6 +239,10 @@ const Settings = z
     approvalsLevel: ApprovalsLevel.openapi({
       description:
         "What every agent without its own choice asks before acting (ADR 0173). `risky` by default. Set with `PUT …/approvals-level`.",
+    }),
+    allowedBrains: BrainPolicy.nullable().openapi({
+      description:
+        "What agents may think with (ADR 0191); null: nothing restricted. Every member reads it, since their pickers explain it; the Model Gateway, the runs and every save hold it.",
     }),
     voiceAvailable: z.boolean().openapi({
       description: "Read only: this server has a speech engine now, from its environment or from its owner's Settings.",
@@ -677,6 +682,10 @@ export function managementRoutes(deps: AppDeps) {
             mode: z.enum(WORKSPACE_MODES).optional().openapi({ description: "`team` or `personal` (ADR 0159)." }),
             teamWatch: z.boolean().optional(),
             welcomePeople: z.boolean().optional(),
+            allowedBrains: BrainPolicy.nullable().optional().openapi({
+              description:
+                "The whole rule (ADR 0191), replacing the one before; null lifts it. 400 `brain_policy.invalid`: an empty list, an unknown brain, provider or model, or a model of a provider it leaves out. Audited (`organization.brain_policy_changed`).",
+            }),
           }),
         ),
       },

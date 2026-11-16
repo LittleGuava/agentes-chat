@@ -117,16 +117,18 @@ export const brainPickText = (o: Pick<BrainPickOption, "label" | "value" | "grou
 /** The API's models, as the agent's page lists them: each provider's under its name, a long list's good picks first. */
 export function apiPickOptions(t: TFunction, locale: string, choices: [string, ModelChoice[]][]): BrainPickOption[] {
   return choices.flatMap(([provider, list]) =>
-    list.map(({ model: m, available }) => ({
+    list.map(({ model: m, available, ruledOut }) => ({
       value: m.id,
       label: m.label,
       title: m.label,
       group: m.pick ? t("models.picks", { provider: providerLabel(provider) }) : providerLabel(provider),
       // A group is an endpoint's name for its models (ADR 0146): the mark is the model's, never the name's.
       mark: modelMark(m),
-      description: available
-        ? modelDescription(t, locale, m)
-        : t("newAgent.modelNeedsKey", { provider: providerLabel(provider) }),
+      description: ruledOut
+        ? t("brain.ruledOut")
+        : available
+          ? modelDescription(t, locale, m)
+          : t("newAgent.modelNeedsKey", { provider: providerLabel(provider) }),
       disabled: !available,
       free: freeModel(m),
       keywords: freeModel(m) ? `free ${t("brain.free")}` : "",
@@ -282,6 +284,22 @@ export function brainPickOptions(
         ),
       );
     }
+    // The workspace's rule leaves this brain out (ADR 0191): one row says so, wherever a computer runs it.
+    if (on.length === 0 && machines.some((m) => m.options.some((o) => o.kind === kind && o.reason === "not_allowed")))
+      return [
+        {
+          value: `none:${choice}`,
+          label: planLabel(t, choice),
+          title: name,
+          group: name,
+          mark: planMark(choice),
+          description: t("brain.reasons.not_allowed", { program: name }),
+          disabled: true,
+          free: false,
+          keywords: planSearchNames(choice),
+          pick: { kind: "connect", choice },
+        },
+      ];
     if (on.length === 0) {
       // Cursor (ADR 0114), OpenCode (ADR 0132), Grok (ADR 0142), Gemini (ADR 0143) and Copilot (ADR 0189) only where a computer runs
       // them; Claude's and ChatGPT's plans say why they can't.

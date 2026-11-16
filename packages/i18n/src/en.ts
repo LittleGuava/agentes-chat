@@ -12150,6 +12150,8 @@ export const en = {
     opencodeText: "OpenCode's free models, or the OpenCode key of whoever connected the computer.",
     /** Cursor's models (ADR 0114), where its CLI said which the plan includes. */
     cursorModel: { inPlan: "In your Cursor plan", apiPrice: "Billed by Cursor at API prices" },
+    /** An API model the workspace's rule leaves out (ADR 0191). */
+    ruledOut: "Not allowed in this workspace",
     reasons: {
       no_computer: "Choose a connected computer under Computer to use it.",
       exec_off: "The computer was connected without permission to run programs.",
@@ -12168,6 +12170,8 @@ export const en = {
         "Update Codex CLI on {{computer}}. If it runs the desktop app, choose Check again for Codex in Preferences › Tools.",
       /** The runner doesn't run this program on that computer's system (Cursor on Windows, for one). */
       system: "{{program}} doesn't run on {{computer}}'s system yet.",
+      /** The workspace's rule leaves this brain out (ADR 0191). */
+      not_allowed: "This workspace's rules don't allow {{program}}. An admin can change them in Settings › AI.",
       no_computerCloud: "Ready as soon as {{computer}} is.",
     },
     notAvailableNow: "Chosen, but unavailable right now.",
@@ -15465,6 +15469,11 @@ export const en = {
       ownerOrAdmin: "Only the agent's owner or an admin can do this.",
       detailsHidden: "Only who talks to {{agentName}} sees how it works.",
       extraOwnerOnly: "Only the agent's owner turns its plan's paid extra usage on or off.",
+      /** `brain.not_allowed`: the workspace's rule leaves that brain or model out (ADR 0191). */
+      brainNotAllowed: "This workspace's rules don't allow that brain or model. Ask an admin, or choose another.",
+      /** `brain_policy.invalid`: a rule on what agents may use that can't be saved (ADR 0191). */
+      brainPolicyInvalid:
+        "That rule can't be saved: leave at least one choice in each list, and only models of the providers it allows.",
       undoForbidden: "Only the person the agent worked for, its owner or an admin can undo this.",
       /** `action.skills_admins`: skills are only admins' on the agent's page, so are their Undo and Redo. */
       undoSkillsAdmins: "Only an admin can undo or redo a change to an agent's skills.",
@@ -17366,6 +17375,17 @@ export const en = {
     usageAgentMeter: "{{name}}'s budget used",
     defaultBudgetTitle: "Default agent budget",
     defaultBudgetSaved: "Default budget saved.",
+    /** The workspace's rule on what agents think with (ADR 0191), for admins. */
+    allowedBrains: {
+      title: "What agents may use",
+      hint: "The brains, providers and models every agent here may think with, admins' included. What's left out shows greyed in the pickers, and an agent already on it stops until someone picks another.",
+      brains: "Brains",
+      providers: "API providers",
+      onlySome: "Only some models",
+      models: "Models",
+      empty: "Leave at least one choice in each list.",
+      saved: "Rules saved.",
+    },
     defaultBudget: "Monthly budget per agent (US$)",
     defaultBudgetHelp:
       "Agents without a budget of their own use this one. Change an agent's own budget on its page. Admins see amounts, members see percentages.",

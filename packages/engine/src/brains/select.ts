@@ -25,6 +25,7 @@ import {
 } from "@agenteschat/providers/plans";
 import { modelFamily, planFull, planState, planWindows, windowModel } from "@agenteschat/ui/plan-state";
 import type { Agent } from "../agents";
+import { brainPolicyRefusal, orgBrainPolicy } from "../brain-policy";
 import type { ModelGateway } from "../gateway";
 import type { MachineStatus } from "../machine-hub";
 import { pausedMessage } from "../machines";
@@ -583,6 +584,12 @@ export const UNAVAILABLE_CODES: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * The workspace's rule leaves the brain out (ADR 0191): in neither list above, since no wait ends it and nothing stands
+ * in for it; the run fails with the rule's words.
+ */
+export const BRAIN_NOT_ALLOWED = "not_allowed";
+
+/**
  * Unavailable codes that mean the computer brain has nothing to think with (no computer, its command-line
  * tool missing or signed out), not "later": nothing signals a sign-in, so a wait for them would never end.
  */
@@ -882,6 +889,10 @@ export async function resolveBrain(
   const agent = options.thinker ?? (await thinkingAgent(deps.db, given, person));
   const kind = brainFor(agent, run, mission);
   const base = mission ? { missionId: mission.missionId } : {};
+  // A computer brain the workspace's rule leaves out (ADR 0191): the run fails on it, never waits nor stands in. The API
+  // brain's own refusal is the Model Gateway's, which knows the model each call runs.
+  const refused = kind === "model" ? null : brainPolicyRefusal(await orgBrainPolicy(deps.db, agent.orgId), kind);
+  if (refused) return { kind, ...base, unavailable: { code: BRAIN_NOT_ALLOWED, message: refused.message } };
   if (kind === "model") {
     const effort = brainEffortFor(agent, kind);
     return { kind, ...base, ...(effort ? { effort } : {}) };

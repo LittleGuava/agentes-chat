@@ -2785,6 +2785,9 @@ export const useSettings = (orgId: string) => {
   return useQuery({ queryKey: keys.settings(orgId), queryFn: () => api.orgs.settings(orgId) });
 };
 
+/** The workspace's rule on what agents think with (ADR 0191), for the pickers; null while unknown or none. */
+export const useBrainPolicy = (orgId: string) => useSettings(orgId).data?.allowedBrains ?? null;
+
 export function useUpdateSettings(orgId: string) {
   const api = useApi();
   const qc = useQueryClient();

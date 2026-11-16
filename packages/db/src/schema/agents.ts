@@ -414,6 +414,11 @@ export const organizationSettings = pgTable("organization_settings", {
    * own choice (`agents.approvals_level_own`) uses. A workspace with no row here is at `risky`.
    */
   approvalsLevel: text().$type<"always" | "risky" | "never">().notNull().default("risky"),
+  /**
+   * What agents may think with (ADR 0191): `{ brains, providers, models }`, each a list or null for all. Null: nothing
+   * restricted. Validated and read through `packages/engine/src/brain-policy.ts`.
+   */
+  allowedBrains: jsonb().$type<Record<string, unknown>>(),
   updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
 

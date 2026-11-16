@@ -11371,6 +11371,7 @@
       "inPlan": "包含在你的 Cursor 套餐中",
       "apiPrice": "由 Cursor 按 API 价格计费"
     },
+    "ruledOut": "此工作区不允许使用",
     "reasons": {
       "no_computer": "在“电脑”中选择一台已连接的电脑即可使用。",
       "exec_off": "这台电脑连接时没有授予运行程序的权限。",
@@ -11385,6 +11386,7 @@
       "codexRecheckHere": "更新后，请在偏好设置 › 工具的 Codex 一行中选择「重新检查」。",
       "codexRecheckThere": "请在 {{computer}} 上更新 Codex CLI。如果该电脑运行桌面应用，请在偏好设置 › 工具的 Codex 一行中选择「重新检查」。",
       "system": "{{program}} 暂时还不能在 {{computer}} 的系统上运行。",
+      "not_allowed": "此工作区的规则不允许使用 {{program}}。管理员可以在 设置 › AI 中更改。",
       "no_computerCloud": "{{computer}} 一就绪即可使用。"
     },
     "notAvailableNow": "已选择，但目前不可用。",
@@ -14714,6 +14716,8 @@
       "ownerOrAdmin": "只有智能体负责人或管理员可以执行此操作。",
       "detailsHidden": "只有与 {{agentName}} 对话的人可以看到它的工作方式。",
       "extraOwnerOnly": "只有智能体负责人可以开启或关闭套餐的付费额外用量。",
+      "brainNotAllowed": "此工作区的规则不允许使用该大脑或模型。请联系管理员，或选择其他项。",
+      "brainPolicyInvalid": "无法保存此规则：每个列表至少保留一项，并且只选择它允许的提供商的模型。",
       "undoForbidden": "只有智能体为其工作的人、智能体负责人或管理员可以撤销此操作。",
       "undoSkillsAdmins": "只有管理员能撤销或重做对智能体技能的更改。"
     },
@@ -16458,6 +16462,16 @@
     "usageAgentMeter": "{{name}} 已用预算",
     "defaultBudgetTitle": "智能体默认预算",
     "defaultBudgetSaved": "默认预算已保存。",
+    "allowedBrains": {
+      "title": "智能体可以使用什么",
+      "hint": "这里每个智能体（包括管理员的）可用来思考的大脑、提供商和模型。被排除的项在选择器中显示为灰色，已经在用它的智能体会停下，直到有人选择其他项。",
+      "brains": "大脑",
+      "providers": "API 提供商",
+      "onlySome": "仅部分模型",
+      "models": "模型",
+      "empty": "每个列表至少保留一项。",
+      "saved": "规则已保存。"
+    },
     "defaultBudget": "每个智能体的月预算（美元）",
     "defaultBudgetHelp": "没有单独预算的智能体使用这个预算。智能体自己的预算在它的页面上修改。管理员看到金额，成员看到百分比。",
     "usageTotal": "自 {{since}} 起共 {{amount}}",

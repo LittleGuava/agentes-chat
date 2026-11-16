@@ -2581,6 +2581,8 @@ export interface OrgSettings {
   teamWatch?: boolean;
   /** The right hand greets each person who joins, once. Absent from an older server: on. */
   welcomePeople?: boolean;
+  /** What agents may think with (ADR 0191); null: nothing restricted. Absent from an older server: none. */
+  allowedBrains?: BrainPolicy | null;
   /** Read only: this server has a speech engine. */
   voiceAvailable: boolean;
   /** Read only: this server reads agents' replies aloud for voice calls (ADR 0198). Absent from an older server: no. */
@@ -6045,7 +6047,18 @@ export type BrainUnavailable =
   /** Its runner doesn't run this CLI on the computer's system (Cursor on Windows, for one). */
   | "system"
   /** It is there and can't start: the computer's row has its error (`Machine.cliErrors`). */
-  | "cant_start";
+  | "cant_start"
+  /** The workspace's rule leaves it out (ADR 0191); the API brain too. */
+  | "not_allowed";
+
+/** What a workspace's agents may think with (ADR 0191): each list restricts, null allows every one of its kind. */
+export interface BrainPolicy {
+  brains: BrainKind[] | null;
+  /** The API brain's providers. */
+  providers: string[] | null;
+  /** The API brain's models, each of an allowed provider; null: every model of those. */
+  models: string[] | null;
+}
 
 export interface BrainModelOption {
   /** What is stored (`opus`, `sonnet`, `haiku`, a Codex model). */

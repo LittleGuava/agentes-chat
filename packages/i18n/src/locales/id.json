@@ -11358,6 +11358,7 @@
       "inPlan": "Termasuk dalam paket Cursor-mu",
       "apiPrice": "Ditagih oleh Cursor dengan harga API"
     },
+    "ruledOut": "Tidak diizinkan di workspace ini",
     "reasons": {
       "no_computer": "Pilih komputer yang terhubung di Komputer untuk memakainya.",
       "exec_off": "Komputer ini terhubung tanpa izin menjalankan program.",
@@ -11372,6 +11373,7 @@
       "codexRecheckHere": "Setelah memperbarui, pilih Periksa lagi pada baris Codex di Preferensi › Alat.",
       "codexRecheckThere": "Perbarui Codex CLI di {{computer}}. Jika komputer itu menjalankan aplikasi desktop, pilih Periksa lagi pada baris Codex di Preferensi › Alat.",
       "system": "{{program}} belum berjalan di sistem {{computer}}.",
+      "not_allowed": "Aturan workspace ini tidak mengizinkan {{program}}. Admin dapat mengubahnya di Pengaturan › AI.",
       "no_computerCloud": "Siap begitu {{computer}} siap."
     },
     "notAvailableNow": "Dipilih, tapi sedang tidak tersedia.",
@@ -14705,6 +14707,8 @@
       "ownerOrAdmin": "Hanya pemilik agen atau Admin yang bisa melakukan ini.",
       "detailsHidden": "Hanya orang yang berbicara dengan {{agentName}} yang bisa melihat cara kerjanya.",
       "extraOwnerOnly": "Hanya pemilik agen yang bisa menyalakan atau mematikan penggunaan ekstra berbayar pada paket.",
+      "brainNotAllowed": "Aturan workspace ini tidak mengizinkan otak atau model itu. Minta ke admin, atau pilih yang lain.",
+      "brainPolicyInvalid": "Aturan itu tidak bisa disimpan: sisakan setidaknya satu pilihan di setiap daftar, dan hanya model dari penyedia yang diizinkannya.",
       "undoForbidden": "Hanya orang yang dibantu agen, pemiliknya, atau Admin yang bisa membatalkan ini.",
       "undoSkillsAdmins": "Hanya Admin yang bisa membatalkan atau mengulang perubahan pada skill agen."
     },
@@ -16449,6 +16453,16 @@
     "usageAgentMeter": "Anggaran {{name}} yang terpakai",
     "defaultBudgetTitle": "Anggaran default agen",
     "defaultBudgetSaved": "Anggaran default disimpan.",
+    "allowedBrains": {
+      "title": "Yang boleh dipakai agen",
+      "hint": "Otak, penyedia, dan model yang boleh dipakai setiap agen di sini untuk berpikir, termasuk milik admin. Yang dikecualikan tampil abu-abu di pemilih, dan agen yang sudah memakainya berhenti sampai seseorang memilih yang lain.",
+      "brains": "Otak",
+      "providers": "Penyedia API",
+      "onlySome": "Hanya beberapa model",
+      "models": "Model",
+      "empty": "Sisakan setidaknya satu pilihan di setiap daftar.",
+      "saved": "Aturan disimpan."
+    },
     "defaultBudget": "Anggaran bulanan per agen (US$)",
     "defaultBudgetHelp": "Agen yang tidak punya anggaran sendiri memakai yang ini. Ubah anggaran agen di halamannya. Admin melihat jumlahnya, anggota melihat persentasenya.",
     "usageTotal": "Total {{amount}} sejak {{since}}",

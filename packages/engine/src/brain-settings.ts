@@ -66,6 +66,7 @@ import {
   planOpened,
 } from "./audience";
 import { recordAudit } from "./audit";
+import { type BrainPolicy, brainAllowed, brainPolicyRefusal, orgBrainPolicy } from "./brain-policy";
 import { BRAIN_NAMES, type BrainKind, brainRunsOn, isComputerBrain } from "./brains/types";
 import { caches } from "./cache";
 import { defaultCredentials, providerKeyOf } from "./credentials";
@@ -333,7 +334,9 @@ export type BrainUnavailable =
   /** It is there and can't start (`executors.broken`, with its own error): not missing, so installing it won't help. */
   | "cant_start"
   /** Its runner doesn't run this CLI on the computer's system (`brainRunsOn`): Cursor on Windows, for one. */
-  | "system";
+  | "system"
+  /** The workspace's rule leaves it out (ADR 0191); the API brain too, when the rule leaves the API out. */
+  | "not_allowed";
 
 export interface CodexVersionRequirement {
   detected: string;
@@ -384,7 +387,13 @@ const missingCli = (
  * check the engine makes per run): an older runner is `runner_old`.
  * (Missions' legacy executor tasks keep their own check, `machineExecutors`.)
  */
-export function brainOptions(machine: MachineLike | null): BrainOption[] {
+export function brainOptions(machine: MachineLike | null, policy: BrainPolicy | null = null): BrainOption[] {
+  return computerBrainOptions(machine).map((o) =>
+    brainAllowed(policy, o.kind) ? o : { ...o, available: false, reason: "not_allowed" as const },
+  );
+}
+
+function computerBrainOptions(machine: MachineLike | null): BrainOption[] {
   // Only which CLIs are installed: `machineExecutors` lists none with commands off, but commands are judged below.
   const found = machine ? machineExecutors({ ...machine, execAllowed: true }) : null;
   const computer = (kind: "claude_code" | "codex", executor: "claude" | "codex"): BrainOption => {
@@ -648,17 +657,20 @@ async function candidateMachines(
   admin: boolean,
   current: string | null,
 ): Promise<BrainMachineOptions[]> {
-  const rows = await db
-    .select()
-    .from(schema.machines)
-    .where(and(eq(schema.machines.orgId, orgId), isNull(schema.machines.deletedAt)));
+  const [rows, policy] = await Promise.all([
+    db
+      .select()
+      .from(schema.machines)
+      .where(and(eq(schema.machines.orgId, orgId), isNull(schema.machines.deletedAt))),
+    orgBrainPolicy(db, orgId),
+  ]);
   return rows
     .filter(
       (m) =>
         (admin || m.kind !== "connected" || m.pairedByUserId === userId || m.id === current) &&
         (mayBeHome(m) || m.id === current),
     )
-    .map((m) => ({ machineId: m.id, name: m.name, online: machineOnline(m), options: brainOptions(m) }));
+    .map((m) => ({ machineId: m.id, name: m.name, online: machineOnline(m), options: brainOptions(m, policy) }));
 }
 
 async function agentMachine(db: Database, orgId: string, machineId: string | null) {
@@ -679,6 +691,8 @@ function view(
   machines: BrainMachineOptions[],
   accounts: BrainAccounts,
   userId: string,
+  /** The workspace's rule (`orgBrainPolicy`): what it leaves out shows, greyed with why. */
+  policy: BrainPolicy | null,
 ): AgentBrainView {
   const brain = brainOf(agent.brain);
   return {
@@ -689,7 +703,7 @@ function view(
     fallback: agent.brainFallback,
     extraUsage: agent.brainExtraUsage,
     computer: machine ? { machineId: machine.id, name: machine.name, online: machineOnline(machine) } : null,
-    options: offeredTo(agent, brainOptions(machine)),
+    options: offeredTo(agent, brainOptions(machine, policy)),
     machines: isRightHand(agent) ? machines.map((m) => ({ ...m, options: offeredTo(agent, m.options) })) : machines,
     canEdit: true,
     account: agent.brainAccountId,
@@ -799,7 +813,7 @@ async function personalView(db: Database, userId: string, orgId: string, agent: 
     workspaceAi(db, agent, userId),
   ]);
   return {
-    ...view(mine, machine, [], accounts, userId),
+    ...view(mine, machine, [], accounts, userId, await orgBrainPolicy(db, orgId)),
     scope: "mine",
     workspaceAi: fallback,
     // It serves the caller alone, never through a computer's own sign-in.
@@ -987,7 +1001,7 @@ export async function getAgentBrain(
       .where(and(eq(providerCredentials.orgId, orgId), isNull(providerCredentials.revokedAt))),
   ]);
   return {
-    ...view(agent, machine, machines, accounts, userId),
+    ...view(agent, machine, machines, accounts, userId, await orgBrainPolicy(deps.db, orgId)),
     keys,
     ...(access.scope ? { workspaceAi: await workspaceAi(deps.db, access.agent, userId) } : {}),
   };
@@ -1097,6 +1111,10 @@ export async function setAgentBrain(
   if (rightHand && RIGHT_HAND_NO_BRAINS.has(brain))
     throw new ValidationError(RIGHT_HAND_BRAIN_REFUSED, "brain.invalid");
   const changed = brain !== from;
+  // The workspace's rule (ADR 0191) refuses a new brain it leaves out; one saved before it stays, its page saying why.
+  const policy = await orgBrainPolicy(deps.db, orgId);
+  const refused = changed ? brainPolicyRefusal(policy, brain) : null;
+  if (refused) throw refused;
   const [machine, machines] = await Promise.all([
     agentMachine(deps.db, orgId, agent.machineId),
     candidateMachines(deps.db, userId, orgId, admin, agent.machineId),
@@ -1218,7 +1236,7 @@ export async function setAgentBrain(
     speed !== agent.brainSpeed ||
     contextTokens !== agent.contextTokens ||
     planForOthers !== agent.planForOthers;
-  if (!thinks && !audience) return view(agent, machine, machines, accounts, userId);
+  if (!thinks && !audience) return view(agent, machine, machines, accounts, userId, policy);
   const { row, released } = await deps.db.transaction(async (tx) => {
     // A login made for one agent thinks for one: the check is taken again under its row's lock, so two agents
     // picking it at once can't both have it.
@@ -1386,7 +1404,7 @@ export async function setAgentBrain(
     account !== agent.brainAccountId || shownMachine !== machine
       ? await brainAccounts(deps.db, userId, orgId, shown, shownMachine)
       : accounts;
-  return view(shown, shownMachine, machines, fresh, userId);
+  return view(shown, shownMachine, machines, fresh, userId, policy);
 }
 
 /**
@@ -1691,7 +1709,7 @@ async function missionBrainView(
     effectiveBrain,
     effectiveModel:
       effectiveBrain === "model" ? null : (mission.brainModel ?? agentModel ?? defaultBrainModel(effectiveBrain)),
-    options: brainOptions(machine),
+    options: brainOptions(machine, await orgBrainPolicy(deps.db, mission.orgId)),
     canSetBrain: actor && mission.status === "proposed",
     canSetModel: actor && open,
   };
@@ -1753,6 +1771,13 @@ export async function setMissionBrain(
     throw new ValidationError("Choose a model for the mission", "brain.invalid_model", { brain: effective });
   }
   if (!brainChanged && model === mission.brainModel) return missionBrainView(deps, mission, role);
+  // The workspace's rule (ADR 0191): a mission's new brain, or its API model, only inside it.
+  const refused = brainPolicyRefusal(
+    await orgBrainPolicy(deps.db, orgId),
+    effective,
+    effective === "model" ? model : null,
+  );
+  if (refused) throw refused;
   const row = await deps.db.transaction(async (tx) => {
     const [next] = await tx
       .update(schema.missions)

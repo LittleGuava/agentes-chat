@@ -27,6 +27,7 @@ import { dropAgentRules } from "./approval-rules";
 import { answersOthers, audienceOf, canTalkTo, speakerFor } from "./audience";
 import { recordAudit } from "./audit";
 import { type AutonomySettings, autonomySettings, chosenAutonomy } from "./autonomy-settings";
+import { apiModelRefusal, orgBrainPolicy } from "./brain-policy";
 import { isComputerBrain } from "./brains/types";
 import { caches } from "./cache";
 import { modelInfoFor, usableCredentialRow } from "./credentials";
@@ -156,6 +157,11 @@ export async function validateAgentFields(db: Database, orgId: string, input: Pa
     throw new ValidationError(
       `model must be ${AUTO_MODEL}, one of: ${Object.keys(MODEL_CATALOG).join(", ")}, or one OpenRouter lists`,
     );
+  }
+  // The workspace's rule on the API's providers and models (ADR 0191); Automático's pick is checked when it is made.
+  if (input.model !== undefined && model) {
+    const refused = apiModelRefusal(await orgBrainPolicy(db, orgId), input.model);
+    if (refused) throw refused;
   }
   if (input.monthlyBudgetNanoUsd != null && input.monthlyBudgetNanoUsd < 0) {
     throw new ValidationError("budget can't be negative");

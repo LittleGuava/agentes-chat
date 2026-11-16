@@ -1,0 +1,1 @@
+ALTER TABLE "organization_settings" ADD COLUMN "allowed_brains" jsonb;

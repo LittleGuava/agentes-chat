@@ -2,6 +2,7 @@ import { and, asc, type Executor, eq, inArray, isNull, ne, schema } from "@agent
 import { ensureOpenRouterModels, isAutoModel, routerModelOf } from "@agenteschat/providers";
 import type { Agent } from "./agents";
 import { type AutoLine, autoLine, autoModelFor, autoProvider } from "./auto-model";
+import { brainAllowed, modelAllowed, orgBrainPolicy } from "./brain-policy";
 import { brainOf } from "./brain-settings";
 import { brainAccountFor, computerBrainUnavailable, mayFallBack, NO_AI_CODES } from "./brains/select";
 import { BRAIN_PLAN_NAMES, type BrainKind, type ComputerBrainKind, isComputerBrain } from "./brains/types";
@@ -104,13 +105,27 @@ const READY: AgentAi = { state: "ready" };
 /** The model brain can be called. `auto` isn't in the catalog: its line's everyday model stands for it. */
 export async function modelReady(deps: AiStatusDeps, agent: AiAgent): Promise<boolean> {
   if (!isAutoModel(agent.model)) return deps.gateway.hasModelCredential(agent);
-  const { provider, endpoint } = await autoLine(deps.db, agent).catch((): AutoLine => ({ provider: "anthropic" }));
+  const line = await autoLine(deps.db, agent).catch((): AutoLine => ({ provider: "anthropic" }));
+  const { provider, endpoint } = line;
   // OpenRouter's line is its list.
   if (provider === "openrouter") await ensureOpenRouterModels();
-  const model = autoModelFor(provider, "medium", undefined, endpoint);
-  // OpenRouter's list not read: `autoLine` found its key, and a run waits the outage out.
-  if (!model) return provider === "openrouter";
-  return deps.gateway.hasModelCredential({ ...agent, model });
+  // The workspace's rule (ADR 0191) picks among what it allows, on the key it moved the line to.
+  const policy = await orgBrainPolicy(deps.db, agent.orgId);
+  const model = autoModelFor(
+    provider,
+    "medium",
+    undefined,
+    endpoint,
+    policy ? (m) => modelAllowed(policy, m) : undefined,
+  );
+  // OpenRouter's list not read: `autoLine` found its key, and a run waits the outage out. The rule leaving every model
+  // of the line out isn't a missing key: the run says the rule's words.
+  if (!model) return provider === "openrouter" || (policy !== null && autoModelFor(provider, "medium") !== null);
+  return deps.gateway.hasModelCredential({
+    ...agent,
+    model,
+    ...(line.key !== undefined ? { credentialId: line.key } : {}),
+  });
 }
 
 /** The card's reason for an unavailable code in `NO_AI_CODES`. */
@@ -166,6 +181,8 @@ export async function agentAiState(
     const provider = await autoProvider(deps.db, agent).catch(() => null);
     return provider ? { state: "ready", provider } : READY;
   }
+  // A brain the workspace's rule leaves out (ADR 0191): its run says the rule's words, not that an AI is missing.
+  if (run && !brainAllowed(await orgBrainPolicy(deps.db, agent.orgId), kind)) return READY;
   const machineId = mission?.session?.machineId ?? agent.machineId ?? null;
   const [status, account] = await Promise.all([
     machineId && deps.machines ? deps.machines.status(machineId).catch(() => null) : null,

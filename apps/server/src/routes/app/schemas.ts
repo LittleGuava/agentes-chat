@@ -949,17 +949,38 @@ export const BrainUnavailable = z.enum([
   "not_reported",
   "system",
   "cant_start",
+  "not_allowed",
 ]);
 
 export const CodexVersionRequirement = z
   .object({ detected: z.string(), minimum: z.string() })
   .openapi("CodexVersionRequirement");
 
+/** ADR 0191: what a workspace's agents may think with. Each list restricts; null allows every one of its kind. */
+export const BrainPolicy = z
+  .object({
+    brains: z.array(BrainKind).max(20).nullable().openapi({ description: "The brains agents may think with." }),
+    providers: z
+      .array(z.string().max(40))
+      .max(20)
+      .nullable()
+      .openapi({ description: "The API brain's providers (`ProviderId`; `custom`: the workspace's own endpoints)." }),
+    models: z
+      .array(z.string().max(200))
+      .max(200)
+      .nullable()
+      .openapi({ description: "The API brain's models, each of an allowed provider; null: every model of those." }),
+  })
+  .openapi("BrainPolicy");
+
 export const BrainOption = z
   .object({
     kind: BrainKind,
     available: z.boolean(),
-    reason: BrainUnavailable.optional().openapi({ description: "Why it can't be chosen now (computer brains)." }),
+    reason: BrainUnavailable.optional().openapi({
+      description:
+        "Why it can't be chosen now (computer brains); `not_allowed`: the workspace's rule leaves it out (ADR 0191), the API brain included.",
+    }),
     codexVersion: CodexVersionRequirement.optional(),
     models: z.array(
       z.object({

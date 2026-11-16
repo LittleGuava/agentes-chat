@@ -28829,6 +28829,9 @@
   "brain.cursorModel.apiPrice": {
     "value": "Billed by Cursor at API prices"
   },
+  "brain.ruledOut": {
+    "value": "Not allowed in this workspace"
+  },
   "brain.reasons.no_computer": {
     "value": "Choose a connected computer under Computer to use it."
   },
@@ -28867,6 +28870,9 @@
   },
   "brain.reasons.system": {
     "value": "{{program}} doesn't run on {{computer}}'s system yet."
+  },
+  "brain.reasons.not_allowed": {
+    "value": "This workspace's rules don't allow {{program}}. An admin can change them in Settings › AI."
   },
   "brain.reasons.no_computerCloud": {
     "value": "Ready as soon as {{computer}} is."
@@ -37334,6 +37340,12 @@
   "errors.agent.extraOwnerOnly": {
     "value": "Only the agent's owner turns its plan's paid extra usage on or off."
   },
+  "errors.agent.brainNotAllowed": {
+    "value": "This workspace's rules don't allow that brain or model. Ask an admin, or choose another."
+  },
+  "errors.agent.brainPolicyInvalid": {
+    "value": "That rule can't be saved: leave at least one choice in each list, and only models of the providers it allows."
+  },
   "errors.agent.undoForbidden": {
     "value": "Only the person the agent worked for, its owner or an admin can undo this."
   },
@@ -41847,6 +41859,30 @@
   },
   "settings.defaultBudgetSaved": {
     "value": "Default budget saved."
+  },
+  "settings.allowedBrains.title": {
+    "value": "What agents may use"
+  },
+  "settings.allowedBrains.hint": {
+    "value": "The brains, providers and models every agent here may think with, admins' included. What's left out shows greyed in the pickers, and an agent already on it stops until someone picks another."
+  },
+  "settings.allowedBrains.brains": {
+    "value": "Brains"
+  },
+  "settings.allowedBrains.providers": {
+    "value": "API providers"
+  },
+  "settings.allowedBrains.onlySome": {
+    "value": "Only some models"
+  },
+  "settings.allowedBrains.models": {
+    "value": "Models"
+  },
+  "settings.allowedBrains.empty": {
+    "value": "Leave at least one choice in each list."
+  },
+  "settings.allowedBrains.saved": {
+    "value": "Rules saved."
   },
   "settings.defaultBudget": {
     "value": "Monthly budget per agent (US$)"

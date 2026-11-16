@@ -6,6 +6,7 @@ import {
   useAgentDetail,
   useAiStatus,
   useApi,
+  useBrainPolicy,
   useCatalog,
   useConfirmSetup,
   useCredentials,
@@ -1106,6 +1107,7 @@ function HowDialog({ agent, onClose, onSaved }: { agent: Agent; onClose: () => v
   const models = useModels();
   const credentials = useCredentials(org.id, can(org, "manage_credentials"));
   const platform = usePlatformKey(org.id);
+  const policy = useBrainPolicy(org.id);
   const detail = useAgentDetail(org.id, agent.id);
   const g = agentGrammar(agent.name);
   const onApi = !agent.brain || agent.brain.kind === "model";
@@ -1121,7 +1123,7 @@ function HowDialog({ agent, onClose, onSaved }: { agent: Agent; onClose: () => v
   const list = modelOptions(
     t,
     i18n.language,
-    modelChoices(models.data?.models ?? [], credentials.data ?? [], platform.data ?? false),
+    modelChoices(models.data?.models ?? [], credentials.data ?? [], platform.data ?? false, policy),
   );
   const save = () =>
     run(async () => {

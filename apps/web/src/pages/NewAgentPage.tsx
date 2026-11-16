@@ -447,8 +447,14 @@ function NewAgentFlow({
     [channels.data, dmChannels, draft, me.user.id, org],
   );
   const choices = useMemo(
-    () => modelChoices(models.data?.models ?? [], credentials.data ?? [], platform.data ?? false),
-    [models.data, credentials.data, platform.data],
+    () =>
+      modelChoices(
+        models.data?.models ?? [],
+        credentials.data ?? [],
+        platform.data ?? false,
+        settings.data?.allowedBrains,
+      ),
+    [models.data, credentials.data, platform.data, settings.data?.allowedBrains],
   );
   const usable = useMemo(() => usableModels(choices), [choices]);
   const held = usePlanHold() !== null;
