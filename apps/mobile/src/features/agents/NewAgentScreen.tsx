@@ -5,6 +5,7 @@ import {
   useAiAccounts,
   useApi,
   useBrainMachines,
+  useBrainPolicy,
   useCatalog,
   useChannels,
   useConnections,
@@ -216,6 +217,7 @@ function NewAgentForm({
   const models = useModels();
   const credentials = useCredentials(orgId, can(org, "manage_credentials"));
   const platform = usePlatformKey(orgId);
+  const policy = useBrainPolicy(orgId);
 
   const suggested = suggestAgentName(dir.agents.map((a) => a.name));
   const proposed = from?.params.draft;
@@ -246,7 +248,7 @@ function NewAgentForm({
   const [withRoutine, setWithRoutine] = useState(Boolean(proposed?.routine));
   // Who thinks (ADR 0094): the workspace's last setup where it can think for an agent of mine, unless a proposal says.
   const keys = credentials.data ?? [];
-  const choices = modelChoices(models.data?.models ?? [], keys, platform.data ?? false);
+  const choices = modelChoices(models.data?.models ?? [], keys, platform.data ?? false, policy);
   const usable = usableModels(choices);
   const start = proposed ? null : newAgentStart(lastSetup.data, { ownerIsMe: true, usable, keys });
   const [useLast, setUseLast] = useState(true);

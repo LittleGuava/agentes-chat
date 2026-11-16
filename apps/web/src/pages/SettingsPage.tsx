@@ -82,6 +82,7 @@ import { ApprovalsSection } from "@/components/ApprovalCover";
 import { AppsDownloadSection } from "@/components/AppsDownload";
 import { AuditSection } from "@/components/Audit";
 import { AutoModelsRow } from "@/components/AutoModels";
+import { AllowedBrainsCard } from "@/components/ai/AllowedBrains";
 import { usePlanHold } from "@/components/ai/ConnectAiSteps";
 import { EndpointForm } from "@/components/ai/EndpointForm";
 import { WhoPicksSection } from "@/components/ai/Jev";
@@ -1271,6 +1272,7 @@ function UsageSection() {
         </Card>
       )}
       {allowed && <DefaultBudgetCard />}
+      <AllowedBrainsCard />
       <WhoPicksSection />
     </>
   );

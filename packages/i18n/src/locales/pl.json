@@ -12457,6 +12457,7 @@
       "inPlan": "W twoim planie Cursor",
       "apiPrice": "Rozliczane przez Cursor po cenach API"
     },
+    "ruledOut": "Niedozwolone w tym obszarze roboczym",
     "reasons": {
       "no_computer": "Wybierz połączony komputer w sekcji Komputer, żeby z tego korzystać.",
       "exec_off": "Komputer połączono bez uprawnienia do uruchamiania programów.",
@@ -12467,6 +12468,7 @@
       "not_reported": "{{computer}} wciąż sprawdza, jakie ma programy. To zmieni się samo, gdy skończy.",
       "outdated": "Wersja na komputerze {{computer}} jest stara. Zaktualizuj Codex, żeby z niego korzystać.",
       "system": "{{program}} nie działa jeszcze w systemie komputera {{computer}}.",
+      "not_allowed": "Zasady tego obszaru roboczego nie pozwalają na {{program}}. Administrator może je zmienić w Ustawienia › AI.",
       "no_computerCloud": "Gotowe, gdy tylko {{computer}} będzie gotowy."
     },
     "notAvailableNow": "Wybrane, ale teraz niedostępne.",
@@ -15931,6 +15933,8 @@
       "ownerOrAdmin": "Może to zrobić tylko właściciel agenta albo administrator.",
       "detailsHidden": "Tylko osoby rozmawiające z {{agentName}} widzą, jak to działa.",
       "extraOwnerOnly": "Tylko właściciel agenta włącza lub wyłącza płatne dodatkowe użycie planu.",
+      "brainNotAllowed": "Zasady tego obszaru roboczego nie pozwalają na ten mózg ani model. Poproś administratora albo wybierz coś innego.",
+      "brainPolicyInvalid": "Nie można zapisać tej zasady: zostaw co najmniej jeden wybór na każdej liście i tylko modele dostawców, na których pozwala.",
       "undoForbidden": "Cofnąć to może tylko osoba, dla której agent pracował, jego właściciel albo administrator.",
       "undoSkillsAdmins": "Cofnąć lub ponowić zmianę umiejętności agenta może tylko administrator."
     },
@@ -17681,6 +17685,16 @@
     "usageAgentMeter": "Wykorzystany budżet: {{name}}",
     "defaultBudgetTitle": "Domyślny budżet agenta",
     "defaultBudgetSaved": "Domyślny budżet zapisany.",
+    "allowedBrains": {
+      "title": "Czego mogą używać agenci",
+      "hint": "Mózgi, dostawcy i modele, którymi może myśleć każdy agent tutaj, także agenci administratorów. To, co wykluczone, jest wyszarzone w listach wyboru, a agent, który już tego używa, zatrzymuje się, dopóki ktoś nie wybierze czegoś innego.",
+      "brains": "Mózgi",
+      "providers": "Dostawcy API",
+      "onlySome": "Tylko niektóre modele",
+      "models": "Modele",
+      "empty": "Zostaw co najmniej jeden wybór na każdej liście.",
+      "saved": "Zasady zapisane."
+    },
     "defaultBudget": "Miesięczny budżet na agenta (US$)",
     "defaultBudgetHelp": "Agenci bez własnego budżetu korzystają z tego. Własny budżet agenta zmienisz na jego stronie. Administratorzy widzą kwoty, członkowie procenty.",
     "usageTotal": "Łącznie {{amount}} od {{since}}",

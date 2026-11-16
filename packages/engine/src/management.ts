@@ -6,6 +6,7 @@ import { decidableBySql } from "./approvals";
 import { audienceSql, listsAllAgents } from "./audience";
 import { recordAudit } from "./audit";
 import type { AutoModels } from "./auto-model";
+import { type BrainPolicy, brainPolicyCacheKey, policyOf, validBrainPolicy } from "./brain-policy";
 import { caches } from "./cache";
 import {
   announceChannelLeavers,
@@ -90,6 +91,8 @@ export interface OrgSettings extends MediaSettings {
   teamWatch: boolean;
   /** The right hand greets each person who joins, once. On by default. */
   welcomePeople: boolean;
+  /** What agents may think with (ADR 0191); null: nothing restricted. */
+  allowedBrains: BrainPolicy | null;
 }
 
 export const TEAM_SIZES = ["solo", "small", "medium", "large"] as const;
@@ -116,6 +119,7 @@ export async function getOrgSettings(db: Database, actorId: string, orgId: strin
     mode: isWorkspaceMode(s?.mode) ? s.mode : "team",
     teamWatch: s?.teamWatch ?? true,
     welcomePeople: s?.welcomePeople ?? true,
+    allowedBrains: policyOf(s?.allowedBrains),
     ...mediaSettingsFrom(s),
   };
 }
@@ -134,7 +138,9 @@ export async function updateOrgSettings(
   db: Database,
   actorId: string,
   orgId: string,
-  input: Partial<Omit<OrgSettings, "defaultCredentialIds" | "autoModels">> & {
+  input: Partial<Omit<OrgSettings, "defaultCredentialIds" | "autoModels" | "allowedBrains">> & {
+    /** A rule, validated here (`validBrainPolicy`); null lifts it. */
+    allowedBrains?: unknown;
     defaultCredentialIds?: Partial<Record<string, string | null>>;
     /** Per provider and tier, a model of that provider; null puts the tier back on the default. */
     autoModels?: Partial<Record<string, Partial<Record<ModelTier, string | null>>>>;
@@ -157,6 +163,8 @@ export async function updateOrgSettings(
         throw new ValidationError(`autoModels.${provider}.${tier} must be one of ${provider}'s models`);
     }
   }
+  const allowedBrains =
+    input.allowedBrains === undefined ? undefined : await validBrainPolicy(db, orgId, input.allowedBrains);
   if (input.teamSize && !TEAM_SIZES.includes(input.teamSize)) throw new ValidationError("invalid teamSize");
   if (input.mode !== undefined && !isWorkspaceMode(input.mode))
     throw new ValidationError(`mode must be one of ${WORKSPACE_MODES.join(", ")}`);
@@ -209,6 +217,18 @@ export async function updateOrgSettings(
               .from(organizationSettings)
               .where(eq(organizationSettings.orgId, orgId))
           )[0]?.mode ?? "team");
+    // The rule before this change, read in the transaction: a change is audited with what it was.
+    const policyBefore =
+      allowedBrains === undefined
+        ? undefined
+        : policyOf(
+            (
+              await tx
+                .select({ allowedBrains: organizationSettings.allowedBrains })
+                .from(organizationSettings)
+                .where(eq(organizationSettings.orgId, orgId))
+            )[0]?.allowedBrains,
+          );
     const storedAutoModels = async () => {
       const [row] = await tx
         .select({ autoModels: organizationSettings.autoModels })
@@ -250,6 +270,7 @@ export async function updateOrgSettings(
       ...(input.mode !== undefined ? { mode: input.mode } : {}),
       ...(input.teamWatch !== undefined ? { teamWatch: input.teamWatch } : {}),
       ...(input.welcomePeople !== undefined ? { welcomePeople: input.welcomePeople } : {}),
+      ...(allowedBrains !== undefined ? { allowedBrains: allowedBrains ? { ...allowedBrains } : null } : {}),
       ...(input.autoModels !== undefined
         ? { autoModels: mergeAutoModels(await storedAutoModels(), input.autoModels) }
         : {}),
@@ -269,6 +290,15 @@ export async function updateOrgSettings(
         details: { from: modeBefore, to: input.mode },
       });
     }
+    if (allowedBrains !== undefined && JSON.stringify(policyBefore) !== JSON.stringify(allowedBrains)) {
+      await recordAudit(tx, {
+        orgId,
+        actor: { type: "person", id: actorId },
+        action: "organization.brain_policy_changed",
+        target: { type: "organization", id: orgId },
+        details: { from: policyBefore ?? null, to: allowedBrains },
+      });
+    }
   });
   caches.orgs.delete(`${orgId}:`);
   caches.orgs.delete(`${orgId}:agent-budget`);
@@ -276,6 +306,7 @@ export async function updateOrgSettings(
   if (input.defaultAgentBudgetNanoUsd !== undefined) await resumeBudgetWaits(db, orgId, null);
   caches.orgs.delete(`${orgId}:action-check`);
   caches.orgs.delete(`${orgId}:auto-models`);
+  caches.orgs.delete(brainPolicyCacheKey(orgId));
   caches.orgs.delete(mediaSettingsCacheKey(orgId));
   caches.orgs.delete(workspaceModeCacheKey(orgId));
   caches.zones.deletePrefix(`${orgId}:`);
