@@ -12316,6 +12316,17 @@
     "soon": "即将推出",
     "connectName": "连接 {{name}}",
     "reconnectName": "重新连接 {{name}}",
+    "personal": {
+      "perPerson": "每个人使用自己的账号",
+      "mine": "你的账号：{{account}}",
+      "mineNone": "你还没有连接自己的账号",
+      "mineBroken": "你的账号已失效",
+      "connectMine": "连接我的账号",
+      "connectMineName": "将我的账号连接到 {{name}}",
+      "disconnectMine": "断开我的账号",
+      "turnOn": "使用每个人自己的账号",
+      "turnOff": "所有人使用同一个账号"
+    },
     "addAccountName": "添加另一个 {{name}} 账号",
     "other": "找不到？",
     "otherText": "通过地址连接任意服务。",

@@ -57,6 +57,7 @@ import {
   serverKey,
 } from "./oauth-mcp";
 import { oauthReturnTo } from "./oauth-return";
+import { myPersonalAccounts, type PersonalAccountView } from "./personal";
 import { seedToolPins } from "./pins";
 import {
   composioToolkitOf,
@@ -202,6 +203,10 @@ export interface CustomServerView {
   tools: CustomToolView[];
   /** What routines can wait on from it (ADR 0130): MillionSend's received email. */
   events: ConnectorEventId[];
+  /** Each person uses their own account here (ADR 0195). */
+  perPerson: boolean;
+  /** The caller's own account on it, when it is per person and they connected one (nobody else's). */
+  mine: PersonalAccountView | null;
   reviewedAt: string | null;
   createdAt: string;
 }
@@ -269,7 +274,12 @@ function toolView(t: ToolRow, prefix: string | null): CustomToolView {
 }
 
 /** `whole`: the reader manages connectors, so sees the address as it was typed and the names of its headers. */
-function view(c: ConnectorConnection, tools: ToolRow[], whole = true): CustomServerView {
+function view(
+  c: ConnectorConnection,
+  tools: ToolRow[],
+  whole = true,
+  own: ReadonlyMap<string, PersonalAccountView> = new Map(),
+): CustomServerView {
   const mine = tools.filter((t) => t.connectionId === c.id);
   const prefix = sharedPrefix(mine.map((t) => t.name));
   return {
@@ -285,6 +295,8 @@ function view(c: ConnectorConnection, tools: ToolRow[], whole = true): CustomSer
     toolsError: c.status === "needs_reconnect" ? null : c.lastError,
     tools: mine.map((t) => toolView(t, prefix)),
     events: connectorEventsOf(c.serverUrl),
+    perPerson: c.perPerson,
+    mine: c.perPerson ? (own.get(c.id) ?? null) : null,
     reviewedAt: c.reviewedAt ? c.reviewedAt.toISOString() : null,
     createdAt: c.createdAt.toISOString(),
   };
@@ -323,7 +335,8 @@ export async function listCustomServers(db: Database, actorId: string, orgId: st
     db,
     rows.map((r) => r.id),
   );
-  return rows.map((r) => view(r, tools, whole));
+  const mine = await myPersonalAccounts(db, actorId, orgId);
+  return rows.map((r) => view(r, tools, whole, mine));
 }
 
 type AccountSpec = NonNullable<McpPreset["account"]>;
@@ -373,8 +386,8 @@ async function askAccount(session: McpSession, spec: AccountSpec | undefined) {
 }
 
 /** The account a fresh sign-in, key or Composio account reached, asked before anything is stored. */
-async function providerAccount(
-  deps: CustomDeps,
+export async function providerAccount(
+  deps: Pick<CustomDeps, "connect">,
   spec: AccountSpec | undefined,
   connection: Parameters<McpConnect>[0],
   headers: Record<string, string>,

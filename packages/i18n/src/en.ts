@@ -13217,6 +13217,18 @@ export const en = {
     soon: "Soon",
     connectName: "Connect {{name}}",
     reconnectName: "Reconnect {{name}}",
+    /** A connection where each person uses their own account (ADR 0195): its row's line and actions. */
+    personal: {
+      perPerson: "Each person uses their own account",
+      mine: "Your account: {{account}}",
+      mineNone: "You haven't connected your account yet",
+      mineBroken: "Your account stopped working",
+      connectMine: "Connect my account",
+      connectMineName: "Connect my account to {{name}}",
+      disconnectMine: "Disconnect my account",
+      turnOn: "Use each person's account",
+      turnOff: "Use one account for everyone",
+    },
     addAccountName: "Add another {{name}} account",
     other: "Can't find it?",
     otherText: "Connect any service by its address.",

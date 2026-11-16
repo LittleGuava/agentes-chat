@@ -1173,10 +1173,17 @@ export interface ApiClient {
       /** Absent from an older server. */
       outcome?: ConnectOutcome;
       returnTo?: string;
+      /** One's own account on a per-person connection (ADR 0195). */
+      personal?: boolean;
     }>;
     /** Renames a connection, any kind (admins); its tools keep their names. 409 `connector.label_taken`. */
     rename(orgId: string, connectionId: string, label: string): Promise<Connection>;
     disconnect(orgId: string, connectionId: string): Promise<void>;
+    /** Each person's own account on a connection through Composio, or the workspace's again (ADR 0195, admins). */
+    setPerPerson(orgId: string, connectionId: string, perPerson: boolean): Promise<{ perPerson: boolean }>;
+    /** Connects one's own account to a per-person connection: returns the URL to open (any member). */
+    connectMine(orgId: string, connectionId: string, input: { returnTo: string }): Promise<string>;
+    disconnectMine(orgId: string, connectionId: string): Promise<void>;
   };
   githubApp: {
     /** Whether this server can install the GitHub App, the organization's installations, and the server's app. */

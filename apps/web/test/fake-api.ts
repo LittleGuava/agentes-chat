@@ -3758,6 +3758,17 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         conn.label = label;
         return structuredClone(conn);
       },
+      setPerPerson: async (orgId, connectionId, perPerson) => {
+        log("connectors.setPerPerson", orgId, connectionId, perPerson);
+        return { perPerson };
+      },
+      connectMine: async (orgId, connectionId, input) => {
+        log("connectors.connectMine", orgId, connectionId, input);
+        return `https://connect.composio.dev/link/ln_1?state=s&return=${encodeURIComponent(input.returnTo)}`;
+      },
+      disconnectMine: async (orgId, connectionId) => {
+        log("connectors.disconnectMine", orgId, connectionId);
+      },
       disconnect: async (orgId, connectionId) => {
         log("connectors.disconnect", orgId, connectionId);
         state.connections = state.connections.filter((c) => c.id !== connectionId);

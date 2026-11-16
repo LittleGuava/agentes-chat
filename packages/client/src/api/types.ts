@@ -3091,9 +3091,19 @@ export interface CustomServer {
   tools: CustomTool[];
   /** What routines can wait on from it (ADR 0130). Older servers leave it out. */
   events?: RoutineConnectorTrigger["event"][];
+  /** Each person uses their own account here (ADR 0195). Older servers leave it out. */
+  perPerson?: boolean;
+  /** The caller's own account on a per-person connection; null when they have none. */
+  mine?: PersonalAccount | null;
   /** Last time an admin saved the classification; null = never (nothing exposed). */
   reviewedAt: string | null;
   createdAt: string;
+}
+
+/** One's own account on a per-person connection (ADR 0195), as its owner sees it. */
+export interface PersonalAccount {
+  accountLabel: string | null;
+  status: "active" | "needs_reconnect";
 }
 
 /** The workspace's Composio calls this month (UTC): connectors and mailboxes together (ADR 0107 §7). */

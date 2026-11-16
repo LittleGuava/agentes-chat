@@ -12307,6 +12307,17 @@
     "soon": "Segera",
     "connectName": "Hubungkan {{name}}",
     "reconnectName": "Hubungkan ulang {{name}}",
+    "personal": {
+      "perPerson": "Setiap orang memakai akunnya sendiri",
+      "mine": "Akun kamu: {{account}}",
+      "mineNone": "Kamu belum menghubungkan akunmu",
+      "mineBroken": "Akunmu berhenti berfungsi",
+      "connectMine": "Hubungkan akun saya",
+      "connectMineName": "Hubungkan akun saya ke {{name}}",
+      "disconnectMine": "Putuskan akun saya",
+      "turnOn": "Pakai akun setiap orang",
+      "turnOff": "Pakai satu akun untuk semua"
+    },
     "addAccountName": "Tambah akun {{name}} lain",
     "other": "Tidak menemukannya?",
     "otherText": "Hubungkan layanan apa pun lewat alamatnya.",

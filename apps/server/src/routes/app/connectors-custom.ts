@@ -67,6 +67,14 @@ const CustomServer = z
     events: z.array(z.enum(CONNECTOR_EVENTS)).openapi({
       description: "What routines can wait on from it (ADR 0130): `millionsend.email.received`.",
     }),
+    perPerson: z.boolean().openapi({
+      description:
+        "Each person uses their own account here (ADR 0195): a call goes through the account of the person behind the run.",
+    }),
+    mine: z
+      .object({ accountLabel: z.string().nullable(), status: z.enum(["active", "needs_reconnect"]) })
+      .nullable()
+      .openapi({ description: "The caller's own account on a per-person connection; null when they have none." }),
     toolsError: z.string().nullable().openapi({
       description:
         "Why its tools couldn't be read the last time they were listed (short); null when they were. The apps say it with Tentar de novo (`…/refresh`).",

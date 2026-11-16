@@ -2632,6 +2632,36 @@ export function useRemoveGitHubApp(orgId: string) {
   });
 }
 
+/** Turns each person's own account on or off for a connection (ADR 0195, admins). */
+export function useSetPerPerson(orgId: string) {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, perPerson }: { id: string; perPerson: boolean }) =>
+      api.connectors.setPerPerson(orgId, id, perPerson),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.customServers(orgId) }),
+  });
+}
+
+/** "Connect my account": the URL to open, back to `returnTo` (ADR 0195). */
+export function useConnectMine(orgId: string) {
+  const api = useApi();
+  return useMutation({
+    mutationFn: ({ id, returnTo }: { id: string; returnTo: string }) =>
+      api.connectors.connectMine(orgId, id, { returnTo }),
+  });
+}
+
+/** "Disconnect my account" (ADR 0195). */
+export function useDisconnectMine(orgId: string) {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.connectors.disconnectMine(orgId, id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.customServers(orgId) }),
+  });
+}
+
 export function useDisconnect(orgId: string) {
   const api = useApi();
   const qc = useQueryClient();

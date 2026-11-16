@@ -1268,16 +1268,29 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         ).authorizeUrl,
       composioUsage: (orgId) => request<ComposioUsage>(`${org(orgId)}/usage/composio`),
       completeOAuth: (orgId, input) =>
-        request<{ connectionId: string; connector: string; outcome?: ConnectOutcome; returnTo?: string }>(
-          `${org(orgId)}/connectors/oauth/complete`,
-          {
-            json: input,
-          },
-        ),
+        request<{
+          connectionId: string;
+          connector: string;
+          outcome?: ConnectOutcome;
+          returnTo?: string;
+          personal?: boolean;
+        }>(`${org(orgId)}/connectors/oauth/complete`, {
+          json: input,
+        }),
       rename: (orgId, connectionId, label) =>
         request<Connection>(`${org(orgId)}/connectors/${enc(connectionId)}`, { method: "PATCH", json: { label } }),
       disconnect: (orgId, connectionId) =>
         request<void>(`${org(orgId)}/connectors/${enc(connectionId)}`, { method: "DELETE" }),
+      setPerPerson: (orgId, connectionId, perPerson) =>
+        request<{ perPerson: boolean }>(`${org(orgId)}/connectors/${enc(connectionId)}/per-person`, {
+          method: "PUT",
+          json: { perPerson },
+        }),
+      connectMine: async (orgId, connectionId, input) =>
+        (await request<{ authorizeUrl: string }>(`${org(orgId)}/connectors/${enc(connectionId)}/mine`, { json: input }))
+          .authorizeUrl,
+      disconnectMine: (orgId, connectionId) =>
+        request<void>(`${org(orgId)}/connectors/${enc(connectionId)}/mine`, { method: "DELETE" }),
     },
     githubApp: {
       info: (orgId) => request<GitHubAppInfo>(`${org(orgId)}/github-app`),

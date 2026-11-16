@@ -13241,6 +13241,17 @@
     "soon": "Bientôt",
     "connectName": "Connecter {{name}}",
     "reconnectName": "Reconnecter {{name}}",
+    "personal": {
+      "perPerson": "Chaque personne utilise son propre compte",
+      "mine": "Votre compte : {{account}}",
+      "mineNone": "Vous n'avez pas encore connecté votre compte",
+      "mineBroken": "Votre compte ne fonctionne plus",
+      "connectMine": "Connecter mon compte",
+      "connectMineName": "Connecter mon compte à {{name}}",
+      "disconnectMine": "Déconnecter mon compte",
+      "turnOn": "Utiliser le compte de chaque personne",
+      "turnOff": "Utiliser un compte pour tout le monde"
+    },
     "addAccountName": "Ajouter un autre compte {{name}}",
     "other": "Vous ne trouvez pas ?",
     "otherText": "Connectez n'importe quel service via son adresse.",

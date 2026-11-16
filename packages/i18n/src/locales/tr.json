@@ -12701,6 +12701,17 @@
     "soon": "Yakında",
     "connectName": "{{name}} bağla",
     "reconnectName": "{{name}} yeniden bağla",
+    "personal": {
+      "perPerson": "Herkes kendi hesabını kullanır",
+      "mine": "Hesabın: {{account}}",
+      "mineNone": "Henüz hesabını bağlamadın",
+      "mineBroken": "Hesabın çalışmayı bıraktı",
+      "connectMine": "Hesabımı bağla",
+      "connectMineName": "Hesabımı {{name}} ile bağla",
+      "disconnectMine": "Hesabımın bağlantısını kes",
+      "turnOn": "Herkesin kendi hesabını kullan",
+      "turnOff": "Herkes için tek hesap kullan"
+    },
     "addAccountName": "Başka bir {{name}} hesabı ekle",
     "other": "Bulamadınız mı?",
     "otherText": "Herhangi bir hizmeti adresiyle bağlayın.",

@@ -12765,6 +12765,17 @@
     "soon": "Bald",
     "connectName": "{{name}} verbinden",
     "reconnectName": "{{name}} erneut verbinden",
+    "personal": {
+      "perPerson": "Jede Person nutzt ihr eigenes Konto",
+      "mine": "Dein Konto: {{account}}",
+      "mineNone": "Du hast dein Konto noch nicht verbunden",
+      "mineBroken": "Dein Konto funktioniert nicht mehr",
+      "connectMine": "Mein Konto verbinden",
+      "connectMineName": "Mein Konto mit {{name}} verbinden",
+      "disconnectMine": "Mein Konto trennen",
+      "turnOn": "Das Konto jeder Person nutzen",
+      "turnOff": "Ein Konto für alle nutzen"
+    },
     "addAccountName": "Weiteres {{name}}-Konto hinzufügen",
     "other": "Nicht gefunden?",
     "otherText": "Verbinde jeden Dienst über seine Adresse.",

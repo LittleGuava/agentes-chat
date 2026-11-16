@@ -12829,6 +12829,17 @@
     "soon": "Binnenkort",
     "connectName": "{{name}} koppelen",
     "reconnectName": "{{name}} opnieuw koppelen",
+    "personal": {
+      "perPerson": "Iedereen gebruikt een eigen account",
+      "mine": "Jouw account: {{account}}",
+      "mineNone": "Je hebt je account nog niet gekoppeld",
+      "mineBroken": "Je account werkt niet meer",
+      "connectMine": "Mijn account koppelen",
+      "connectMineName": "Mijn account aan {{name}} koppelen",
+      "disconnectMine": "Mijn account ontkoppelen",
+      "turnOn": "Ieders eigen account gebruiken",
+      "turnOff": "Eén account voor iedereen gebruiken"
+    },
     "addAccountName": "Nog een {{name}}-account toevoegen",
     "other": "Niet gevonden?",
     "otherText": "Koppel elke dienst via zijn adres.",

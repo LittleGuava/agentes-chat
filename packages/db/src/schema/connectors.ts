@@ -92,6 +92,11 @@ export const connectorConnections = pgTable(
     status: text().notNull().default("active"),
     /** Why it needs reconnecting. */
     lastError: text(),
+    /**
+     * Each person's own account (ADR 0195): a call goes through the account of the person behind the run
+     * (`connector_personal_accounts`), never this row's, which only lists the tools.
+     */
+    perPerson: boolean().notNull().default(false),
     createdByUserId: text().references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
@@ -100,6 +105,44 @@ export const connectorConnections = pgTable(
   (t) => [
     uniqueIndex("connector_connections_one_active").on(t.orgId, t.connector).where(sql`${t.revokedAt} is null`),
     uniqueIndex("connector_connections_tool_prefix").on(t.orgId, t.toolPrefix).where(sql`${t.revokedAt} is null`),
+    index().on(t.orgId),
+    index().on(t.composioAccountId),
+  ],
+);
+
+/**
+ * A person's own account on a per-person connection (ADR 0195): one live row per connection and person. A call of
+ * a run that person is behind goes through it. Through Composio, a connected account made under the workspace's
+ * Composio user (no secret of ours).
+ */
+export const connectorPersonalAccounts = pgTable(
+  "connector_personal_accounts",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    orgId: uuid()
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    connectionId: uuid()
+      .notNull()
+      .references(() => connectorConnections.id, { onDelete: "cascade" }),
+    ownerUserId: text()
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** Composio's connected account (`ca_…`). */
+    composioAccountId: text().notNull(),
+    /** The account as the provider names it ("ana@acme.com"), for its owner. */
+    accountLabel: text(),
+    /** `active`, or `needs_reconnect` (its sign-in stopped working: its owner connects it again). */
+    status: text().notNull().default("active"),
+    lastError: text(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    revokedAt: timestamp({ withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex("connector_personal_accounts_one_live")
+      .on(t.connectionId, t.ownerUserId)
+      .where(sql`${t.revokedAt} is null`),
     index().on(t.orgId),
     index().on(t.composioAccountId),
   ],
@@ -138,6 +181,8 @@ export const oauthStates = pgTable(
     connectionId: uuid(),
     /** A Composio sign-in: the connected account its Connect Link made, the only one the return may complete. */
     composioAccountId: text(),
+    /** "Connect my account" (ADR 0195): the person's own account on `connectionId`, which only they finish. */
+    forPerson: boolean().notNull().default(false),
     expiresAt: timestamp({ withTimezone: true }).notNull(),
     usedAt: timestamp({ withTimezone: true }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),

@@ -1,5 +1,5 @@
 import type { TFunction } from "i18next";
-import type { Connection, ConnectOutcome, ConnectorDef, CustomServer } from "../api/types";
+import type { Connection, ConnectOutcome, ConnectorDef, CustomServer, PersonalAccount } from "../api/types";
 import { exposedTools, sameServer, toolsToReview } from "./custom-tools";
 import { connectorName } from "./scopes";
 import { reviewToolsOf } from "./tool-review";
@@ -38,6 +38,9 @@ export interface ConnectedItem {
   viaGithubApp?: boolean;
   /** Its sign-in stopped working (a refresh refused, a 401, a Composio account gone): no tools until Reconectar. */
   needsReconnect: boolean;
+  /** Each person uses their own account here (ADR 0195): `mine` is the viewer's. */
+  perPerson?: boolean;
+  mine?: PersonalAccount | null;
   /** OAuth scopes its sign-in lacks (GitHub's `project`): Reconectar adds what they let agents do. */
   reconnectAdds: string[];
   /** A server by address whose tools couldn't be read last time (its words): agents have none from it now. */
@@ -98,6 +101,8 @@ export function fromServer(s: CustomServer, catalog: ConnectorDef[]): ConnectedI
     account: s.accountLabel ? accountNote(s.label, s.accountLabel) : s.via === "composio" ? null : host(s.serverUrl),
     viaComposio: s.via === "composio",
     needsReconnect: s.status === "needs_reconnect",
+    perPerson: s.perPerson === true,
+    mine: s.mine ?? null,
     reconnectAdds: [],
     toolsError: s.toolsError ?? null,
     createdAt: s.createdAt,

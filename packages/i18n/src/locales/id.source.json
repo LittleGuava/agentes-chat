@@ -31294,6 +31294,33 @@
   "connectors.reconnectName": {
     "value": "Reconnect {{name}}"
   },
+  "connectors.personal.perPerson": {
+    "value": "Each person uses their own account"
+  },
+  "connectors.personal.mine": {
+    "value": "Your account: {{account}}"
+  },
+  "connectors.personal.mineNone": {
+    "value": "You haven't connected your account yet"
+  },
+  "connectors.personal.mineBroken": {
+    "value": "Your account stopped working"
+  },
+  "connectors.personal.connectMine": {
+    "value": "Connect my account"
+  },
+  "connectors.personal.connectMineName": {
+    "value": "Connect my account to {{name}}"
+  },
+  "connectors.personal.disconnectMine": {
+    "value": "Disconnect my account"
+  },
+  "connectors.personal.turnOn": {
+    "value": "Use each person's account"
+  },
+  "connectors.personal.turnOff": {
+    "value": "Use one account for everyone"
+  },
   "connectors.addAccountName": {
     "value": "Add another {{name}} account"
   },

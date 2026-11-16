@@ -2101,6 +2101,13 @@
       "when": 1794844677781,
       "tag": "0303_away_email",
       "breakpoints": true
+    },
+    {
+      "idx": 302,
+      "version": "7",
+      "when": 1794844757564,
+      "tag": "0304_per_person_connections",
+      "breakpoints": true
     }
   ]
 }

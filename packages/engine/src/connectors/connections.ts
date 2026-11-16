@@ -17,6 +17,7 @@ import type { McpConnect } from "./mcp";
 import { refusedCredentials } from "./mcp-sse";
 import { clientAuth, getOAuthClient, type McpOAuthDeps, probeMcpServer } from "./oauth-mcp";
 import { oauthReturnTo } from "./oauth-return";
+import { completePersonalConnect, forgetPersonalAccounts } from "./personal";
 import { presetForServer } from "./presets";
 
 const { connectorConnections, oauthStates, agentScopes, agents, approvalRules, githubAppInstallations } = schema;
@@ -477,6 +478,7 @@ export async function revokeConnection(
   caches.connections.delete(`${orgId}:active`);
   caches.scopes.deletePrefix(`${orgId}:`);
   if (gone?.composioAccountId && composio) await forgetComposioAccount(composio.client, gone.composioAccountId);
+  if (gone) await forgetPersonalAccounts({ db, composio }, orgId, gone.id);
 }
 
 /** Revokes a live connection in the caller's transaction: agents lose its scopes and its "Aprovar sempre" rules. */
@@ -792,7 +794,7 @@ export async function completeOAuth(
   deps: ConnectorDeps,
   user: { id: string },
   input: { state: string; code: string },
-): Promise<{ connection: ConnectorConnection; returnTo: string; outcome: ConnectOutcome }> {
+): Promise<{ connection: ConnectorConnection; returnTo: string; outcome: ConnectOutcome; personal?: true }> {
   const at = deps.now?.() ?? new Date();
   const [row] = await deps.db
     .select()
@@ -809,6 +811,11 @@ export async function completeOAuth(
     .where(and(eq(oauthStates.id, row.id), isNull(oauthStates.usedAt)))
     .returning({ id: oauthStates.id });
   if (claimed.length === 0) throw new ConflictError("This authorization link was already used", "oauth.link_used");
+  // One's own account (ADR 0195): still a member, in a workspace not being deleted; no right to manage connectors.
+  if (row.forPerson) {
+    await requireChangePermission(deps.db, user.id, row.orgId, "read");
+    return completePersonalConnect(deps, user, row, input.code);
+  }
   // Still an admin, in a workspace not being deleted? Both can change during the round trip.
   await requireChangePermission(deps.db, user.id, row.orgId, "manage_connectors");
 

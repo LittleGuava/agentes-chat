@@ -5,15 +5,18 @@ import {
   useCatalog,
   useComposioUsage,
   useConnections,
+  useConnectMine,
   useCustomServerAction,
   useCustomServers,
   useDatabases,
   useDisconnect,
+  useDisconnectMine,
   useGitHubApp,
   useMailAccounts,
   useMailAction,
   useMailProviders,
   useRenameConnection,
+  useSetPerPerson,
 } from "@agenteschat/client";
 import { levelIn } from "@agenteschat/client/lib/access-levels";
 import { composioUsageText, nearComposioLimit } from "@agenteschat/client/lib/composio";
@@ -79,7 +82,7 @@ import {
 import { useOrg } from "@/components/org-context";
 import { useAgentsAccess } from "@/hooks/useAgentsAccess";
 import { useRightHandLook } from "@/hooks/useRightHandLook";
-import { takesConnectorReturn } from "@/lib/desktop";
+import { oauthReturnPath, takesConnectorReturn } from "@/lib/desktop";
 import { navigateAway } from "@/lib/navigate";
 import { useToast } from "@/lib/toast";
 
@@ -127,6 +130,9 @@ export function ConnectorsSection({
   const mailProviders = useMailProviders(org.id);
   const mailAccounts = useMailAccounts(org.id);
   const { connectComposio } = useMailAction(org.id);
+  const connectMine = useConnectMine(org.id);
+  const disconnectMine = useDisconnectMine(org.id);
+  const setPerPerson = useSetPerPerson(org.id);
   const accounts = mailAccounts.data ?? [];
   const [mailFlow, setMailFlow] = useState<MailFlowState | null>(null);
   const [reconnecting, setReconnecting] = useState<MailAccount | null>(null);
@@ -188,6 +194,12 @@ export function ConnectorsSection({
       : connected
         ? latest(all.filter((i) => !i.custom && i.def?.id === connected))
         : latest(all.filter((i) => i.custom && i.needsReview));
+    // One's own account (ADR 0195): the workspace got no new account, so no confirmation, only the toast.
+    if (outcome === "personal") {
+      if (item) toast.show(outcomeText(t, "connected", item));
+      window.history.replaceState(null, "", window.location.pathname);
+      return;
+    }
     const done = outcome === "reconnected" || outcome === "same_account" ? outcome : "connected";
     // Signing in elsewhere ends here: say what happened, as connecting with a key does (a toast, or the confirmation).
     const confirms = admin && done === "connected";
@@ -217,6 +229,14 @@ export function ConnectorsSection({
       onReconnect={() => setFlow({ step: 0, def: item.def, mode: "reconnect", item })}
       onAddAccount={() => setFlow({ step: 0, def: item.def, mode: "add", item })}
       onDisconnect={() => setRemoving(item)}
+      onConnectMine={() =>
+        connectMine.mutate(
+          { id: item.id, returnTo: oauthReturnPath(`/org/${org.id}/settings/connectors`) },
+          { onSuccess: (to) => navigateAway(to) },
+        )
+      }
+      onDisconnectMine={() => disconnectMine.mutate(item.id)}
+      onPerPerson={(perPerson) => setPerPerson.mutate({ id: item.id, perPerson })}
     />
   );
   const loaded = connections.isSuccess && servers.isSuccess;
@@ -398,6 +418,9 @@ function ServiceRow({
   onReconnect,
   onAddAccount,
   onDisconnect,
+  onConnectMine,
+  onDisconnectMine,
+  onPerPerson,
 }: {
   item: ConnectedItem;
   using: Agent[];
@@ -409,6 +432,9 @@ function ServiceRow({
   onReconnect: () => void;
   onAddAccount: () => void;
   onDisconnect: () => void;
+  onConnectMine: () => void;
+  onDisconnectMine: () => void;
+  onPerPerson: (perPerson: boolean) => void;
 }) {
   const { t, i18n } = useTranslation();
   const meta = [
@@ -423,6 +449,32 @@ function ServiceRow({
   const adds = reconnectAddsText(t, item);
   const name = itemName(t, item);
   const sent = item.server?.headerNames ?? [];
+  // Each person's own account (ADR 0195): everyone sees their own, and connects it here.
+  const mine = item.perPerson ? (item.mine ?? null) : null;
+  const personal = item.perPerson
+    ? [
+        t("connectors.personal.perPerson"),
+        !mine
+          ? t("connectors.personal.mineNone")
+          : mine.status === "needs_reconnect"
+            ? t("connectors.personal.mineBroken")
+            : mine.accountLabel
+              ? t("connectors.personal.mine", { account: mine.accountLabel })
+              : null,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : null;
+  const connectMine = item.perPerson && (!mine || mine.status === "needs_reconnect") && (
+    <Button
+      size="sm"
+      variant="primary"
+      aria-label={t("connectors.personal.connectMineName", { name })}
+      onClick={onConnectMine}
+    >
+      {t("connectors.personal.connectMine")}
+    </Button>
+  );
   return (
     <ConnectedRow
       icon={<ConnectorIcon def={item.def} image={item.image} label={name} />}
@@ -454,13 +506,15 @@ function ServiceRow({
       total={total}
       details={[
         meta.join(" · "),
+        personal,
         // The request headers a server by address is also sent, by name: their values are never shown.
         sent.length > 0 && <Trans i18nKey="connectors.sendsToo" components={{ names: <HeaderNames names={sent} /> }} />,
         !item.needsReconnect && adds,
       ]}
       actions={
-        admin && (
+        admin ? (
           <>
+            {connectMine}
             {(item.needsReconnect || adds) && (
               <Button
                 size="sm"
@@ -509,12 +563,33 @@ function ServiceRow({
                   {t("connectors.detail.addAccount")}
                 </MenuItem>
               )}
+              {item.viaComposio && (
+                <MenuItem icon="members" onSelect={() => onPerPerson(!item.perPerson)}>
+                  {t(item.perPerson ? "connectors.personal.turnOff" : "connectors.personal.turnOn")}
+                </MenuItem>
+              )}
+              {mine && (
+                <MenuItem icon="power" onSelect={onDisconnectMine}>
+                  {t("connectors.personal.disconnectMine")}
+                </MenuItem>
+              )}
               <MenuSeparator />
               <MenuItem icon="power" danger onSelect={onDisconnect}>
                 {t("connectors.disconnect")}
               </MenuItem>
             </Menu>
           </>
+        ) : (
+          item.perPerson && (
+            <>
+              {connectMine}
+              {mine && (
+                <Button variant="link" onClick={onDisconnectMine}>
+                  {t("connectors.personal.disconnectMine")}
+                </Button>
+              )}
+            </>
+          )
         )
       }
     />

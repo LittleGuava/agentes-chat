@@ -12252,6 +12252,17 @@
     "soon": "近日公開",
     "connectName": "{{name}}を接続",
     "reconnectName": "{{name}}を再接続",
+    "personal": {
+      "perPerson": "各メンバーが自分のアカウントを使います",
+      "mine": "あなたのアカウント: {{account}}",
+      "mineNone": "まだアカウントを接続していません",
+      "mineBroken": "アカウントが使えなくなりました",
+      "connectMine": "自分のアカウントを接続",
+      "connectMineName": "{{name}} に自分のアカウントを接続",
+      "disconnectMine": "自分のアカウントの接続を解除",
+      "turnOn": "各メンバーのアカウントを使う",
+      "turnOff": "全員で 1 つのアカウントを使う"
+    },
     "addAccountName": "{{name}}の別アカウントを追加",
     "other": "見つかりませんか？",
     "otherText": "アドレスで、どのサービスでも接続できます。",

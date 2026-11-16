@@ -12246,6 +12246,17 @@
     "soon": "곧 출시",
     "connectName": "{{name}} 연결",
     "reconnectName": "{{name}} 다시 연결",
+    "personal": {
+      "perPerson": "각자 자신의 계정을 사용합니다",
+      "mine": "내 계정: {{account}}",
+      "mineNone": "아직 계정을 연결하지 않았습니다",
+      "mineBroken": "계정이 작동하지 않습니다",
+      "connectMine": "내 계정 연결",
+      "connectMineName": "{{name}}에 내 계정 연결",
+      "disconnectMine": "내 계정 연결 해제",
+      "turnOn": "각자의 계정 사용",
+      "turnOff": "모두 하나의 계정 사용"
+    },
     "addAccountName": "다른 {{name}} 계정 추가",
     "other": "찾는 게 없나요?",
     "otherText": "주소만 있으면 어떤 서비스든 연결할 수 있어요.",

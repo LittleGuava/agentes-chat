@@ -1,4 +1,4 @@
-import { type ComposioClient, composioFile, FileTooLargeError } from "@agenteschat/adapters";
+import { type ComposioClient, composioFile, FileTooLargeError, MailAuthError } from "@agenteschat/adapters";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type { FetchLike, Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import type { jsonSchemaValidator } from "@modelcontextprotocol/sdk/validation/types.js";
@@ -40,6 +40,7 @@ import {
   type ToolAccess,
 } from "./custom";
 import { openHttpSession } from "./mcp-sse";
+import { markPersonalToReconnect, personalAccountFor, personalServiceLabel } from "./personal";
 import { applyToolPins } from "./pins";
 import { presetForServer } from "./presets";
 import type { McpServerInfo } from "./server-icon";
@@ -431,8 +432,9 @@ export function createConnectorToolSource(
    * any tool that asks may be approved for good for one agent.
    */
   async function customToolsOf(connection: ConnectorConnection): Promise<ToolDefinition[]> {
-    // A sign-in that stopped working (a Composio account too) has no tools until it is reconnected.
-    if (connection.status === "needs_reconnect") return [];
+    // A sign-in that stopped working (a Composio account too) has no tools until it is reconnected. A per-person
+    // connection's own account only lists them: each call goes through the account of the person behind the run.
+    if (connection.status === "needs_reconnect" && !connection.perPerson) return [];
     let classified = await classifiedTools(deps.db, connection.id);
     if (classified.length === 0) return [];
     const before = reclassified;
@@ -448,6 +450,9 @@ export function createConnectorToolSource(
     const preset = presetForServer(connection.serverUrl)?.id;
     const composio = composioServiceOf(connection.serverUrl);
     const prefix = toolPrefixOfConnection(connection);
+    const perPerson = connection.perPerson && composio !== null;
+    // A per-person connection is named by its service: its own name may hold someone else's address.
+    const named = perPerson ? personalServiceLabel(connection) : connection.label;
     return classified.flatMap((row): ToolDefinition[] => {
       const tool = byName.get(row.name);
       const access = row.access as ToolAccess;
@@ -463,7 +468,7 @@ export function createConnectorToolSource(
       return [
         {
           name: exposedToolName(prefix, tool.name),
-          description: cutText(`[${connection.label}] ${row.label}: ${said}`, 1024),
+          description: cutText(`[${named}] ${row.label}: ${said}`, 1024),
           inputSchema: tool.inputSchema?.type === "object" ? tool.inputSchema : { type: "object" },
           scope: customScope(connection.id, access),
           connectionId: connection.id,
@@ -471,7 +476,7 @@ export function createConnectorToolSource(
           connector: composio
             ? { key: connectorKeyOf({ toolkit: composio.way.toolkit }), via: "composio", tool: tool.name }
             : { key: connectorKeyOf(connection), via: "mcp", tool: tool.name },
-          connectorLabel: connection.label,
+          connectorLabel: named,
           service: preset,
           serviceIcon: connection.icon ?? undefined,
           toolPrefix: prefix,
@@ -488,28 +493,62 @@ export function createConnectorToolSource(
           describe: (input) => {
             const actions = executor ? composioActions(input) : null;
             return {
-              title: `${connection.label}: ${actions ? actions.join(", ") : row.label}`,
+              title: `${named}: ${actions ? actions.join(", ") : row.label}`,
               detail: `${tool.name} · ${Object.entries(input)
                 .map(([k, v]) => `${k}=${typeof v === "object" ? JSON.stringify(v) : String(v)}`)
                 .join(" · ")}`,
             };
           },
+          // Whose account it goes through is settled before anyone is asked (ADR 0195 §3).
+          ...(perPerson
+            ? {
+                checkCall: async (_input: Record<string, unknown>, ctx: ToolContext) => {
+                  const found = await personalAccountFor(ctx.db, connection, ctx.runId);
+                  return "refused" in found
+                    ? { ok: false as const, message: found.refused.message, data: { code: found.refused.code } }
+                    : { ok: true as const };
+                },
+              }
+            : {}),
           execute: async (input, ctx) => {
             // Never through Composio: no server at its address ever reads a request of ours.
             const meta = composio ? undefined : await callerStatement(connection, ctx);
             let result: McpCallResult;
-            try {
-              result = await withSession(connection, (s) => s.callTool(tool.name, input, meta));
-            } catch (error) {
-              if (!composio) throw error;
-              return composioFailure(deps, connection, error);
+            if (perPerson) {
+              // Again at the call: an approval may come long after the check, and the account may have changed.
+              const found = await personalAccountFor(ctx.db, connection, ctx.runId);
+              if ("refused" in found) {
+                return { content: found.refused.message, isError: true, data: { code: found.refused.code } };
+              }
+              const mine = { ...connection, composioAccountId: found.account.composioAccountId };
+              try {
+                result = await withSession(mine, (s) => s.callTool(tool.name, input));
+              } catch (error) {
+                // A person's sign-in that stopped working is theirs alone (ADR 0195 §4).
+                if (!(error instanceof MailAuthError)) return composioFailure(deps, connection, error);
+                await markPersonalToReconnect(deps.db, found.account, error.message);
+                const again = await personalAccountFor(ctx.db, connection, ctx.runId);
+                const said = "refused" in again ? again.refused : null;
+                return {
+                  content: said?.message ?? error.message,
+                  isError: true,
+                  data: { code: said?.code ?? "connector.personal_needs_reconnect" },
+                };
+              }
+            } else {
+              try {
+                result = await withSession(connection, (s) => s.callTool(tool.name, input, meta));
+              } catch (error) {
+                if (!composio) throw error;
+                return composioFailure(deps, connection, error);
+              }
             }
             if (composio && deps.composio && !result.isError) {
               const kept = await keepComposioFiles(
                 { client: deps.composio.client, artifacts: deps.artifacts, resolveHost: deps.resolveHost },
                 ctx,
                 result,
-                connection.label,
+                named,
               );
               result = { ...result, content: kept };
             }
