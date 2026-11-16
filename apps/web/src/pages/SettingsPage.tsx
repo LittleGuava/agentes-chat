@@ -586,6 +586,31 @@ function GeneralSection() {
       </div>
     </div>
   );
+  // Meeting notes (ADR 0199 §6): off until who configures the workspace turns it on, its terms behind the ⓘ.
+  const meetingNotes = t("settings.meetingNotes");
+  const meetingRow = (
+    <div className="settings-row ac-actrow">
+      <div className="settings-row__text ac-actrow__text">
+        <span className="ac-hintline">
+          <label className="settings-row__label" htmlFor="set-meeting-notes">
+            {meetingNotes}
+          </label>
+          <InfoHint name={t("common.about", { label: meetingNotes })} id="set-meeting-notes-hint">
+            {t("settings.meetingNotesHelp")}
+          </InfoHint>
+        </span>
+      </div>
+      <div className="settings-row__control">
+        <Switch
+          id="set-meeting-notes"
+          checked={settings.data?.meetingNotes ?? false}
+          onCheckedChange={(on) => save({ meetingNotes: on })}
+          disabled={!editable || !settings.data}
+          aria-describedby="set-meeting-notes-hint"
+        />
+      </div>
+    </div>
+  );
   // Who the workspace is for (ADR 0159 §4): the mode it is in now and, for who configures it, the switch to the other.
   const modeRow = (
     <div className="settings-row ac-actrow">
@@ -615,6 +640,7 @@ function GeneralSection() {
         {!personal && zoneRow}
         {checkRow}
         <WorkspaceApprovalsRow />
+        {meetingRow}
         {modeRow}
       </div>
     </Card>

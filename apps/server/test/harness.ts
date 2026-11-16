@@ -244,6 +244,7 @@ export async function createTestServer(
         speech: engine.speech,
         voice: engine.voice,
         readAloud: engine.readAloud,
+        meetings: engine.meetingAudio,
       },
     },
     log,

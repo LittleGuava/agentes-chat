@@ -18254,6 +18254,8 @@
     "actionCheckPersonal": "Agenci sprawdzają, co już zostało zrobione",
     "actionCheckHelp": "Przed e-mailem, wiadomością lub pull requestem agent sprawdza, czy ktoś z zespołu nie zrobił już tego samego wobec tej samej osoby lub miejsca w ciągu ostatnich 30 dni, i tego nie powtarza.",
     "actionCheckHelpPersonal": "Przed e-mailem lub wiadomością agent sprawdza, czy ty lub inny agent nie zrobiliście już tego wobec tej samej osoby lub miejsca w ciągu ostatnich 30 dni, i tego nie powtarza.",
+    "meetingNotes": "Agenci robią notatki ze spotkań",
+    "meetingNotesHelp": "Agenci mogą dołączać do rozmów Google Meet i Jitsi na prośbę, a zanim zaczną słuchać, informują o tym na czacie rozmowy. W niektórych miejscach nagrywanie wymaga zgody wszystkich uczestników. Osoba, która wysyła agenta, odpowiada za to i musi powiadomić gospodarza.",
     "mode": {
       "label": "Tryb przestrzeni roboczej",
       "team": "Zespół",
@@ -19045,6 +19047,8 @@
       "agentNoteAnon": "Notatka od innego agenta",
       "waitResult": "Dotarło to, na co czeka {{name}}",
       "meetingEnded": "Zakończyło się spotkanie, z którego {{name}} sporządza notatki",
+      "meetingJoined": "{{name}} robi notatki na spotkaniu",
+      "leaveMeeting": "Opuść spotkanie",
       "runRetry": "Na prośbę {{by}} {{name}} próbuje ponownie",
       "runRetryAnon": "{{name}} próbuje ponownie",
       "other": "Powiadomienie dla: {{name}}",

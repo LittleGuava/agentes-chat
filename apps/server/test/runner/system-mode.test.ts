@@ -546,6 +546,10 @@ test("a system-mode runner (root) without workers does no agent work; machine-le
     "mychrome.disconnect",
     // The person's tools' settings live in the runner's user's home: root answers unsupported.
     "local.config",
+    // A meeting's audio goes out on a data socket, which needs the machine token (ADR 0199 §4); root says it can't
+    // hear one yet (`meeting_audio_system_mode`), so nothing is offered there.
+    "meeting.listen",
+    "meeting.stop",
   ]);
   const mine = { op: "mychrome.list" } as unknown as MachineRequest;
   expect(await errorCode(() => handleRequest(ctx, mine, scope))).toBe("not_allowed");

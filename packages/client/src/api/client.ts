@@ -1138,6 +1138,8 @@ export interface ApiClient {
      * there, with this person behind it. 409 `github_event.answered` once someone asked.
      */
     answerGitHub(orgId: string, messageId: string): Promise<void>;
+    /** "Sair da reunião" (ADR 0199): the agent leaves the meeting now and its notes come. 409 `meeting.ended` once over. */
+    leaveMeeting(orgId: string, meetingId: string): Promise<void>;
   };
 
   approvals: {

@@ -1,27 +1,19 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { and, eq, schema } from "@agenteschat/db";
 import {
-  type BrowserPlanner,
-  createFakeJudge,
   createMeetingToolSource,
   createToolGateway,
   finishMeeting,
-  formatPlanReport,
   grantScopes,
   insertMessage,
   JOIN_MEETING_TOOL,
   type MeetingListener,
-  observeSnapshot,
-  postPersonMessage,
-  runPlan,
-  type ScreenAction,
-  type ScreenActOutcome,
-  type ScreenStep,
   type ScreenSurface,
   type ToolContext,
 } from "../src";
 import { noticeText } from "../src/notices";
 import { type Fixture, setup } from "./fixtures";
+import { meetPage, PREJOIN, personRun, planner, REFUSED, refOf, runFor } from "./meeting-fixtures";
 
 /**
  * ADR 0199: a person sends an agent into a Google Meet or Jitsi call; it joins from its own browser as "<name> (notes)"
@@ -36,60 +28,12 @@ afterEach(async () => {
   await current?.close();
 });
 
-const PREJOIN = `- main
-  - heading "Ready to join?" [level=1, ref=e1]
-  - textbox "Your name" [ref=e2]
-  - button "Turn off microphone" [ref=e3]
-  - button "Turn off camera" [ref=e4]
-  - button "Ask to join" [ref=e5]`;
-const LOBBY = `- main
-  - heading "Asking to be let in…" [level=1, ref=e1]
-  - button "Cancel" [ref=e6]`;
-const REFUSED = `- main
-  - heading "You can't join this video call" [level=1, ref=e1]
-  - button "Return to home screen" [ref=e7]`;
-
-/** The element an action landed on, by its number. */
-const refOf = (a: ScreenAction) => ("at" in a && "ref" in a.at ? a.at.ref : null);
-
-/** Google Meet's page as text: what each click does to it, every action recorded. */
-function meetPage(start = PREJOIN, afterJoin = LOBBY) {
-  let text = start;
-  const actions: ScreenAction[] = [];
-  const look = () => observeSnapshot({ text, url: "https://meet.google.com/abc-defg-hij" });
-  const surface: ScreenSurface & { actions: ScreenAction[] } = {
-    actions,
-    async observe() {
-      return look();
-    },
-    async perform(action): Promise<ScreenActOutcome> {
-      actions.push(action);
-      if (action.kind === "click" && "ref" in action.at && action.at.ref === "e5") text = afterJoin;
-      return { ok: true, observation: look() };
-    },
-  };
-  return surface;
-}
-
-/** `browser_do`'s plan on a fake page: the real plan runner, a judge that is never needed for exact names. */
-function planner(surface: ScreenSurface) {
-  const calls: { steps: ScreenStep[]; own: boolean | undefined }[] = [];
-  const plan: BrowserPlanner = async (ctx, steps, options) => {
-    calls.push({ steps, own: options?.own });
-    const report = await runPlan(
-      { judge: createFakeJudge(), orgId: ctx.orgId, agentId: ctx.agentId, runId: ctx.runId, surface, scope: "t" },
-      steps,
-    );
-    options?.onReport?.(report);
-    const out = formatPlanReport(report);
-    return { content: out.summary, ...(out.failed ? { isError: true } : {}) };
-  };
-  return { plan, calls };
-}
-
 function fakeListener(answer: { ok: true } | { ok: false; text: string } = { ok: true }) {
   const heard: string[] = [];
   const listener: MeetingListener = {
+    async available() {
+      return true;
+    },
     async listen(meeting) {
       heard.push(meeting.id);
       return answer;
@@ -98,43 +42,14 @@ function fakeListener(answer: { ok: true } | { ok: false; text: string } = { ok:
   return { listener, heard };
 }
 
-async function personRun(fx: Fixture, body = "entra nessa reunião e anota") {
-  const msg = await postPersonMessage({ db: fx.db, pubsub: fx.pubsub }, fx.owner.id, fx.org.id, fx.general.id, {
-    body,
-  });
-  return runFor(fx, msg.id);
-}
-
-async function runFor(fx: Fixture, messageId: string): Promise<ToolContext> {
-  const [run] = await fx.db
-    .insert(schema.agentRuns)
-    .values({
-      orgId: fx.org.id,
-      agentId: fx.agent.id,
-      channelId: fx.general.id,
-      threadRootId: messageId,
-      triggerMessageId: messageId,
-      trigger: "mention",
-      hop: 1,
-    })
-    .returning();
-  return {
-    db: fx.db,
-    orgId: fx.org.id,
-    agentId: fx.agent.id,
-    runId: run?.id ?? "",
-    channelId: fx.general.id,
-    threadRootId: messageId,
-    triggerMessageId: messageId,
-  };
-}
-
 async function gatewayWith(fx: Fixture, surface: ScreenSurface, answer?: { ok: true } | { ok: false; text: string }) {
   await grantScopes(fx.db, fx.org.id, fx.agent.id, [{ connectionId: null, scope: "browser:use" }]);
   const browser = planner(surface);
   const ears = fakeListener(answer);
   const gateway = createToolGateway({
-    sources: [createMeetingToolSource({ browser: browser.plan, listener: ears.listener })],
+    sources: [
+      createMeetingToolSource({ browser: browser.plan, listener: ears.listener, leave: async () => ({ left: false }) }),
+    ],
   });
   const join = (ctx: ToolContext, url: string) =>
     gateway.invoke(ctx, { toolUseId: `tu_${Math.random()}`, name: JOIN_MEETING_TOOL, input: { url } });
@@ -157,14 +72,14 @@ describe(JOIN_MEETING_TOOL, () => {
     expect(await createMeetingToolSource({ listener: fakeListener().listener }).tools(ctx)).toEqual([]);
   });
 
-  test("a person's link: its own browser, the name first, microphone and camera off, then it asks to join and waits", async () => {
+  test("a person's link: its own browser, the name first, microphone and camera off, then it asks to join and hands over to the listener", async () => {
     f = await setup();
     const page = meetPage();
     const { join, browser, ears } = await gatewayWith(f, page);
     const ctx = await personRun(f);
     const out = outputOf(await join(ctx, "https://meet.google.com/ABC-defg-hij?authuser=2"));
     expect(out.isError).toBeUndefined();
-    expect(out.content).toContain("the host must let you in");
+    expect(out.content).toContain("You are in the Google Meet meeting");
     expect(out.content).toContain(`«${f.agent.name} (notes)»`);
 
     expect(browser.calls).toHaveLength(1);

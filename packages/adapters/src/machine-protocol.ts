@@ -1039,6 +1039,36 @@ export function parseLocalConfig(raw: unknown): LocalConfig {
  */
 export const VAULT_CODE_PROTOCOL = 86;
 
+/**
+ * From this protocol on (ADR 0199 §4): meeting audio. `hello.meetingAudio` says whether the computer can hear a
+ * meeting the agent's browser is in; `meeting.listen` starts that capture (a null sink of the agent's own, its
+ * Chrome's audio moved there, the sink's monitor recorded and cut at pauses) and sends each piece on the data socket
+ * `streamId` names (`encodeMeetingPiece`), its last text frame `{"type":"meeting.end"}` saying why it stopped;
+ * `meeting.stop` ends it. The server sends neither to an older runner.
+ */
+export const MEETING_PROTOCOL = 79;
+/** Meeting audio's shape and limits (ADR 0199 §4), the same on the computer and the server. */
+export const MEETING_AUDIO = {
+  /** 16 kHz mono 16-bit PCM: what speech engines take, a minute in under 2 MB. */
+  sampleRate: 16_000,
+  channels: 1,
+  /** A piece ends at a pause once it is this long… */
+  pieceMinMs: 5_000,
+  /** …or here at the latest, pause or not. */
+  pieceMaxMs: 30_000,
+  /** Quiet this long is a pause between sentences. */
+  pauseMs: 600,
+  /** A piece's WAV, at most (30 s at 16 kHz mono is 960 044 bytes). */
+  pieceBytesMax: 1 << 20,
+  /** No sound for this long: the call is over, or the bot is alone in it. */
+  silenceEndMs: 10 * 60_000,
+  /** The longest a capture runs (ADR 0199 §2's four hours). */
+  maxMs: 4 * 60 * 60_000,
+} as const;
+/** Why a capture ended, as the runner's `meeting.end` says. */
+export const MEETING_END_REASONS = ["stopped", "silence", "max", "failed"] as const;
+export type MeetingEndReason = (typeof MEETING_END_REASONS)[number];
+
 export type PhonePlatform = "android" | "ios";
 export type PhoneKind = "device" | "emulator" | "simulator";
 /** A phone the host sees; one it doesn't see isn't reported (the server marks it offline). */
@@ -1868,6 +1898,8 @@ export interface RunnerTerminalInfo {
 
 /** `hello.desktopUse` (protocol 21): whether agents can use their desktops here; `reason` says what is missing. */
 export type RunnerDesktopUseInfo = RunnerTerminalInfo;
+/** `hello.meetingAudio` (`MEETING_PROTOCOL`): whether this computer can hear a meeting an agent joined. */
+export type RunnerMeetingAudioInfo = RunnerTerminalInfo;
 
 /** Desktop and terminal streams (protocol 18): sizes, rates, caps and timeouts. */
 export const STREAM_LIMITS = {
@@ -2845,6 +2877,8 @@ export interface RunnerInfo {
   desktopUse?: RunnerDesktopUseInfo;
   /** Protocol 81: whether agents can use the person's own desktop here (ADR 0201); absent: not here. */
   hostDesktop?: RunnerDesktopUseInfo;
+  /** `MEETING_PROTOCOL`: whether this computer can hear a meeting an agent's browser is in (ADR 0199 §4). */
+  meetingAudio?: RunnerMeetingAudioInfo;
   /**
    * Protocol 18: `system` when each agent works as its own OS user (ADR 0058 §10); absent, every agent
    * works as the runner's own user. Who may control a desktop or open a terminal follows it (§4).
@@ -3075,6 +3109,10 @@ export type MachineRequest = (
    * socket `streamId` names and answers once the server took it; the `CONNECT` it serves comes through that socket.
    */
   | { op: "relay.open"; streamId: string; agentId: string }
+  /** `MEETING_PROTOCOL`: hear the meeting the agent's browser is in, its pieces on the data socket `streamId`. */
+  | { op: "meeting.listen"; meetingId: string; streamId: string }
+  /** `MEETING_PROTOCOL`: stop hearing it (what was captured goes first, then `meeting.end`). */
+  | { op: "meeting.stop"; meetingId: string }
   | { op: "browser.stream.stop" }
   /** Protocol 12: a person's input during a take over, in order. */
   | { op: "browser.input"; events: BrowserInputEvent[] }
@@ -3287,6 +3325,8 @@ export const MACHINE_OPS: readonly MachineOp[] = [
   "mychrome.list",
   "mychrome.disconnect",
   "local.config",
+  "meeting.listen",
+  "meeting.stop",
 ];
 
 /** What each op answers with `ok: true`. */
@@ -3478,6 +3518,10 @@ export interface MachineReplies {
   "mychrome.list": { sessions: MyChromeSession[] };
   "mychrome.disconnect": { disconnected: number };
   "local.config": LocalConfig;
+  /** The capture runs; its pieces come on the data socket. */
+  "meeting.listen": { listening: true };
+  /** `false`: no capture of that meeting ran. */
+  "meeting.stop": { stopped: boolean };
 }
 
 /** An element numbered on a `browser.capture` image: its ref and box (CSS pixels). */
@@ -4235,6 +4279,7 @@ export function parseRunnerFrame(raw: string): RunnerFrame | null {
         ...(isObject(f.terminal) ? { terminal: parseAvailability(f.terminal) } : {}),
         ...(isObject(f.desktopUse) ? { desktopUse: parseAvailability(f.desktopUse) } : {}),
         ...(isObject(f.hostDesktop) ? { hostDesktop: parseAvailability(f.hostDesktop) } : {}),
+        ...(isObject(f.meetingAudio) ? { meetingAudio: parseAvailability(f.meetingAudio) } : {}),
         ...(f.mode === "system" ? { mode: "system" as const } : {}),
         ...(isObject(f.ownUsage) ? { ownUsage: parseOwnUsage(f.ownUsage) } : {}),
         ...(size ? { size } : {}),
@@ -5244,6 +5289,68 @@ export function parseToolNotice(f: Record<string, unknown>): ToolNotice | null {
     outputFile,
     ...(moved === true ? { moved } : {}),
   };
+}
+
+/** A piece of meeting audio (`MEETING_PROTOCOL`): its order, where it starts in the call and how long it is. */
+export interface MeetingPieceHeader {
+  seq: number;
+  startMs: number;
+  ms: number;
+}
+
+const MEETING_PIECE_VERSION = 1;
+const MEETING_PIECE_HEADER_MAX = 1024;
+
+/**
+ * A piece as bytes on its data socket (ADR 0199 §4): a version byte (1), the header's length (4 bytes, big endian),
+ * the header as UTF-8 JSON, then the piece as a WAV file.
+ */
+export function encodeMeetingPiece(header: MeetingPieceHeader, wav: Uint8Array): Uint8Array {
+  const head = new TextEncoder().encode(JSON.stringify({ seq: header.seq, startMs: header.startMs, ms: header.ms }));
+  const out = new Uint8Array(5 + head.byteLength + wav.byteLength);
+  out[0] = MEETING_PIECE_VERSION;
+  new DataView(out.buffer).setUint32(1, head.byteLength);
+  out.set(head, 5);
+  out.set(wav, 5 + head.byteLength);
+  return out;
+}
+
+const count = (v: unknown, max = Number.MAX_SAFE_INTEGER) =>
+  typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= max ? v : undefined;
+
+/** A piece's bytes (`encodeMeetingPiece`), checked; null when they aren't one or pass `MEETING_AUDIO`'s limits. */
+export function decodeMeetingPiece(bytes: Uint8Array): (MeetingPieceHeader & { wav: Uint8Array }) | null {
+  if (bytes.byteLength < 6 || bytes[0] !== MEETING_PIECE_VERSION) return null;
+  const length = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(1);
+  if (length > MEETING_PIECE_HEADER_MAX || 5 + length >= bytes.byteLength) return null;
+  const wav = bytes.subarray(5 + length);
+  if (wav.byteLength > MEETING_AUDIO.pieceBytesMax) return null;
+  let f: unknown;
+  try {
+    f = JSON.parse(new TextDecoder().decode(bytes.subarray(5, 5 + length)));
+  } catch {
+    return null;
+  }
+  if (!isObject(f)) return null;
+  const seq = count(f.seq);
+  const startMs = count(f.startMs, MEETING_AUDIO.maxMs);
+  const ms = count(f.ms, MEETING_AUDIO.pieceMaxMs);
+  if (seq === undefined || startMs === undefined || ms === undefined) return null;
+  return { seq, startMs, ms, wav };
+}
+
+/** The runner's last text frame on a meeting's data socket: why its capture ended. Null for anything else. */
+export function parseMeetingEnd(raw: string): { reason: MeetingEndReason } | null {
+  if (raw.length > 1024) return null;
+  let f: unknown;
+  try {
+    f = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (!isObject(f) || f.type !== "meeting.end") return null;
+  const reason = MEETING_END_REASONS.find((r) => r === f.reason);
+  return reason ? { reason } : null;
 }
 
 // ── Sites through a person's computer (ADR 0203) ────────────────────────────

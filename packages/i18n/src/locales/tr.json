@@ -17111,6 +17111,8 @@
     "actionCheckPersonal": "Ajanlar zaten yapılanları kontrol eder",
     "actionCheckHelp": "Bir e-posta, mesaj ya da pull request'ten önce ajan, son 30 günde ekipten birinin aynı kişiye ya da yere bunu zaten yapıp yapmadığını kontrol eder ve tekrarlamaz.",
     "actionCheckHelpPersonal": "Bir e-posta ya da mesajdan önce ajan, son 30 günde sizin ya da başka bir ajanın aynı kişiye veya yere bunu zaten yapıp yapmadığını kontrol eder ve tekrarlamaz.",
+    "meetingNotes": "Ajanlar toplantı notu alır",
+    "meetingNotesHelp": "Ajanlar biri istediğinde Google Meet ve Jitsi görüşmelerine katılabilir ve dinlemeden önce görüşmenin sohbetinde haber verir. Bazı yerlerde kayıt için tüm katılımcıların onayı gerekir. Ajanı gönderen kişi bundan sorumludur ve toplantı sahibine haber vermelidir.",
     "mode": {
       "label": "Çalışma alanı modu",
       "team": "Ekip",
@@ -17841,6 +17843,8 @@
       "agentNoteAnon": "Başka bir ajandan not",
       "waitResult": "{{name}} ajanının beklediği şey geldi",
       "meetingEnded": "{{name}} tarafından not alınan toplantı sona erdi",
+      "meetingJoined": "{{name}} bir toplantıda not alıyor",
+      "leaveMeeting": "Toplantıdan ayrıl",
       "runRetry": "{{by}}, {{name}} ajanından yeniden denemesini istedi",
       "runRetryAnon": "{{name}} ajanı yeniden deniyor",
       "other": "{{name}} için bildirim",

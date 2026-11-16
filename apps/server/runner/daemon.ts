@@ -132,6 +132,7 @@ import { tailLines } from "./logfile";
 import { adoptLoginPath } from "./login-path";
 import { LoopbackGuard, loopbackEndpoints, runnerEndpoints } from "./loopback-guard";
 import { McpBridge, type McpTaskInfo, mcpSocketPath } from "./mcp";
+import { MeetingAudio } from "./meeting-audio";
 import { MyChromes } from "./my-chrome";
 import {
   AgentNetworks,
@@ -362,6 +363,8 @@ interface Session {
   desktopUse: DesktopManager;
   /** ADR 0201: the person's own desktop, on their own Windows computer in single-user mode; null elsewhere. */
   hostUse: DesktopManager | null;
+  /** The meetings agents' browsers are in (ADR 0199 §4): their captures end with the session. */
+  meetingAudio: MeetingAudio;
   connection: RunnerConnection;
   /** System mode: the agents' workers, where all their work runs. */
   supervisor: Supervisor | null;
@@ -1418,6 +1421,13 @@ export class RunnerDaemon implements RequestObserver {
         })
       : null;
     const relayExits = single ? new RelayExits({ log }) : null;
+    // ADR 0199 §4: the meetings agents' browsers are in, heard here (single-user runners only, for now).
+    const meetingAudio = new MeetingAudio({
+      system: config.mode === "system",
+      dial: (streamId) => streams.dial(streamId, "meetingAudio"),
+      chromePid: (agentId) => browser.chromePid(agentId),
+      log,
+    });
     let supervisor: Supervisor | null = null;
     let agentUser: Session["agentUser"] = null;
     let accountBrains: AccountBrains | null = null;
@@ -1666,6 +1676,7 @@ export class RunnerDaemon implements RequestObserver {
       streams,
       browserViews: views,
       ...(relayExits ? { relayExits } : {}),
+      meetingAudio,
       desktopUse,
       ...(hostUse ? { hostDesktop: { manager: hostUse, consent: this.hostConsent } } : {}),
       desktopTaken: (agentId) => {
@@ -1711,6 +1722,7 @@ export class RunnerDaemon implements RequestObserver {
           terminal: this.terminals.info(),
           desktopUse: desktopUse.info(),
           ...(hostUse ? { hostDesktop: hostUse.info() } : {}),
+          meetingAudio: meetingAudio.info(),
           ...(accounts ? { accounts } : {}),
           ...usage,
           // Who may control a desktop or open a terminal follows it (ADR 0058 §4).
@@ -1798,6 +1810,7 @@ export class RunnerDaemon implements RequestObserver {
       relayExits,
       desktopUse,
       hostUse,
+      meetingAudio,
       connection,
       supervisor,
       agentUser,
@@ -2048,6 +2061,7 @@ export class RunnerDaemon implements RequestObserver {
     this.egressGeneration++;
     this.egress.reset();
     s.connection.stop();
+    await s.meetingAudio.stopAll();
     s.streams.closeAll();
     await s.relayEntrance?.close();
     s.desktopUse.stopAll();

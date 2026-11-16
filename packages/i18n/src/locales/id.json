@@ -16658,6 +16658,8 @@
     "actionCheckPersonal": "Agen memeriksa apa yang sudah dilakukan",
     "actionCheckHelp": "Sebelum mengirim email, pesan, atau pull request, agen memeriksa apakah ada anggota tim yang sudah melakukannya ke orang atau tempat yang sama dalam 30 hari terakhir, dan tidak mengulanginya.",
     "actionCheckHelpPersonal": "Sebelum mengirim email atau pesan, agen memeriksa apakah kamu atau agen lain sudah melakukannya ke orang atau tempat yang sama dalam 30 hari terakhir, dan tidak mengulanginya.",
+    "meetingNotes": "Agen mencatat rapat",
+    "meetingNotesHelp": "Agen bisa bergabung ke panggilan Google Meet dan Jitsi saat diminta, dan memberi tahu di obrolan panggilan sebelum mendengarkan. Di beberapa tempat, merekam memerlukan persetujuan semua peserta. Orang yang mengirim agen bertanggung jawab atasnya dan harus memberi tahu tuan rumah.",
     "mode": {
       "label": "Mode ruang kerja",
       "team": "Tim",
@@ -17369,6 +17371,8 @@
       "agentNoteAnon": "Catatan dari agen lain",
       "waitResult": "Yang ditunggu {{name}} sudah masuk",
       "meetingEnded": "Rapat yang dicatat oleh {{name}} sudah selesai",
+      "meetingJoined": "{{name}} sedang mencatat rapat",
+      "leaveMeeting": "Keluar dari rapat",
       "runRetry": "{{by}} meminta {{name}} mencoba lagi",
       "runRetryAnon": "{{name}} sedang mencoba lagi",
       "other": "Pemberitahuan untuk {{name}}",
