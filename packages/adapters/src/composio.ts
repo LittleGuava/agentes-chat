@@ -219,6 +219,22 @@ export function createComposioClient(options: ComposioClientOptions): ComposioCl
     throw new MailError(text2, false);
   }
 
+  async function upsertTrigger(
+    slug: string,
+    account: { connectedAccountId: string; userId: string },
+    config: Obj,
+  ): Promise<{ triggerId: string }> {
+    const result = await request("POST", `/trigger_instances/${encodeURIComponent(slug)}/upsert`, {
+      connected_account_id: account.connectedAccountId,
+      // Checked against the connected account's owner on projects with 2FA on.
+      user_id: account.userId,
+      trigger_config: config,
+    });
+    const triggerId = str(result?.trigger_id);
+    if (!triggerId) throw new MailError("Composio did not return a trigger id", false);
+    return { triggerId };
+  }
+
   async function findOrCreateAuthConfig(toolkit: ComposioToolkit): Promise<string> {
     const list = await request(
       "GET",
@@ -408,15 +424,11 @@ export function createComposioClient(options: ComposioClientOptions): ComposioCl
           ? { query: /\b(in|label):/i.test(query) ? query : `in:inbox ${query}` }
           : { labelIds: "INBOX" };
       }
-      const result = await request("POST", `/trigger_instances/${COMPOSIO_MAIL_TRIGGERS[input.toolkit]}/upsert`, {
-        connected_account_id: input.connectedAccountId,
-        // Checked against the connected account's owner on projects with 2FA on.
-        user_id: input.userId,
-        trigger_config: triggerConfig,
-      });
-      const triggerId = str(result?.trigger_id);
-      if (!triggerId) throw new MailError("Composio did not return a trigger id", false);
-      return { triggerId };
+      return upsertTrigger(COMPOSIO_MAIL_TRIGGERS[input.toolkit], input, triggerConfig);
+    },
+
+    createTrigger(input) {
+      return upsertTrigger(input.slug, input, input.config);
     },
 
     async deleteTrigger(triggerId) {
@@ -450,6 +462,9 @@ export function parseComposioEvent(payload: unknown): ComposioWebhookEvent {
       const connectedAccountId = str(metadata.connected_account_id);
       const slug = str(metadata.trigger_slug)?.toUpperCase();
       if (!triggerId || !connectedAccountId) return { type: "other" };
+      const mail = slug === COMPOSIO_MAIL_TRIGGERS.gmail || slug === COMPOSIO_MAIL_TRIGGERS.outlook;
+      if (!mail)
+        return slug ? { type: "trigger.event", triggerId, connectedAccountId, slug, payload: data } : { type: "other" };
       let message: MailSummary | null = null;
       if (slug === COMPOSIO_MAIL_TRIGGERS.gmail) message = summaryOf(gmailMessage(data));
       else if (slug === COMPOSIO_MAIL_TRIGGERS.outlook) {

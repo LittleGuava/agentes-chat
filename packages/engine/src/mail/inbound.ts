@@ -6,12 +6,14 @@ import {
   type MailSummary,
 } from "@agenteschat/adapters";
 import { and, type Database, eq, inArray, isNull, lt, or, schema, sql } from "@agenteschat/db";
+import { markComposioTriggerOff } from "../connector-triggers";
 import { countComposio } from "../connector-usage";
 import { markComposioAccountBroken } from "../connectors/composio";
 import { NotFoundError } from "../errors";
 import { cutText } from "../format";
 import type { Judge } from "../judge";
 import { type EventMerge, holdForNextRun, queueEventRun, type RoutineEventPayload } from "../routine-events";
+import { type RoutineHookDeps, receiveComposioTrigger } from "../routine-hooks";
 import { hasScope } from "../tools/scopes";
 import { neutralizeUntrusted } from "../untrusted";
 import {
@@ -208,12 +210,13 @@ export async function releaseRoutineEmails(deps: { db: Database }, routineRunId:
 
 /**
  * `POST /api/webhooks/composio`: the signature is checked by the client
- * (throws `ComposioSignatureError`); then new mail goes to its watch, and an
- * expired account (a mailbox's or a connector's, ADR 0107) or a disabled
+ * (throws `ComposioSignatureError`); then new mail goes to its watch, a
+ * connector routine's trigger event to its routine (ADR 0196, through `hooks`),
+ * and an expired account (a mailbox's or a connector's, ADR 0107) or a disabled
  * trigger asks a person to reconnect.
  */
 export async function handleComposioWebhook(
-  deps: Pick<MailDeps, "db" | "mail" | "now" | "judge">,
+  deps: Pick<MailDeps, "db" | "mail" | "now" | "judge"> & { hooks?: RoutineHookDeps },
   headers: Headers,
   rawBody: string,
 ): Promise<{ type: string; fired: number }> {
@@ -243,11 +246,16 @@ export async function handleComposioWebhook(
     await markComposioAccountBroken(db, event.connectedAccountId, "composio_expired");
     return { type: event.type, fired: 0 };
   }
+  if (event.type === "trigger.event") {
+    if (!deps.hooks) return { type: event.type, fired: 0 };
+    return { type: event.type, ...(await receiveComposioTrigger(deps.hooks, event, headers)) };
+  }
   if (event.type === "trigger.disabled") {
     await db
       .update(mailWatches)
       .set({ status: "needs_reconnect", lastError: "trigger_disabled", updatedAt: new Date() })
       .where(eq(mailWatches.externalTriggerId, event.triggerId));
+    await markComposioTriggerOff(db, event.triggerId);
     return { type: event.type, fired: 0 };
   }
   return { type: event.type, fired: 0 };

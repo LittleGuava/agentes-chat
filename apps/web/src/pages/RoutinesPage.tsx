@@ -75,6 +75,11 @@ import {
 } from "@agenteschat/client/lib/routine-view";
 import {
   browserTimezone,
+  cleanConnectorFilter,
+  connectorChoiceKey,
+  connectorDraftFor,
+  connectorEventOfChoice,
+  connectorKindKey,
   hookCurl,
   isRefusedHookCall,
   onceParts,
@@ -138,10 +143,9 @@ import { useActors } from "@/components/actors";
 import {
   type ConnectorTriggerDraft,
   ConnectorTriggerFields,
-  cleanConnectorFilter,
   connectorWhen,
   MILLIONSEND_EMAIL,
-  useEmailEventConnections,
+  useConnectorEvents,
 } from "@/components/ConnectorTrigger";
 import { MenuEntries } from "@/components/DesktopMenus";
 import { DetailsLink } from "@/components/details-link";
@@ -2424,14 +2428,22 @@ function RoutineDialog({
       ? routine.trigger.type
       : "schedule",
   );
-  // "Email no MillionSend" (ADR 0130): shown where the workspace connected MillionSend (or the routine uses it).
+  // "Email no MillionSend" (ADR 0130), "Mensagem no Slack" (ADR 0196): one choice per service the workspace
+  // connected (and the one the form holds).
   const [connector, setConnector] = useState<ConnectorTriggerDraft>(() =>
     routine?.trigger.type === "connector"
-      ? { connectionId: routine.trigger.connectionId, filter: routine.trigger.filter }
-      : { connectionId: "", filter: {} },
+      ? { connectionId: routine.trigger.connectionId, event: routine.trigger.event, filter: routine.trigger.filter }
+      : { connectionId: "", event: MILLIONSEND_EMAIL, filter: {} },
   );
-  const eventConnections = useEmailEventConnections(org.id);
-  const hasMillionSend = kind === "connector" || eventConnections.length > 0;
+  const connectorEvents = useConnectorEvents(org.id, kind === "connector" ? connector.event : undefined);
+  const pickWhen = (choice: string) => {
+    const picked = connectorEventOfChoice(choice);
+    const plain = (["schedule", "event", "email", "webhook"] as const).find((k) => k === choice);
+    if (picked) {
+      setConnector((c) => connectorDraftFor(c, picked));
+      setKind("connector");
+    } else if (plain) setKind(plain);
+  };
   // "Quando chegar um email": the mailbox, folder and filters.
   const [email, setEmail] = useState<EmailTriggerDraft>(() => emailDraftOf(routine));
   const mailboxes = useMailAccounts(org.id);
@@ -2521,7 +2533,7 @@ function RoutineDialog({
   const connectorTrigger = () => ({
     type: "connector" as const,
     connectionId: connector.connectionId,
-    event: MILLIONSEND_EMAIL,
+    event: connector.event,
     inboxId: null,
     filter: cleanConnectorFilter(connector.filter),
   });
@@ -2765,18 +2777,16 @@ function RoutineDialog({
             {shows("when") && (
               <>
                 <Field label={t("routines.form.when")} group>
-                  <Segmented
+                  <Segmented<string>
                     label={t("routines.form.when")}
-                    value={kind}
-                    onValueChange={setKind}
+                    value={kind === "connector" ? connectorChoiceKey(connector.event) : kind}
+                    onValueChange={pickWhen}
                     options={[
-                      { value: "schedule" as const, label: t("routines.form.kind.schedule") },
-                      { value: "event" as const, label: t("routines.form.kind.event") },
-                      ...(hasMail ? [{ value: "email" as const, label: t("routines.form.kind.email") }] : []),
-                      ...(hasMillionSend
-                        ? [{ value: "connector" as const, label: t("routines.form.kind.connector") }]
-                        : []),
-                      { value: "webhook" as const, label: t("routines.form.kind.webhook") },
+                      { value: "schedule", label: t("routines.form.kind.schedule") },
+                      { value: "event", label: t("routines.form.kind.event") },
+                      ...(hasMail ? [{ value: "email", label: t("routines.form.kind.email") }] : []),
+                      ...connectorEvents.map((e) => ({ value: connectorChoiceKey(e), label: t(connectorKindKey(e)) })),
+                      { value: "webhook", label: t("routines.form.kind.webhook") },
                     ]}
                   />
                 </Field>

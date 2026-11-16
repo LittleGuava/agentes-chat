@@ -210,6 +210,12 @@ const ConnectorFilterSchema = z
     to: z.string().max(320).optional().openapi({ description: "The inbox's address the email was sent to." }),
     from: z.array(z.string().max(320)).max(50).optional().openapi({ description: "Addresses or `@domains`." }),
     subject: z.string().max(200).optional().openapi({ description: "Words the subject contains." }),
+    channel: z
+      .string()
+      .max(40)
+      .optional()
+      .openapi({ description: "A chat message's channel, by its id (Slack's `C0123ABC`)." }),
+    text: z.string().max(200).optional().openapi({ description: "Words a chat message contains." }),
   })
   .openapi("RoutineConnectorFilter");
 
