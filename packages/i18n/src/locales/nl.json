@@ -2983,6 +2983,19 @@
       "action": "Openen",
       "done": "Er wacht niets meer"
     },
+    "today": {
+      "title": "Vandaag: {{what}}",
+      "meetings_one": "{{count}} vergadering",
+      "meetings_other": "{{count}} vergaderingen",
+      "routines_one": "{{count}} vaste taak",
+      "routines_other": "{{count}} vaste taken",
+      "deadlines_one": "{{count}} taak met deadline",
+      "deadlines_other": "{{count}} taken met deadline",
+      "first": "Eerste: {{title}} om {{time}}.",
+      "firstAllDay": "Hele dag: {{title}}.",
+      "noMeeting": "Vandaag geen vergaderingen.",
+      "action": "Agenda openen"
+    },
     "stuck": {
       "title_one": "{{name}} stopte met een fout",
       "title_other": "{{name}} stopte {{count}} keer met een fout",
@@ -3043,7 +3056,9 @@
       "label": "Teamweek",
       "help": "Elke week vertelt {{name}} je in je DM hoe het team het deed en wat beter kan. Alleen admins krijgen hem.",
       "dayLabel": "Dagoverzicht",
-      "dayHelp": "Elke dag vertelt {{name}} je in je DM wat op je wacht, wat je agents hebben afgerond en wat vastzit, alleen op dagen met iets nieuws."
+      "dayHelp": "Elke dag vertelt {{name}} je in je DM wat op je wacht, wat je agents hebben afgerond en wat vastzit, alleen op dagen met iets nieuws.",
+      "agendaLabel": "De dag die komt",
+      "agendaHelp": "De dagsamenvatting begint met de vergaderingen van vandaag, de routines van je agents en je taken met deadline, en komt elke dag waarop er zijn, ook zonder ander nieuws."
     }
   },
   "routing": {
@@ -3086,8 +3101,8 @@
       "cursor": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "cursor_female": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "grok": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
-      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "grok_female": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
+      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "copilot_female": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "antigravity": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",
       "antigravity_female": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",

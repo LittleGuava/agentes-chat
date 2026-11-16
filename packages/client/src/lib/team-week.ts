@@ -57,7 +57,19 @@ export type TeamWeekRow =
   /** An agent idle for four weeks, with no routine and no open task: a settings proposal to archive it. */
   | { id: string; kind: "retire"; agentId: string; proposalId: string }
   /** An agent on a large model whose work is light: a settings proposal for the next model down. */
-  | { id: string; kind: "model"; agentId: string; proposalId: string; from: string; to: string };
+  | { id: string; kind: "model"; agentId: string; proposalId: string; from: string; to: string }
+  /**
+   * The day ahead on the day's card of who asked for it: their meetings, their agents' routines and their tasks due,
+   * from the slot to midnight, and the first meeting (ADR 0177, addendum 2026-11-15).
+   */
+  | {
+      id: string;
+      kind: "today";
+      meetings: number;
+      routines: number;
+      deadlines: number;
+      first: { title: string; at: string; allDay: boolean } | null;
+    };
 
 /** The causes of a stuck row this build words. */
 export const STUCK_CAUSES = ["budget", "plan", "computer", "key", "ai", "other"] as const;
@@ -101,10 +113,11 @@ const ROW_KINDS: readonly TeamWeekRow["kind"][] = [
   "stuck",
   "retire",
   "model",
+  "today",
 ];
 
-/** What waits on the reader and what is stuck lead the card, whichever list they came in. */
-const LEADS: readonly TeamWeekRow["kind"][] = ["approvals", "waiting", "stuck"];
+/** The day ahead, what waits on the reader and what is stuck lead the card, whichever list they came in. */
+const LEADS: readonly TeamWeekRow["kind"][] = ["today", "approvals", "waiting", "stuck"];
 const rank = (r: TeamWeekRow) => (LEADS.includes(r.kind) ? LEADS.indexOf(r.kind) : LEADS.length);
 
 const knownRows = (rows: unknown): TeamWeekRow[] =>
@@ -177,12 +190,14 @@ export const skipsAlone = (row: TeamWeekRow) =>
 /** Where a row's button goes when it opens a screen in place of applying a fix. Null: it applies. */
 export type TeamWeekPlace =
   | { to: "waiting" }
+  | { to: "calendar" }
   | { to: "task"; number: number }
   | { to: "dm"; agentId: string; channelId: string }
   | { to: "channel"; channelId: string };
 
 export function teamWeekRowPlace(row: TeamWeekRow): TeamWeekPlace | null {
   if (row.kind === "waiting") return { to: "waiting" };
+  if (row.kind === "today") return { to: "calendar" };
   if (row.kind !== "stuck") return null;
   if (row.issueNumber != null) return { to: "task", number: row.issueNumber };
   return row.dm
@@ -300,6 +315,27 @@ export function teamWeekRowText(t: TFunction, locale: string, row: TeamWeekRow, 
         line: say("teamWeek.waiting.line", { count: row.count, since: n.since(row.since) }),
         action: say("teamWeek.waiting.action"),
       };
+    case "today": {
+      const parts = (["meetings", "routines", "deadlines"] as const).flatMap((k) =>
+        row[k] > 0 ? [say(`teamWeek.today.${k}`, { count: row[k] })] : [],
+      );
+      const first = row.first;
+      return {
+        title: say("teamWeek.today.title", { what: n.join(parts) }),
+        // The meeting's hour on the reader's own clock, like every other time the apps show.
+        line: !first
+          ? say("teamWeek.today.noMeeting")
+          : first.allDay
+            ? say("teamWeek.today.firstAllDay", { title: first.title })
+            : say("teamWeek.today.first", {
+                title: first.title,
+                time: new Intl.DateTimeFormat(locale, { hour: "numeric", minute: "2-digit" }).format(
+                  new Date(first.at),
+                ),
+              }),
+        action: say("teamWeek.today.action"),
+      };
+    }
     case "stuck": {
       const cause = (STUCK_CAUSES as readonly string[]).includes(row.code) ? row.code : "other";
       return {

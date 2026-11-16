@@ -105,11 +105,13 @@ export function TeamWeekCardView({ message, card }: { message: Message; card: Te
   const go = (place: TeamWeekPlace) =>
     place.to === "waiting"
       ? navigate({ to: "/org/$orgId/waiting", params })
-      : place.to === "task"
-        ? navigate({ to: "/org/$orgId/issues/$number", params: { ...params, number: String(place.number) } })
-        : place.to === "dm"
-          ? navigate({ to: "/org/$orgId/dm/agent/$agentId", params: { ...params, agentId: place.agentId } })
-          : navigate({ to: "/org/$orgId/c/$channelId", params: { ...params, channelId: place.channelId } });
+      : place.to === "calendar"
+        ? navigate({ to: "/org/$orgId/calendar", params })
+        : place.to === "task"
+          ? navigate({ to: "/org/$orgId/issues/$number", params: { ...params, number: String(place.number) } })
+          : place.to === "dm"
+            ? navigate({ to: "/org/$orgId/dm/agent/$agentId", params: { ...params, agentId: place.agentId } })
+            : navigate({ to: "/org/$orgId/c/$channelId", params: { ...params, channelId: place.channelId } });
   const apply = async (row: TeamWeekRow) => {
     const place = teamWeekRowPlace(row);
     if (place) await go(place);
@@ -298,11 +300,13 @@ function FixRow({
         name={
           row.kind === "unanswered" || row.kind === "waiting"
             ? "question"
-            : row.kind === "stalled"
-              ? "issues"
-              : row.kind === "howto"
-                ? "book"
-                : "routines"
+            : row.kind === "today"
+              ? "calendar"
+              : row.kind === "stalled"
+                ? "issues"
+                : row.kind === "howto"
+                  ? "book"
+                  : "routines"
         }
         size={16}
       />
