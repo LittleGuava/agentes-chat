@@ -8776,6 +8776,11 @@ export const ptBR = {
     webhookCopied: "URL do webhook copiada.",
     meeting: {
       when: "{{minutes}} min antes de cada reunião",
+      calendar: "Calendário",
+      lead: "Minutos antes",
+      leadExample: "De 5 a 240.",
+      every: "Olha o calendário a cada 15 minutos e roda uma vez antes de cada reunião com outra pessoa.",
+      waiting: "Esperando a próxima reunião",
     },
     webhook: {
       when: "Quando o webhook for chamado",
@@ -9236,6 +9241,7 @@ export const ptBR = {
         connector: "Email no MillionSend",
         /** A routine on a new Slack message (ADR 0196). */
         connectorSlack: "Mensagem no Slack",
+        meeting: "Antes de uma reunião",
       },
       frequency: "Frequência",
       frequencyPlaceholder: "Ex.: toda segunda às 9h",
@@ -15277,6 +15283,7 @@ export const ptBR = {
       createRefused: "Você não pode criar um workspace agora.",
       noAgentToRemind: "Nenhum agente desta conversa pode lembrar você.",
       agentCantRead: "Deixe o agente ler isto primeiro, nos acessos dele.",
+      meetingLead: "Escolha de 5 a 240 minutos.",
       neverHappens: "Este agendamento nunca acontece.",
       soleOwner:
         "Você é a única pessoa dona de um workspace com outros membros. Passe a posse a alguém, ou apague o workspace, antes.",
@@ -15542,8 +15549,6 @@ export const ptBR = {
       widgetFixed: "Esta rotina mantém um widget atualizado. Mude pelo widget.",
       /** `routine.connector_channel_invalid`: a Slack routine's channel that isn't a channel ID (ADR 0196). */
       connectorChannelInvalid: "Isso não é o ID de um canal do Slack. Copie nos detalhes do canal, no Slack.",
-      /** `routine.meeting_lead_invalid`: how long before each meeting a routine fires, out of range (ADR 0190). */
-      meetingLeadInvalid: "Escolha de {{min}} a {{max}} minutos antes da reunião.",
     },
     run: {
       notContinuable: "Esta resposta não pode mais ser continuada.",

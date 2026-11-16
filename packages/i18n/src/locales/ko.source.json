@@ -20340,6 +20340,21 @@
   "routines.meeting.when": {
     "value": "{{minutes}} min before each meeting"
   },
+  "routines.meeting.calendar": {
+    "value": "Calendar"
+  },
+  "routines.meeting.lead": {
+    "value": "Minutes before"
+  },
+  "routines.meeting.leadExample": {
+    "value": "From 5 to 240."
+  },
+  "routines.meeting.every": {
+    "value": "Looks at the calendar every 15 minutes and runs once before each meeting with someone else."
+  },
+  "routines.meeting.waiting": {
+    "value": "Waiting for the next meeting"
+  },
   "routines.webhook.when": {
     "value": "When its webhook is called"
   },
@@ -21362,6 +21377,9 @@
   },
   "routines.form.kind.connector": {
     "value": "MillionSend email"
+  },
+  "routines.form.kind.meeting": {
+    "value": "Before a meeting"
   },
   "routines.form.kind.connectorSlack": {
     "value": "Slack message"
@@ -37028,6 +37046,9 @@
   "errors.said.agentCantRead": {
     "value": "Let the agent read this first, in its access settings."
   },
+  "errors.said.meetingLead": {
+    "value": "Pick from 5 to 240 minutes."
+  },
   "errors.said.neverHappens": {
     "value": "This schedule never happens."
   },
@@ -37588,9 +37609,6 @@
   },
   "errors.routine.connectorChannelInvalid": {
     "value": "That isn't a Slack channel's ID. Copy it from the channel's details in Slack."
-  },
-  "errors.routine.meetingLeadInvalid": {
-    "value": "Pick from {{min}} to {{max}} minutes before the meeting."
   },
   "errors.run.notContinuable": {
     "value": "This answer can't be continued anymore."

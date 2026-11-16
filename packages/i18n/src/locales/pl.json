@@ -8921,7 +8921,12 @@
     "copyWebhook": "Kopiuj URL webhooka",
     "webhookCopied": "URL webhooka skopiowany.",
     "meeting": {
-      "when": "{{minutes}} min przed każdym spotkaniem"
+      "when": "{{minutes}} min przed każdym spotkaniem",
+      "calendar": "Kalendarz",
+      "lead": "Minut przed",
+      "leadExample": "Od 5 do 240.",
+      "every": "Sprawdza kalendarz co 15 minut i uruchamia się raz przed każdym spotkaniem z inną osobą.",
+      "waiting": "Czeka na następne spotkanie"
     },
     "webhook": {
       "when": "Gdy jej webhook zostanie wywołany",
@@ -9384,6 +9389,7 @@
         "email": "E-mail",
         "webhook": "Webhook",
         "connector": "E-mail w MillionSend",
+        "meeting": "Przed spotkaniem",
         "connectorSlack": "Wiadomość w Slacku"
       },
       "frequency": "Częstotliwość",
@@ -16104,6 +16110,7 @@
       "createRefused": "Nie możesz teraz utworzyć przestrzeni roboczej.",
       "noAgentToRemind": "Żaden agent w tej rozmowie nie może ci przypomnieć.",
       "agentCantRead": "Najpierw pozwól agentowi to czytać, w jego dostępach.",
+      "meetingLead": "Wybierz od 5 do 240 minut.",
       "neverHappens": "Ten harmonogram nigdy się nie wydarzy.",
       "soleOwner": "Jesteś jedynym właścicielem przestrzeni roboczej z innymi członkami. Najpierw ustaw kogoś innego jako właściciela albo usuń przestrzeń roboczą.",
       "testFirst": "Przetestuj połączenie z tymi ustawieniami, zanim je włączysz.",
@@ -16338,8 +16345,7 @@
       "actionsNeedApprover": "Tylko właściciel agenta albo osoba zatwierdzająca jego działania może pozwolić rutynie działać samodzielnie.",
       "editorOnly": "Zmienić rutynę może tylko osoba, która ją utworzyła, właściciel agenta albo administrator.",
       "widgetFixed": "Ta rutyna aktualizuje widżet. Zmień ją z poziomu widżetu.",
-      "connectorChannelInvalid": "To nie jest ID kanału Slack. Skopiuj je ze szczegółów kanału w Slack.",
-      "meetingLeadInvalid": "Wybierz od {{min}} do {{max}} minut przed spotkaniem."
+      "connectorChannelInvalid": "To nie jest ID kanału Slack. Skopiuj je ze szczegółów kanału w Slack."
     },
     "run": {
       "notContinuable": "Tej odpowiedzi nie można już kontynuować.",

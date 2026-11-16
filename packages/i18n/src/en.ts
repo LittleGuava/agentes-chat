@@ -8811,6 +8811,12 @@ export const en = {
     /** A routine that prepares each meeting of a connected calendar (ADR 0190): how long before it runs. */
     meeting: {
       when: "{{minutes}} min before each meeting",
+      /** The form: the Google Calendar connection it watches, and how many minutes before each meeting it runs. */
+      calendar: "Calendar",
+      lead: "Minutes before",
+      leadExample: "From 5 to 240.",
+      every: "Looks at the calendar every 15 minutes and runs once before each meeting with someone else.",
+      waiting: "Waiting for the next meeting",
     },
     webhook: {
       when: "When its webhook is called",
@@ -9270,6 +9276,7 @@ export const en = {
         connector: "MillionSend email",
         /** A routine on a new Slack message (ADR 0196). */
         connectorSlack: "Slack message",
+        meeting: "Before a meeting",
       },
       frequency: "Frequency",
       frequencyPlaceholder: "E.g.: every Monday at 9am",
@@ -15339,6 +15346,7 @@ export const en = {
       createRefused: "You can't create a workspace right now.",
       noAgentToRemind: "No agent in this conversation can remind you.",
       agentCantRead: "Let the agent read this first, in its access settings.",
+      meetingLead: "Pick from 5 to 240 minutes.",
       neverHappens: "This schedule never happens.",
       soleOwner:
         "You're the only owner of a workspace with other members. Make someone else an owner, or delete the workspace, first.",
@@ -15612,8 +15620,6 @@ export const en = {
       widgetFixed: "This routine keeps a widget up to date. Change it from its widget.",
       /** `routine.connector_channel_invalid`: a Slack routine's channel that isn't a channel ID (ADR 0196). */
       connectorChannelInvalid: "That isn't a Slack channel's ID. Copy it from the channel's details in Slack.",
-      /** `routine.meeting_lead_invalid`: how long before each meeting a routine fires, out of range (ADR 0190). */
-      meetingLeadInvalid: "Pick from {{min}} to {{max}} minutes before the meeting.",
     },
     run: {
       notContinuable: "This answer can't be continued anymore.",

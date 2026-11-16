@@ -214,6 +214,32 @@ test("only an agent the connection's owner let read it may wait on its events", 
   expect(calls).toEqual([]);
 });
 
+test("an agent given the whole connection or every tool may wait on its events; write alone reads nothing", async () => {
+  f = await setup();
+  const { connection, deps } = await millionSend(false);
+  const make = () =>
+    createRoutine(deps, f.owner.id, f.org.id, {
+      name: "E-mail",
+      agentId: f.agent.id,
+      prompt: "Leia.",
+      target: { type: "channel", channelId: f.general.id },
+      trigger: { type: "connector", connectionId: connection.id, event: "millionsend.email.received" },
+    });
+  const grant = async (connectionId: string | null, scope: string) => {
+    await f.db.delete(schema.agentScopes).where(eq(schema.agentScopes.agentId, f.agent.id));
+    await f.db.insert(schema.agentScopes).values({ orgId: f.org.id, agentId: f.agent.id, connectionId, scope });
+  };
+  // Turning a connection on in the agent's Access, and connecting one for everyone, grant it whole.
+  await grant(connection.id, "connector:*");
+  const whole = await make();
+  expect(whole.trigger).toMatchObject({ type: "connector", connectionId: connection.id });
+  await grant(null, "*");
+  expect((await make()).trigger).toMatchObject({ type: "connector" });
+  await grant(connection.id, `custom:${connection.id}:write`);
+  const refused = await make().catch((e: unknown) => e);
+  expect((refused as { code?: string }).code).toBe("routine.connector_agent_cannot_read");
+});
+
 test("an email that arrives after the owner took the agent's access, or the connection, runs nothing", async () => {
   f = await setup();
   const { connection, calls, deps } = await millionSend();

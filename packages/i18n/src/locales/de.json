@@ -8346,7 +8346,12 @@
     "copyWebhook": "Webhook-URL kopieren",
     "webhookCopied": "Webhook-URL kopiert.",
     "meeting": {
-      "when": "{{minutes}} Min. vor jedem Meeting"
+      "when": "{{minutes}} Min. vor jedem Meeting",
+      "calendar": "Kalender",
+      "lead": "Minuten vorher",
+      "leadExample": "Von 5 bis 240.",
+      "every": "Schaut alle 15 Minuten in den Kalender und läuft einmal vor jedem Meeting mit jemand anderem.",
+      "waiting": "Wartet auf das nächste Meeting"
     },
     "webhook": {
       "when": "Wenn ihr Webhook aufgerufen wird",
@@ -8802,6 +8807,7 @@
         "email": "E-Mail",
         "webhook": "Webhook",
         "connector": "MillionSend-E-Mail",
+        "meeting": "Vor einem Meeting",
         "connectorSlack": "Slack-Nachricht"
       },
       "frequency": "Häufigkeit",
@@ -15064,6 +15070,7 @@
       "createRefused": "Du kannst gerade keinen Workspace erstellen.",
       "noAgentToRemind": "Kein Agent in dieser Unterhaltung kann dich erinnern.",
       "agentCantRead": "Lass den Agenten das zuerst lesen, in seinen Zugriffen.",
+      "meetingLead": "Wähle 5 bis 240 Minuten.",
       "neverHappens": "Dieser Zeitplan tritt nie ein.",
       "soleOwner": "Du bist die einzige Person mit Inhaberrechten in einem Workspace mit weiteren Mitgliedern. Mach zuerst jemand anderen zum Inhaber oder lösch den Workspace.",
       "testFirst": "Teste die Verbindung mit diesen Einstellungen, bevor du sie einschaltest.",
@@ -15298,8 +15305,7 @@
       "actionsNeedApprover": "Nur der Inhaber des Agenten oder wer seine Aktionen genehmigt, kann eine Routine selbstständig handeln lassen.",
       "editorOnly": "Nur wer die Routine erstellt hat, der Inhaber des Agenten oder ein Admin kann sie ändern.",
       "widgetFixed": "Diese Routine hält ein Widget aktuell. Ändere sie über das Widget.",
-      "connectorChannelInvalid": "Das ist keine ID eines Slack-Kanals. Kopiere sie aus den Kanaldetails in Slack.",
-      "meetingLeadInvalid": "Wähle {{min}} bis {{max}} Minuten vor dem Meeting."
+      "connectorChannelInvalid": "Das ist keine ID eines Slack-Kanals. Kopiere sie aus den Kanaldetails in Slack."
     },
     "run": {
       "notContinuable": "Diese Antwort kann nicht mehr fortgesetzt werden.",

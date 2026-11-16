@@ -3,7 +3,7 @@ import type { BlobStore } from "@agenteschat/adapters";
 import { and, asc, type Database, type Executor, eq, inArray, isNull, like, schema, sql } from "@agenteschat/db";
 import { recordAudit } from "../audit";
 import { caches } from "../cache";
-import { type ConnectorEventId, connectorEventsOf } from "../connector-triggers";
+import { type ConnectorEventId, connectorEventsOf, isMeetingCalendar } from "../connector-triggers";
 import { randomToken, sealSecret, sha256 } from "../crypto";
 import { ConflictError, isUniqueViolation, NotFoundError, ValidationError } from "../errors";
 import type { Judge } from "../judge";
@@ -203,6 +203,8 @@ export interface CustomServerView {
   tools: CustomToolView[];
   /** What routines can wait on from it (ADR 0130): MillionSend's received email. */
   events: ConnectorEventId[];
+  /** Whether a meeting routine can watch it (ADR 0190): a Google Calendar. */
+  meetings: boolean;
   /** Each person uses their own account here (ADR 0195). */
   perPerson: boolean;
   /** The caller's own account on it, when it is per person and they connected one (nobody else's). */
@@ -297,6 +299,7 @@ function view(
     events: connectorEventsOf(c.serverUrl),
     perPerson: c.perPerson,
     mine: c.perPerson ? (own.get(c.id) ?? null) : null,
+    meetings: isMeetingCalendar(c.serverUrl),
     reviewedAt: c.reviewedAt ? c.reviewedAt.toISOString() : null,
     createdAt: c.createdAt.toISOString(),
   };

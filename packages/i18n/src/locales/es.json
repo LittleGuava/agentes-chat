@@ -8597,7 +8597,12 @@
     "copyWebhook": "Copiar URL del webhook",
     "webhookCopied": "URL del webhook copiada.",
     "meeting": {
-      "when": "{{minutes}} min antes de cada reunión"
+      "when": "{{minutes}} min antes de cada reunión",
+      "calendar": "Calendario",
+      "lead": "Minutos antes",
+      "leadExample": "De 5 a 240.",
+      "every": "Revisa el calendario cada 15 minutos y se ejecuta una vez antes de cada reunión con otra persona.",
+      "waiting": "Esperando la próxima reunión"
     },
     "webhook": {
       "when": "Cuando se llama a su webhook",
@@ -9058,6 +9063,7 @@
         "email": "Correo",
         "webhook": "Webhook",
         "connector": "Correo de MillionSend",
+        "meeting": "Antes de una reunión",
         "connectorSlack": "Mensaje en Slack"
       },
       "frequency": "Frecuencia",
@@ -15507,6 +15513,7 @@
       "createRefused": "No puedes crear un espacio de trabajo ahora.",
       "noAgentToRemind": "Ningún agente de esta conversación puede recordártelo.",
       "agentCantRead": "Deja primero que el agente lea esto, en sus accesos.",
+      "meetingLead": "Elige entre 5 y 240 minutos.",
       "neverHappens": "Esta programación nunca ocurre.",
       "soleOwner": "Eres la única persona dueña de un espacio de trabajo con otros miembros. Haz dueña a otra persona, o borra el espacio de trabajo, antes.",
       "testFirst": "Prueba la conexión con estos datos antes de activarla.",
@@ -15741,8 +15748,7 @@
       "actionsNeedApprover": "Solo el dueño del agente o quien aprueba sus acciones puede dejar que una rutina actúe por su cuenta.",
       "editorOnly": "Solo quien creó la rutina, el dueño del agente o un admin puede cambiarla.",
       "widgetFixed": "Esta rutina mantiene un widget actualizado. Cámbiala desde su widget.",
-      "connectorChannelInvalid": "Eso no es el ID de un canal de Slack. Cópialo de los detalles del canal en Slack.",
-      "meetingLeadInvalid": "Elige entre {{min}} y {{max}} minutos antes de la reunión."
+      "connectorChannelInvalid": "Eso no es el ID de un canal de Slack. Cópialo de los detalles del canal en Slack."
     },
     "run": {
       "notContinuable": "Esta respuesta ya no se puede continuar.",

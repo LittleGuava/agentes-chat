@@ -8040,7 +8040,12 @@
     "copyWebhook": "Webhook URLをコピー",
     "webhookCopied": "Webhook URLをコピーしました。",
     "meeting": {
-      "when": "各ミーティングの{{minutes}}分前"
+      "when": "各ミーティングの{{minutes}}分前",
+      "calendar": "カレンダー",
+      "lead": "何分前",
+      "leadExample": "5〜240。",
+      "every": "15分ごとにカレンダーを確認し、ほかの人との会議の前に1回ずつ実行します。",
+      "waiting": "次の会議を待っています"
     },
     "webhook": {
       "when": "Webhookが呼ばれたとき",
@@ -8491,6 +8496,7 @@
         "email": "メール",
         "webhook": "Webhook",
         "connector": "MillionSend のメール",
+        "meeting": "会議の前",
         "connectorSlack": "Slack のメッセージ"
       },
       "frequency": "頻度",
@@ -14511,6 +14517,7 @@
       "createRefused": "今はワークスペースを作成できません。",
       "noAgentToRemind": "この会話には、リマインドできるエージェントがいません。",
       "agentCantRead": "先にエージェントのアクセス設定で、これを読めるようにしてください。",
+      "meetingLead": "5〜240分で選んでください。",
       "neverHappens": "このスケジュールは実行されません。",
       "soleOwner": "他のメンバーがいるワークスペースのオーナーはあなただけです。先に別の人をオーナーにするか、ワークスペースを削除してください。",
       "testFirst": "オンにする前に、この設定で接続をテストしてください。",
@@ -14745,8 +14752,7 @@
       "actionsNeedApprover": "ルーティンに自動で実行させられるのは、エージェントのオーナーか、そのアクションを承認する人だけです。",
       "editorOnly": "変更できるのは、ルーティンを作成した人、エージェントのオーナー、または管理者だけです。",
       "widgetFixed": "このルーティンはウィジェットを最新に保っています。ウィジェットから変更してください。",
-      "connectorChannelInvalid": "これはSlackチャンネルのIDではありません。Slackのチャンネル詳細からコピーしてください。",
-      "meetingLeadInvalid": "会議の{{min}}〜{{max}}分前で選んでください。"
+      "connectorChannelInvalid": "これはSlackチャンネルのIDではありません。Slackのチャンネル詳細からコピーしてください。"
     },
     "run": {
       "notContinuable": "この回答はもう続けられません。",

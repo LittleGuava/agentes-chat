@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-11-15
 - Builds on: 0053 (routines and unattended work), 0107 (services through Composio), 0117 (outside content), 0130 (connector events as routine triggers)
-- Code: `packages/engine/src/meeting-prep.ts` (`MEETING_EVENT`, `meetingOf`, `pollMeetingWatches`, `syncMeetingWatch`, `checkMeetingConnection`, `meetingEventText`), `packages/engine/src/routines.ts` (the `meeting` trigger), `packages/engine/src/context.ts` (the meeting's lines in a routine run), `packages/db/src/schema/work.ts` (`meeting_watches`, migration `0299_meeting_watches`), `apps/server/src/routes/app/routines.ts`, `apps/server/src/workers.ts` (the `meetings` tick), `packages/client/src/api/types.ts` (`RoutineMeetingTrigger`), web `RoutinesPage.tsx` and phone `routines/hooks.tsx`, `logic.ts` (its words; the editor keeps it)
+- Code: `packages/engine/src/meeting-prep.ts` (`MEETING_EVENT`, `meetingOf`, `pollMeetingWatches`, `syncMeetingWatch`, `checkMeetingConnection`, `meetingEventText`), `packages/engine/src/routines.ts` (the `meeting` trigger), `packages/engine/src/context.ts` (the meeting's lines in a routine run), `packages/db/src/schema/work.ts` (`meeting_watches`, migration `0299_meeting_watches`), `apps/server/src/routes/app/routines.ts`, `apps/server/src/workers.ts` (the `meetings` tick), `packages/engine/src/connector-triggers.ts` (`agentReadsConnection`, `isMeetingCalendar`), `packages/engine/src/connectors/custom.ts` (a connection's `meetings`), `packages/client/src/api/types.ts` (`RoutineMeetingTrigger`, `RoutineMeetingTriggerInput`), `packages/client/src/lib/routines.ts` (the form's rules: `formKindOf`, `meetingDraftOf`, `meetingTriggerOf`, `meetingTriggerChanged`, `meetingCalendars`, `defaultReportFor`), web `RoutinesPage.tsx` and `components/MeetingTrigger.tsx`, phone `routines/RoutineForm.tsx`, `logic.ts` and `hooks.tsx`
 
 ## Context
 
@@ -19,8 +19,9 @@ ADR 0130 lists Google Calendar's "event starting" as a Composio trigger. A meeti
 4. **Each meeting once.** A run's dedupe key is the event's id and start (`meeting:<id>:<start>`): a meeting seen by two looks fires once; one moved to another time is a new meeting and fires again. Two meetings at the same moment join one run (`mergeEvents`).
 5. **The brief.** The run's event carries the meeting as data (title, start and end, organizer, attendees with their answers, location, call link, description), cut to fit: the description to 1,500 characters, at most 30 attendees. The run reads it as lines, the description last so a cut takes the end of the longest part, inside the outside-content envelope (ADR 0117), after one line saying a meeting is about to start and that the notes go out through `hand_off` before it does. The routine's own instructions say what to prepare.
 6. **It always speaks.** A meeting routine reports every run (`report: "always"`) unless its creator chose otherwise: a prep nobody receives is no prep.
-7. **Consent stays with the connection** (as in ADR 0130 §4). The routine's agent must be able to read the connection: its read or write scope, the whole connection (`connector:*`), or every tool (`*`). This is wider than ADR 0130 §4, which takes only the read scope: a calendar connected through Composio is usually granted whole. It is checked when the routine is saved and when its agent changes, and again before each look: a connection revoked or a grant taken back stops the looks, leaves the watch in `error` with the reason, and fires nothing.
-8. **This changes ADR 0130's table** for Google Calendar's "event starting": through a look ahead by code, not a Composio trigger. ADR 0130 turned polling down for mail because of text answers, idle calls and latency: a Composio session answers structured `data`, the look ahead removes the latency, and the idle cost is the one call in 15 minutes above.
+7. **Consent stays with the connection** (as in ADR 0130 §4 and its 2026-11-16 addendum). The routine's agent must be able to read the connection as the Tool Gateway reads its grants: its read scope, the whole connection (`connector:*`, what its Access switch grants), or every tool (`*`). The write scope alone reads nothing, so it fires nothing. It is checked when the routine is saved and when its agent changes, and again before each look: a connection revoked or a grant taken back stops the looks, leaves the watch in `error` with the reason, and fires nothing.
+8. **The routine form sets it.** "Quando" offers "Antes de uma reunião" where the workspace connected a calendar a meeting routine can watch (the server says which, `meetings` on each connection, since the apps never see a Composio connection's address), with the calendar (only those the agent reads, or the one already picked) and the minutes (5 to 240, 15 to start). The form opens a meeting routine as one and sends its trigger only when the calendar or the minutes changed, or when the person picked another kind. A new meeting routine posts every run (§6) until the person picks otherwise. The rules live once in the apps' shared client, and the web and the phone both use them.
+9. **This changes ADR 0130's table** for Google Calendar's "event starting": through a look ahead by code, not a Composio trigger. ADR 0130 turned polling down for mail because of text answers, idle calls and latency: a Composio session answers structured `data`, the look ahead removes the latency, and the idle cost is the one call in 15 minutes above.
 
 ## The data that crosses the boundary
 
@@ -34,6 +35,8 @@ type MeetingTrigger = {
   status: "active" | "error";
   lastError: string | null;
 };
+// Each connection as the apps list it (`GET …/connectors/custom`) also says whether a meeting routine can watch it.
+type CustomServer = { /* … */ meetings: boolean };
 
 // A routine run's event (`routine_runs.event`), one per meeting (several merge as `events`).
 type MeetingEvent = {
@@ -63,7 +66,7 @@ type MeetingEvent = {
 
 ## Later
 
-- The routine editor on the web and the phone ("Antes de cada reunião"), and the agents' own routine tools; this first slice is the API and the apps' reading of the trigger.
+- The agents' own routine tools ("prepare my meetings" in a chat); people make meeting routines in the routine form.
 - Outlook and other calendars, one entry each in the list of calendar sources.
 - One look per connection for every routine on it.
 - A filter by calendar, by organizer or by words in the title.
