@@ -2461,6 +2461,11 @@
     "correctPlaceholder": "Misalnya Token kedaluwarsa dalam 15 menit, bukan 1 jam.",
     "sendCorrection": "Kirim koreksi",
     "correctionSent": "Koreksi terkirim. {{name}} akan belajar darinya.",
+    "editMessage": "Edit pesan",
+    "editLabel": "Pesan",
+    "editRedoHint": "Yang sudah menjawab akan menjawab lagi teks yang baru. Jawaban sebelumnya tetap ada.",
+    "editSave": "Simpan",
+    "editRedo": "Edit dan ulangi jawabannya",
     "sending": "mengirim…",
     "notSentWhy": "Tidak terkirim. {{why}}",
     "notSentUnknown": "Terjadi kesalahan.",
@@ -14401,6 +14406,13 @@
       "lockAdminsOnly": "Hanya Admin yang bisa mengunci halaman."
     },
     "replyGone": "Pesan yang kamu balas sudah tidak ada.",
+    "messageEdit": {
+      "notYours": "Hanya penulis pesan yang bisa mengeditnya.",
+      "expired": "Pesan hanya bisa diedit sampai satu hari setelah dikirim.",
+      "notEditable": "Pesan ini tidak bisa diedit.",
+      "answered": "Agen sudah menjawab pesan ini. Gunakan Edit dan ulangi jawabannya.",
+      "notLatest": "Hanya pesan terakhir dalam percakapan yang bisa mendapat jawaban lain. Kirim pesan baru."
+    },
     "media": {
       "off": "GIF dan stiker dinonaktifkan di ruang kerja ini.",
       "notFound": "GIF itu sudah tidak tersedia. Pilih yang lain.",
@@ -15954,6 +15966,7 @@
         "deleted": "Menghapus",
         "updated": "Memperbarui",
         "changed": "Mengubah",
+        "edited": "Mengedit",
         "connected": "Menghubungkan",
         "disconnected": "Memutuskan",
         "reconnected": "Menghubungkan ulang",
@@ -16889,6 +16902,7 @@
       "other": "Pemberitahuan untuk {{name}}",
       "wakeSkipped": "Sebutan dari {{name}} tidak sampai ke {{agents}}",
       "wakeSkippedAnon": "Sebutan dari {{name}} tidak sampai ke agen lain",
+      "messageEdited": "{{person}} mengedit pesan dan meminta jawaban lain dari {{name}}",
       "wakeSkippedAudience": "Hanya sebagian orang yang boleh memanggil {{agents}}, dan pekerjaan {{name}} ini tidak datang dari salah satu dari mereka. Orang yang boleh memanggil {{agents}} bisa meneruskan permintaannya.",
       "wakeSkippedCallable": "Pengaturan {{name}} tidak mengizinkannya memanggil {{agents}} (proyek lain, atau tidak ada di daftar agen yang boleh dipanggil). Orang yang mengurus {{name}} bisa mengubahnya di halaman agen.",
       "github": {
@@ -16912,6 +16926,10 @@
       "talkerTip": "Menjawab tanpa menghentikan tugas yang sedang berjalan.",
       "talkerWaiting": "sambil menunggu",
       "talkerWaitingTip": "Menjawab sementara tugasnya menunggu."
+    },
+    "edited": {
+      "label": "diedit",
+      "tip": "Diedit · {{date}}"
     },
     "joined": {
       "label": "ikut bergabung",

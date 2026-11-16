@@ -1126,6 +1126,11 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         request<{ runs: { agentId: string; runId: string }[] }>(`${org(orgId)}/messages/${enc(messageId)}/answer-now`, {
           json: {},
         }),
+      editMessage: (orgId, messageId, input) =>
+        request<{ message: Message; runs: { agentId: string; runId: string }[] }>(
+          `${org(orgId)}/messages/${enc(messageId)}`,
+          { method: "PATCH", json: input },
+        ),
       followUps: async (orgId, channelId) =>
         (
           (await nullOn(404, () =>

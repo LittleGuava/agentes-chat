@@ -4668,6 +4668,7 @@ export const TimelineMessage = memo(function TimelineMessage({
   const menu = useMessageMenu(m, channelName ?? "", {
     feedback,
     readOnly,
+    me: me.user.id,
     agentName: agent?.name ?? t("channel.unknownAgent"),
   });
   // A row with a bar has the same actions in a menu that a tap opens on touch (an agent's sticker gets a person's).
@@ -4819,7 +4820,16 @@ export const TimelineMessage = memo(function TimelineMessage({
         }
         gutterTime={live ? undefined : <time dateTime={m.createdAt}>{formatClock(i18n.language, m.createdAt)}</time>}
         meta={m.local || live ? undefined : details}
-        note={joinedTip ? { label: t("chat.joined.label"), tip: joinedTip } : undefined}
+        note={
+          joinedTip
+            ? { label: t("chat.joined.label"), tip: joinedTip }
+            : m.editedAt
+              ? {
+                  label: t("chat.edited.label"),
+                  tip: t("chat.edited.tip", { date: formatFullDate(i18n.language, m.editedAt) }),
+                }
+              : undefined
+        }
         // Its words arriving: its time and its stop after the time it started (the bar no longer says them).
         status={
           liveWaiting

@@ -1,4 +1,5 @@
 import { type Message, usePinMessage } from "@agenteschat/client";
+import { editOffer } from "@agenteschat/client/lib/message-edit";
 import { messagePath } from "@agenteschat/client/lib/message-links";
 import { can } from "@agenteschat/client/lib/permissions";
 import { listedText } from "@agenteschat/client/lib/voice";
@@ -19,6 +20,7 @@ import {
   tidy,
 } from "@/lib/context-menu";
 import { useToast } from "@/lib/toast";
+import { EditMessageDialog } from "./EditMessage";
 import { CorrectionDialog } from "./MessageFeedback";
 import { DOWN, ReactButton, reactionOf, useEmojiLabels, useMessageReactions } from "./Reactions";
 import { SaveToWikiDialog } from "./SaveToWiki";
@@ -86,7 +88,7 @@ export function PersonMessageActions({
 
 /**
  * A message's menu (lib/context-menu.ts), one list for its right click and its "…" (`more`): reactions with every
- * emoji, Responder, Copiar texto, Copiar link, Fixar mensagem, Salvar na wiki. With text selected in it, the
+ * emoji, Responder, Editar mensagem (your own, ADR 0207), Copiar texto, Copiar link, Fixar mensagem, Salvar na wiki. With text selected in it, the
  * selection's own menu (Copiar, Responder; Salvar na wiki saves the selection). `touch` is the same menu for a tap on
  * touch, where it stands in for the bar, so an agent's reply (`feedback`) also has the bar's Não ajudou and Corrigir
  * resposta. `dialog` goes with the message. Fixar needs `post` (the server's rule) and a conversation that isn't
@@ -95,7 +97,8 @@ export function PersonMessageActions({
 export function useMessageMenu(
   message: Message,
   channelName: string,
-  options: { feedback?: boolean; agentName?: string; readOnly?: boolean } = {},
+  /** `me`: who is looking, for "Editar mensagem" on their own message (ADR 0207). */
+  options: { feedback?: boolean; agentName?: string; readOnly?: boolean; me?: string } = {},
 ) {
   const { t } = useTranslation();
   const { org } = useOrg();
@@ -105,6 +108,7 @@ export function useMessageMenu(
   // What Salvar na wiki saves: the selection when it was asked, else the whole message.
   const [saving, setSaving] = useState<string | null>(null);
   const [correcting, setCorrecting] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [picking, setPicking] = useState(false);
   const labels = useEmojiLabels();
   const pin = usePinMessage(org.id);
@@ -160,6 +164,11 @@ export function useMessageMenu(
     // A file with no words has no text to copy or save; a voice message only what was typed beside it.
     const text = listedText(message.body, message.meta);
     const words = text.trim() !== "";
+    // Your own message, within a day: edit it, or once an agent took it, edit it and redo the answer.
+    const offer = options.me && !options.readOnly && can(org, "post") ? editOffer(message, options.me) : null;
+    const editEntry: MenuEntry[] = offer
+      ? [{ kind: "item", id: "edit", label: t("channel.editMessage"), icon: "edit", run: () => setEditing(true) }]
+      : [];
     const pinned = Boolean(message.pinned);
     const pinEntry: MenuEntry | null =
       options.readOnly || !can(org, "post")
@@ -184,6 +193,7 @@ export function useMessageMenu(
         more: { label: t("reactions.add"), run: () => setPicking(true) },
       },
       ...reply,
+      ...editEntry,
       ...(touch && options.feedback
         ? ([
             {
@@ -236,6 +246,13 @@ export function useMessageMenu(
           agentId={message.author.id}
           block={chart}
           onClose={() => setPinningChart(false)}
+        />
+      )}
+      {editing && (
+        <EditMessageDialog
+          message={message}
+          redo={editOffer(message, options.me ?? "") === "redo"}
+          onClose={() => setEditing(false)}
         />
       )}
       {correcting && (

@@ -315,6 +315,12 @@ const KNOWN = {
   // GIFs and stickers (ADR 0091): off in the workspace (or no GIF search on this server), a GIF gone, or the GIF
   // search not answering.
   "message.reply_not_found": "errors.replyGone",
+  // Editing a message (ADR 0207).
+  "message.edit_not_yours": "errors.messageEdit.notYours",
+  "message.edit_expired": "errors.messageEdit.expired",
+  "message.not_editable": "errors.messageEdit.notEditable",
+  "message.edit_answered": "errors.messageEdit.answered",
+  "message.redo_not_latest": "errors.messageEdit.notLatest",
   "message.media_off": "errors.media.off",
   "message.media_not_found": "errors.media.notFound",
   "gifs.off": "errors.media.gifsOff",

@@ -1038,6 +1038,16 @@ export interface ApiClient {
      * no-AI card or the person's message. 409 `ai.still_missing` while there's still no AI.
      */
     answerNow(orgId: string, messageId: string): Promise<{ runs: { agentId: string; runId: string }[] }>;
+    /**
+     * Edits a message you sent, within a day (ADR 0207). `redo`: "Editar e refazer a resposta", the agents that took it
+     * answer the new text. 409 `message.edit_answered` (an agent took it: only with `redo`),
+     * `message.redo_not_latest`, `message.edit_expired`, `message.not_editable`; 403 `message.edit_not_yours`.
+     */
+    editMessage(
+      orgId: string,
+      messageId: string,
+      input: { body: string; redo?: boolean },
+    ): Promise<{ message: Message; runs: { agentId: string; runId: string }[] }>;
     /** The returns agents set in a conversation, still to come, the soonest first (`[]` while the server lacks it). */
     followUps(orgId: string, channelId: string): Promise<PendingReturn[]>;
     /**

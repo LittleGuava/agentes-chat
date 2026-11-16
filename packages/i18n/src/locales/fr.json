@@ -2621,6 +2621,11 @@
     "sendCorrection": "Envoyer la correction",
     "correctionSent": "Correction envoyée. {{name}} va en tirer une leçon.",
     "correctionSent_female": "Correction envoyée. {{name}} va en tirer une leçon.",
+    "editMessage": "Modifier le message",
+    "editLabel": "Texte",
+    "editRedoHint": "Ceux qui ont déjà répondu répondent à nouveau au nouveau texte. Les réponses précédentes restent.",
+    "editSave": "Enregistrer",
+    "editRedo": "Modifier et refaire la réponse",
     "sending": "envoi…",
     "notSentWhy": "Non envoyé. {{why}}",
     "notSentUnknown": "Un problème est survenu.",
@@ -15395,6 +15400,13 @@
       "lockAdminsOnly": "Seuls les admins verrouillent les pages."
     },
     "replyGone": "Le message auquel vous répondiez n'est plus là.",
+    "messageEdit": {
+      "notYours": "Seule la personne qui a écrit le message peut le modifier.",
+      "expired": "Un message ne peut être modifié que jusqu'à un jour après son envoi.",
+      "notEditable": "Ce message ne peut pas être modifié.",
+      "answered": "Un agent a déjà répondu à ce message. Utilisez Modifier et refaire la réponse.",
+      "notLatest": "Seul le dernier message de la conversation peut recevoir une autre réponse. Envoyez un nouveau message."
+    },
     "media": {
       "off": "Les GIF et les stickers sont désactivés dans cet espace de travail.",
       "notFound": "Ce GIF n'est plus disponible. Choisissez-en un autre.",
@@ -16986,6 +16998,7 @@
         "deleted": "A supprimé",
         "updated": "A mis à jour",
         "changed": "A modifié",
+        "edited": "A modifié",
         "connected": "A connecté",
         "disconnected": "A déconnecté",
         "reconnected": "A reconnecté",
@@ -17980,6 +17993,7 @@
       "other": "Avis pour {{name}}",
       "wakeSkipped": "La mention de {{name}} n'a pas atteint {{agents}}",
       "wakeSkippedAnon": "La mention de {{name}} n’a atteint aucun autre agent",
+      "messageEdited": "{{person}} a modifié le message et a demandé une autre réponse à {{name}}",
       "wakeSkippedAudience": "Seules certaines personnes peuvent appeler {{agents}}, et ce travail de {{name}} ne vient d’aucune d’elles. Quelqu’un qui peut appeler {{agents}} peut lui transmettre la demande.",
       "wakeSkippedCallable": "Les réglages de {{name}} ne lui permettent pas d’appeler {{agents}} (un autre projet, ou hors de sa liste d’agents à appeler). La personne qui s’occupe de {{name}} peut changer cela sur la page de l’agent.",
       "github": {
@@ -18003,6 +18017,10 @@
       "talkerTip": "A répondu sans interrompre la tâche en cours.",
       "talkerWaiting": "en attendant",
       "talkerWaitingTip": "A répondu pendant que la tâche attend."
+    },
+    "edited": {
+      "label": "modifié",
+      "tip": "Modifié · {{date}}"
     },
     "joined": {
       "label": "s'est joint",

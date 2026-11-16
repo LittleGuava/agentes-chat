@@ -2707,6 +2707,12 @@ export const en = {
     correctPlaceholder: "E.g. The token expires in 15 minutes, not 1 hour.",
     sendCorrection: "Send correction",
     correctionSent: "Correction sent. {{name}} will learn from it.",
+    /** A message you sent (ADR 0207). */
+    editMessage: "Edit message",
+    editLabel: "Message",
+    editRedoHint: "Whoever already answered answers the new text again. The earlier answers stay.",
+    editSave: "Save",
+    editRedo: "Edit and redo the answer",
     sending: "sending…",
     notSentWhy: "Not sent. {{why}}",
     /** The `why` of a failed message when the server gave no reason. */
@@ -15118,6 +15124,14 @@ export const en = {
       lockAdminsOnly: "Only admins lock pages.",
     },
     replyGone: "The message you were replying to isn't here anymore.",
+    /** Editing a message (ADR 0207). */
+    messageEdit: {
+      notYours: "Only whoever wrote the message can edit it.",
+      expired: "A message can only be edited up to a day after it was sent.",
+      notEditable: "This message can't be edited.",
+      answered: "An agent already answered this message. Use Edit and redo the answer.",
+      notLatest: "Only the last message in the conversation can get another answer. Send a new message.",
+    },
     media: {
       off: "GIFs and stickers are off in this workspace.",
       notFound: "That GIF isn't available anymore. Pick another one.",
@@ -16795,6 +16809,7 @@ export const en = {
         deleted: "Deleted",
         updated: "Updated",
         changed: "Changed",
+        edited: "Edited",
         connected: "Connected",
         disconnected: "Disconnected",
         reconnected: "Reconnected",
@@ -17812,6 +17827,7 @@ export const en = {
       wakeSkipped: "{{name}}'s mention didn't reach {{agents}}",
       /** The same, on an older line that didn't keep whom. */
       wakeSkippedAnon: "{{name}}'s mention didn't reach another agent",
+      messageEdited: "{{person}} edited the message and asked {{name}} for another answer",
       /** What "Show" opens under it: why, for people (only some people may call those agents), and the way out. */
       wakeSkippedAudience:
         "Only some people may call {{agents}}, and this work of {{name}} didn't come from one of them. Someone who may call {{agents}} can pass the request on.",
@@ -17847,6 +17863,11 @@ export const en = {
       /** Beside the name of a reply given while its task waits (its computer, a person), not while it works. */
       talkerWaiting: "while waiting",
       talkerWaitingTip: "Answered while its task waits.",
+    },
+    /** Next to the time on a message its author edited (ADR 0207). `date`: when. */
+    edited: {
+      label: "edited",
+      tip: "Edited · {{date}}",
     },
     /** Next to the time on a reply of an agent nobody called. */
     joined: {

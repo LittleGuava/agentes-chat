@@ -3785,6 +3785,24 @@ export function cachePinned(
 }
 
 /**
+ * `message.edited` (and an edit's own response, ADR 0207): the message's new text and edit time, in every cached list
+ * of that channel (timeline and threads). Everything else it carries (receipts, reactions, pins) stays.
+ */
+export function cacheMessageEdited(
+  qc: ReturnType<typeof useQueryClient>,
+  orgId: string,
+  channelId: string,
+  edit: { messageId: string; body: string; editedAt: string },
+) {
+  qc.setQueriesData({ queryKey: ["org", orgId, "channel", channelId] }, (data: unknown) => {
+    if (!Array.isArray(data)) return data;
+    const list = data as Message[];
+    if (!list.some((m) => m && m.id === edit.messageId)) return data;
+    return list.map((m) => (m.id === edit.messageId ? { ...m, body: edit.body, editedAt: edit.editedAt } : m));
+  });
+}
+
+/**
  * `message.actions` (and undo/redo results): an agent message's receipts, in
  * every cached list of that channel (timeline and threads). Replaces the list.
  */
@@ -3865,6 +3883,24 @@ export function useCorrectMessage(orgId: string) {
   const api = useApi();
   return useMutation({
     mutationFn: ({ messageId, body }: { messageId: string; body: string }) => api.chat.correct(orgId, messageId, body),
+  });
+}
+
+/** Edits a message you sent, or edits it and redoes the agents' answer (`redo`, ADR 0207); its new text at once. */
+export function useEditMessage(orgId: string) {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ messageId, body, redo }: { messageId: string; body: string; redo?: boolean }) =>
+      api.chat.editMessage(orgId, messageId, { body, ...(redo ? { redo: true } : {}) }),
+    onSuccess: ({ message }) => {
+      if (message.editedAt)
+        cacheMessageEdited(qc, orgId, message.channelId, {
+          messageId: message.id,
+          body: message.body,
+          editedAt: message.editedAt,
+        });
+    },
   });
 }
 

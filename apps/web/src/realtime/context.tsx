@@ -45,6 +45,7 @@ import {
   cacheDmRead,
   cacheMessage,
   cacheMessageActions,
+  cacheMessageEdited,
   cacheMessageMeta,
   cacheMessageWork,
   cachePinned,
@@ -855,6 +856,8 @@ export function useChannelRealtime(orgId: string, channelId: string, enabled: bo
         cachePinned(qc, orgId, channelId, event.messageId, event.type === "message.pinned");
         void qc.invalidateQueries({ queryKey: keys.pins(orgId, channelId) });
       }
+      // Its author edited a message (ADR 0207): the new text, in place, everywhere it shows.
+      if (event.type === "message.edited") cacheMessageEdited(qc, orgId, channelId, event);
       // Act with undo: an agent message's receipts changed (made, undone, redone): replace the list.
       // A long work moved, updated or ended (ADR 0121): its anchor's line redraws; its card on the board too.
       if (event.type === "agent.work") {

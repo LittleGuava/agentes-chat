@@ -2461,6 +2461,11 @@
     "correctPlaceholder": "예: 토큰은 1시간이 아니라 15분 후에 만료돼요.",
     "sendCorrection": "정정 보내기",
     "correctionSent": "정정을 보냈어요. {{name}}이(가) 이걸로 배울 거예요.",
+    "editMessage": "메시지 수정",
+    "editLabel": "메시지",
+    "editRedoHint": "이미 답한 쪽이 새 내용에 다시 답합니다. 이전 답변은 그대로 남습니다.",
+    "editSave": "저장",
+    "editRedo": "수정하고 답변 다시 받기",
     "sending": "보내는 중…",
     "notSentWhy": "전송되지 않았습니다. {{why}}",
     "notSentUnknown": "문제가 발생했습니다.",
@@ -14340,6 +14345,13 @@
       "lockAdminsOnly": "관리자만 페이지를 잠글 수 있어요."
     },
     "replyGone": "답장하려던 메시지가 더 이상 없습니다.",
+    "messageEdit": {
+      "notYours": "메시지를 쓴 사람만 수정할 수 있습니다.",
+      "expired": "메시지는 보낸 지 하루 안에만 수정할 수 있습니다.",
+      "notEditable": "이 메시지는 수정할 수 없습니다.",
+      "answered": "에이전트가 이미 이 메시지에 답했습니다. 수정하고 답변 다시 받기를 사용하세요.",
+      "notLatest": "대화의 마지막 메시지만 다른 답변을 받을 수 있습니다. 새 메시지를 보내세요."
+    },
     "media": {
       "off": "이 워크스페이스에서는 GIF와 스티커가 꺼져 있어요.",
       "notFound": "그 GIF는 더 이상 사용할 수 없어요. 다른 걸 고르세요.",
@@ -15891,6 +15903,7 @@
         "deleted": "삭제",
         "updated": "업데이트",
         "changed": "변경",
+        "edited": "수정함",
         "connected": "연결",
         "disconnected": "연결 해제",
         "reconnected": "재연결",
@@ -16826,6 +16839,7 @@
       "other": "{{name}}에게 온 알림",
       "wakeSkipped": "{{name}}의 멘션이 {{agents}}에게 전달되지 않았어요",
       "wakeSkippedAnon": "{{name}}의 멘션이 다른 에이전트에게 닿지 않았어요",
+      "messageEdited": "{{person}} 님이 메시지를 수정하고 {{name}}에게 다른 답변을 요청했습니다",
       "wakeSkippedAudience": "{{agents}}은(는) 일부 사람만 부를 수 있는데, {{name}}의 이 작업은 그중 누구에게서도 오지 않았어요. {{agents}}을(를) 부를 수 있는 사람이 요청을 전달할 수 있어요.",
       "wakeSkippedCallable": "{{name}}의 설정에서 {{agents}}을(를) 부를 수 없어요(다른 프로젝트이거나 부를 수 있는 에이전트 목록에 없음). {{name}} 담당자가 에이전트 페이지에서 바꿀 수 있어요.",
       "github": {
@@ -16849,6 +16863,10 @@
       "talkerTip": "진행 중인 작업을 멈추지 않고 답했어요.",
       "talkerWaiting": "기다리면서",
       "talkerWaitingTip": "작업이 기다리는 동안 답했어요."
+    },
+    "edited": {
+      "label": "수정됨",
+      "tip": "수정됨 · {{date}}"
     },
     "joined": {
       "label": "참여함",

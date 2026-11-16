@@ -103,6 +103,8 @@ export interface MessageView {
   actions?: AgentActionView[];
   /** On a long work's anchor (`meta.longWork`, ADR 0121): its line, live via `agent.work`. */
   longWork?: WorkView;
+  /** When its author last edited it (ADR 0207); absent: never edited. Live via `message.edited`. */
+  editedAt?: string;
   createdAt: string;
 }
 
@@ -184,6 +186,7 @@ export const messageView = (m: Message): MessageView => ({
   agentRunId: m.agentRunId,
   meta: m.meta,
   clientId: typeof m.meta.clientId === "string" ? m.meta.clientId : null,
+  ...(m.editedAt ? { editedAt: m.editedAt.toISOString() } : {}),
   createdAt: m.createdAt.toISOString(),
 });
 

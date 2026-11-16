@@ -2599,6 +2599,12 @@ export const ptBR = {
     sendCorrection: "Enviar correção",
     correctionSent: "Correção enviada. O {{name}} vai aprender com ela.",
     correctionSent_female: "Correção enviada. A {{name}} vai aprender com ela.",
+    /** A message you sent (ADR 0207). */
+    editMessage: "Editar mensagem",
+    editLabel: "Mensagem",
+    editRedoHint: "Quem já respondeu responde de novo ao texto novo. As respostas anteriores ficam.",
+    editSave: "Salvar",
+    editRedo: "Editar e refazer a resposta",
     sending: "enviando…",
     notSentWhy: "Não enviada. {{why}}",
     /** The `why` of a failed message when the server gave no reason. */
@@ -15080,6 +15086,14 @@ export const ptBR = {
       lockAdminsOnly: "Só admins trancam páginas.",
     },
     replyGone: "A mensagem que você estava respondendo não está mais aqui.",
+    /** Editing a message (ADR 0207). */
+    messageEdit: {
+      notYours: "Só quem escreveu a mensagem pode editar.",
+      expired: "Uma mensagem só pode ser editada até um dia depois de enviada.",
+      notEditable: "Esta mensagem não pode ser editada.",
+      answered: "Um agente já respondeu esta mensagem. Use Editar e refazer a resposta.",
+      notLatest: "Só a última mensagem da conversa pode ganhar outra resposta. Mande uma mensagem nova.",
+    },
     /** GIFs and stickers (ADR 0091). */
     media: {
       off: "GIFs e figurinhas estão desligados neste workspace.",
@@ -16704,6 +16718,7 @@ export const ptBR = {
         deleted: "Apagou",
         updated: "Alterou",
         changed: "Mudou",
+        edited: "Editou",
         connected: "Conectou",
         disconnected: "Desconectou",
         reconnected: "Reconectou",
@@ -17712,6 +17727,7 @@ export const ptBR = {
       other: "Aviso para {{name}}",
       wakeSkipped: "A menção de {{name}} não chamou {{agents}}",
       wakeSkippedAnon: "A menção de {{name}} não chamou outro agente",
+      messageEdited: "{{person}} editou a mensagem e pediu outra resposta a {{name}}",
       wakeSkippedAudience:
         "Só algumas pessoas podem chamar {{agents}}, e este trabalho de {{name}} não veio de nenhuma delas. Alguém que pode chamar {{agents}} passa o pedido adiante.",
       wakeSkippedCallable:
@@ -17744,6 +17760,11 @@ export const ptBR = {
       talkerTip: "Respondeu sem parar a tarefa em andamento.",
       talkerWaiting: "enquanto espera",
       talkerWaitingTip: "Respondeu enquanto a tarefa espera.",
+    },
+    /** Next to the time on a message its author edited (ADR 0207). `date`: when. */
+    edited: {
+      label: "editada",
+      tip: "Editada · {{date}}",
     },
     /** Next to the time on a reply of an agent nobody called. */
     joined: {

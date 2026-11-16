@@ -3332,6 +3332,14 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         if (state.answerNowError) throw state.answerNowError;
         return { runs: state.answerNowRuns ?? [] };
       },
+      editMessage: async (orgId, messageId, input) => {
+        log("chat.editMessage", orgId, messageId, input);
+        const found = state.messages.find((m) => m.id === messageId);
+        if (!found) throw new ApiError(404, "not_found", "Message not found");
+        found.body = input.body.trim();
+        found.editedAt = new Date().toISOString();
+        return { message: structuredClone(found), runs: [] };
+      },
       followUps: async (orgId, channelId) => {
         log("chat.followUps", orgId, channelId);
         return (state.followUps ?? []).filter((r) => r.channelId === channelId);

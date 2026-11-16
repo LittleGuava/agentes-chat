@@ -2616,6 +2616,11 @@
     "correctPlaceholder": "Ej.: El token vence en 15 minutos, no en 1 hora.",
     "sendCorrection": "Enviar corrección",
     "correctionSent": "Corrección enviada. {{name}} aprenderá de ella.",
+    "editMessage": "Editar mensaje",
+    "editLabel": "Mensaje",
+    "editRedoHint": "Quien ya respondió vuelve a responder al texto nuevo. Las respuestas anteriores se quedan.",
+    "editSave": "Guardar",
+    "editRedo": "Editar y rehacer la respuesta",
     "sending": "enviando…",
     "notSentWhy": "No enviado. {{why}}",
     "notSentUnknown": "Algo salió mal.",
@@ -15324,6 +15329,13 @@
       "lockAdminsOnly": "Solo los admins bloquean páginas."
     },
     "replyGone": "El mensaje al que respondías ya no está aquí.",
+    "messageEdit": {
+      "notYours": "Solo quien escribió el mensaje puede editarlo.",
+      "expired": "Un mensaje solo se puede editar hasta un día después de enviarlo.",
+      "notEditable": "Este mensaje no se puede editar.",
+      "answered": "Un agente ya respondió este mensaje. Usa Editar y rehacer la respuesta.",
+      "notLatest": "Solo el último mensaje de la conversación puede recibir otra respuesta. Envía un mensaje nuevo."
+    },
     "media": {
       "off": "Los GIF y stickers están desactivados en este espacio de trabajo.",
       "notFound": "Ese GIF ya no está disponible. Elige otro.",
@@ -16915,6 +16927,7 @@
         "deleted": "Eliminó",
         "updated": "Actualizó",
         "changed": "Cambió",
+        "edited": "Editó",
         "connected": "Conectó",
         "disconnected": "Desconectó",
         "reconnected": "Reconectó",
@@ -17898,6 +17911,7 @@
       "other": "Aviso para {{name}}",
       "wakeSkipped": "La mención de {{name}} no llegó a {{agents}}",
       "wakeSkippedAnon": "La mención de {{name}} no llegó a otro agente",
+      "messageEdited": "{{person}} editó el mensaje y le pidió otra respuesta a {{name}}",
       "wakeSkippedAudience": "Solo algunas personas pueden llamar a {{agents}}, y este trabajo de {{name}} no vino de ninguna de ellas. Alguien que pueda llamar a {{agents}} puede pasarle el pedido.",
       "wakeSkippedCallable": "La configuración de {{name}} no le deja llamar a {{agents}} (otro proyecto, o fuera de su lista de agentes a los que puede llamar). Quien se ocupa de {{name}} puede cambiarlo en la página del agente.",
       "github": {
@@ -17921,6 +17935,10 @@
       "talkerTip": "Respondió sin detener la tarea en curso.",
       "talkerWaiting": "mientras espera",
       "talkerWaitingTip": "Respondió mientras la tarea espera."
+    },
+    "edited": {
+      "label": "editado",
+      "tip": "Editado · {{date}}"
     },
     "joined": {
       "label": "se sumó",

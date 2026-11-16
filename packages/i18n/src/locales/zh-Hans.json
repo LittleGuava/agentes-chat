@@ -2464,6 +2464,11 @@
     "sendCorrection": "发送纠正",
     "correctionSent": "纠正已发送。{{name}} 会从中学习。",
     "correctionSent_female": "纠正已发送。{{name}} 会从中学习。",
+    "editMessage": "编辑消息",
+    "editLabel": "消息",
+    "editRedoHint": "已经回复的会针对新内容重新回复。之前的回复会保留。",
+    "editSave": "保存",
+    "editRedo": "编辑并重新回复",
     "sending": "发送中…",
     "notSentWhy": "未发送。{{why}}",
     "notSentUnknown": "出了点问题。",
@@ -14410,6 +14415,13 @@
       "lockAdminsOnly": "只有管理员可以锁定页面。"
     },
     "replyGone": "你正在回复的消息已不存在。",
+    "messageEdit": {
+      "notYours": "只有消息的作者可以编辑。",
+      "expired": "消息只能在发送后一天内编辑。",
+      "notEditable": "这条消息无法编辑。",
+      "answered": "已有智能体回复了这条消息。请使用“编辑并重新回复”。",
+      "notLatest": "只有对话中的最后一条消息可以重新获得回复。请发送一条新消息。"
+    },
     "media": {
       "off": "此工作区已关闭 GIF 和贴纸。",
       "notFound": "那个 GIF 已不可用，请换一个。",
@@ -15963,6 +15975,7 @@
         "deleted": "删除了",
         "updated": "更新了",
         "changed": "更改了",
+        "edited": "编辑了",
         "connected": "连接了",
         "disconnected": "断开了",
         "reconnected": "重新连接了",
@@ -16903,6 +16916,7 @@
       "other": "给 {{name}} 的通知",
       "wakeSkipped": "{{name}} 的提及没有传达给 {{agents}}",
       "wakeSkippedAnon": "{{name}} 的提及没有叫到其他智能体",
+      "messageEdited": "{{person}} 编辑了消息，并请 {{name}} 重新回复",
       "wakeSkippedAudience": "只有部分人可以呼叫 {{agents}}，而 {{name}} 的这项工作并非来自其中任何人。可以呼叫 {{agents}} 的人可以把请求转交过去。",
       "wakeSkippedCallable": "{{name}} 的设置不允许它呼叫 {{agents}}（属于其他项目，或不在它可呼叫的智能体列表中）。负责 {{name}} 的人可以在该智能体的页面上更改。",
       "github": {
@@ -16926,6 +16940,10 @@
       "talkerTip": "在不中断进行中任务的情况下作了回复。",
       "talkerWaiting": "等待期间",
       "talkerWaitingTip": "在任务等待期间作了回复。"
+    },
+    "edited": {
+      "label": "已编辑",
+      "tip": "已编辑 · {{date}}"
     },
     "joined": {
       "label": "主动加入",

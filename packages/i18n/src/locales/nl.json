@@ -2541,6 +2541,11 @@
     "sendCorrection": "Correctie versturen",
     "correctionSent": "Correctie verstuurd. {{name}} leert ervan.",
     "correctionSent_female": "Correctie verstuurd. {{name}} leert ervan.",
+    "editMessage": "Bericht bewerken",
+    "editLabel": "Bericht",
+    "editRedoHint": "Wie al antwoordde, antwoordt opnieuw op de nieuwe tekst. De eerdere antwoorden blijven.",
+    "editSave": "Opslaan",
+    "editRedo": "Bewerken en opnieuw laten antwoorden",
     "sending": "versturen…",
     "notSentWhy": "Niet verzonden. {{why}}",
     "notSentUnknown": "Er ging iets mis.",
@@ -14954,6 +14959,13 @@
       "lockAdminsOnly": "Alleen beheerders vergrendelen pagina's."
     },
     "replyGone": "Het bericht waarop je reageerde is er niet meer.",
+    "messageEdit": {
+      "notYours": "Alleen wie het bericht schreef kan het bewerken.",
+      "expired": "Een bericht kan alleen tot een dag na het versturen worden bewerkt.",
+      "notEditable": "Dit bericht kan niet worden bewerkt.",
+      "answered": "Een agent heeft dit bericht al beantwoord. Gebruik Bewerken en opnieuw laten antwoorden.",
+      "notLatest": "Alleen het laatste bericht in het gesprek kan een nieuw antwoord krijgen. Stuur een nieuw bericht."
+    },
     "media": {
       "off": "GIF's en stickers staan uit in deze werkruimte.",
       "notFound": "Die GIF is niet meer beschikbaar. Kies een andere.",
@@ -16526,6 +16538,7 @@
         "deleted": "Verwijderd",
         "updated": "Bijgewerkt",
         "changed": "Gewijzigd",
+        "edited": "Bewerkte",
         "connected": "Gekoppeld",
         "disconnected": "Ontkoppeld",
         "reconnected": "Opnieuw gekoppeld",
@@ -17490,6 +17503,7 @@
       "other": "Melding voor {{name}}",
       "wakeSkipped": "De vermelding van {{name}} bereikte {{agents}} niet",
       "wakeSkippedAnon": "De vermelding van {{name}} bereikte geen andere agent",
+      "messageEdited": "{{person}} bewerkte het bericht en vroeg {{name}} om een nieuw antwoord",
       "wakeSkippedAudience": "Alleen bepaalde mensen mogen {{agents}} aanroepen, en dit werk van {{name}} kwam van geen van hen. Iemand die {{agents}} mag aanroepen, kan het verzoek doorgeven.",
       "wakeSkippedCallable": "De instellingen van {{name}} staan niet toe dat het {{agents}} aanroept (een ander project, of niet op de lijst van agents die het mag aanroepen). Wie voor {{name}} zorgt, kan dat aanpassen op de pagina van de agent.",
       "github": {
@@ -17513,6 +17527,10 @@
       "talkerTip": "Antwoordde zonder de lopende taak te stoppen.",
       "talkerWaiting": "tijdens het wachten",
       "talkerWaitingTip": "Antwoordde terwijl de taak wacht."
+    },
+    "edited": {
+      "label": "bewerkt",
+      "tip": "Bewerkt · {{date}}"
     },
     "joined": {
       "label": "deed mee",

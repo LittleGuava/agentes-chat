@@ -1456,6 +1456,8 @@ export interface Message {
   actions?: AgentAction[];
   /** A long work's anchor (`meta.longWork`, ADR 0121): its line; live via `agent.work`. */
   longWork?: WorkView;
+  /** When its author last edited it (ADR 0207); absent: never edited. Live via `message.edited`. */
+  editedAt?: string;
   /** Client only: an optimistic message waiting for the server, or one that failed to send. */
   local?: "pending" | "failed";
   /** Client only, on a `failed` one the server refused: why (`sendFailureText`). */
@@ -1736,6 +1738,15 @@ export type ChannelEvent =
       pinnedAt: string;
     }
   /** A message was unpinned. */
+  /** Its author edited a message (ADR 0207): its new text, in place. Not news (no unread). */
+  | {
+      type: "message.edited";
+      channelId: string;
+      messageId: string;
+      threadId: string | null;
+      body: string;
+      editedAt: string;
+    }
   | { type: "message.unpinned"; channelId: string; messageId: string }
   /** A person read this DM up to `lastReadAt` (DMs between people only: "Visto"). */
   | { type: "channel.read"; channelId: string; userId: string; lastReadAt: string }

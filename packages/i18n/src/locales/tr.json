@@ -2538,6 +2538,11 @@
     "correctPlaceholder": "Örn. Token 1 saatte değil, 15 dakikada sona erer.",
     "sendCorrection": "Düzeltmeyi gönder",
     "correctionSent": "Düzeltme gönderildi. {{name}} bundan öğrenecek.",
+    "editMessage": "Mesajı düzenle",
+    "editLabel": "Mesaj",
+    "editRedoHint": "Daha önce yanıtlayan, yeni metni yeniden yanıtlar. Önceki yanıtlar kalır.",
+    "editSave": "Kaydet",
+    "editRedo": "Düzenle ve yanıtı yeniden al",
     "sending": "gönderiliyor…",
     "notSentWhy": "Gönderilmedi. {{why}}",
     "notSentUnknown": "Bir şeyler ters gitti.",
@@ -14826,6 +14831,13 @@
       "lockAdminsOnly": "Sayfaları yalnızca yöneticiler kilitler."
     },
     "replyGone": "Yanıtladığın mesaj artık burada değil.",
+    "messageEdit": {
+      "notYours": "Mesajı yalnızca yazan kişi düzenleyebilir.",
+      "expired": "Bir mesaj yalnızca gönderildikten sonraki bir gün içinde düzenlenebilir.",
+      "notEditable": "Bu mesaj düzenlenemez.",
+      "answered": "Bir ajan bu mesajı zaten yanıtladı. Düzenle ve yanıtı yeniden al'ı kullan.",
+      "notLatest": "Yalnızca konuşmadaki son mesaj yeni bir yanıt alabilir. Yeni bir mesaj gönder."
+    },
     "media": {
       "off": "Bu çalışma alanında GIF'ler ve çıkartmalar kapalı.",
       "notFound": "O GIF artık kullanılamıyor. Başka birini seçin.",
@@ -16398,6 +16410,7 @@
         "deleted": "Sildi",
         "updated": "Güncelledi",
         "changed": "Değiştirdi",
+        "edited": "Düzenledi",
         "connected": "Bağladı",
         "disconnected": "Bağlantıyı kesti",
         "reconnected": "Yeniden bağladı",
@@ -17351,6 +17364,7 @@
       "other": "{{name}} için bildirim",
       "wakeSkipped": "{{name}} ajanının bahsetmesi {{agents}} ajanına ulaşmadı",
       "wakeSkippedAnon": "{{name}} adlı ajanın bahsetmesi başka bir ajana ulaşmadı",
+      "messageEdited": "{{person}} mesajı düzenledi ve {{name}} adlı ajandan yeni bir yanıt istedi",
       "wakeSkippedAudience": "{{agents}} ajanını yalnızca bazı kişiler çağırabilir ve {{name}} adlı ajanın bu işi onlardan birinden gelmedi. {{agents}} ajanını çağırabilen biri isteği iletebilir.",
       "wakeSkippedCallable": "{{name}} adlı ajanın ayarları {{agents}} ajanını çağırmasına izin vermiyor (başka bir proje ya da çağırabileceği ajanlar listesinde değil). {{name}} ile ilgilenen kişi bunu ajanın sayfasından değiştirebilir.",
       "github": {
@@ -17374,6 +17388,10 @@
       "talkerTip": "Süren görevi durdurmadan yanıt verdi.",
       "talkerWaiting": "beklerken",
       "talkerWaitingTip": "Görev beklerken yanıt verdi."
+    },
+    "edited": {
+      "label": "düzenlendi",
+      "tip": "Düzenlendi · {{date}}"
     },
     "joined": {
       "label": "katıldı",

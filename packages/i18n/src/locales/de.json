@@ -2538,6 +2538,11 @@
     "correctPlaceholder": "Z. B. Der Token läuft nach 15 Minuten ab, nicht nach 1 Stunde.",
     "sendCorrection": "Korrektur senden",
     "correctionSent": "Korrektur gesendet. {{name}} lernt daraus.",
+    "editMessage": "Nachricht bearbeiten",
+    "editLabel": "Nachricht",
+    "editRedoHint": "Wer schon geantwortet hat, antwortet erneut auf den neuen Text. Die früheren Antworten bleiben.",
+    "editSave": "Speichern",
+    "editRedo": "Bearbeiten und neu antworten lassen",
     "sending": "wird gesendet…",
     "notSentWhy": "Nicht gesendet. {{why}}",
     "notSentUnknown": "Etwas ist schiefgelaufen.",
@@ -14890,6 +14895,13 @@
       "lockAdminsOnly": "Nur Admins sperren Seiten."
     },
     "replyGone": "Die Nachricht, auf die du geantwortet hast, ist nicht mehr da.",
+    "messageEdit": {
+      "notYours": "Nur wer die Nachricht geschrieben hat, kann sie bearbeiten.",
+      "expired": "Eine Nachricht lässt sich nur bis einen Tag nach dem Senden bearbeiten.",
+      "notEditable": "Diese Nachricht lässt sich nicht bearbeiten.",
+      "answered": "Ein Agent hat diese Nachricht schon beantwortet. Nutze Bearbeiten und neu antworten lassen.",
+      "notLatest": "Nur die letzte Nachricht im Gespräch kann eine neue Antwort bekommen. Schick eine neue Nachricht."
+    },
     "media": {
       "off": "GIFs und Sticker sind in diesem Workspace ausgeschaltet.",
       "notFound": "Dieses GIF ist nicht mehr verfügbar. Wähl ein anderes.",
@@ -16462,6 +16474,7 @@
         "deleted": "Gelöscht",
         "updated": "Aktualisiert",
         "changed": "Geändert",
+        "edited": "Hat bearbeitet",
         "connected": "Verbunden",
         "disconnected": "Getrennt",
         "reconnected": "Neu verbunden",
@@ -17421,6 +17434,7 @@
       "other": "Hinweis für {{name}}",
       "wakeSkipped": "Die Erwähnung von {{name}} hat {{agents}} nicht erreicht",
       "wakeSkippedAnon": "Die Erwähnung von {{name}} hat keinen anderen Agenten erreicht",
+      "messageEdited": "{{person}} hat die Nachricht bearbeitet und {{name}} um eine neue Antwort gebeten",
       "wakeSkippedAudience": "Nur bestimmte Personen dürfen {{agents}} aufrufen, und diese Arbeit von {{name}} kam von keiner von ihnen. Jemand, der {{agents}} aufrufen darf, kann die Anfrage weitergeben.",
       "wakeSkippedCallable": "Die Einstellungen von {{name}} erlauben nicht, {{agents}} aufzurufen (ein anderes Projekt oder nicht auf der Liste der aufrufbaren Agenten). Wer sich um {{name}} kümmert, kann das auf der Seite des Agenten ändern.",
       "github": {
@@ -17444,6 +17458,10 @@
       "talkerTip": "Hat geantwortet, ohne die laufende Aufgabe zu unterbrechen.",
       "talkerWaiting": "beim Warten",
       "talkerWaitingTip": "Hat geantwortet, während die Aufgabe wartet."
+    },
+    "edited": {
+      "label": "bearbeitet",
+      "tip": "Bearbeitet · {{date}}"
     },
     "joined": {
       "label": "hat sich eingeschaltet",

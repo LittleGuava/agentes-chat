@@ -2461,6 +2461,11 @@
     "correctPlaceholder": "例: トークンの有効期限は1時間ではなく15分です。",
     "sendCorrection": "修正を送信",
     "correctionSent": "修正を送信しました。{{name}}はここから学びます。",
+    "editMessage": "メッセージを編集",
+    "editLabel": "メッセージ",
+    "editRedoHint": "すでに返信した人が新しい本文にもう一度返信します。前の返信は残ります。",
+    "editSave": "保存",
+    "editRedo": "編集して返信をやり直す",
     "sending": "送信中…",
     "notSentWhy": "未送信。{{why}}",
     "notSentUnknown": "問題が発生しました。",
@@ -14346,6 +14351,13 @@
       "lockAdminsOnly": "ページをロックできるのは管理者だけです。"
     },
     "replyGone": "返信先のメッセージはもうありません。",
+    "messageEdit": {
+      "notYours": "メッセージを書いた人だけが編集できます。",
+      "expired": "メッセージは送信から1日以内しか編集できません。",
+      "notEditable": "このメッセージは編集できません。",
+      "answered": "このメッセージにはすでにエージェントが返信しています。「編集して返信をやり直す」を使ってください。",
+      "notLatest": "別の返信をもらえるのは会話の最後のメッセージだけです。新しいメッセージを送ってください。"
+    },
     "media": {
       "off": "このワークスペースではGIFとステッカーがオフになっています。",
       "notFound": "そのGIFはもう利用できません。別のものを選んでください。",
@@ -15899,6 +15911,7 @@
         "deleted": "削除",
         "updated": "更新",
         "changed": "変更",
+        "edited": "編集しました",
         "connected": "接続",
         "disconnected": "接続解除",
         "reconnected": "再接続",
@@ -16834,6 +16847,7 @@
       "other": "{{name}}へのお知らせ",
       "wakeSkipped": "{{name}}のメンションは{{agents}}に届きませんでした",
       "wakeSkippedAnon": "{{name}} のメンションはほかのエージェントに届きませんでした",
+      "messageEdited": "{{person}}がメッセージを編集し、{{name}}に別の返信を頼みました",
       "wakeSkippedAudience": "{{agents}} を呼べるのは一部の人だけで、{{name}} のこの作業はその誰からの依頼でもありません。{{agents}} を呼べる人が依頼を引き継げます。",
       "wakeSkippedCallable": "{{name}} の設定では {{agents}} を呼べません（別のプロジェクト、または呼べるエージェントの一覧にない）。{{name}} の担当者がエージェントのページで変更できます。",
       "github": {
@@ -16857,6 +16871,10 @@
       "talkerTip": "進行中のタスクを止めずに返信しました。",
       "talkerWaiting": "待機中に",
       "talkerWaitingTip": "タスクが待っている間に返信しました。"
+    },
+    "edited": {
+      "label": "編集済み",
+      "tip": "編集済み · {{date}}"
     },
     "joined": {
       "label": "自ら参加",

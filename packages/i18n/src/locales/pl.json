@@ -2700,6 +2700,11 @@
     "sendCorrection": "Wyślij poprawkę",
     "correctionSent": "Wysłano poprawkę. {{name}} się na niej nauczy.",
     "correctionSent_female": "Wysłano poprawkę. {{name}} się na niej nauczy.",
+    "editMessage": "Edytuj wiadomość",
+    "editLabel": "Wiadomość",
+    "editRedoHint": "Kto już odpowiedział, odpowie jeszcze raz na nowy tekst. Wcześniejsze odpowiedzi zostają.",
+    "editSave": "Zapisz",
+    "editRedo": "Edytuj i odpowiedz ponownie",
     "sending": "wysyłanie…",
     "notSentWhy": "Nie wysłano. {{why}}",
     "notSentUnknown": "Coś poszło nie tak.",
@@ -15912,6 +15917,13 @@
       "lockAdminsOnly": "Tylko administratorzy blokują strony."
     },
     "replyGone": "Wiadomości, na którą odpowiadasz, już tu nie ma.",
+    "messageEdit": {
+      "notYours": "Tylko autor wiadomości może ją edytować.",
+      "expired": "Wiadomość można edytować tylko do jednego dnia po wysłaniu.",
+      "notEditable": "Tej wiadomości nie można edytować.",
+      "answered": "Agent już odpowiedział na tę wiadomość. Użyj opcji Edytuj i odpowiedz ponownie.",
+      "notLatest": "Tylko ostatnia wiadomość w rozmowie może dostać inną odpowiedź. Wyślij nową wiadomość."
+    },
     "media": {
       "off": "GIF-y i naklejki są wyłączone w tej przestrzeni roboczej.",
       "notFound": "Ten GIF nie jest już dostępny. Wybierz inny.",
@@ -17523,6 +17535,7 @@
         "deleted": "Usunięto",
         "updated": "Zaktualizowano",
         "changed": "Zmieniono",
+        "edited": "Edytował(a)",
         "connected": "Połączono",
         "disconnected": "Rozłączono",
         "reconnected": "Połączono ponownie",
@@ -18535,6 +18548,7 @@
       "other": "Powiadomienie dla: {{name}}",
       "wakeSkipped": "Wzmianka od {{name}} nie dotarła do: {{agents}}",
       "wakeSkippedAnon": "Wzmianka {{name}} nie dotarła do innego agenta",
+      "messageEdited": "{{person}} edytuje wiadomość i prosi {{name}} o inną odpowiedź",
       "wakeSkippedAudience": "Tylko niektóre osoby mogą wywołać {{agents}}, a ta praca {{name}} nie pochodzi od żadnej z nich. Ktoś, kto może wywołać {{agents}}, może przekazać prośbę dalej.",
       "wakeSkippedCallable": "Ustawienia {{name}} nie pozwalają wywołać {{agents}} (inny projekt albo spoza listy agentów, których może wywołać). Osoba, która opiekuje się {{name}}, może to zmienić na stronie agenta.",
       "github": {
@@ -18558,6 +18572,10 @@
       "talkerTip": "Odpowiedź bez przerywania trwającego zadania.",
       "talkerWaiting": "w trakcie czekania",
       "talkerWaitingTip": "Odpowiedź w czasie, gdy zadanie czeka."
+    },
+    "edited": {
+      "label": "edytowano",
+      "tip": "Edytowano · {{date}}"
     },
     "joined": {
       "label": "dołącza do rozmowy",
