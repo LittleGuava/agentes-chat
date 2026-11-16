@@ -643,9 +643,11 @@ export const helpKo: Partial<Record<HelpSlug, HelpDocument>> = {
             list: [
               "`send_to_agent`: 에이전트와의 비공개 대화나 채널에서 나 대신 에이전트에게 메시지를 보내고 답을 기다려요. **에이전트 작업 읽기 및 보내기** 권한이 있을 때만 쓸 수 있어요.",
               "`wait_for_reply`: 작업의 답을 계속 기다려요.",
+              "`stop_task`: 내 작업이나 내가 소유한 에이전트의 작업에서 에이전트의 일을 멈춰요(관리자는 어떤 작업이든 멈출 수 있어요). **에이전트 작업 읽기 및 보내기** 권한이 있을 때만 쓸 수 있어요.",
               "`list_agents`: 내가 볼 수 있는 에이전트.",
               "`list_channels`: 내가 읽을 수 있는 채널.",
               "`read_conversation`: 채널, 스레드, 작업의 최근 메시지.",
+              "`search_messages`: 내가 읽을 수 있는 메시지를 검색해요. 내 다이렉트 메시지도 포함돼요.",
               "`list_recent_tasks`: 앱에서 보낸 작업과 에이전트가 지금 하고 있는 일.",
             ],
           },

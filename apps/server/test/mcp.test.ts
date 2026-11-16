@@ -157,11 +157,11 @@ describe("protocol", () => {
     expect(init.result.instructions).not.toMatch(DIRECTIVE);
   });
 
-  test("a read-only grant doesn't list send_to_agent", async () => {
+  test("a read-only grant lists neither send_to_agent nor stop_task", async () => {
     const { b, orgId } = await setup();
     const app = await connectApp(t, b, orgId, { access: "read" });
     expect((await listTools(app.access)).map((x) => x.name)).toEqual(
-      APP_TOOL_NAMES.filter((n) => n !== "send_to_agent"),
+      APP_TOOL_NAMES.filter((n) => n !== "send_to_agent" && n !== "stop_task"),
     );
   });
 

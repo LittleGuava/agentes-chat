@@ -650,9 +650,11 @@ export const helpDe: Partial<Record<HelpSlug, HelpDocument>> = {
             list: [
               "`send_to_agent`: schickt eine Nachricht von dir an einen Agenten, in eurer privaten Unterhaltung oder in einem Kanal, und wartet auf die Antwort. Nur mit dem Zugriff **Lesen und Agenten Aufgaben schicken**.",
               "`wait_for_reply`: wartet weiter auf die Antwort zu einer Aufgabe.",
+              "`stop_task`: stoppt die Arbeit eines Agenten an einer Aufgabe, deiner oder der eines Agenten, der dir gehört (ein Admin stoppt jede). Nur mit dem Zugriff **Lesen und Agenten Aufgaben schicken**.",
               "`list_agents`: die Agenten, die du siehst.",
               "`list_channels`: die Kanäle, die du liest.",
               "`read_conversation`: letzte Nachrichten eines Kanals, eines Threads oder einer Aufgabe.",
+              "`search_messages`: durchsucht die Nachrichten, die du lesen kannst, deine eigenen Direktnachrichten eingeschlossen.",
               "`list_recent_tasks`: die Aufgaben, die du aus Apps geschickt hast, und was Agenten gerade tun.",
             ],
           },

@@ -650,9 +650,11 @@ export const helpFr: Partial<Record<HelpSlug, HelpDocument>> = {
             list: [
               "`send_to_agent` : envoie un message de votre part à un agent, dans votre conversation privée avec lui ou dans un canal, et attend la réponse. Uniquement avec l’accès **Lire et confier des tâches aux agents**.",
               "`wait_for_reply` : continue d’attendre la réponse à une tâche.",
+              "`stop_task` : arrête le travail d’un agent sur une tâche, la vôtre ou celle d’un agent qui vous appartient (un admin arrête n’importe laquelle). Uniquement avec l’accès **Lire et confier des tâches aux agents**.",
               "`list_agents` : les agents que vous voyez.",
               "`list_channels` : les canaux que vous lisez.",
               "`read_conversation` : les messages récents d’un canal, d’un fil ou d’une tâche.",
+              "`search_messages` : cherche dans les messages que vous pouvez lire, vos conversations directes comprises.",
               "`list_recent_tasks` : les tâches que vous avez envoyées depuis des apps et ce que font les agents en ce moment.",
             ],
           },

@@ -20,6 +20,7 @@ import { z } from "zod";
 import { type Agent, listAgents } from "../agents";
 import { audienceError, canTalkTo, speakerOf } from "../audience";
 import { recordAudit } from "../audit";
+import { cancelRun } from "../cancel";
 import { listChannels, requireChannelAccess } from "../channels";
 import { consultationWait } from "../consultations";
 import type { ContextDeps } from "../context/summaries";
@@ -29,7 +30,8 @@ import { ConflictError, ForbiddenError, NotFoundError, TooManyError, ValidationE
 import type { Judge } from "../judge";
 import { getMessage, listMessages, type MessageView, postPersonMessage } from "../messages";
 import { getMembership } from "../organizations";
-import { outageParkedOf } from "../runs";
+import { isTerminal, outageParkedOf } from "../runs";
+import { describeHits, type SearchDeps, searchForUser } from "../search";
 import type { Talker } from "../talker";
 import { listWorkingRuns } from "../working";
 import type { AppPrincipal } from "./grants";
@@ -39,9 +41,9 @@ import { type AppScope, appsUrls } from "./urls";
 const { agentRuns, appSends, approvals, messages, users, agents, channels } = schema;
 
 /**
- * The tools an AI app gets on `/mcp` (ADR 0119 §3). They act as the person, through the same engine calls the web
- * app makes, so every permission is the person's own. None decides an approval, changes a setting or manages
- * people: approvals stay a human action inside agentes.chat.
+ * The tools an AI app gets on `/mcp` (ADR 0119 §7). They act as the person, through the same engine calls the web
+ * app makes, so every permission is the person's own. None decides an approval or manages people: approvals stay a
+ * human action inside agentes.chat. Settings change only behind `manage` (`manage-tools.ts`).
  */
 
 export interface AppsToolDeps {
@@ -56,6 +58,9 @@ export interface AppsToolDeps {
   context?: ContextDeps;
   /** Where skills keep their files (`create_skill`). */
   blobs?: BlobStoreResolver;
+  /** The search index (`search_messages`), and the query's embedding where the deployment has one. */
+  search?: SearchDeps["search"];
+  embed?: SearchDeps["gateway"]["embed"];
   /** Wakes the in-process workers after a send (the agent starts sooner than at the next poll). */
   wakeWorkers?: () => void;
   /** Unknown failures, for the error reporter; their text never reaches the app. */
@@ -67,9 +72,11 @@ export interface AppsToolDeps {
 export const APP_TOOL_NAMES = [
   "send_to_agent",
   "wait_for_reply",
+  "stop_task",
   "list_agents",
   "list_channels",
   "read_conversation",
+  "search_messages",
   "list_recent_tasks",
 ] as const;
 
@@ -79,6 +86,8 @@ const RECHECK_MS = 3_000;
 const REPLY_CHARS = 8_000;
 const CONVERSATION_BUDGET = 48_000;
 const OLDER_MESSAGE_CHARS = 2_000;
+/** What a search hit shows of its message: the index keeps its first 300 characters. */
+const SNIPPET_CHARS = 300;
 /** Open waits per person (personal tokens are cheap to make, so not per connection) and per workspace. */
 const WAITS_PER_PERSON = 3;
 const WAITS_PER_ORG = 20;
@@ -534,6 +543,19 @@ const waitInput = z
       .describe("Seconds to wait, 1 to 45 (default 40)"),
   })
   .strict();
+const stopInput = z
+  .object({
+    task_id: z.uuid().optional().describe("task_id from send_to_agent"),
+    run_id: z.uuid().optional().describe("run_id from list_recent_tasks with scope working"),
+  })
+  .strict();
+const searchInput = z
+  .object({
+    query: z.string().trim().min(1).max(500).describe("Words to find"),
+    channel_id: z.uuid().optional().describe("Only this channel (from list_channels)"),
+    limit: z.number().int().min(1).max(50).optional().describe("Results, 1 to 50 (default 20)"),
+  })
+  .strict();
 const listAgentsInput = z
   .object({
     query: z.string().max(64).optional().describe("Part of a name, handle or role"),
@@ -731,6 +753,68 @@ export function buildAppsMcpServer(deps: AppsToolDeps, p: AppPrincipal, version:
   );
 
   tool(
+    "stop_task",
+    {
+      scope: "write",
+      title: "Stop an agent's task",
+      description: `Stops the agent's work on a task: the run of a task sent with send_to_agent (task_id) or a run from list_recent_tasks with scope working (run_id), exactly one of the two. ${person} stops it when ${person} sent it, owns the agent or administers the workspace. A queued run does not start; a run waiting for an approval or an answer ends and its approval or question closes; a running one ends after posting what it wrote so far. The agent reads that ${person} stopped it. A task that already ended comes back with stopped false and its status.`,
+      input: stopInput,
+      readOnly: false,
+      destructive: true,
+      idempotent: true,
+      openWorld: false,
+    },
+    async (args) => {
+      if ([args.task_id, args.run_id].filter(Boolean).length !== 1)
+        throw new AppToolError("Give exactly one of task_id or run_id.");
+      let run: RunRow | null;
+      let taskId: string | null = null;
+      if (args.task_id) {
+        const message = await readableTask(deps, p, args.task_id);
+        taskId = message.id;
+        run = await runFor(deps.db, message, (await agentOfTask(deps, p, message))?.id ?? null);
+        if (!run) return { stopped: false, status: "no_run", task_id: taskId };
+      } else {
+        const [row] = await deps.db
+          .select()
+          .from(agentRuns)
+          .where(and(eq(agentRuns.orgId, p.orgId), eq(agentRuns.id, args.run_id as string)));
+        if (!row) throw new NotFoundError("No run with this id");
+        run = row;
+      }
+      const out = {
+        run_id: run.id,
+        ...(taskId ? { task_id: taskId } : {}),
+        agent: (await agentNamesOf(deps.db, p.orgId, [run.agentId])).get(run.agentId) ?? null,
+        url: linkTo(deps, p.orgId, run.channelId, taskId ?? run.triggerMessageId),
+      };
+      let previous: string;
+      try {
+        // Its stop rule is checked before anything about the run comes back, an ended one included.
+        previous = (await cancelRun({ db: deps.db, pubsub: deps.pubsub }, p.userId, p.orgId, run.id)).previousStatus;
+      } catch (error) {
+        // It had ended, or ended on the way: that is its answer, not a conflict to try again.
+        if (!(error instanceof ConflictError)) throw error;
+        const [now] = await deps.db
+          .select({ status: agentRuns.status })
+          .from(agentRuns)
+          .where(eq(agentRuns.id, run.id));
+        if (!now || !isTerminal(now.status)) throw error;
+        return { stopped: false, status: now.status, ...out };
+      }
+      await recordAudit(deps.db, {
+        orgId: p.orgId,
+        actor: { type: "person", id: p.userId },
+        action: "apps.task_stopped",
+        target: { type: "agent_run", id: run.id },
+        details: { grantId: p.grantId, client: p.app.name, agentId: run.agentId },
+        channelId: run.channelId,
+      });
+      return { stopped: true, status: "canceled", previous_status: previous, ...out };
+    },
+  );
+
+  tool(
     "list_agents",
     {
       scope: "read",
@@ -854,6 +938,58 @@ export function buildAppsMcpServer(deps: AppsToolDeps, p: AppPrincipal, version:
         };
       });
       return { channel_id: channelId, thread_id: threadId ?? null, messages: out.reverse() };
+    },
+  );
+
+  tool(
+    "search_messages",
+    {
+      scope: "read",
+      title: "Search messages",
+      description: `Searches the messages ${person} can read: the channels ${person} is in (every channel for an admin) and ${person}'s own direct conversations, best match first. Each result has its channel, its author, its thread, a link and the first 300 characters of its text. With channel_id, only that channel.`,
+      input: searchInput,
+      readOnly: true,
+      destructive: false,
+      idempotent: true,
+      openWorld: false,
+    },
+    async (args) => {
+      if (!deps.search) throw new AppToolError("Search isn't available on this server.");
+      const found = await searchForUser(
+        { db: deps.db, search: deps.search, gateway: { embed: deps.embed ?? (async () => null) } },
+        p.userId,
+        p.orgId,
+        {
+          text: args.query,
+          kinds: ["message"],
+          limit: args.limit ?? 20,
+          ...(args.channel_id ? { channelIds: [args.channel_id] } : {}),
+        },
+      );
+      const hits = await describeHits(deps.db, p.orgId, found);
+      const ids = [...new Set(hits.flatMap((h) => h.channelIds.slice(0, 1)))];
+      const rooms = ids.length
+        ? await deps.db
+            .select({ id: channels.id, name: channels.name, kind: channels.kind })
+            .from(channels)
+            .where(and(eq(channels.orgId, p.orgId), inArray(channels.id, ids)))
+        : [];
+      const roomOf = new Map(rooms.map((c) => [c.id, c]));
+      return {
+        hits: hits.map((h) => {
+          const room = h.channelIds[0] ? roomOf.get(h.channelIds[0]) : undefined;
+          const messageId = h.messageId ?? h.sourceId;
+          return {
+            message_id: messageId,
+            channel: room ? { id: room.id, name: room.kind === "dm" ? null : room.name, kind: room.kind } : null,
+            thread_id: h.threadId,
+            author: h.author ? { kind: h.author.type, name: h.author.name } : null,
+            sent_at: h.createdAt,
+            untrusted_text: cleanUntrusted(h.snippet, SNIPPET_CHARS).text,
+            url: room ? linkTo(deps, p.orgId, room.id, messageId) : null,
+          };
+        }),
+      };
     },
   );
 

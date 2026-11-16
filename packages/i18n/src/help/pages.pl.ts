@@ -642,9 +642,11 @@ export const helpPl: Partial<Record<HelpSlug, HelpDocument>> = {
             list: [
               "`send_to_agent`: wysyła wiadomość od ciebie do agenta, w twojej prywatnej rozmowie z nim albo na kanale, i czeka na odpowiedź. Tylko z dostępem **Czytanie i wysyłanie zadań agentom**.",
               "`wait_for_reply`: dalej czeka na odpowiedź na zadanie.",
+              "`stop_task`: zatrzymuje pracę agenta nad zadaniem, twoim albo agenta, którego jesteś właścicielem (admin zatrzymuje każde). Tylko z dostępem **Czytanie i wysyłanie zadań agentom**.",
               "`list_agents`: agenci, których widzisz.",
               "`list_channels`: kanały, które czytasz.",
               "`read_conversation`: ostatnie wiadomości kanału, wątku albo zadania.",
+              "`search_messages`: przeszukuje wiadomości, które możesz czytać, łącznie z twoimi rozmowami bezpośrednimi.",
               "`list_recent_tasks`: zadania wysłane przez ciebie z aplikacji i to, czym agenci zajmują się teraz.",
             ],
           },

@@ -630,9 +630,11 @@ export const helpZhHans: Partial<Record<HelpSlug, HelpDocument>> = {
             list: [
               "`send_to_agent`：以你的身份给智能体发送消息，可以在你和它的私信中，也可以在频道中，并等待回复。需要 **查看任务并发送给智能体** 权限。",
               "`wait_for_reply`：继续等待某个任务的回复。",
+              "`stop_task`：停止智能体在某个任务上的工作，可以是你的任务，或你拥有的智能体的任务（管理员可以停止任何任务）。需要 **查看任务并发送给智能体** 权限。",
               "`list_agents`：你能看到的智能体。",
               "`list_channels`：你能阅读的频道。",
               "`read_conversation`：频道、话题或任务中的最近消息。",
+              "`search_messages`：在你能阅读的消息中搜索，包括你自己的私信。",
               "`list_recent_tasks`：你从应用发出的任务，以及智能体正在做的事。",
             ],
           },
