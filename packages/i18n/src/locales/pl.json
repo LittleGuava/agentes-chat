@@ -18823,6 +18823,10 @@
       "label": "Zaktualizuj plik",
       "description": "Zapisuje nową wersję pliku."
     },
+    "generate_image": {
+      "label": "Wygeneruj obraz",
+      "description": "Tworzy obraz na podstawie opisu kluczem OpenAI lub Gemini workspace'u i zapisuje go w Drive."
+    },
     "list_issues": {
       "label": "Zobacz zadania",
       "description": "Wyświetla i otwiera zadania."

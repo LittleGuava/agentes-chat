@@ -8047,11 +8047,11 @@
   "connectAi.plan.grok.title": {
     "value": "Your Grok plan"
   },
-  "connectAi.plan.copilot.title": {
-    "value": "Your GitHub Copilot plan"
-  },
   "connectAi.plan.grok.tiers": {
     "value": "SuperGrok, SuperGrok Heavy or X Premium+"
+  },
+  "connectAi.plan.copilot.title": {
+    "value": "Your GitHub Copilot plan"
   },
   "connectAi.plan.copilot.tiers": {
     "value": "Copilot Pro, Pro+, Business or Enterprise"
@@ -43736,6 +43736,12 @@
   },
   "builtinTools.update_artifact.description": {
     "value": "Saves a new version of a file."
+  },
+  "builtinTools.generate_image.label": {
+    "value": "Generate image"
+  },
+  "builtinTools.generate_image.description": {
+    "value": "Makes a picture from a description on the workspace's OpenAI or Gemini key and saves it to the Drive."
   },
   "builtinTools.list_issues.label": {
     "value": "View tasks"

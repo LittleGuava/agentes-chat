@@ -18194,6 +18194,10 @@
       "label": "Actualizar archivo",
       "description": "Guarda una nueva versión de un archivo."
     },
+    "generate_image": {
+      "label": "Generar imagen",
+      "description": "Crea una imagen a partir de una descripción con la clave de OpenAI o Gemini del workspace y la guarda en el Drive."
+    },
     "list_issues": {
       "label": "Ver tareas",
       "description": "Lista y abre tareas."

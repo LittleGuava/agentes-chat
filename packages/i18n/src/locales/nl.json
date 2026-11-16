@@ -3086,8 +3086,8 @@
       "cursor": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "cursor_female": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "grok": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
-      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "grok_female": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
+      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "copilot_female": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "antigravity": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",
       "antigravity_female": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",
@@ -17791,6 +17791,10 @@
     "update_artifact": {
       "label": "Bestand bijwerken",
       "description": "Slaat een nieuwe versie van een bestand op."
+    },
+    "generate_image": {
+      "label": "Afbeelding maken",
+      "description": "Maakt een afbeelding op basis van een beschrijving met de OpenAI- of Gemini-sleutel van de workspace en slaat die op in de Drive."
     },
     "list_issues": {
       "label": "Taken bekijken",

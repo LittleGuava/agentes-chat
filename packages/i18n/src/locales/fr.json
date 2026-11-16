@@ -18277,6 +18277,10 @@
       "label": "Mettre à jour un fichier",
       "description": "Enregistre une nouvelle version d'un fichier."
     },
+    "generate_image": {
+      "label": "Générer une image",
+      "description": "Crée une image à partir d'une description avec la clé OpenAI ou Gemini de l'espace de travail et l'enregistre dans le Drive."
+    },
     "list_issues": {
       "label": "Voir les tâches",
       "description": "Liste et ouvre les tâches."

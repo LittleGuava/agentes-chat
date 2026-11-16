@@ -43,7 +43,7 @@ export const BUILTIN_TOOLS: Record<string, string[]> = {
   "context:read": ["search_context", "get_summary", "expand"],
   "memory:write": ["remember", "update_memory", "forget", "save_how_to", "propose_instruction_change"],
   "drive:read": ["read_artifact", "list_artifacts", "share_artifact"],
-  "drive:write": ["create_artifact", "update_artifact"],
+  "drive:write": ["create_artifact", "update_artifact", "generate_image"],
   "issues:read": ["list_issues"],
   "issues:write": ["create_issue", "update_issue", "comment_issue"],
   "calendar:read": ["list_events", "find_free_time"],
@@ -177,6 +177,11 @@ export const BUILTIN_TOOL_INFO: Record<string, { label: string; description: str
   },
   create_artifact: { label: "Create file", description: "Creates a document, table, diff, diagram or page." },
   update_artifact: { label: "Update file", description: "Saves a new version of a file." },
+  generate_image: {
+    label: "Generate image",
+    description:
+      "Makes a picture from a description on the workspace's OpenAI or Gemini key and saves it to the Drive.",
+  },
   list_issues: { label: "View issues", description: "Lists and opens issues." },
   create_issue: { label: "Create issue", description: "Creates an issue with acceptance criteria." },
   update_issue: { label: "Update issue", description: "Changes status or priority, or links a PR." },

@@ -52,6 +52,7 @@ import {
   createGitHubAppSettings,
   createGitToolSource,
   createHandOffToolSource,
+  createImageToolSource,
   createIssueToolSource,
   createJevJudge,
   createJevKey,
@@ -92,6 +93,7 @@ import {
   envSpeechEngines,
   feedbackDestination,
   type GatewayEmbeddings,
+  type GatewayImages,
   type GitProxyDeps,
   GrokBrain,
   getAgentCached,
@@ -135,7 +137,12 @@ import {
   withComposio,
   withJudgeFallback,
 } from "@agenteschat/engine";
-import { createOpenAIEmbeddings, createVoyageEmbeddings, type ModelProvider } from "@agenteschat/providers";
+import {
+  createImageProviders,
+  createOpenAIEmbeddings,
+  createVoyageEmbeddings,
+  type ModelProvider,
+} from "@agenteschat/providers";
 import { type AppleTokenRevoker, appleTokenRevoker } from "./auth";
 import { hookConfig } from "./routes/app/context";
 import { version } from "./version";
@@ -155,6 +162,8 @@ export interface EngineOptions {
   appleRevoke?: AppleTokenRevoker;
   http?: typeof fetch;
   embeddings?: GatewayEmbeddings;
+  /** Tests: fake image providers (ADR 0188); absent: OpenAI's and Gemini's own. */
+  imageProviders?: GatewayImages["providers"];
   /** Latency measurements from runs (logged by the server). */
   onTiming?(name: string, ms: number, attrs: Record<string, unknown>): void;
   /** Tests: fake TypeSafe transport. */
@@ -226,6 +235,8 @@ export function buildEngine(o: EngineOptions) {
     },
     embeddings,
     errors: o.errors,
+    // Pictures for every brain (ADR 0188), on the workspace's own OpenAI or Gemini key.
+    images: { providers: o.imageProviders ?? createImageProviders(), perDay: config.IMAGES_PER_DAY },
   });
   const context: ContextDeps = {
     db,
@@ -435,6 +446,8 @@ export function buildEngine(o: EngineOptions) {
       createReactToolSource({ pubsub: adapters.pubsub }),
       // A GIF or the agent's sticker when asked (ADR 0091): listed by the workspace's switches and the agent's.
       createMediaToolSource({ pubsub: adapters.pubsub, gifs: adapters.gifs ?? null }),
+      // A picture from words, saved in the Drive, while the workspace has an image provider's key (ADR 0188).
+      createImageToolSource({ gateway, artifacts }),
       // Long work goes to the background and reports back by itself, on every brain (ADR 0121).
       createWorkToolSource({ pubsub: adapters.pubsub }),
       // An agent comes back to a conversation by itself (a CI run, a deploy), instead of promising to.

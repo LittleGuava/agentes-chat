@@ -18051,6 +18051,11 @@ export const ptBR = {
       label: "Atualizar arquivo",
       description: "Salva uma nova versão de um arquivo.",
     },
+    generate_image: {
+      label: "Gerar imagem",
+      description:
+        "Cria uma imagem a partir de uma descrição, na chave da OpenAI ou do Gemini do workspace, e salva no Drive.",
+    },
     list_issues: {
       label: "Ver tarefas",
       description: "Lista e abre tarefas.",

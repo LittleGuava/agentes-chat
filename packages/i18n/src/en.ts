@@ -18117,6 +18117,11 @@ export const en = {
       label: "Update file",
       description: "Saves a new version of a file.",
     },
+    generate_image: {
+      label: "Generate image",
+      description:
+        "Makes a picture from a description on the workspace's OpenAI or Gemini key and saves it to the Drive.",
+    },
     list_issues: {
       label: "View tasks",
       description: "Lists and opens tasks.",

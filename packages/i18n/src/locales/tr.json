@@ -17652,6 +17652,10 @@
       "label": "Dosyayı güncelle",
       "description": "Bir dosyanın yeni sürümünü kaydeder."
     },
+    "generate_image": {
+      "label": "Görsel oluştur",
+      "description": "Bir açıklamadan, çalışma alanının OpenAI veya Gemini anahtarıyla görsel oluşturur ve Drive'a kaydeder."
+    },
     "list_issues": {
       "label": "Görevleri gör",
       "description": "Görevleri listeler ve açar."

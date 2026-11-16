@@ -17142,6 +17142,10 @@
       "label": "ファイルを更新",
       "description": "ファイルの新しいバージョンを保存します。"
     },
+    "generate_image": {
+      "label": "画像を生成",
+      "description": "説明から画像を作成し、ワークスペースの OpenAI または Gemini のキーで生成して Drive に保存します。"
+    },
     "list_issues": {
       "label": "タスクを見る",
       "description": "タスクを一覧表示して開きます。"

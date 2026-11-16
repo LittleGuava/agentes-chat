@@ -161,6 +161,7 @@ const BUILTIN: Record<string, ActivityKind> = {
   list_artifacts: "readingDrive",
   create_artifact: "writingDrive",
   update_artifact: "writingDrive",
+  generate_image: "creatingImage",
   search_context: "searchingMemory",
   expand: "searchingMemory",
   get_summary: "searchingMemory",
