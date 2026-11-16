@@ -15672,6 +15672,30 @@
   "memory.lowTrust": {
     "value": "External source, not trusted"
   },
+  "memory.until": {
+    "value": "Until {{date}}"
+  },
+  "memory.untilTitle": {
+    "value": "Agents use it through this day, then stop."
+  },
+  "memory.ended": {
+    "value": "Ended {{date}}"
+  },
+  "memory.endedTitle": {
+    "value": "Past its end: agents no longer use it. Give it a new date to bring it back."
+  },
+  "memory.validUntil": {
+    "value": "Valid until"
+  },
+  "memory.validUntilHelp": {
+    "value": "After this day agents stop using it; it stays here, marked. Leave it empty for no end."
+  },
+  "memory.noEnd": {
+    "value": "No end"
+  },
+  "memory.clearEnd": {
+    "value": "Remove the end"
+  },
   "memory.confirm": {
     "value": "Confirm"
   },

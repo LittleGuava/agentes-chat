@@ -6819,6 +6819,16 @@ export const en = {
     unverifiedTitle: "Only agents said this. It goes into context as a marked hint.",
     pinned: "Always in context",
     lowTrust: "External source, not trusted",
+    /** A memory with an end (ADR 0028 §2): agents use it through that day. */
+    until: "Until {{date}}",
+    untilTitle: "Agents use it through this day, then stop.",
+    /** A memory past its end: kept and shown, no longer used by agents. */
+    ended: "Ended {{date}}",
+    endedTitle: "Past its end: agents no longer use it. Give it a new date to bring it back.",
+    validUntil: "Valid until",
+    validUntilHelp: "After this day agents stop using it; it stays here, marked. Leave it empty for no end.",
+    noEnd: "No end",
+    clearEnd: "Remove the end",
     confirm: "Confirm",
     confirmTitle: "Say it's right: agents then use it as trusted.",
     confirmed: "Confirmed",

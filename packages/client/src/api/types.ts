@@ -2457,6 +2457,10 @@ export interface Memory {
   playbook?: boolean;
   /** Another memory says otherwise, until a person decides. */
   disputed?: boolean;
+  /** When it stops holding (ISO); agents no longer use it from then on. Null: no end. Older servers leave it out. */
+  validUntil?: string | null;
+  /** Past `validUntil`: kept and shown, marked. */
+  expired?: boolean;
   /** Where it was learned. */
   channelId?: string | null;
   /** A `rule` the viewer may remove: its giver, the agent's owner or an admin. */

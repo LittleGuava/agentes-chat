@@ -1399,7 +1399,8 @@ export interface ApiClient {
     listTeam(orgId: string): Promise<Memory[]>;
     /** Tornar do time (ADR 0167): an agent's memory becomes the team's; its copies are archived. */
     makeTeam(orgId: string, memoryId: string): Promise<Memory>;
-    edit(orgId: string, memoryId: string, text: string): Promise<Memory>;
+    /** `validUntil`: when it stops holding (ISO), null for no end; left out, the end it had. */
+    edit(orgId: string, memoryId: string, text: string, validUntil?: string | null): Promise<Memory>;
     setPinned(orgId: string, memoryId: string, pinned: boolean): Promise<Memory>;
     setArchived(orgId: string, memoryId: string, archived: boolean): Promise<Memory>;
     /** Confirmar (ADR 0167): trusted and verified, by who may edit it or the person who said it. */

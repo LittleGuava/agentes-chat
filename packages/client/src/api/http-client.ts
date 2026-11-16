@@ -1295,8 +1295,8 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
             query: { about: filter?.about },
           })
         ).memories,
-      edit: (orgId, id, text) =>
-        request<Memory>(`${org(orgId)}/memories/${enc(id)}`, { method: "PATCH", json: { text } }),
+      edit: (orgId, id, text, validUntil) =>
+        request<Memory>(`${org(orgId)}/memories/${enc(id)}`, { method: "PATCH", json: { text, validUntil } }),
       setPinned: (orgId, id, pinned) =>
         request<Memory>(`${org(orgId)}/memories/${enc(id)}`, { method: "PATCH", json: { pinned } }),
       setArchived: (orgId, id, archived) =>

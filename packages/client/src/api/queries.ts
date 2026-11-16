@@ -4092,13 +4092,13 @@ export function useMemoryAction(orgId: string, agentId: string) {
   return useMutation({
     mutationFn: (
       action:
-        | { type: "edit"; id: string; text: string }
+        | { type: "edit"; id: string; text: string; validUntil?: string | null }
         | { type: "pin"; id: string; pinned: boolean }
         | { type: "archive"; id: string; archived: boolean }
         | { type: "confirm"; id: string }
         | { type: "team"; id: string },
     ) => {
-      if (action.type === "edit") return api.memory.edit(orgId, action.id, action.text);
+      if (action.type === "edit") return api.memory.edit(orgId, action.id, action.text, action.validUntil);
       if (action.type === "pin") return api.memory.setPinned(orgId, action.id, action.pinned);
       if (action.type === "confirm") return api.memory.confirm(orgId, action.id);
       if (action.type === "team") return api.memory.makeTeam(orgId, action.id);
