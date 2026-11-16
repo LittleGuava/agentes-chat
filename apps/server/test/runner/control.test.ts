@@ -1402,3 +1402,44 @@ test("the person's own screen: off until the app turns it on, never by the serve
   c.input.end();
   await c.done;
 });
+
+test("a person's Chrome isn't lent while agents here may run programs, and is given back when one may (ADR 0202)", async () => {
+  const { home } = pairedHome();
+  const chrome = new FakeChrome();
+  try {
+    const c = control(home);
+    const s = await c.connect();
+    // Nothing lent: the hello says so, so a server never keeps a lending from before a restart.
+    expect(s.of("hello")[0]?.myChrome).toEqual([]);
+    s.frame({ type: "agents", agents: [{ id: AGENT.id, handle: "dev", name: "Dev", look: { color: "amber" } }] });
+    await waitFor(() => c.events("status").some((e) => e.kind === "status" && e.status.agents.length === 1));
+    const lend = { type: "mychrome.connect", agentId: AGENT.id, port: chrome.port, minutes: 30 };
+
+    // Commands on: any agent could dial the port itself, so the runner never even dials it.
+    await c.data({ type: "tools.set", tool: "commands", on: true });
+    const refused = await c.request(lend);
+    expect(refused).toMatchObject({ ok: false, error: { code: "not_allowed" } });
+    expect(refused.ok ? "" : refused.error.message).toContain("commands");
+    expect(chrome.log).toEqual([]);
+    await c.data({ type: "tools.set", tool: "commands", on: false });
+
+    // A coding CLI counts the same: it runs as the person too.
+    await c.data({ type: "tools.set", tool: "claude", on: true });
+    expect(await c.request(lend)).toMatchObject({ ok: false, error: { code: "not_allowed" } });
+    await c.data({ type: "tools.set", tool: "claude", on: false });
+
+    // All off: lent, and the server learns who holds it and until when.
+    await c.data(lend);
+    await waitFor(() => s.of("mychrome.changed").length === 1);
+    expect(s.of("mychrome.changed")[0]).toMatchObject({ lent: [{ agentId: AGENT.id, expiresAt: expect.any(String) }] });
+
+    // Commands go on while it's lent: given back at once, and the server hears it.
+    await c.data({ type: "tools.set", tool: "commands", on: true });
+    await waitFor(() => s.of("mychrome.changed").length === 2);
+    expect(s.of("mychrome.changed")[1]).toEqual({ type: "mychrome.changed", lent: [] });
+    expect(await c.data({ type: "mychrome.list" })).toEqual({ sessions: [] });
+    c.input.end();
+  } finally {
+    chrome.stop();
+  }
+});

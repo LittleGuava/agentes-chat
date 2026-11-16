@@ -13965,6 +13965,8 @@
       "desktop_read": "Ekranı oku",
       "desktop_screenshot": "Ekran görüntüsü al",
       "desktop_ask_person": "Birinden bilgisayarı devralmasını iste",
+      "my_chrome_open": "Kişinin Chrome'unda sayfa aç",
+      "my_chrome_read": "Kişinin Chrome'undaki sayfayı oku",
       "computer_use": "Bilgisayarı kullan",
       "computer_status": "Bilgisayarı kontrol et",
       "left_click": "Tıkla",
@@ -18555,6 +18557,14 @@
     "desktop_screenshot": {
       "label": "Masaüstünün ekran görüntüsünü al",
       "description": "Ajanın masaüstünün görüntüsünü kendi klasörüne kaydeder."
+    },
+    "my_chrome_open": {
+      "label": "Kişinin Chrome'unda sayfa aç",
+      "description": "Birinin ödünç verdiği Chrome'da, ajanın kendi sekmesinde, o kişi olarak oturum açılmış şekilde bir sayfa açar."
+    },
+    "my_chrome_read": {
+      "label": "Kişinin Chrome'undaki sayfayı oku",
+      "description": "Birinin ödünç verdiği Chrome'da, ajanın kendi sekmesindeki sayfayı okur."
     }
   },
   "browser": {
@@ -19413,6 +19423,10 @@
     },
     "closeAsk": "{{name}}, geri dönmeniz için 2 dakika bekler.",
     "openAccess": "Araçlar ve erişimi aç",
+    "myChrome": {
+      "title": "Ödünç tarayıcı",
+      "line": "{{name}} kişisinin tarayıcısı, onun hesaplarıyla, {{time}} saatine kadar"
+    },
     "kept": {
       "title": "Çalışır tutuluyor",
       "meta": "{{name}} · {{since}} itibarıyla · {{until}}",

@@ -70,6 +70,7 @@ import {
   createMissionRunToolSource,
   createMissionToolSource,
   createModelGateway,
+  createMyChromeToolSource,
   createPassToolSource,
   createPermissionToolSource,
   createPhoneToolSource,
@@ -573,6 +574,8 @@ export function buildEngine(o: EngineOptions) {
         vision,
         publicUrl: config.PUBLIC_URL,
       }),
+      // A person's own Chrome, lent to an agent from the desktop app (ADR 0202): only in the lender's own runs.
+      createMyChromeToolSource({ machines: { hub: machineHub } }),
       // Git through our proxy (ADR 0024): connected machines clone and push through the runner's `git.sync`
       // (only our credential reaches the machine; nothing global changes there).
       createGitToolSource({

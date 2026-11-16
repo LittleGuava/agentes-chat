@@ -1,8 +1,8 @@
 import { afterEach, expect, test } from "bun:test";
-import type { AgentScope, MachineRequest } from "@agenteschat/adapters/machine-protocol";
+import type { AgentScope, MachineRequest, MyChromeLent } from "@agenteschat/adapters/machine-protocol";
 import { RunnerError } from "../../runner/errors";
 import { type HandlerContext, handleRequest } from "../../runner/handlers";
-import { MyChromes } from "../../runner/my-chrome";
+import { MyChromes, reachesLentChrome } from "../../runner/my-chrome";
 import { FakeChrome } from "./fake-chrome";
 
 const ada: AgentScope = { id: "agent-ada", handle: "ada", name: "Ada" };
@@ -10,12 +10,15 @@ const bea: AgentScope = { id: "agent-bea", handle: "bea", name: "Bea" };
 
 const started: Array<{ chrome: FakeChrome; chromes: MyChromes }> = [];
 
-function setup(opts: { ownPorts?: number[]; system?: boolean } = {}) {
+function setup(opts: { ownPorts?: number[]; system?: boolean; guard?: () => string | null } = {}) {
   const chrome = new FakeChrome();
   chrome.pages.set("https://shop.example/orders", { title: "Your orders", text: "Order 42: shipped" });
   let now = Date.parse("2026-11-15T12:00:00Z");
   const lines: string[] = [];
+  const changes: MyChromeLent[][] = [];
   const chromes = new MyChromes({
+    ...(opts.guard ? { guard: opts.guard } : {}),
+    onChange: (lent) => changes.push(lent),
     ownPorts: () => new Set(opts.ownPorts ?? []),
     systemMode: () => opts.system === true,
     now: () => now,
@@ -27,6 +30,7 @@ function setup(opts: { ownPorts?: number[]; system?: boolean } = {}) {
     chrome,
     chromes,
     lines,
+    changes,
     later: (ms: number) => {
       now += ms;
     },
@@ -321,7 +325,7 @@ test("a wrong port leaves the agent's good session as it was", async () => {
     other.stop();
   }
   expect(chromes.list()).toEqual([expect.objectContaining({ agentId: "agent-ada", port: chrome.port })]);
-  expect(lines).toEqual(["Your Chrome: connected on port " + chrome.port + " for 5 min"]);
+  expect(lines).toEqual([`Your Chrome: connected on port ${chrome.port} for 5 min`]);
 });
 
 test("two agents lent the same Chrome at once: one gets it, the other is refused", async () => {
@@ -333,4 +337,59 @@ test("two agents lent the same Chrome at once: one gets it, the other is refused
   expect(both.filter((r) => r.status === "fulfilled")).toHaveLength(1);
   expect(both.filter((r) => r.status === "rejected")).toHaveLength(1);
   expect(chromes.list()).toHaveLength(1);
+});
+
+// ── The guard (ADR 0202 addendum): no agent runs its own programs as the person while their Chrome is lent ────
+
+test("lending is refused while an agent may run its own programs here, and nothing is dialed", async () => {
+  let why: string | null = "Commands are on";
+  const { chrome, chromes, changes } = setup({ guard: () => why });
+  const err = await refusal(chromes.connect({ agent: ada, port: chrome.port, minutes: 5 }));
+  expect(err.code).toBe("not_allowed");
+  expect(err.message).toBe("Commands are on");
+  expect(chrome.log).toHaveLength(0);
+  expect(changes).toEqual([]);
+  why = null;
+  await chromes.connect({ agent: ada, port: chrome.port, minutes: 5 });
+  expect(chromes.list()).toHaveLength(1);
+});
+
+test("who holds it is told on every change: lent, replaced, ended", async () => {
+  const { chrome, chromes, changes, later } = setup();
+  await chromes.connect({ agent: ada, port: chrome.port, minutes: 10 });
+  expect(changes.at(-1)).toEqual([{ agentId: "agent-ada", expiresAt: "2026-11-15T12:10:00.000Z" }]);
+  chromes.disconnect("agent-ada");
+  expect(changes.at(-1)).toEqual([]);
+  await chromes.connect({ agent: ada, port: chrome.port, minutes: 10 });
+  later(10 * 60_000 + 1);
+  expect(chromes.lent()).toEqual([]);
+  expect(changes.at(-1)).toEqual([]);
+});
+
+test("the lent Chrome's debugging port is off limits to the agents' own browsers, on every loopback spelling", async () => {
+  const { chrome, chromes } = setup();
+  expect(chromes.lentPorts()).toEqual(new Set());
+  await chromes.connect({ agent: ada, port: chrome.port, minutes: 5 });
+  const ports = chromes.lentPorts();
+  expect(ports).toEqual(new Set([chrome.port]));
+  for (const url of [
+    `http://127.0.0.1:${chrome.port}/json/list`,
+    `http://localhost:${chrome.port}/json`,
+    `http://127.1.2.3:${chrome.port}/`,
+    `http://[::1]:${chrome.port}/json/version`,
+    `http://0.0.0.0:${chrome.port}/json`,
+    `ws://127.0.0.1:${chrome.port}/devtools/browser/x`,
+    `http://LOCALHOST.:${chrome.port}/json`,
+  ]) {
+    expect(reachesLentChrome(url, ports)).toBe(true);
+  }
+  for (const url of [
+    `http://127.0.0.1:${chrome.port + 1}/json`,
+    `https://example.com:${chrome.port}/`,
+    "https://shop.example/orders",
+    "about:blank",
+    "not a url",
+  ]) {
+    expect(reachesLentChrome(url, ports)).toBe(false);
+  }
 });

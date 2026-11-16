@@ -532,6 +532,23 @@
     "screenName": "你的屏幕",
     "screenDesc": "在你交给它们的任务中，智能体可以请求查看和使用这台{{device}}的屏幕。每次都由你在这里允许。移动鼠标或按键盘会让它们暂停，点“停止”即可结束。"
   },
+  "myChrome": {
+    "title": "你的 Chrome",
+    "lendName": "把你的 Chrome 借给智能体",
+    "lendAbout": "在某个端口开启远程调试来启动 Chrome，并使用你自己的、已登录智能体所需网站的个人资料文件夹。智能体会以你的身份在它自己的标签页中打开页面，永远看不到你的其他标签页。Chrome 以这种方式运行期间，这台 {{device}} 上的任何程序都能访问它。",
+    "blocked": "请先关闭命令和编程程序。只要其中任何一个开着，智能体就可能访问你的整个 Chrome。",
+    "agent": "智能体",
+    "port": "端口",
+    "minutes": "分钟",
+    "lend": "借出",
+    "lent": "{{agent}} 可以使用你的 Chrome 直到 {{time}}",
+    "until": "直到 {{time}} · 端口 {{port}}",
+    "disconnect": "断开",
+    "disconnectOf": "断开 {{agent}}",
+    "badPort": "请填写 Chrome 监听的端口，范围 1 到 65535。",
+    "badMinutes": "借出时长为 1 到 {{max}} 分钟。",
+    "noAnswer": "Chrome 没有在端口 {{port}} 上响应。请在该端口开启远程调试启动它，然后重试。"
+  },
   "notch": {
     "label": "刘海中的智能体",
     "here": "在这台 {{device}} 上",

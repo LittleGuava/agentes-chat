@@ -18,6 +18,7 @@ import {
 } from "@agenteschat/adapters/runner-control";
 import type { Host, RunnerInfo } from "../host/types";
 import { ControlClient, type HelloLine } from "./client";
+import { lendBlockers } from "./my-chrome";
 
 export interface Home {
   homeId: string;
@@ -375,12 +376,33 @@ export class DesktopStore {
 
   private patch(homeId: string, changes: Partial<Home>) {
     let changed = false;
+    let blockerOn = false;
     const homes = this.snap.homes.map((h) => {
       if (h.homeId !== homeId) return h;
       changed = true;
-      return { ...h, ...changes };
+      const next = { ...h, ...changes };
+      if ("access" in changes) {
+        const before = lendBlockers([h]);
+        blockerOn = lendBlockers([next]).some((tool) => !before.includes(tool));
+      }
+      return next;
     });
     if (changed) this.set({ homes });
+    if (blockerOn) this.giveBackChrome();
+  }
+
+  /**
+   * ADR 0202 §8: a runner gives the person's Chrome back when one of its own program switches goes on, but knows
+   * nothing of the other organizations' runners here, whose agents run as the same person. Every runner's access
+   * lands here, however it changed (Preferences, a new pairing's first tools, the web), so a program switch going on
+   * in any of them ends every lending on this computer.
+   */
+  private giveBackChrome() {
+    for (const h of this.snap.homes) {
+      this.client.request(h.homeId, { type: "mychrome.disconnect" }).catch(() => {
+        // A runner starting, stopping or too old to lend one holds none.
+      });
+    }
   }
 
   private set(changes: Partial<Snapshot>) {

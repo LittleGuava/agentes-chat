@@ -540,6 +540,23 @@
     "screenName": "Votre écran",
     "screenDesc": "Les agents peuvent demander à voir et utiliser l'écran de ce {{device}} pour une tâche que vous leur avez confiée. Vous l'autorisez à chaque fois, ici. Bouger la souris ou le clavier les met en pause, et Arrêter y met fin."
   },
+  "myChrome": {
+    "title": "Votre Chrome",
+    "lendName": "Prêter votre Chrome à un agent",
+    "lendAbout": "Lancez Chrome avec le débogage à distance sur un port, avec un dossier de profil à vous déjà connecté aux sites dont l'agent a besoin. L'agent ouvre des pages dans un onglet à lui, en votre nom, et ne voit jamais vos autres onglets. Tant que Chrome tourne ainsi, n'importe quel programme de ce {{device}} peut y accéder.",
+    "blocked": "Désactivez d'abord Commandes et les programmes de code. Tant que l'un d'eux est actif, un agent pourrait accéder à tout votre Chrome.",
+    "agent": "Agent",
+    "port": "Port",
+    "minutes": "Minutes",
+    "lend": "Prêter",
+    "lent": "{{agent}} peut utiliser votre Chrome jusqu'à {{time}}",
+    "until": "Jusqu'à {{time}} · port {{port}}",
+    "disconnect": "Déconnecter",
+    "disconnectOf": "Déconnecter {{agent}}",
+    "badPort": "Indiquez le port sur lequel Chrome écoute, de 1 à 65535.",
+    "badMinutes": "Prêtez-le de 1 à {{max}} minutes.",
+    "noAnswer": "Chrome n'a pas répondu sur le port {{port}}. Lancez-le avec le débogage à distance sur ce port et réessayez."
+  },
   "notch": {
     "label": "Les agents dans l'encoche",
     "here": "Sur ce {{device}}",

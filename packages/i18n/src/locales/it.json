@@ -14523,6 +14523,8 @@
       "desktop_read": "Leggi lo schermo",
       "desktop_screenshot": "Fai uno screenshot",
       "desktop_ask_person": "Chiedi a qualcuno di prendere il controllo del computer",
+      "my_chrome_open": "Apri una pagina nel Chrome della persona",
+      "my_chrome_read": "Leggi la pagina nel Chrome della persona",
       "computer_use": "Usa il computer",
       "computer_status": "Controlla il computer",
       "left_click": "Clicca",
@@ -19208,6 +19210,14 @@
     "desktop_screenshot": {
       "label": "Fai uno screenshot del desktop",
       "description": "Salva un'immagine del desktop dell'agente nella sua cartella."
+    },
+    "my_chrome_open": {
+      "label": "Apri una pagina nel Chrome della persona",
+      "description": "Apre una pagina nella scheda dell'agente, nel Chrome che una persona gli ha prestato, con l'accesso di quella persona."
+    },
+    "my_chrome_read": {
+      "label": "Leggi la pagina nel Chrome della persona",
+      "description": "Legge la pagina nella scheda dell'agente, nel Chrome che una persona gli ha prestato."
     }
   },
   "browser": {
@@ -20185,6 +20195,10 @@
     "closeAsk": "{{name}} aspetta 2 min che tu torni.",
     "closeAsk_female": "{{name}} aspetta 2 min che tu torni.",
     "openAccess": "Apri Strumenti e accesso",
+    "myChrome": {
+      "title": "Browser prestato",
+      "line": "Il browser di {{name}}, con i suoi account, fino a {{time}}"
+    },
     "kept": {
       "title": "Mantenuto attivo",
       "meta": "{{name}} · da {{since}} · {{until}}",

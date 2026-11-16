@@ -47,6 +47,7 @@ import {
   storedExecutors,
   storeMachineAccess,
   storeMachineExecutors,
+  storeMachineMyChrome,
   storeMachineToolchains,
 } from "./machine-access";
 import {
@@ -750,7 +751,8 @@ export function createMachineHub(deps: MachineHubDeps) {
         frame.desktopUse ||
         frame.hostDesktop ||
         frame.claudeLoginMethods ||
-        frame.toolchains
+        frame.toolchains ||
+        frame.myChrome
           ? {
               executors: {
                 // A runner that hasn't looked yet leaves the CLIs out: the last ones stored stand.
@@ -772,6 +774,9 @@ export function createMachineHub(deps: MachineHubDeps) {
                 ...((frame.toolchains ?? machine.executors?.toolchains)
                   ? { toolchains: { ...(frame.toolchains ?? machine.executors?.toolchains) } }
                   : {}),
+                // Protocol 82 (ADR 0202): who holds the person's lent Chrome. A restarted runner holds none, and an
+                // older one can't lend it, so what its hello leaves out isn't kept.
+                ...(frame.myChrome ? { myChrome: frame.myChrome } : {}),
               },
             }
           : {}),
@@ -1608,6 +1613,10 @@ export function createMachineHub(deps: MachineHubDeps) {
       } else if (frame.type === "toolchains.changed") {
         await storeMachineToolchains({ db, pubsub }, conn.machineId, frame.toolchains).catch((error) =>
           deps.log?.warn("toolchains.changed failed", { machineId: conn.machineId, error: String(error) }),
+        );
+      } else if (frame.type === "mychrome.changed") {
+        await storeMachineMyChrome({ db, pubsub }, conn.machineId, frame.lent).catch((error) =>
+          deps.log?.warn("mychrome.changed failed", { machineId: conn.machineId, error: String(error) }),
         );
       } else if (frame.type === "phones.changed") {
         if (conn.protocol >= PHONES_PROTOCOL && conn.orgId) {

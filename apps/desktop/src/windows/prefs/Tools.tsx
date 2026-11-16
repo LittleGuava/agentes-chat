@@ -32,6 +32,7 @@ import { CommandCopy, OrgTile } from "../../ui/bits";
 import { CardTitle, hintFor, PrefCard, PrefHead, PrefRow } from "../../ui/settings";
 import { useToast } from "../../ui/Toast";
 import { ToolAccounts } from "./Accounts";
+import { LendChrome } from "./LendChrome";
 
 type Cli = "claude" | "codex" | "cursor" | "opencode" | "grok" | "antigravity" | "copilot";
 
@@ -344,6 +345,8 @@ export function Tools() {
       </PrefCard>
 
       <ToolAccounts homes={homes} executors={executors} />
+
+      <LendChrome homes={homes} />
 
       <CardTitle>{t("desktop.prefs.tools.protection")}</CardTitle>
       <PrefCard>

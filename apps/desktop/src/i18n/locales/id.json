@@ -532,6 +532,23 @@
     "screenName": "Layar Anda",
     "screenDesc": "Agen dapat meminta untuk melihat dan menggunakan layar {{device}} ini dalam tugas yang Anda berikan. Anda mengizinkannya setiap kali, di sini. Menggerakkan mouse atau keyboard akan menjeda mereka, dan Hentikan mengakhirinya."
   },
+  "myChrome": {
+    "title": "Chrome kamu",
+    "lendName": "Pinjamkan Chrome kamu ke agen",
+    "lendAbout": "Jalankan Chrome dengan debugging jarak jauh di sebuah port, dengan folder profil milikmu yang sudah masuk ke situs yang dibutuhkan agen. Agen membuka halaman di tab miliknya sendiri, sebagai kamu, dan tidak pernah melihat tab kamu yang lain. Selama Chrome berjalan seperti itu, program apa pun di {{device}} ini bisa menjangkaunya.",
+    "blocked": "Matikan dulu Perintah dan program koding. Selama salah satunya menyala, agen bisa menjangkau seluruh Chrome kamu.",
+    "agent": "Agen",
+    "port": "Port",
+    "minutes": "Menit",
+    "lend": "Pinjamkan",
+    "lent": "{{agent}} bisa memakai Chrome kamu sampai {{time}}",
+    "until": "Sampai {{time}} · port {{port}}",
+    "disconnect": "Putuskan",
+    "disconnectOf": "Putuskan {{agent}}",
+    "badPort": "Isi port tempat Chrome mendengarkan, dari 1 sampai 65535.",
+    "badMinutes": "Pinjamkan selama 1 sampai {{max}} menit.",
+    "noAnswer": "Chrome tidak menjawab di port {{port}}. Jalankan dengan debugging jarak jauh di port itu lalu coba lagi."
+  },
   "notch": {
     "label": "Agen di notch",
     "here": "Di {{device}} ini",

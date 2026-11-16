@@ -580,6 +580,25 @@ export const desktopPtBR = {
     screenDesc:
       "Os agentes podem pedir para ver e usar a tela deste {{device}} numa tarefa que você deu. Você permite a cada vez, aqui. Mexer no mouse ou no teclado pausa, e Parar encerra.",
   },
+  myChrome: {
+    title: "Seu Chrome",
+    lendName: "Emprestar seu Chrome a um agente",
+    lendAbout:
+      "Abra o Chrome com depuração remota numa porta, com uma pasta de perfil sua já conectada aos sites de que o agente precisa. O agente abre páginas numa aba só dele, como você, e nunca vê suas outras abas. Enquanto o Chrome roda assim, qualquer programa neste {{device}} consegue chegar nele.",
+    blocked:
+      "Desligue Comandos e os programas de código antes. Com qualquer um deles ligado, um agente conseguiria chegar no seu Chrome inteiro.",
+    agent: "Agente",
+    port: "Porta",
+    minutes: "Minutos",
+    lend: "Emprestar",
+    lent: "{{agent}} pode usar seu Chrome até {{time}}",
+    until: "Até {{time}} · porta {{port}}",
+    disconnect: "Desconectar",
+    disconnectOf: "Desconectar {{agent}}",
+    badPort: "Informe a porta em que o Chrome escuta, de 1 a 65535.",
+    badMinutes: "Empreste por 1 a {{max}} minutos.",
+    noAnswer: "O Chrome não respondeu na porta {{port}}. Abra-o com depuração remota nessa porta e tente de novo.",
+  },
   notch: {
     label: "Agentes no notch",
     here: "Neste {{device}}",

@@ -1,6 +1,6 @@
 # 0202. The person's own Chrome: an agent works, with the person's sign-ins, in a tab of its own in a Chrome they lend it
 
-- Status: Accepted (2026-11-15; built: the runner and the wire, runner protocol 82. Run against a fake Chrome speaking the DevTools protocol on a loopback port (`apps/server/test/runner/fake-chrome.ts`), through the runner's request handler and through the desktop app's control channel; and against a throwaway headless Google Chrome 157 on Windows 11 (a new profile folder, port 0): lent by `/json/version` and by `DevToolsActivePort`'s path, a page opened and read, a redirect off the agent's sites blanked, listed and disconnected. Not yet run: a person's headed Chrome, a runner paired with a real server. Not built: the agent's tools, the server's audit rows, the apps' screens; see Later.)
+- Status: Accepted (2026-11-15; built: the runner and the wire, runner protocol 82. Run against a fake Chrome speaking the DevTools protocol on a loopback port (`apps/server/test/runner/fake-chrome.ts`), through the runner's request handler and through the desktop app's control channel; and against a throwaway headless Google Chrome 157 on Windows 11 (a new profile folder, port 0): lent by `/json/version` and by `DevToolsActivePort`'s path, a page opened and read, a redirect off the agent's sites blanked, listed and disconnected. Not yet run: a person's headed Chrome, a runner paired with a real server. The guard, the agent's tools and the apps' screens: see the addendum of 2026-11-16.)
 - Date: 2026-11-15
 - Extends: ADR 0025 (connected computers), ADR 0036 (access lives on the machine; the control channel), ADR 0040 (the agent browser), ADR 0133 (agents' browsers on Google Chrome)
 - Amends: ADR 0133's "the person's own Chrome profile is never read or changed", which stays true of every agent's own browser; this ADR adds a separate way in, only by the person's hand, described below
@@ -69,11 +69,45 @@ Each step is a line of the computer's activity log (`kind: "access"`), which the
 - The person's default profile isn't reachable this way (Chrome 136): the Chrome they lend runs on a profile folder they chose and signed in to. That is the safer shape, and the one this ADR builds on.
 - An agent using the person's Chrome acts as the person on those sites. Everything an agent does there carries the person's name, so the consent is per agent, per time, on the computer, and every step is in the activity log.
 - The person's Chrome, started with a debugging port, is reachable by any program the person runs as themselves on that computer for as long as it runs that way, ours or not. That is Chrome's own property; the app must say so when it asks (Later).
-- That includes the agents themselves. Outside system mode every agent's commands and computer brains run as the person's own OS user (ADR 0057 is what separates them), so any agent with commands on (`access.tools.commands`) on that computer can dial the port and speak raw DevTools to the whole browser, whether or not it was lent it. The tab of its own and the five methods hold only for the runner's path. This slice adds no guard against it: the port is open because the person opened it, before and apart from any lending. What the app must do about it (warn when commands are on for any agent, or refuse to lend then) is decided with the app's screen (Later).
+- That includes the agents themselves. Outside system mode every agent's commands and computer brains run as the person's own OS user (ADR 0057 is what separates them), so any agent with commands on (`access.tools.commands`) on that computer can dial the port and speak raw DevTools to the whole browser, whether or not it was lent it. The tab of its own and the five methods hold only for the runner's path. The guard against it is the addendum's §8.
+
+## Addendum (2026-11-16): the guard, the agent's tools and the apps
+
+### 8. The guard: no lending while any agent here may run programs
+
+Outside system mode, an agent that may run programs runs them as the person, and a program the person runs reaches the debugging port with no tab of its own. Refusing to lend only while *another* agent has commands on isn't enough: the agent lent the Chrome could dial the port itself. So:
+
+- The runner refuses `mychrome.connect` (`not_allowed`, before dialing anything, and again right before a session is kept) while Commands or any coding CLI switch (Claude Code, Codex, Cursor, OpenCode, Grok, Antigravity, Copilot) is on in that runner (`myChromeGuard` in `daemon.ts`). The coding CLIs count because each runs commands of its own in the agent's folder even with Commands off. The control channel gains the code `not_allowed`.
+- Turning one of them on while a Chrome is lent gives it back at once ("given back: an agent here may run programs now").
+- A runner knows only its own switches, and each organization on the computer has its own runner, whose agents run as the same person. The other half is the desktop app's, the parent of every runner that can be lent a Chrome (§1): Lend stays off while any organization's runner has one on (Commands is each one's own switch), and when a runner's access shows one of them newly on, however it went on (Preferences, a new pairing's first tools, the web), the app sends every runner `mychrome.disconnect`. That is the one place every runner's access reaches the app (`DesktopStore`, on `access.changed` and each status).
+- Every agent's own browser is kept off a lent Chrome's port (`BrowserManager.lentPorts`, `reachesLentChrome`): `http://127.0.0.1:<port>/json/list` would list the person's tabs and their DevTools endpoints, with a site list or without.
+- Not covered, and said in the app's ⓘ: any other program the person runs while Chrome listens on a port. That is Chrome's own property (Consequences).
+
+A narrower guard (only an agent other than the lent one) was rejected for the reason above. A stronger one (lending only in system mode, where agents are separate OS users) isn't possible: in system mode there is no person's Chrome to lend (§1).
+
+### 9. Who holds it reaches the server
+
+`hello.myChrome` (always said at protocol 82, empty when nothing is lent) and the frame `mychrome.changed` (the whole list, after a lending starts or ends) carry agent ids and expiry times only (`parseMyChromeLent`: never a port or an address). The hub keeps them in `machines.executors.myChrome` (`storeMachineMyChrome`, no migration). A hello without it (an older runner) drops what was kept. The machine view shows it as `myChrome` only while the computer answers, outside system mode, and only lendings that haven't ended.
+
+### 10. The agent's tools
+
+`my_chrome_open` (`url`) and `my_chrome_read`, under `browser:use`, in their own tool source (`packages/engine/src/browser/my-chrome.ts`), sending `mychrome.act` with the agent's own sites (`browserAllowedDomains`). They are offered, and checked again on every call (`myChromeLending`), only while all of these hold:
+
+- the agent's computer is at protocol 82 or later, not in system mode, and connected by a person (`pairedByUserId`);
+- that computer says this agent holds the lent Chrome until a time still ahead;
+- the run's authority (`runAuthorityById`) is a person, and that person is the one who connected the computer: never a routine's run, an unattended run, or a run another person started.
+
+The page's text reaches the model inside `untrustedBlock` (`my_chrome:<host>`). Each call is a `tool.call` audit row, written by the Tool Gateway like every built-in browser tool (area `browser`), with the person behind the run, and never the page's text. `my_chrome_read` only looks (`LOOKS_ONLY`). `my_chrome_open` asks first for an agent that always asks, since a page opened signed in as the person can act. They have no row of their own on the access page: they go on and off with Browser (`UNLISTED_TOOLS`).
+
+### 11. The apps
+
+- Desktop app, Preferences › Tools › Your Chrome (`LendChrome.tsx`): the agent (from the runners that can lend: an older runner, `bad_request`, or one in system mode, `not_allowed`, is left out), the port, the minutes, Lend; each lending with its end time and port, and Disconnect. While a program switch is on, only why (`lendBlockers`).
+- Web, the agent's fact sheet: a row "Lent browser" with whose it is and until when (`lentChromeUntil`), for whoever sees the agent's computer.
 
 ## Later
 
-- **The agent's tools** (engine): `my_chrome_open` and `my_chrome_read` in a tool source of their own, offered only to a run whose authority is the person who paired the computer and lent the Chrome (`authority.ts`; `drivesComputer`), never to a routine or an unattended run, never on another person's request, and only when that computer's runner is at protocol 82 or later. Page text through `untrustedBlock`. Each call a `tool.call` audit row (`agent-audit.ts`) with the host, and a team action (ADR 0064) for anything that changes a page.
+- **The phone and the machine page**: listing and ending lendings there (`mychrome.list`, `mychrome.disconnect` through the server).
+- **A team action** (ADR 0064) for a page opened in the person's Chrome, once the agent can act on pages there.
 - **Acting on the page**: click, fill and press in the agent's tab, through the screen layer (ADR 0054) as a `ScreenSurface` of its own (refs from an accessibility snapshot taken by the runner on that attachment), never a raw method. Typing a Vault login there (ADR 0144) needs its own decision.
 - **The apps**: the desktop app's "Lend my Chrome" (agent, port, time; what it means, said plainly; the live session and Disconnect), the machine page on the web and the phone listing and ending sessions (`mychrome.list`, `mychrome.disconnect`), and a `hello` field so the apps know the runner can.
 - **Finding the port**: reading `DevToolsActivePort` from a profile folder the person points at, instead of typing a port; how newer Chrome asks the person to allow debugging of a running browser, once checked.

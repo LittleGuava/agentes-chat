@@ -9,6 +9,7 @@ import {
   MACHINE_TOKEN_PREFIX,
   type MachineAgent,
   MIN_RUNNER_PROTOCOL,
+  MY_CHROME_PROTOCOL,
   type PubSub,
   REMOTE_PAUSE_PROTOCOL,
 } from "@agenteschat/adapters";
@@ -594,6 +595,14 @@ async function machineViews(db: Database, actorId: string, orgId: string, only?:
             code: m.executors.desktopUse.code ?? null,
           }
         : null,
+      /**
+       * The agents its owner lent their own Chrome to (ADR 0202), and until when: only while it answers, never in system
+       * mode, and only what hasn't ended. Agent ids and times only, for everyone who sees the computer.
+       */
+      myChrome:
+        !managed && machineOnline(m, now) && m.protocol >= MY_CHROME_PROTOCOL && m.executors?.mode !== "system"
+          ? (m.executors?.myChrome ?? []).filter((l) => Date.parse(l.expiresAt) > now.getTime())
+          : [],
       /** This person may rename, delete or reduce its access. */
       canManage: admin || mine,
       createdAt: m.createdAt.toISOString(),

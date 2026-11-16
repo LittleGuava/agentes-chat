@@ -1466,6 +1466,51 @@
   "tools.browserLogins": {
     "value": "Logins an agent makes stay on this {{device}}, in its folder. Use only test accounts or the agent's own."
   },
+  "myChrome.title": {
+    "value": "Your Chrome"
+  },
+  "myChrome.lendName": {
+    "value": "Lend your Chrome to an agent"
+  },
+  "myChrome.lendAbout": {
+    "value": "Start Chrome with remote debugging on a port, with a profile folder of yours signed in to the sites the agent needs. The agent opens pages in a tab of its own, as you, and never sees your other tabs. While Chrome runs that way, any program on this {{device}} can reach it."
+  },
+  "myChrome.blocked": {
+    "value": "Turn off Commands and the coding programs first. While any of them is on, an agent could reach your whole Chrome."
+  },
+  "myChrome.agent": {
+    "value": "Agent"
+  },
+  "myChrome.port": {
+    "value": "Port"
+  },
+  "myChrome.minutes": {
+    "value": "Minutes"
+  },
+  "myChrome.lend": {
+    "value": "Lend"
+  },
+  "myChrome.lent": {
+    "value": "{{agent}} can use your Chrome until {{time}}"
+  },
+  "myChrome.until": {
+    "value": "Until {{time}} · port {{port}}"
+  },
+  "myChrome.disconnect": {
+    "value": "Disconnect"
+  },
+  "myChrome.disconnectOf": {
+    "value": "Disconnect {{agent}}"
+  },
+  "myChrome.badPort": {
+    "value": "Give the port Chrome listens on, from 1 to 65535."
+  },
+  "myChrome.badMinutes": {
+    "value": "Lend it for 1 to {{max}} minutes."
+  },
+  "myChrome.noAnswer": {
+    "value": "Chrome didn't answer on port {{port}}. Start it with remote debugging on that port and try again."
+  },
   "tools.screenName": {
     "value": "Your screen"
   },

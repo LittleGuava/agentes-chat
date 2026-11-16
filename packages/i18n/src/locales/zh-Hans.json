@@ -13575,6 +13575,8 @@
       "desktop_read": "读取屏幕",
       "desktop_screenshot": "截取屏幕",
       "desktop_ask_person": "请人接管电脑",
+      "my_chrome_open": "在对方的 Chrome 中打开页面",
+      "my_chrome_read": "读取对方 Chrome 中的页面",
       "computer_use": "使用电脑",
       "computer_status": "检查电脑状态",
       "left_click": "点击",
@@ -18094,6 +18096,14 @@
     "desktop_screenshot": {
       "label": "桌面截图",
       "description": "把智能体桌面的截图保存到它的文件夹中。"
+    },
+    "my_chrome_open": {
+      "label": "在对方的 Chrome 中打开页面",
+      "description": "在某人借出的 Chrome 里，用智能体自己的标签页打开页面，以那个人的身份登录。"
+    },
+    "my_chrome_read": {
+      "label": "读取对方 Chrome 中的页面",
+      "description": "读取某人借出的 Chrome 里智能体自己标签页中的页面。"
     }
   },
   "browser": {
@@ -19051,6 +19061,10 @@
     "closeAsk": "{{name}} 会等你 2 分钟。",
     "closeAsk_female": "{{name}} 会等你 2 分钟。",
     "openAccess": "打开“工具和权限”",
+    "myChrome": {
+      "title": "借用的浏览器",
+      "line": "{{name}} 的浏览器，以其账号登录，直到 {{time}}"
+    },
     "kept": {
       "title": "保持运行",
       "meta": "{{name}} · 自 {{since}} 起 · {{until}}",

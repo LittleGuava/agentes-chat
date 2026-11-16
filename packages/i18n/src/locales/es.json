@@ -14439,6 +14439,8 @@
       "desktop_read": "Leer la pantalla",
       "desktop_screenshot": "Tomar captura de pantalla",
       "desktop_ask_person": "Pedir a alguien que tome el control de la computadora",
+      "my_chrome_open": "Abrir una página en el Chrome de la persona",
+      "my_chrome_read": "Leer la página en el Chrome de la persona",
       "computer_use": "Usar la computadora",
       "computer_status": "Verificar la computadora",
       "left_click": "Hacer clic",
@@ -19118,6 +19120,14 @@
     "desktop_screenshot": {
       "label": "Tomar una captura del escritorio",
       "description": "Guarda una imagen del escritorio del agente en su carpeta."
+    },
+    "my_chrome_open": {
+      "label": "Abrir una página en el Chrome de la persona",
+      "description": "Abre una página en la pestaña propia del agente en el Chrome que una persona le prestó, con la sesión de esa persona."
+    },
+    "my_chrome_read": {
+      "label": "Leer la página en el Chrome de la persona",
+      "description": "Lee la página en la pestaña propia del agente en el Chrome que una persona le prestó."
     }
   },
   "browser": {
@@ -20034,6 +20044,10 @@
     },
     "closeAsk": "{{name}} te espera 2 min para que vuelvas.",
     "openAccess": "Abrir Herramientas y acceso",
+    "myChrome": {
+      "title": "Navegador prestado",
+      "line": "El navegador de {{name}}, con las cuentas de esa persona, hasta {{time}}"
+    },
     "kept": {
       "title": "Mantenido en marcha",
       "meta": "{{name}} · desde {{since}} · {{until}}",
