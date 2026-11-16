@@ -1256,6 +1256,8 @@ export interface Channel {
   id: string;
   name: string;
   topic: string;
+  /** What every agent working here follows (ADR 0187); empty or absent: none. */
+  instructions?: string;
   visibility: "public" | "private";
   /** Private and limited to these roles (departments, ADR 0125): their people see it and may join. Empty or absent: public or invite only. */
   audienceRoleIds?: string[];
@@ -1304,6 +1306,8 @@ export interface ChannelOverride {
 /** Who may join a channel, on creating it or changing it later. */
 export interface ChannelInput {
   topic?: string;
+  /** What every agent working here follows (ADR 0187); "" clears them. Channels only. */
+  instructions?: string;
   visibility?: "public" | "private";
   /** Private only: limits it to people holding one of these roles (ADR 0125); empty: invite only. */
   audienceRoleIds?: string[];

@@ -1,5 +1,6 @@
 import {
   archiveChannel,
+  CHANNEL_INSTRUCTIONS_MAX,
   CHANNEL_KEYS,
   channelMembersDetail,
   createChannelCategory,
@@ -254,13 +255,17 @@ export function channelRoutes(deps: AppDeps) {
       path: "/organizations/{orgId}/channels/{channelId}",
       tags,
       security,
-      summary: "Rename, change topic or who may join (creator or admin)",
+      summary: "Rename, change topic, the agents' instructions or who may join (creator or admin)",
       request: {
         params: ChannelParams,
         body: body(
           z.object({
             name: z.string().min(1).max(80).optional(),
             topic: z.string().max(500).optional(),
+            instructions: z.string().max(CHANNEL_INSTRUCTIONS_MAX).optional().openapi({
+              description:
+                "What every agent working in the channel follows, a section of its context (ADR 0187); empty clears them. Channels only; a change is audited (`channel.instructions_changed`).",
+            }),
             visibility: z.enum(["public", "private"]).optional(),
             audienceRoleIds: z.array(z.uuid()).max(100).optional().openapi({
               description:
@@ -279,6 +284,7 @@ export function channelRoutes(deps: AppDeps) {
           id: r.id,
           name: r.name,
           topic: r.topic,
+          instructions: r.instructions,
           visibility: r.visibility,
           audienceRoleIds: r.audienceRoleIds,
           isMember: true,

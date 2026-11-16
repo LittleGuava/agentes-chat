@@ -6146,6 +6146,15 @@
   "channel.noTopic": {
     "value": "No description"
   },
+  "channel.instructionsLabel": {
+    "value": "Instructions for agents"
+  },
+  "channel.instructionsHelp": {
+    "value": "Every agent working in this channel follows these, besides its own instructions."
+  },
+  "channel.instructionsPlaceholder": {
+    "value": "E.g.: answer in English and link the ticket"
+  },
   "channel.nameLabel": {
     "value": "Name"
   },
@@ -8047,11 +8056,11 @@
   "connectAi.plan.grok.title": {
     "value": "Your Grok plan"
   },
-  "connectAi.plan.copilot.title": {
-    "value": "Your GitHub Copilot plan"
-  },
   "connectAi.plan.grok.tiers": {
     "value": "SuperGrok, SuperGrok Heavy or X Premium+"
+  },
+  "connectAi.plan.copilot.title": {
+    "value": "Your GitHub Copilot plan"
   },
   "connectAi.plan.copilot.tiers": {
     "value": "Copilot Pro, Pro+, Business or Enterprise"
