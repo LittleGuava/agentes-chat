@@ -2681,6 +2681,19 @@
     "endOfReply": "Fin de la réponse",
     "mentionSuggestions": "Suggestions de mention"
   },
+  "readAloud": {
+    "listen": "Écouter",
+    "stop": "Arrêter",
+    "failed": "Impossible de le lire à voix haute pour l'instant.",
+    "limit": "Tu as atteint la limite du jour pour écouter des réponses.",
+    "auto": "Lire les réponses à voix haute",
+    "autoHint": "Chaque réponse d'agent qui arrive dans la conversation ouverte est lue à voix haute, sur cet appareil.",
+    "voice": "Voix",
+    "voiceHint": "La voix dans laquelle ses réponses sont lues : l'identifiant d'une voix ElevenLabs, ou le nom d'une voix que ton serveur vocal connaît.",
+    "voiceDefault": "Voix par défaut",
+    "voiceInvalid": "Uniquement des lettres, chiffres, points, tirets et tirets bas.",
+    "voiceSaved": "Voix enregistrée"
+  },
   "receipts": {
     "picked_one": "{{names}} va répondre",
     "picked_many": "{{names}} vont répondre",

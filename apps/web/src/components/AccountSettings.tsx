@@ -54,6 +54,7 @@ import { PrefRow } from "@/components/NoticePrefs";
 import { OpenOnPhoneDialog } from "@/components/OpenOnPhone";
 import { useOrg } from "@/components/org-context";
 import { MyFace } from "@/components/ProfilePhoto";
+import { ReadAloudAutoRow } from "@/components/ReadAloud";
 import { ZoneSelect } from "@/components/ZoneSelect";
 import { useDirectory } from "@/hooks/useDirectory";
 import { useSignInAgain } from "@/hooks/useSignInAgain";
@@ -270,6 +271,7 @@ export function AccountSection() {
               />
             }
           />
+          <ReadAloudAutoRow />
           {inDesktopApp() && (
             <PrefRow
               id="account-look"

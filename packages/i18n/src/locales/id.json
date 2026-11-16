@@ -2517,6 +2517,19 @@
     "endOfReply": "Akhir balasan",
     "mentionSuggestions": "Saran sebutan"
   },
+  "readAloud": {
+    "listen": "Dengarkan",
+    "stop": "Berhenti",
+    "failed": "Tidak bisa membacakannya sekarang.",
+    "limit": "Kamu sudah mencapai batas hari ini untuk mendengarkan balasan.",
+    "auto": "Bacakan balasan",
+    "autoHint": "Setiap balasan agen yang masuk di percakapan yang terbuka dibacakan, di perangkat ini.",
+    "voice": "Suara",
+    "voiceHint": "Suara yang dipakai untuk membacakan balasannya: ID suara ElevenLabs, atau nama suara yang dikenal server suaramu.",
+    "voiceDefault": "Suara bawaan",
+    "voiceInvalid": "Gunakan hanya huruf, angka, titik, tanda hubung, dan garis bawah.",
+    "voiceSaved": "Suara disimpan"
+  },
   "receipts": {
     "picked_other": "{{names}} akan menjawab",
     "claimed_other": "{{names}} sedang menjawab",

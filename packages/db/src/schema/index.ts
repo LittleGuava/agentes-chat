@@ -18,6 +18,7 @@ export * from "./missions";
 export * from "./notifications";
 export * from "./operator";
 export * from "./push";
+export * from "./read-aloud";
 export * from "./runtime";
 export * from "./sandbox";
 export * from "./skills";

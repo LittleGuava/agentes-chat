@@ -2773,6 +2773,22 @@ export const en = {
     endOfReply: "End of reply",
     mentionSuggestions: "Mention suggestions",
   },
+  /** Agents' replies read aloud (ADR 0209). */
+  readAloud: {
+    listen: "Listen",
+    stop: "Stop",
+    failed: "Couldn't read it aloud now.",
+    limit: "You've reached today's limit for listening to replies.",
+    auto: "Read replies aloud",
+    autoHint: "Each agent reply that arrives in the open conversation is read aloud, on this device.",
+    voice: "Voice",
+    voiceHint:
+      "The voice its replies are read aloud in: an ElevenLabs voice id, or a voice name your speech server knows.",
+    /** The field's placeholder: empty means the server's default voice. */
+    voiceDefault: "Default voice",
+    voiceInvalid: "Use only letters, numbers, dots, hyphens and underscores.",
+    voiceSaved: "Voice saved",
+  },
   receipts: {
     picked_one: "{{names}} will answer",
     picked_other: "{{names}} will answer",

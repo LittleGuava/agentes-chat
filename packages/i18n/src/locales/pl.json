@@ -2762,6 +2762,19 @@
     "endOfReply": "Koniec odpowiedzi",
     "mentionSuggestions": "Podpowiedzi wzmianek"
   },
+  "readAloud": {
+    "listen": "Posłuchaj",
+    "stop": "Zatrzymaj",
+    "failed": "Nie udało się teraz przeczytać na głos.",
+    "limit": "Osiągnięto dzisiejszy limit słuchania odpowiedzi.",
+    "auto": "Czytaj odpowiedzi na głos",
+    "autoHint": "Każda odpowiedź agenta, która trafia do otwartej rozmowy, jest czytana na głos na tym urządzeniu.",
+    "voice": "Głos",
+    "voiceHint": "Głos, którym czytane są jego odpowiedzi: ID głosu ElevenLabs albo nazwa głosu znanego Twojemu serwerowi mowy.",
+    "voiceDefault": "Głos domyślny",
+    "voiceInvalid": "Używaj tylko liter, cyfr, kropek, łączników i podkreśleń.",
+    "voiceSaved": "Głos zapisany"
+  },
   "receipts": {
     "picked_one": "{{names}} odpowie",
     "picked_few": "{{names}} odpowiedzą",

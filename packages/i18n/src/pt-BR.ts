@@ -2665,6 +2665,21 @@ export const ptBR = {
     endOfReply: "Fim da resposta",
     mentionSuggestions: "Sugestões de menção",
   },
+  /** Respostas dos agentes lidas em voz alta (ADR 0209). */
+  readAloud: {
+    listen: "Ouvir",
+    stop: "Parar",
+    failed: "Não deu para ler em voz alta agora.",
+    limit: "Você chegou ao limite de hoje para ouvir respostas.",
+    auto: "Ler respostas em voz alta",
+    autoHint: "Cada resposta de agente que chega na conversa aberta é lida em voz alta, neste dispositivo.",
+    voice: "Voz",
+    voiceHint:
+      "A voz em que as respostas dele são lidas: o ID de uma voz do ElevenLabs, ou o nome de uma voz que o servidor de voz conhece.",
+    voiceDefault: "Voz padrão",
+    voiceInvalid: "Use só letras, números, pontos, hífens e sublinhados.",
+    voiceSaved: "Voz salva",
+  },
   receipts: {
     picked_one: "{{names}} vai responder",
     picked_other: "{{names}} vão responder",

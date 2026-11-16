@@ -2517,6 +2517,19 @@
     "endOfReply": "답변 끝",
     "mentionSuggestions": "멘션 추천"
   },
+  "readAloud": {
+    "listen": "듣기",
+    "stop": "정지",
+    "failed": "지금은 소리 내어 읽을 수 없었습니다.",
+    "limit": "오늘 답변 듣기 한도에 도달했습니다.",
+    "auto": "답변 소리 내어 읽기",
+    "autoHint": "열린 대화에 도착하는 에이전트의 답변을 이 기기에서 소리 내어 읽습니다.",
+    "voice": "목소리",
+    "voiceHint": "답변을 읽는 목소리: ElevenLabs 목소리 ID 또는 음성 서버가 아는 목소리 이름.",
+    "voiceDefault": "기본 목소리",
+    "voiceInvalid": "영문자, 숫자, 마침표, 하이픈, 밑줄만 사용하세요.",
+    "voiceSaved": "목소리를 저장했습니다"
+  },
   "receipts": {
     "picked_other": "{{names}}이(가) 답할 예정이에요",
     "claimed_other": "{{names}}이(가) 답하는 중이에요",
