@@ -1,7 +1,7 @@
 import type { Agent, Memory, MemoryKind } from "@agenteschat/client";
 import { useMemory, useMemoryAction, useProposals } from "@agenteschat/client";
 import { FIELD_LIMITS } from "@agenteschat/client/lib/field-limits";
-import { daysBetween, relativeTime } from "@agenteschat/client/lib/format";
+import { daysBetween, endOfDay, formatShortDate, relativeTime, toYmd } from "@agenteschat/client/lib/format";
 import { agentGrammar } from "@agenteschat/client/lib/grammar";
 import { memoryLine } from "@agenteschat/client/lib/proposals";
 import { isRightHand } from "@agenteschat/client/lib/right-hand";
@@ -9,6 +9,7 @@ import { modeKey } from "@agenteschat/client/lib/workspace-mode";
 import {
   Button,
   Chip,
+  DatePicker,
   Dialog,
   DialogBody,
   DialogFooter,
@@ -82,6 +83,34 @@ export const KIND_ICON: Record<MemoryKind, IconName> = {
   lesson: "agent",
   rule: "flag",
 };
+
+/** The last day a memory with an end holds, where the reader is (`YYYY-MM-DD`): its end is the instant after it. */
+export const lastDayOf = (validUntil: string) => toYmd(new Date(Date.parse(validUntil) - 1));
+
+/**
+ * A memory's end in words (ADR 0028 §2): "Vale até 28 set", or past it "Venceu em 28 set", with its title and whether
+ * it ended; null for a memory with no end. Each list draws it in its own mark.
+ */
+export function memoryEnd(t: TFunction, language: string, m: Memory) {
+  if (!m.validUntil) return null;
+  const day = lastDayOf(m.validUntil);
+  const date = formatShortDate(language, `${day}T12:00:00`, day.slice(0, 4) !== String(new Date().getFullYear()));
+  const ended = m.expired === true;
+  return ended
+    ? { ended, text: t("memory.ended", { date }), title: t("memory.endedTitle") }
+    : { ended, text: t("memory.until", { date }), title: t("memory.untilTitle") };
+}
+
+function MemoryEndChip({ m }: { m: Memory }) {
+  const { t, i18n } = useTranslation();
+  const end = memoryEnd(t, i18n.language, m);
+  if (!end) return null;
+  return (
+    <Chip icon={end.ended ? "clock" : "calendar"} tone={end.ended ? "waiting" : "neutral"} title={end.title}>
+      {end.text}
+    </Chip>
+  );
+}
 
 /** "usado 9 vezes", "nunca usado", "sem uso há 40 dias" (archived and stale). */
 export function usageLabel(t: TFunction, m: Memory, now = new Date()) {
@@ -249,6 +278,7 @@ function MemoryView({ agent, item }: { agent: Agent; item?: string }) {
                   {t("memory.lowTrust")}
                 </Chip>
               )}
+              <MemoryEndChip m={m} />
               <span className="memory-item__used">{usageLabel(t, m)}</span>
             </div>
             <p className="memory-item__text">{memoryLine(t, m)}</p>
@@ -303,8 +333,9 @@ function MemoryView({ agent, item }: { agent: Agent; item?: string }) {
       <EditMemoryDialog
         memory={editing}
         onClose={() => setEditing(null)}
-        onSave={(text) => {
-          if (editing) action.mutate({ type: "edit", id: editing.id, text }, { onSuccess: () => setEditing(null) });
+        onSave={(text, validUntil) => {
+          if (editing)
+            action.mutate({ type: "edit", id: editing.id, text, validUntil }, { onSuccess: () => setEditing(null) });
         }}
       />
     </div>
@@ -318,19 +349,27 @@ function EditMemoryDialog({
 }: {
   memory: Memory | null;
   onClose: () => void;
-  onSave: (text: string) => void;
+  /** `validUntil`: the new end (ISO, null for none), left out when it didn't change. */
+  onSave: (text: string, validUntil?: string | null) => void;
 }) {
   const { t, i18n } = useTranslation();
   const [text, setText] = useState("");
+  // The last day it holds, as the person picks it; it ends at that day's end where they are.
+  const [day, setDay] = useState<string | null>(null);
   const limit = useTextLimit(FIELD_LIMITS.memory);
-  useEffect(() => setText(memory?.text ?? ""), [memory]);
+  const before = memory?.validUntil ? lastDayOf(memory.validUntil) : null;
+  useEffect(() => {
+    setText(memory?.text ?? "");
+    setDay(memory?.validUntil ? lastDayOf(memory.validUntil) : null);
+  }, [memory]);
+  const endChanged = day !== before;
   return (
     <Dialog
       open={memory !== null}
       onOpenChange={(open) => !open && onClose()}
       title={t("memory.editTitle", { kind: memory ? t(`memory.kindsLower.${memory.kind}`) : "" })}
       closeLabel={t("common.close")}
-      unsaved={memory !== null && text !== memory.text}
+      unsaved={memory !== null && (text !== memory.text || endChanged)}
       width={520}
     >
       <DialogBody>
@@ -344,10 +383,34 @@ function EditMemoryDialog({
         >
           <Textarea rows={3} limit={limit} value={text} onChange={(e) => setText(e.target.value)} />
         </Field>
+        <Field
+          label={t("memory.validUntil")}
+          id="edit-until"
+          hint={{ name: t("common.about", { label: t("memory.validUntil") }), text: t("memory.validUntilHelp") }}
+        >
+          <DatePicker
+            value={day}
+            onChange={setDay}
+            onClear={() => setDay(null)}
+            min={toYmd(new Date())}
+            placeholder={t("memory.noEnd")}
+            locale={i18n.language}
+            labels={{
+              previousMonth: t("common.previousMonth"),
+              nextMonth: t("common.nextMonth"),
+              choose: t("common.chooseDate"),
+              clear: t("memory.clearEnd"),
+            }}
+          />
+        </Field>
       </DialogBody>
       <DialogFooter>
         <Button onClick={onClose}>{t("common.cancel")}</Button>
-        <Button variant="primary" disabled={!text.trim() || overLimit(text, limit)} onClick={() => onSave(text.trim())}>
+        <Button
+          variant="primary"
+          disabled={!text.trim() || overLimit(text, limit)}
+          onClick={() => onSave(text.trim(), endChanged ? (day ? endOfDay(day) : null) : undefined)}
+        >
           {t("common.save")}
         </Button>
       </DialogFooter>

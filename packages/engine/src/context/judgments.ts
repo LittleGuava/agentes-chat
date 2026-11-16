@@ -2,6 +2,7 @@ import { and, desc, type Executor, eq, inArray, isNull, schema } from "@agentesc
 import { cutText } from "../format";
 import type { Judge, JudgeQuestion } from "../judge";
 import { type ContextItem, type ContextKind, evidenceWeight, type NewContextItem, normalizeSubject } from "./items";
+import { currentSql } from "./validity";
 
 const { contextItems } = schema;
 
@@ -104,6 +105,8 @@ export async function findCandidates(db: Executor, input: NewContextItem, limit 
         input.kind === "rule" ? eq(contextItems.createdById, input.createdById ?? "") : undefined,
         // One person's items are never another's candidates: the judge would read them and could link the two.
         input.scopeType === "person" ? eq(contextItems.scopeId, input.scopeId ?? "") : undefined,
+        // An item past its end is history, not something the new one merges into or replaces.
+        currentSql(),
       ),
     )
     .orderBy(desc(contextItems.updatedAt))

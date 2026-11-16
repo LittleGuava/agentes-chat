@@ -4,6 +4,7 @@ import { type AuthorityRun, type RunAuthority, runAuthority } from "../authority
 import { caches, rulesPresenceKey } from "../cache";
 import { cutText } from "../format";
 import { routineCreatorOf } from "../requester";
+import { currentSql } from "./validity";
 
 const { contextItems, users } = schema;
 
@@ -24,6 +25,8 @@ const activeRulesOf = (orgId: string, agentId: string) =>
     eq(contextItems.status, "active"),
     eq(contextItems.createdByKind, "person"),
     isNull(contextItems.supersededBy),
+    // A rule given until a day stops holding after it (ADR 0028 §2).
+    currentSql(),
   );
 
 /** Most agents hold no rule: their runs pay one cached lookup, no statement on the hot path. */
