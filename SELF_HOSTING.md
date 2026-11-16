@@ -734,6 +734,13 @@ npx @modelcontextprotocol/inspector --cli https://chat.example.com/mcp --transpo
 The first prints the server's resource document, the second its sign-in challenge, the third the tools (with a
 personal token).
 
+Scripts and CI use the same endpoint through the `agentes` command (`packages/cli`, ADR 0219) with a personal
+token: `AGENTES_URL=https://chat.example.com AGENTES_TOKEN=agp_… agentes run @dev "Ship 1.4 to staging" --json`
+sends the task as the token's person, waits for it, prints the reply and exits 0 when it is done (3 when a person
+must approve or answer, 4 when the time ran out). `agentes help` lists the rest. A `write` token can send; a `read`
+one only waits, exports and follows. The command isn't on npm yet: from a checkout, run `bun packages/cli/src/index.ts`,
+or build one file for Node 18 or Bun with `bun run --filter @agenteschat/cli build` (`packages/cli/dist/index.js`).
+
 </details>
 
 <details>

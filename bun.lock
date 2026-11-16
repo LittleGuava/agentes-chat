@@ -128,6 +128,7 @@
         "zod": "^4.6.5",
       },
       "devDependencies": {
+        "@agenteschat/cli": "workspace:*",
         "@electric-sql/pglite": "0.5.8",
         "@modelcontextprotocol/sdk": "^1.32.1",
       },
@@ -189,6 +190,13 @@
         "@electric-sql/pglite": "0.5.8",
         "@types/mailparser": "^3.9.0",
         "@types/nodemailer": "^8.0.2",
+      },
+    },
+    "packages/cli": {
+      "name": "@agenteschat/cli",
+      "version": "0.1.0",
+      "bin": {
+        "agentes": "dist/index.js",
       },
     },
     "packages/client": {
@@ -328,6 +336,8 @@
     "@1password/sdk-core": ["@1password/sdk-core@0.5.0", "", {}, "sha512-9g7LWOKRKdePZ85evVgE9xEom3DAg3hRIyQdOwLPvpL/F7KpDXmUHMi72rsqJxKaDbWApXmrYjDExMSPqUg7xw=="],
 
     "@agenteschat/adapters": ["@agenteschat/adapters@workspace:packages/adapters"],
+
+    "@agenteschat/cli": ["@agenteschat/cli@workspace:packages/cli"],
 
     "@agenteschat/client": ["@agenteschat/client@workspace:packages/client"],
 

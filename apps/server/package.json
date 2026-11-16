@@ -34,6 +34,7 @@
     "@agenteschat/ui": "workspace:*"
   },
   "devDependencies": {
+    "@agenteschat/cli": "workspace:*",
     "@electric-sql/pglite": "0.5.8",
     "@modelcontextprotocol/sdk": "^1.32.1"
   },
