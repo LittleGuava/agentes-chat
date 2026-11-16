@@ -212,6 +212,8 @@ const KNOWN = {
   "connector.gone": "errors.connector.gone",
   "connector.unfinished": "errors.connector.unfinished",
   "connector.unavailable": "errors.connector.unavailable",
+  "connector.not_per_person": "errors.connector.notPerPerson",
+  "connector.per_person_unsupported": "errors.connector.perPersonUnsupported",
   "connector.misconfigured": "errors.connector.misconfigured",
   "connector.header_name": "errors.connector.headerName",
   "connector.header_value": "errors.connector.headerValue",
@@ -636,8 +638,6 @@ const KNOWN = {
   "browser_profile.site": "errors.said.checkAddress",
   "connector.client_id_required": "errors.said.fillIn",
   // A connection on each person's own account (ADR 0195).
-  "connector.not_per_person": "errors.connector.notPerPerson",
-  "connector.per_person_unsupported": "errors.connector.perPersonUnsupported",
   "dm_share.note": "dmShare.errors.note",
   // Pictures agents make (ADR 0213).
   "images.per_day": "errors.images.perDay",

@@ -15396,6 +15396,8 @@ export const en = {
       gone: "That account is no longer connected.",
       unfinished: "The sign-in at Composio didn't finish. Try again.",
       unavailable: "This service can't be connected here.",
+      notPerPerson: "This connection uses one account for everyone now. Reload the page.",
+      perPersonUnsupported: "Only a service connected through Composio can use each person's own account.",
       /**
        * {{provider}} refused this server's own OAuth app for it, whose client secret (or id) is wrong
        * (`connector_error=misconfigured`): trying again can't help, only whoever runs the server can fix it.
@@ -15417,10 +15419,6 @@ export const en = {
         "This server asks for a sign-in, and a sign-in can't carry headers yet. Remove the headers to sign in, or connect with an API key.",
       /** Reconnecting an account whose saved headers, kept encrypted, could no longer be opened. */
       headersUnreadable: "The saved headers couldn't be read. Type them again, or remove them.",
-      /** `connector.not_per_person`: a person's own account asked of a connection that uses one account for everyone (ADR 0195). */
-      notPerPerson: "This connection doesn't use each person's own account.",
-      /** `connector.per_person_unsupported`: each person's own account turned on for a service that can't do it yet (ADR 0195). */
-      perPersonUnsupported: "This service can't use each person's own account yet.",
     },
     wiki: {
       githubNoNotes: "No Markdown notes in this link.",

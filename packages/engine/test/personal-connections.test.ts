@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { type ComposioTool, createFakeComposioClient, fakeMailAuthError } from "@agenteschat/adapters";
+import {
+  type ComposioTool,
+  createFakeComposioClient,
+  createFakeMailConnector,
+  fakeMailAuthError,
+} from "@agenteschat/adapters";
 import { eq, schema } from "@agenteschat/db";
 import {
   acceptCustomSuggestion,
@@ -11,14 +16,19 @@ import {
   createAgentRuns,
   createApiKeyConnection,
   createConnectorToolSource,
+  createJobHandlers,
   createToolGateway,
+  deleteAccount,
   disconnectPersonal,
+  drainOutbox,
   ForbiddenError,
   insertMessage,
   listCustomServers,
   mcpPreset,
   meterComposio,
+  PERSONAL_FORGET_JOB,
   type RoutineBrief,
+  removeMember,
   revokeConnection,
   setPerPerson,
   syncCustomTools,
@@ -311,5 +321,86 @@ describe("a per-person connection", () => {
     expect(w.fake.state.deletedAccounts).toContain(bea.code);
     const live = await f.db.select().from(schema.connectorPersonalAccounts);
     expect(live.every((r) => r.revokedAt !== null)).toBe(true);
+  });
+});
+
+describe("a person leaving takes their own accounts with them", () => {
+  /**
+   * Bea's own account (and a sign-in she started and never finished) next to Ana's, the owner's; the jobs run with
+   * the server's Composio, which refuses its `refused`th deletion (counting from 1), once.
+   */
+  async function leaving(refused = 0) {
+    const w = await world();
+    await setPerPerson(w.deps, f.owner.id, f.org.id, w.connection.id, true);
+    const ana = await w.connectMine(f.owner, "ana@acme.com");
+    const bea = await w.connectMine(w.bea, "bea@acme.com");
+    await beginPersonalConnect(w.deps, w.bea.id, f.org.id, w.connection.id, {});
+    const unfinished = w.fake.state.links.at(-1)?.connectedAccountId ?? "";
+    let calls = 0;
+    const client = {
+      ...w.fake.client,
+      deleteConnectedAccount: async (id: string, options?: { revoke?: boolean }) => {
+        if (++calls === refused) throw new Error("Composio is down");
+        await w.fake.client.deleteConnectedAccount(id, options);
+      },
+    };
+    const mail = { composio: { client, connector: createFakeMailConnector().connector }, imap: null };
+    const jobs = (now?: Date) => drainOutbox(f.db, createJobHandlers({ ...f.jobDeps, mail }), now ? { now } : {});
+    const rowsOf = (userId: string) =>
+      f.db
+        .select()
+        .from(schema.connectorPersonalAccounts)
+        .where(eq(schema.connectorPersonalAccounts.ownerUserId, userId));
+    return { w, ana, bea, unfinished, jobs, rowsOf };
+  }
+
+  test("removed from the workspace, their accounts go here and at Composio; nobody else's do", async () => {
+    const { w, ana, bea, unfinished, jobs, rowsOf } = await leaving();
+    await removeMember(f.db, f.owner.id, f.org.id, w.bea.id);
+    expect(await rowsOf(w.bea.id)).toEqual([]);
+    const pending = await f.db.select().from(schema.oauthStates).where(eq(schema.oauthStates.userId, w.bea.id));
+    expect(pending).toEqual([]);
+    await jobs();
+    expect(w.fake.state.deletedAccounts).toEqual(expect.arrayContaining([bea.code, unfinished]));
+    expect(w.fake.state.deletedAccounts).not.toContain(ana.code);
+    expect(w.fake.state.deletedAccounts).not.toContain(w.workspaceCode);
+    expect(w.fake.state.revokedAccounts).toEqual([]);
+    expect((await rowsOf(f.owner.id)).map((r) => r.revokedAt)).toEqual([null]);
+  });
+
+  test("leaving on their own does the same", async () => {
+    const { w, bea, jobs, rowsOf } = await leaving();
+    await removeMember(f.db, w.bea.id, f.org.id, w.bea.id);
+    expect(await rowsOf(w.bea.id)).toEqual([]);
+    await jobs();
+    expect(w.fake.state.deletedAccounts).toContain(bea.code);
+  });
+
+  test("deleting their own account takes them from Composio too, though the rows go with the person", async () => {
+    const { w, ana, bea, unfinished, jobs, rowsOf } = await leaving();
+    await deleteAccount(f.db, w.bea.id);
+    expect(await rowsOf(w.bea.id)).toEqual([]);
+    await jobs();
+    expect(w.fake.state.deletedAccounts).toEqual(expect.arrayContaining([bea.code, unfinished]));
+    expect(w.fake.state.deletedAccounts).not.toContain(ana.code);
+  });
+
+  test("Composio failing halfway, or it all running twice, ends the same", async () => {
+    // The first account goes, the second is refused: the job tries both again later.
+    const { w, bea, unfinished, jobs } = await leaving(2);
+    await removeMember(f.db, f.owner.id, f.org.id, w.bea.id);
+    await jobs();
+    expect(new Set(w.fake.state.deletedAccounts).size).toBe(1);
+    const job = async () =>
+      (await f.db.select().from(schema.outbox).where(eq(schema.outbox.kind, PERSONAL_FORGET_JOB))).map((j) => j.status);
+    expect(await job()).toEqual(["pending"]);
+    await jobs(new Date(Date.now() + 60_000));
+    expect(await job()).toEqual(["done"]);
+    expect(w.fake.state.deletedAccounts).toEqual(expect.arrayContaining([bea.code, unfinished]));
+    // Again: she's no member to remove, and the accounts are already gone.
+    await removeMember(f.db, f.owner.id, f.org.id, w.bea.id);
+    await jobs(new Date(Date.now() + 120_000));
+    const kept = new Set(w.fake.state.deletedAccounts);
+    expect(kept).toEqual(new Set([bea.code, unfinished]));
   });
 });

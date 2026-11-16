@@ -27,6 +27,7 @@ import { typingLogFor } from "./burst";
 import { CHANNEL_DELETE_JOB, purgeChannel } from "./channel-deletion";
 import { crowdedAgents, publishQueueChanged } from "./computer-queue";
 import type { ConnectorDeps } from "./connectors/connections";
+import { forgetLeaversAccounts, PERSONAL_FORGET_JOB } from "./connectors/personal";
 import { startNoteRun } from "./consultations";
 import { getChannelCached } from "./context";
 import { consolidateOrg } from "./context/consolidate";
@@ -960,6 +961,12 @@ export function createJobHandlers(deps: JobDeps): JobHandlers {
         dedupeKey: `${ORG_FILES_PURGE_JOB}:${job.id}`,
         maxAttempts: ORG_FILES_PURGE_ATTEMPTS,
       });
+    },
+    // The people who left took their own accounts with them (`dropAccountsOfLeaver`, ADR 0195 §6).
+    [PERSONAL_FORGET_JOB]: async (job) => {
+      const composio = deps.mail?.composio;
+      if (!composio) throw new PermanentJobError("Composio is not configured");
+      await forgetLeaversAccounts(composio, job.payload.accountIds);
     },
     [USER_FILES_PURGE_JOB]: async (job) => {
       if (!deps.storage) throw new PermanentJobError("no storage configured");
