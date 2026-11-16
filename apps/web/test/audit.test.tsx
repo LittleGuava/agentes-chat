@@ -5,6 +5,7 @@ setupDom();
 
 import type { AuditRow } from "@agenteschat/client";
 import { act, cleanup, fireEvent, within } from "@testing-library/react";
+import { fileSaver } from "@/components/artifacts/fileSaver";
 import { ADA_ID, ATLAS_ID, createFakeApi, GENERAL_ID, ORG_ID, seedState } from "./fake-api";
 import { renderApp, screen, settle, showIn } from "./render";
 
@@ -157,6 +158,31 @@ describe("Configurações → Auditoria", () => {
     await click(within(section()).getByRole("radio", { name: "Mudanças de pessoas" }));
     await settle(4);
     expect(titles()).toEqual(["Walter criou uma rotina"]);
+  });
+
+  test("Exportar CSV, by the title, saves what the list shows: its shortcut and its agent", async () => {
+    const saved: { url: string; name: string }[] = [];
+    const realSave = fileSaver.save;
+    fileSaver.save = (url, name) => void saved.push({ url, name });
+    try {
+      await go();
+      const exportCsv = () => click(screen().getByRole("button", { name: "Exportar CSV" }));
+      await exportCsv();
+      expect(saved.at(-1)?.url).toBe(`/api/app/organizations/${ORG_ID}/audit.csv?`);
+      expect(saved.at(-1)?.name).toMatch(/^audit-\d{4}-\d{2}-\d{2}\.csv$/);
+      await click(within(section()).getByRole("radio", { name: "Recusadas e falhas" }));
+      await settle(4);
+      await exportCsv();
+      expect(new URL(saved.at(-1)?.url ?? "", "http://x").searchParams.get("outcome")).toBe("refused,failed");
+      // People's changes hide the agent filter; the export stays.
+      await click(within(section()).getByRole("radio", { name: "Mudanças de pessoas" }));
+      await settle(4);
+      await exportCsv();
+      const people = new URL(saved.at(-1)?.url ?? "", "http://x").searchParams;
+      expect([people.get("actorType"), people.get("kind")]).toEqual(["person", "change"]);
+    } finally {
+      fileSaver.save = realSave;
+    }
   });
 
   test("a row opens the thread's panel: the reason, what was sent (secrets hidden), the conversation", async () => {

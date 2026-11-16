@@ -1,4 +1,4 @@
-import { type AuditRow, useAudit } from "@agenteschat/client";
+import { type AuditRow, useApi, useAudit } from "@agenteschat/client";
 import { auditUnasked } from "@agenteschat/client/lib/approvals-level";
 import {
   AUDIT_HIDDEN,
@@ -26,6 +26,7 @@ import {
 } from "@agenteschat/client/lib/audit";
 import { humanize } from "@agenteschat/client/lib/custom-tools";
 import { dayLabel, formatTime, whenAt } from "@agenteschat/client/lib/format";
+import { settingsSectionNameKey, settingsSectionTextKey } from "@agenteschat/client/lib/personal-view";
 import {
   Button,
   Chip,
@@ -35,6 +36,7 @@ import {
   Icon,
   Menu,
   MenuItem,
+  PageHeader,
   Segmented,
   Select,
   Toolbar,
@@ -43,6 +45,7 @@ import { Link } from "@tanstack/react-router";
 import { type ReactNode, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActorAvatar, AgentAvatar } from "@/components/AgentAvatar";
+import { fileSaver } from "@/components/artifacts/fileSaver";
 import { DetailsLink } from "@/components/details-link";
 import { ErrorState, LoadingList } from "@/components/Loading";
 import { useOrg } from "@/components/org-context";
@@ -70,7 +73,9 @@ export function AuditSection({ agent }: { agent?: string }) {
   const [show, setShow] = useState<AuditShow>("all");
   const [agentId, setAgentId] = useState(agent ?? ANY);
   const [openId, setOpenId] = useState<string | null>(null);
-  const audit = useAudit(org.id, auditQueryOf(show, agentId === ANY ? null : agentId));
+  const api = useApi();
+  const query = auditQueryOf(show, agentId === ANY ? null : agentId);
+  const audit = useAudit(org.id, query);
   const rows = useMemo(() => audit.data?.pages.flatMap((p) => p.rows) ?? [], [audit.data]);
   const open = rows.find((r) => r.id === openId) ?? null;
 
@@ -93,98 +98,116 @@ export function AuditSection({ agent }: { agent?: string }) {
     else days.push([label, [row]]);
   }
   return (
-    <section className="audit" aria-label={t("settings.section.audit")}>
-      <Toolbar
-        label={t("audit.filters")}
+    <>
+      {/* Exporting is the page's action, not a filter: it takes the list's filters as they are. */}
+      <PageHeader
+        level={2}
+        title={t(settingsSectionNameKey(org, "audit"))}
+        meta={t(settingsSectionTextKey(org, "audit"))}
         actions={
-          show !== "people" && (
-            <Select
-              size="sm"
-              value={agentId}
-              onValueChange={setAgentId}
-              options={agentOptions}
-              aria-label={t("audit.agent")}
-              className="audit__agent"
-            />
-          )
-        }
-      >
-        <Segmented
-          label={t("audit.filters")}
-          value={show}
-          onValueChange={setShow}
-          options={AUDIT_SHOWS.map((s) => ({ value: s, label: t(`audit.filter.${s}`) }))}
-        />
-      </Toolbar>
-
-      {audit.isPending ? (
-        <LoadingList count={6} trailing />
-      ) : audit.isError ? (
-        <ErrorState error={audit.error} onRetry={() => void audit.refetch()} />
-      ) : rows.length === 0 ? (
-        show === "all" && agentId === ANY ? (
-          <EmptyState size="page" agent={look} mood="deal" title={t("audit.emptyTitle")}>
-            {t("audit.empty")}
-          </EmptyState>
-        ) : (
-          <EmptyState
-            size="panel"
-            actions={
-              <Button
-                onClick={() => {
-                  setShow("all");
-                  setAgentId(ANY);
-                }}
-              >
-                {t("filters.clearAll")}
-              </Button>
+          <Button
+            icon="download"
+            onClick={() =>
+              fileSaver.save(api.orgs.auditCsvUrl(org.id, query), `audit-${new Date().toISOString().slice(0, 10)}.csv`)
             }
           >
-            {t("audit.emptyFiltered")}
-          </EmptyState>
-        )
-      ) : (
-        <div className="ac-groups">
-          {days.map(([label, list]) => (
-            <div key={label}>
-              <GroupHeading level={3} title={label} />
-              <ul className="audit__list">
-                {list.map((row) => (
-                  <li key={row.id}>
-                    <button
-                      type="button"
-                      className="audit-row"
-                      aria-pressed={row.id === openId}
-                      onClick={() => setOpenId(row.id)}
-                    >
-                      <Face row={row} />
-                      <span className="audit-row__text">
-                        <span className="audit-row__title">
-                          <Sentence row={row} />
-                        </span>
-                        <span className="audit-row__sub">{auditSubLine(t, row)}</span>
-                      </span>
-                      <OutcomeChip row={row} />
-                      <time className="audit-row__time" dateTime={row.at}>
-                        {formatTime(i18n.language, row.at)}
-                      </time>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      )}
-      {audit.hasNextPage && (
-        <div className="audit__more">
-          <Button loading={audit.isFetchingNextPage} onClick={() => void audit.fetchNextPage()}>
-            {t("audit.loadMore")}
+            {t("audit.export")}
           </Button>
-        </div>
-      )}
-      {open && <AuditPanel row={open} onClose={() => setOpenId(null)} />}
-    </section>
+        }
+      />
+      <section className="audit" aria-label={t("settings.section.audit")}>
+        <Toolbar
+          label={t("audit.filters")}
+          actions={
+            show !== "people" && (
+              <Select
+                size="sm"
+                value={agentId}
+                onValueChange={setAgentId}
+                options={agentOptions}
+                aria-label={t("audit.agent")}
+                className="audit__agent"
+              />
+            )
+          }
+        >
+          <Segmented
+            label={t("audit.filters")}
+            value={show}
+            onValueChange={setShow}
+            options={AUDIT_SHOWS.map((s) => ({ value: s, label: t(`audit.filter.${s}`) }))}
+          />
+        </Toolbar>
+
+        {audit.isPending ? (
+          <LoadingList count={6} trailing />
+        ) : audit.isError ? (
+          <ErrorState error={audit.error} onRetry={() => void audit.refetch()} />
+        ) : rows.length === 0 ? (
+          show === "all" && agentId === ANY ? (
+            <EmptyState size="page" agent={look} mood="deal" title={t("audit.emptyTitle")}>
+              {t("audit.empty")}
+            </EmptyState>
+          ) : (
+            <EmptyState
+              size="panel"
+              actions={
+                <Button
+                  onClick={() => {
+                    setShow("all");
+                    setAgentId(ANY);
+                  }}
+                >
+                  {t("filters.clearAll")}
+                </Button>
+              }
+            >
+              {t("audit.emptyFiltered")}
+            </EmptyState>
+          )
+        ) : (
+          <div className="ac-groups">
+            {days.map(([label, list]) => (
+              <div key={label}>
+                <GroupHeading level={3} title={label} />
+                <ul className="audit__list">
+                  {list.map((row) => (
+                    <li key={row.id}>
+                      <button
+                        type="button"
+                        className="audit-row"
+                        aria-pressed={row.id === openId}
+                        onClick={() => setOpenId(row.id)}
+                      >
+                        <Face row={row} />
+                        <span className="audit-row__text">
+                          <span className="audit-row__title">
+                            <Sentence row={row} />
+                          </span>
+                          <span className="audit-row__sub">{auditSubLine(t, row)}</span>
+                        </span>
+                        <OutcomeChip row={row} />
+                        <time className="audit-row__time" dateTime={row.at}>
+                          {formatTime(i18n.language, row.at)}
+                        </time>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+        {audit.hasNextPage && (
+          <div className="audit__more">
+            <Button loading={audit.isFetchingNextPage} onClick={() => void audit.fetchNextPage()}>
+              {t("audit.loadMore")}
+            </Button>
+          </div>
+        )}
+        {open && <AuditPanel row={open} onClose={() => setOpenId(null)} />}
+      </section>
+    </>
   );
 }
 
