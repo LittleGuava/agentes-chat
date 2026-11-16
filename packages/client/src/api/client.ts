@@ -191,6 +191,7 @@ import type {
   JoinClaim,
   JoinRequest,
   LearnedSkill,
+  LocalSetup,
   Machine,
   MachineAccess,
   MachineAccessReduce,
@@ -1197,6 +1198,8 @@ export interface ApiClient {
     ): Promise<{ install: CliInstall | null }>;
     /** Anyone else: asks whoever paired it to install `tool` (an inbox row with the install button). */
     askCliInstall(orgId: string, machineId: string, tool: InstallableCli): Promise<void>;
+    /** Only the person who paired it: the MCP servers and skills of their coding tools there, read now. */
+    localConfig(orgId: string, machineId: string): Promise<LocalSetup>;
     /** Pauses it (`until` null: until resumed) or resumes it (`resume`); the pause as it stands then. */
     setPause(
       orgId: string,
