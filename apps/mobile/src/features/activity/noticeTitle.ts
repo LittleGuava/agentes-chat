@@ -83,8 +83,9 @@ export function useNoticeTitle(n: AppNotification) {
                   // `usage_limit`: the limit (who decides only) and the share used.
                   amount: n.latest.limitUsd !== undefined ? formatUsd(i18n.language, n.latest.limitUsd) : "",
                   percent: Math.round(n.latest.percent ?? 0),
-                  // `desktop_taken`: whose computer, said with its name's gender; `plan_lent`: the agent given the plan.
-                  ...(n.kind === "desktop_taken" || n.kind === "plan_lent"
+                  // `desktop_taken`: whose computer, said with its name's gender; `plan_lent`: the agent given the plan;
+                  // `agent_needs_ai`: the agent with no AI.
+                  ...(n.kind === "desktop_taken" || n.kind === "plan_lent" || n.kind === "agent_needs_ai"
                     ? { agent: n.source.label ?? "", context: agentGrammar(n.source.label ?? "").context }
                     : {}),
                   // `admin_ask`: the agent to add and where, or the service whose webhook.

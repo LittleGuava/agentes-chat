@@ -142,6 +142,7 @@ test("the plan's notifications have their own Activity line in both languages, n
       "plan_lent",
       "plan_serves",
       "plan_model_dropped",
+      "agent_needs_ai",
       "catch_up_closed",
       "catch_up_closed_asker",
       "catch_up_closed_asker_task",

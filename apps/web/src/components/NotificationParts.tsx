@@ -161,6 +161,7 @@ type WhatKey =
   | "routineFailed"
   | "routineFailedRetried"
   | "runFailed"
+  | "agentNeedsAi"
   | "runFailedMany"
   | "runFailedManyAny"
   | "routinePaused"
@@ -300,6 +301,10 @@ export function Headline({
       return k("agentUnreached", { name });
     case "browser_profile_request":
       return k("browserProfileRequest", { name, agent: n.source.label ?? "" });
+    case "agent_needs_ai": {
+      const agent = n.source.label ?? "";
+      return k("agentNeedsAi", { name, agent, context: agentGrammar(agent).context });
+    }
     case "desktop_taken": {
       const agent = n.source.label ?? "";
       return k("desktopTaken", { name, agent, context: agentGrammar(agent).context });

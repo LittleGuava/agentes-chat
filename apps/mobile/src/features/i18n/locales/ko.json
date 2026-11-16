@@ -851,6 +851,7 @@
   "activity": {
     "title": "활동",
     "chooseModel": "다른 모델 고르기",
+    "connectAi": "AI 연결",
     "filter": {
       "all": "전체",
       "waiting": "요청",
@@ -916,6 +917,7 @@
       "browser_profile_request_other": "{{names}}이(가) 브라우저 프로필을 하나 더 요청해요",
       "desktop_taken_other": "{{names}} 님이 {{agent}}의 컴퓨터 화면 제어를 넘겨받았어요",
       "desktop_taken_female_other": "{{names}} 님이 {{agent}}의 컴퓨터 화면 제어를 넘겨받았어요",
+      "agent_needs_ai_other": "{{names}} 님이 {{agent}}을(를) 불렀지만 답할 AI가 연결되어 있지 않아요",
       "plan_lent_other": "{{names}} 님이 내 {{plan}} 플랜을 {{agent}}에 연결했어요",
       "plan_lent_female_other": "{{names}} 님이 내 {{plan}} 플랜을 {{agent}}에 연결했어요",
       "plan_serves_other": "내 {{plan}}이(가) 이제 workspace 전체를 지원해요",

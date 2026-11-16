@@ -899,6 +899,7 @@
   "activity": {
     "title": "Attività recenti",
     "chooseModel": "Scegli un altro modello",
+    "connectAi": "Collega un'IA",
     "filter": {
       "all": "Tutto",
       "waiting": "Richieste",
@@ -1048,6 +1049,9 @@
       "desktop_taken_female_one": "{{names}} ha preso il controllo dello schermo del computer di {{agent}}",
       "desktop_taken_female_many": "{{names}} hanno preso il controllo dello schermo del computer di {{agent}}",
       "desktop_taken_female_other": "{{names}} hanno preso il controllo dello schermo del computer di {{agent}}",
+      "agent_needs_ai_one": "{{names}} ha chiamato {{agent}}, che non ha un'IA collegata per rispondere",
+      "agent_needs_ai_many": "{{names}} hanno chiamato {{agent}}, che non ha un'IA collegata per rispondere",
+      "agent_needs_ai_other": "{{names}} hanno chiamato {{agent}}, che non ha un'IA collegata per rispondere",
       "plan_lent_one": "{{names}} ha collegato il tuo piano {{plan}} a {{agent}}",
       "plan_lent_many": "{{names}} hanno collegato il tuo piano {{plan}} a {{agent}}",
       "plan_lent_other": "{{names}} hanno collegato il tuo piano {{plan}} a {{agent}}",

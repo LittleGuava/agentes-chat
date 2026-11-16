@@ -69,6 +69,13 @@ export const NOTIFICATION_KINDS = [
    * agent and conversation, its coded reason in `latest.reason`. Resolved by the agent's next good run there.
    */
   "run_failed",
+  /**
+   * A person's message couldn't start an agent's run for want of an AI (ADR 0061 addendum): its owner and whoever
+   * manages agents or keys, once a day per agent, the person who asked as actor, `source.agentId` and its name in
+   * `source.label`, why in `latest.reason` (`no_key`, `no_computer`, `cli_missing`, `not_signed_in`). Opens "Conectar
+   * uma IA" for that agent; done once it thinks again.
+   */
+  "agent_needs_ai",
   /** A routine paused itself (its reason in `latest.reason`), ADR 0053. */
   "routine_paused",
   /** A routine waits for its computer (once per outage), ADR 0053. */

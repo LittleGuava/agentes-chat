@@ -1,9 +1,9 @@
 import type { AiStatus, AppNotification, Dashboard } from "@agenteschat/client";
 import { cacheNotification, keys, useApi } from "@agenteschat/client";
 import {
+  connectAiAsk,
   homeTarget,
   type OpenTarget,
-  opensConnectAi,
   opensOnComputer,
   openTarget,
 } from "@agenteschat/client/lib/notifications";
@@ -63,7 +63,7 @@ export type Opened = "page" | "dialog" | null;
 
 /**
  * Opens a notification in the workspace on screen (`orgId`): "Conectar uma IA" for a ready computer whose agents
- * have no AI (`ai`: the workspace's AI status), else its page, with an agent's help request opening its card.
+ * have no AI (`ai`: the workspace's AI status) or for an agent someone couldn't reach without one, else its page, with an agent's help request opening its card.
  * Marking it read is the caller's (the inbox's own action, or the read that fetched it).
  */
 export function useNotificationOpener() {
@@ -74,8 +74,9 @@ export function useNotificationOpener() {
   const openComputer = useOpenComputer();
   return useCallback(
     (n: AppNotification, orgId: string, options: { ai?: AiStatus; replace?: boolean } = {}): Opened => {
-      if (connect && opensConnectAi(n, options.ai)) {
-        connect.open({ ready: true });
+      const ask = connect ? connectAiAsk(n, options.ai) : null;
+      if (connect && ask) {
+        connect.open(ask);
         return "dialog";
       }
       // A help request whose conversation I can't open: the agent's computer, its request and Ajudar in view.

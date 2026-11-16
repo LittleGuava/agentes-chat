@@ -45,6 +45,7 @@ export type AppHref =
   | "/join-requests"
   | "/computer-setup"
   | "/connect-ai?ready=1"
+  | `/connect-ai?agentId=${string}`
   | "/usage"
   | "/proposals"
   | "/dashboards"
@@ -255,6 +256,8 @@ export function notificationHref(
   if (n.kind === "agent_unreached" || n.kind === "browser_profile_request" || n.kind === "desktop_taken")
     return isSafeId(s.agentId) ? `/agent/${s.agentId}` : null;
   if (n.kind === "approval") return isSafeId(s.approvalId) ? `/approval/${s.approvalId}` : null;
+  // An agent someone couldn't reach has no AI: "Conectar uma IA" for it.
+  if (n.kind === "agent_needs_ai") return isSafeId(s.agentId) ? `/connect-ai?agentId=${s.agentId}` : null;
   // The agent's model left its plan's list: its model, to choose another.
   if (n.kind === "plan_model_dropped") return isSafeId(s.agentId) ? `/agent-model/${s.agentId}` : null;
   // Someone gave an agent the person's plan: their AI accounts, where the agents on each plan are.

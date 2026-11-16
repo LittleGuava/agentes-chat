@@ -899,6 +899,7 @@
   "activity": {
     "title": "Activité",
     "chooseModel": "Choisir un autre modèle",
+    "connectAi": "Connecter une IA",
     "filter": {
       "all": "Tout",
       "waiting": "Demandes",
@@ -1048,6 +1049,9 @@
       "desktop_taken_female_one": "{{names}} a pris le contrôle de l'écran de l'ordinateur de {{agent}}",
       "desktop_taken_female_many": "{{names}} ont pris le contrôle de l'écran de l'ordinateur de {{agent}}",
       "desktop_taken_female_other": "{{names}} ont pris le contrôle de l'écran de l'ordinateur de {{agent}}",
+      "agent_needs_ai_one": "{{names}} a appelé {{agent}}, qui n'a pas d'IA connectée pour répondre",
+      "agent_needs_ai_many": "{{names}} ont appelé {{agent}}, qui n'a pas d'IA connectée pour répondre",
+      "agent_needs_ai_other": "{{names}} ont appelé {{agent}}, qui n'a pas d'IA connectée pour répondre",
       "plan_lent_one": "{{names}} a connecté votre forfait {{plan}} à {{agent}}",
       "plan_lent_many": "{{names}} ont connecté votre forfait {{plan}} à {{agent}}",
       "plan_lent_other": "{{names}} ont connecté votre forfait {{plan}} à {{agent}}",

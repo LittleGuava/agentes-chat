@@ -875,6 +875,7 @@
   "activity": {
     "title": "Etkinlik",
     "chooseModel": "Başka bir model seç",
+    "connectAi": "Yapay zeka bağla",
     "filter": {
       "all": "Tümü",
       "waiting": "İstekler",
@@ -982,6 +983,8 @@
       "desktop_taken_other": "{{names}}, {{agent}} ajanının bilgisayar ekranını devraldı",
       "desktop_taken_female_one": "{{names}}, {{agent}} ajanının bilgisayar ekranını devraldı",
       "desktop_taken_female_other": "{{names}}, {{agent}} ajanının bilgisayar ekranını devraldı",
+      "agent_needs_ai_one": "{{names}}, {{agent}} ajanını çağırdı ama yanıt verecek bağlı bir yapay zekası yok",
+      "agent_needs_ai_other": "{{names}}, {{agent}} ajanını çağırdı ama yanıt verecek bağlı bir yapay zekası yok",
       "plan_lent_one": "{{names}}, {{plan}} planını {{agent}} ajanına bağladı",
       "plan_lent_other": "{{names}}, {{plan}} planını {{agent}} ajanına bağladı",
       "plan_lent_female_one": "{{names}}, {{plan}} planını {{agent}} ajanına bağladı",

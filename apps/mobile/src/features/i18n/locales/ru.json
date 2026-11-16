@@ -923,6 +923,7 @@
   "activity": {
     "title": "Активность",
     "chooseModel": "Выбрать другую модель",
+    "connectAi": "Подключить ИИ",
     "filter": {
       "all": "Все",
       "waiting": "Запросы",
@@ -1114,6 +1115,10 @@
       "desktop_taken_female_few": "{{names}} взяли управление экраном компьютера {{agent}}",
       "desktop_taken_female_many": "{{names}} взяли управление экраном компьютера {{agent}}",
       "desktop_taken_female_other": "{{names}} взяли управление экраном компьютера {{agent}}",
+      "agent_needs_ai_one": "{{names}} обратился(-ась) к {{agent}}, но к нему не подключён ИИ, чтобы ответить",
+      "agent_needs_ai_few": "{{names}} обратились к {{agent}}, но к нему не подключён ИИ, чтобы ответить",
+      "agent_needs_ai_many": "{{names}} обратились к {{agent}}, но к нему не подключён ИИ, чтобы ответить",
+      "agent_needs_ai_other": "{{names}} обратились к {{agent}}, но к нему не подключён ИИ, чтобы ответить",
       "plan_lent_one": "Ваш план {{plan}} подключён к агенту {{agent}}: {{names}}",
       "plan_lent_few": "Ваш план {{plan}} подключён к агенту {{agent}}: {{names}}",
       "plan_lent_many": "Ваш план {{plan}} подключён к агенту {{agent}}: {{names}}",

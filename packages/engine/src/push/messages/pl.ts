@@ -17,6 +17,8 @@ export const strings: Partial<PushStrings> = {
   routineFailedTitle: "Rutyna nie dobiegła końca",
   routineFailedRetriedTitle: "Rutyna nie dobiegła końca, nawet po ponownej próbie",
   runFailedTitle: (a) => `${a}: nie udało się dokończyć`,
+  needsAiTitle: (a) => `${a}: brak podłączonej AI`,
+  needsAiBody: (p) => `${p} pyta i nie dostaje odpowiedzi. Podłącz AI, żeby mogła odpowiedzieć.`,
   routineFailedBody: "Dotknij, żeby zobaczyć, co się stało.",
   routinePausedTitle: "Rutyna została wstrzymana",
   routinePausedBody: "Dotknij, żeby zobaczyć dlaczego.",

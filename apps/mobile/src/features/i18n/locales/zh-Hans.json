@@ -851,6 +851,7 @@
   "activity": {
     "title": "动态",
     "chooseModel": "选择其他模型",
+    "connectAi": "连接 AI",
     "filter": {
       "all": "全部",
       "waiting": "请求",
@@ -916,6 +917,7 @@
       "browser_profile_request_other": "{{names}} 请求再增加一个浏览器配置文件",
       "desktop_taken_other": "{{names}} 接管了 {{agent}} 的电脑屏幕",
       "desktop_taken_female_other": "{{names}} 接管了 {{agent}} 的电脑屏幕",
+      "agent_needs_ai_other": "{{names}} 呼叫了 {{agent}}，但没有连接可以回答的 AI",
       "plan_lent_other": "{{names}} 把你的 {{plan}} 套餐连接到了 {{agent}}",
       "plan_lent_female_other": "{{names}} 把你的 {{plan}} 套餐连接到了 {{agent}}",
       "plan_serves_other": "你的 {{plan}} 现在服务整个 workspace",
