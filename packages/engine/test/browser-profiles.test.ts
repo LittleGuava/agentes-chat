@@ -2,6 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import {
   ACCESS_ALLOW_PROTOCOL,
   BROWSER_PROFILE_PROTOCOL,
+  BROWSER_SITES_PROTOCOL,
   channelTopic,
   type MachineRequest,
 } from "@agenteschat/adapters";
@@ -20,6 +21,7 @@ import {
   ForbiddenError,
   grantScopes,
   listBrowserProfiles,
+  listProfileSites,
   type MachineCaller,
   MachineRequestError,
   type MachineStatus,
@@ -29,6 +31,7 @@ import {
   requireProfileWatcher,
   setAgentBrowserProfile,
   setBrowserProfileAgents,
+  signOutProfileSite,
   startProfileControl,
   type ToolContext,
   type ToolSideEffects,
@@ -624,4 +627,114 @@ test("the chat's trail says which profile each step ran in", () => {
     ["browser_open", "Shop chat"],
     ["browser_read", null],
   ]);
+});
+
+/** The computer at the signed-in sites protocol, answering `browser.sites` and `browser.sites.forget` as a runner. */
+function withSites(b: Awaited<ReturnType<typeof profilesSetup>>, during?: () => Promise<void>) {
+  b.s.status = { protocol: BROWSER_SITES_PROTOCOL };
+  const answer = b.hub.call;
+  const sites = [
+    { site: "google.com", cookies: 2, storage: 1 },
+    { site: "web.whatsapp.com", cookies: 1, storage: 1 },
+  ];
+  b.hub.call = async (id, sent, options) => {
+    const request = sent as MachineRequest;
+    if (request.op === "browser.sites") {
+      b.calls.push(request);
+      return { sites } as never;
+    }
+    if (request.op === "browser.sites.forget") {
+      b.calls.push(request);
+      await during?.();
+      return { cookies: 2, storage: 1, sites: sites.filter((s) => s.site !== request.site) } as never;
+    }
+    return answer(id, sent, options);
+  };
+  return b.calls;
+}
+
+test("a profile's drivers see its signed-in sites and sign out of one: the turn is theirs meanwhile, the audit names the site", async () => {
+  const b = await profilesSetup();
+  const p = await b.profile([b.bia.id]);
+  const bia = await runOf(b.bia.id);
+  let biaMeanwhile: unknown;
+  const calls = withSites(b, async () => {
+    biaMeanwhile = await takeProfileTurn(f.db, {
+      orgId: f.org.id,
+      profileId: p.id,
+      agentId: b.bia.id,
+      runId: bia.runId,
+    });
+  });
+  const deps = { db: f.db, hub: b.hub };
+  expect(await listProfileSites(deps, f.owner.id, f.org.id, p.id)).toEqual({
+    sites: [
+      { site: "google.com", cookies: 2, storage: 1 },
+      { site: "web.whatsapp.com", cookies: 1, storage: 1 },
+    ],
+  });
+  expect(calls.at(-1)).toMatchObject({ op: "browser.sites", profile: { id: p.id }, agent: { id: `profile:${p.id}` } });
+
+  // Only who drives the profile: a member sees its name, never its accounts.
+  const member = await addMember(f.db, f.org.id, "member", "Rui");
+  await expect(listProfileSites(deps, member.id, f.org.id, p.id)).rejects.toBeInstanceOf(ForbiddenError);
+  await expect(signOutProfileSite(deps, member.id, f.org.id, p.id, "google.com")).rejects.toBeInstanceOf(
+    ForbiddenError,
+  );
+
+  // Not a host: refused before the computer is asked.
+  const asked = calls.length;
+  await expect(signOutProfileSite(deps, f.owner.id, f.org.id, p.id, "https://google.com/")).rejects.toMatchObject({
+    code: "browser_profile.site",
+  });
+  expect(calls).toHaveLength(asked);
+
+  expect(await signOutProfileSite(deps, f.owner.id, f.org.id, p.id, " Google.com ")).toEqual({
+    site: "google.com",
+    cookies: 2,
+    storage: 1,
+    sites: [{ site: "web.whatsapp.com", cookies: 1, storage: 1 }],
+  });
+  expect(calls.at(-1)).toMatchObject({ op: "browser.sites.forget", site: "google.com", profile: { id: p.id } });
+  // While it ran the person held the profile: Bia's command waited.
+  expect(biaMeanwhile).toMatchObject({ ok: false, reason: "busy", holder: { type: "person", userId: f.owner.id } });
+  // And gave it back.
+  expect(
+    (await takeProfileTurn(f.db, { orgId: f.org.id, profileId: p.id, agentId: b.bia.id, runId: bia.runId })).ok,
+  ).toBe(true);
+  expect((await audits("browser_profile.site_signed_out")).map((a) => a.details)).toEqual([
+    { name: "Shop chat", site: "google.com", cookies: 2, storage: 1 },
+  ]);
+});
+
+test("Sair is refused while an agent's run has the profile, keeps a person's own control, and an older computer is told to update", async () => {
+  const b = await profilesSetup();
+  const p = await b.profile([b.bia.id]);
+  const calls = withSites(b);
+  const deps = { db: f.db, hub: b.hub };
+  const bia = await runOf(b.bia.id);
+  expect(
+    (await takeProfileTurn(f.db, { orgId: f.org.id, profileId: p.id, agentId: b.bia.id, runId: bia.runId })).ok,
+  ).toBe(true);
+  await expect(signOutProfileSite(deps, f.owner.id, f.org.id, p.id, "google.com")).rejects.toMatchObject({
+    code: "browser_profile.busy",
+  });
+  expect(calls.some((c) => c.op === "browser.sites.forget")).toBe(false);
+  // Its turn is still Bia's.
+  expect((await listBrowserProfiles(f.db, f.owner.id, f.org.id))[0]?.holder).toMatchObject({ type: "agent" });
+
+  await transitionRun(f.db, bia.runId, "running", "done");
+  await startProfileControl(deps, f.owner.id, f.org.id, p.id);
+  await signOutProfileSite(deps, f.owner.id, f.org.id, p.id, "google.com");
+  // The person was in control before: still is.
+  expect((await listBrowserProfiles(f.db, f.owner.id, f.org.id))[0]?.holder).toMatchObject({
+    type: "person",
+    userId: f.owner.id,
+  });
+
+  b.s.status = { protocol: BROWSER_SITES_PROTOCOL - 1 };
+  await expect(listProfileSites(deps, f.owner.id, f.org.id, p.id)).rejects.toMatchObject({
+    code: "browser_profile.machine",
+    message: "Update this computer to see the sites its profiles are signed in to",
+  });
 });
