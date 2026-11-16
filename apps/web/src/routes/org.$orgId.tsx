@@ -5,6 +5,7 @@ import { createFileRoute, Outlet, redirect, useNavigate, useRouterState } from "
 import { useEffect, useRef } from "react";
 import { requireUserIn } from "@/app/guards";
 import { usePageTextSize } from "@/chat/look";
+import { Announcements } from "@/components/Announcements";
 import { useFollowPickedAgent } from "@/components/AppIconPicker";
 import { Arrival } from "@/components/arrival/Arrival";
 import { FeedbackHost } from "@/components/arrival/FeedbackDialog";
@@ -140,7 +141,7 @@ function OrgLayout() {
                             </>
                           )}
                           {/* The work area: notices on top (agents paused, the workspace's computer on its way, a computer
-                    the agents run on went offline), then the page. Being deleted, it reads as ever under one line that
+                    the agents run on went offline, what the server's operator announces), then the page. Being deleted, it reads as ever under one line that
                     says so (ADR 0088 §7), in the Criar agente flow too: its work stopped, nothing else is news. */}
                           <div className={focused ? "shell__work shell__work--bare" : "shell__work"}>
                             {membership.deletion && <DeletingBanner />}
@@ -149,6 +150,7 @@ function OrgLayout() {
                                 <HoldBanner />
                                 <ComputerSetupNotice />
                                 <OutageNotices />
+                                <Announcements />
                               </>
                             )}
                             <div className="shell__pages">
