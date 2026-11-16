@@ -8047,11 +8047,11 @@
   "connectAi.plan.grok.title": {
     "value": "Your Grok plan"
   },
-  "connectAi.plan.copilot.title": {
-    "value": "Your GitHub Copilot plan"
-  },
   "connectAi.plan.grok.tiers": {
     "value": "SuperGrok, SuperGrok Heavy or X Premium+"
+  },
+  "connectAi.plan.copilot.title": {
+    "value": "Your GitHub Copilot plan"
   },
   "connectAi.plan.copilot.tiers": {
     "value": "Copilot Pro, Pro+, Business or Enterprise"
@@ -28006,6 +28006,15 @@
   },
   "run.refresh": {
     "value": "Refresh"
+  },
+  "run.rescue.silent": {
+    "value": "Its AI hasn't answered yet"
+  },
+  "run.rescue.switchAi": {
+    "value": "Switch AI"
+  },
+  "run.rescue.status": {
+    "value": "See status"
   },
   "run.stop": {
     "value": "Stop"

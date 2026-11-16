@@ -114,6 +114,12 @@ export interface LiveRun {
   triggerMessageId?: string | null;
   /** Last event seen for this run (a run silent for minutes may be orphaned on the server). */
   lastEventAt?: number;
+  /**
+   * When its AI was set to work (`agent.run` `running`, at each claim) and has sent nothing since, by this device's
+   * clock: gone at its first word, call or step (`firstReplyRescue`). Never set from a read of the server: what this
+   * device didn't hear, it can't call silence.
+   */
+  silentSince?: number;
   runId: string;
   agentId: string;
   channelId: string;
@@ -449,12 +455,52 @@ function backgroundRun(state: StreamsState, event: StreamEvent): StreamsState | 
 export function applyChannelEvent(state: StreamsState, event: StreamEvent, now = Date.now()): StreamsState {
   const quiet = backgroundRun(state, event);
   if (quiet) return quiet;
-  const next = applyEvent(state, event);
+  const next = withSilence(applyEvent(state, event), event, now);
   // Any news about a run keeps it "alive" (see `isQuiet`).
   const runId = "runId" in event && typeof event.runId === "string" ? event.runId : null;
   const r = runId ? next.runs[runId] : undefined;
   if (!runId || !r || r.provisional || (next === state && r.lastEventAt !== undefined)) return next;
   return { ...next, runs: { ...next.runs, [runId]: { ...r, lastEventAt: now } } };
+}
+
+/** The run's `silentSince` after this event (`silenceAfter`); a message names its run as `agentRunId`. */
+function withSilence(state: StreamsState, event: StreamEvent, now: number): StreamsState {
+  const runId =
+    event.type === "message.created"
+      ? (event.message?.agentRunId ?? event.agentRunId ?? null)
+      : "runId" in event && typeof event.runId === "string"
+        ? event.runId
+        : null;
+  const r = runId ? state.runs[runId] : undefined;
+  if (!runId || !r || r.provisional) return state;
+  const silentSince = silenceAfter(event, r, now);
+  if (silentSince === r.silentSince) return state;
+  const { silentSince: _was, ...rest } = r;
+  const run: LiveRun = silentSince === undefined ? rest : { ...rest, silentSince };
+  return { ...state, runs: { ...state.runs, [runId]: run } };
+}
+
+/** What its AI sends: any of these, however little, means it answered (`LiveRun.silentSince` goes). */
+const AI_OUTPUT: ReadonlySet<string> = new Set([
+  "agent.typing",
+  "agent.delta",
+  "agent.tool",
+  "agent.step",
+  "agent.tool.output",
+  "agent.browser.waiting",
+  "agent.consulting",
+  // Its run's own message that didn't end it (a fast reply, a card posted inside a call): an ending one took the row.
+  "message.created",
+]);
+
+/**
+ * The run's `silentSince` after this event: set when its AI is set to work (each claim says `running`), gone at its
+ * first output and on any other state (in line, waiting, failed), kept otherwise.
+ */
+function silenceAfter(event: StreamEvent, run: LiveRun, now: number): number | undefined {
+  if (event.type === "agent.run") return event.status === "running" ? now : undefined;
+  if (AI_OUTPUT.has(event.type)) return undefined;
+  return run.silentSince;
 }
 
 function applyEvent(state: StreamsState, event: StreamEvent): StreamsState {
@@ -797,12 +843,15 @@ export function reconcileRuns(
       const workingSince = missed ? served : mine;
       // What the server knows better: where it started, and that it's alive.
       const lastEventAt = Math.max(r.lastEventAt ?? 0, heartbeat ?? 0) || r.lastEventAt;
+      // Read again after a gap in listening (a reconnect, a tab back from the background): its AI may have answered
+      // meanwhile, so its silence is no longer known.
+      const { silentSince: _unknown, ...heard } = r;
       s = {
         ...s,
         runs: {
           ...s.runs,
           [a.runId]: {
-            ...r,
+            ...heard,
             ...(a.triggerMessageId ? { triggerMessageId: a.triggerMessageId } : {}),
             ...(startedAt ? { startedAt } : {}),
             ...(workingSince !== undefined ? { workingSince } : {}),
