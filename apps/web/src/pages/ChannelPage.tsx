@@ -166,7 +166,7 @@ import { noAiCardOf } from "@agenteschat/client/lib/no-ai";
 import { isTalkerReply, noticeOf, routineReportText, talkerWaited } from "@agenteschat/client/lib/notices";
 import { brainUnavailableOf, isOfflineNotice } from "@agenteschat/client/lib/outages";
 import { can, leavesChannel, makesAgents, managesChannel, setsAutoReply } from "@agenteschat/client/lib/permissions";
-import { modelStandInText } from "@agenteschat/client/lib/plan-usage";
+import { brainReserveText, modelStandInText } from "@agenteschat/client/lib/plan-usage";
 import { reachHandoffs } from "@agenteschat/client/lib/reach";
 import { localMeta, replyOf } from "@agenteschat/client/lib/reply";
 import { isRightHand } from "@agenteschat/client/lib/right-hand";
@@ -298,9 +298,9 @@ import { InlineProposal, MemoryChangeCard, QuestionCard, SecretCard } from "@/co
 import {
   AppViaTag,
   NoticeLine,
+  ReplyNoteLine,
   RoutineReport,
   RoutineTag,
-  SpeedFallbackLine,
   StopPill,
   StopsProvider,
   stopsOf,
@@ -4609,6 +4609,7 @@ export const TimelineMessage = memo(function TimelineMessage({
   };
   const meta = m.meta ?? {};
   const standIn = modelStandInText(t, meta);
+  const reserve = brainReserveText(t, meta);
   const approvalId = typeof meta.approvalId === "string" ? meta.approvalId : null;
   const proposalId = typeof meta.proposalId === "string" ? meta.proposalId : null;
   const memoryUpdates = Array.isArray(meta.memoryUpdates)
@@ -4984,7 +4985,10 @@ export const TimelineMessage = memo(function TimelineMessage({
             )}
             {media && <ChatMedia media={media} />}
             {voice && <ChatVoice message={m} voice={voice} />}
-            {m.author.type === "agent" && meta.speedFallback === true && <SpeedFallbackLine agent={agent} />}
+            {m.author.type === "agent" && meta.speedFallback === true && (
+              <ReplyNoteLine agent={agent} text={t("chat.speedFallback.text")} />
+            )}
+            {m.author.type === "agent" && reserve && <ReplyNoteLine agent={agent} text={reserve} />}
             {m.author.type === "agent" && standIn && <ModelStandInLine text={standIn} agent={agent} meta={meta} />}
             {(stopped.canceled || atLimit || providerCut) && (
               <StoppedLine

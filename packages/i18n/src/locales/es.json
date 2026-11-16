@@ -5838,6 +5838,19 @@
         "addAccount": "Agregar cuenta",
         "signInAgain": "Volver a iniciar sesión",
         "connectPlan": "Conectar otro plan",
+        "reserves": {
+          "title": "IA de reserva",
+          "none": "Ninguna",
+          "text": "Cuando su plan llega al límite o se cierra la sesión, responde la primera reserva que pueda. Vuelve a su plan cuando el límite se renueva.",
+          "list": "IA de reserva, en orden",
+          "others": "Otras cuentas en este ordenador",
+          "add": "Añadir",
+          "addName": "Añadir {{name}}",
+          "up": "Subir {{name}}",
+          "down": "Bajar {{name}}",
+          "remove": "Quitar {{name}} de las reservas",
+          "full": "Como máximo 3 reservas."
+        },
         "fallbackTitle": "Si {{computer}} deja de responder, responder a través de la API",
         "fallbackHint": "Responde a través de la API y cuenta para el presupuesto de {{name}}. Si no, {{name}} le avisa a quien preguntó y espera a que la computadora vuelva.",
         "effort": "Esfuerzo",
@@ -18162,6 +18175,10 @@
       "text": "{{plan}} rechazó {{from}} con esta clave. Respondí con {{to}}, que funciona con ella.",
       "useAll": "Usar {{model}} en todos",
       "pick": "Elegir modelo"
+    },
+    "brainReserve": {
+      "limit": "{{from}} llegó a su límite, así que respondí con {{to}}. Volveré a {{from}} cuando se renueve.",
+      "signedOut": "{{from}} no tiene la sesión iniciada, así que respondí con {{to}}."
     },
     "usageWhen": {
       "at": "a las {{time}}",

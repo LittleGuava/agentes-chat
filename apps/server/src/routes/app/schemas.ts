@@ -1106,6 +1106,9 @@ export const BrainMachine = z
   .object({ machineId: z.uuid(), name: z.string(), online: z.boolean(), options: z.array(BrainOption) })
   .openapi("BrainMachine");
 
+/** One of an agent's reserve AIs: an account on its computer, and the model it runs (null: that brain's default). */
+export const BrainReserve = z.object({ accountId: z.uuid(), model: z.string().max(80).nullable().optional() });
+
 export const AgentBrain = z
   .object({
     agentId: z.uuid(),
@@ -1159,6 +1162,10 @@ export const AgentBrain = z
       .nullable()
       .openapi({ description: "The account its computer brain runs with (ADR 0041); null = the computer's own." }),
     effort: BrainEffortSetting.nullable().openapi({ description: "`auto` = per run; null = the CLI's default." }),
+    fallbackChain: z.array(BrainReserve).openapi({
+      description:
+        "Its reserve AIs in order (ADR 0118 addendum 2026-11-15): accounts in `accounts` that answer a conversation while its own plan is at its limit or signed out; the reply says which (`meta.brainReserve`).",
+    }),
     speed: BrainSpeed,
     contextTokens: ContextLimit.nullable().openapi({
       description: "The most context it reads, any brain; null = its model's window (the smaller one wins).",

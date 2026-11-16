@@ -5451,6 +5451,19 @@
         "addAccount": "계정 추가",
         "signInAgain": "다시 로그인",
         "connectPlan": "다른 요금제 연결",
+        "reserves": {
+          "title": "예비 AI",
+          "none": "없음",
+          "text": "플랜이 한도에 도달했거나 로그아웃되면 응답할 수 있는 첫 번째 예비가 대신 답합니다. 한도가 초기화되면 다시 플랜으로 돌아갑니다.",
+          "list": "예비 AI, 순서대로",
+          "others": "이 컴퓨터의 다른 계정",
+          "add": "추가",
+          "addName": "{{name}} 추가",
+          "up": "{{name}} 위로",
+          "down": "{{name}} 아래로",
+          "remove": "{{name}}을(를) 예비에서 빼기",
+          "full": "예비는 최대 3개입니다."
+        },
         "fallbackTitle": "{{computer}}이(가) 응답하지 않으면 API로 답하기",
         "fallbackHint": "API로 답하고 {{name}}의 예산에서 차감돼요. 끄면 {{name}}은(는) 요청한 사람에게 알리고 컴퓨터가 돌아오기를 기다려요.",
         "effort": "사고 수준",
@@ -17076,6 +17089,10 @@
       "text": "{{plan}}이(가) 이 키로 {{from}}을(를) 거부했어요. 이 키로 작동하는 {{to}}(으)로 답했어요.",
       "useAll": "모두에게 {{model}} 사용",
       "pick": "모델 선택"
+    },
+    "brainReserve": {
+      "limit": "{{from}}이(가) 한도에 도달해 {{to}}(으)로 답했어요. 한도가 초기화되면 {{from}}(으)로 돌아갈게요.",
+      "signedOut": "{{from}}에 로그인되어 있지 않아 {{to}}(으)로 답했어요."
     },
     "usageWhen": {
       "at": "{{time}}",

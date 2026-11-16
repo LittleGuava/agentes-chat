@@ -5475,6 +5475,19 @@
         "addAccount": "添加账号",
         "signInAgain": "重新登录",
         "connectPlan": "连接其他套餐",
+        "reserves": {
+          "title": "备用 AI",
+          "none": "无",
+          "text": "当它的套餐达到上限或已退出登录时，由第一个能回答的备用 AI 来回答。上限重置后会回到它自己的套餐。",
+          "list": "备用 AI（按顺序）",
+          "others": "这台电脑上的其他账号",
+          "add": "添加",
+          "addName": "添加 {{name}}",
+          "up": "上移 {{name}}",
+          "down": "下移 {{name}}",
+          "remove": "将 {{name}} 移出备用",
+          "full": "最多 3 个备用。"
+        },
         "fallbackTitle": "{{computer}} 无响应时，通过 API 回复",
         "fallbackHint": "将通过 API 回复，并计入 {{name}} 的预算。否则 {{name}} 会告知提出请求的人，并等待电脑恢复。",
         "fallbackHint_female": "将通过 API 回复，并计入 {{name}} 的预算。否则 {{name}} 会告知提出请求的人，并等待电脑恢复。",
@@ -17142,6 +17155,10 @@
       "text": "{{plan}} 用此密钥拒绝了 {{from}}。我改用可用的 {{to}} 回复了。",
       "useAll": "全部使用 {{model}}",
       "pick": "选择模型"
+    },
+    "brainReserve": {
+      "limit": "{{from}} 已达到上限，所以我用 {{to}} 回答了。等它重置后我会换回 {{from}}。",
+      "signedOut": "{{from}} 未登录，所以我用 {{to}} 回答了。"
     },
     "usageWhen": {
       "at": "{{time}}",

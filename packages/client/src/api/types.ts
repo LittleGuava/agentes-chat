@@ -6338,6 +6338,11 @@ export interface AgentBrain {
   account: string | null;
   /** How much it thinks before answering; `auto` = picked per task; null = the brain's default. */
   effort: BrainEffortSetting | null;
+  /**
+   * Its reserve AIs in order (ADR 0118 addendum 2026-11-15): accounts in `accounts` that answer a conversation while
+   * its own plan is at its limit or signed out. Absent: an older server.
+   */
+  fallbackChain?: BrainReserve[];
   /** How fast it answers in conversations; kept whatever it thinks with, applied only where `speedFits`. */
   speed: BrainSpeed;
   /** The most context it reads, in tokens (200K, 400K or 1M), any brain; null = its model's window. */
@@ -6520,6 +6525,14 @@ export interface AgentBrainInput {
   speed?: BrainSpeed;
   /** 200K, 400K or 1M tokens; null = the model's window; omitted = keep. */
   contextTokens?: number | null;
+  /** Its reserve AIs in order, at most 3; [] = none; omitted = keep. */
+  fallbackChain?: BrainReserve[];
+}
+
+/** One of an agent's reserve AIs: an account on its computer, and the model it runs (absent or null: its default). */
+export interface BrainReserve {
+  accountId: string;
+  model?: string | null;
 }
 
 /** One agent's "Quem pensa" as a value, to use on other agents (ADR 0094, `POST …/agent-setup`). */

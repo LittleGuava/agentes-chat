@@ -6072,6 +6072,19 @@
         "addAccount": "Dodaj konto",
         "signInAgain": "Zaloguj się ponownie",
         "connectPlan": "Połącz inny plan",
+        "reserves": {
+          "title": "Zapasowe AI",
+          "none": "Brak",
+          "text": "Gdy jego plan osiągnie limit albo zostanie wylogowany, odpowiada pierwsze zapasowe AI, które może. Po odnowieniu limitu wraca do swojego planu.",
+          "list": "Zapasowe AI, w kolejności",
+          "others": "Inne konta na tym komputerze",
+          "add": "Dodaj",
+          "addName": "Dodaj {{name}}",
+          "up": "Przesuń {{name}} w górę",
+          "down": "Przesuń {{name}} w dół",
+          "remove": "Usuń {{name}} z zapasowych",
+          "full": "Najwyżej 3 zapasowe."
+        },
         "fallbackTitle": "Jeśli {{computer}} przestanie odpowiadać, odpowiadaj przez API",
         "fallbackHint": "Odpowiada przez API i liczy się to do budżetu agenta {{name}}. W przeciwnym razie {{name}} informuje osobę, która prosiła, i czeka, aż komputer wróci.",
         "fallbackHint_female": "Odpowiada przez API i liczy się to do budżetu agentki {{name}}. W przeciwnym razie {{name}} informuje osobę, która prosiła, i czeka, aż komputer wróci.",
@@ -18795,6 +18808,10 @@
       "text": "{{plan}} odrzucił {{from}} z tym kluczem. Odpowiedziałem przez {{to}}, który z nim działa.",
       "useAll": "Użyj {{model}} dla wszystkich",
       "pick": "Wybierz model"
+    },
+    "brainReserve": {
+      "limit": "{{from}} osiągnął limit, więc odpowiedziałem przez {{to}}. Wrócę do {{from}}, gdy limit się odnowi.",
+      "signedOut": "{{from}} nie jest zalogowany, więc odpowiedziałem przez {{to}}."
     },
     "usageWhen": {
       "at": "o {{time}}",

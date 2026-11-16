@@ -114,6 +114,7 @@ import {
   BrainEffortSetting,
   BrainKind,
   BrainMachine,
+  BrainReserve,
   BrainSpeed,
   CommandApproval,
   ContextLimit,
@@ -2055,6 +2056,10 @@ export function agentRoutes(deps: AppDeps) {
               .optional()
               .openapi({ description: "`auto` = picked per run; null = the CLI's default; omitted = keep." }),
             speed: BrainSpeed.optional().openapi({ description: "Omitted = keep." }),
+            fallbackChain: z.array(BrainReserve).max(3).optional().openapi({
+              description:
+                "Its reserve AIs in order (ADR 0118 addendum 2026-11-15), at most 3: accounts on its computer it may think with, not the one it thinks with (`brain.reserve_invalid`). A conversation goes to the first that can think while its own plan is at its limit or signed out, and back to its own plan once it has room. Omitted = keep; [] = none.",
+            }),
             contextTokens: ContextLimit.nullable().optional().openapi({
               description:
                 "The most context it reads, any brain (Claude Code and Codex compact there, the API brain drops old tool results); null = its model's window; omitted = keep.",

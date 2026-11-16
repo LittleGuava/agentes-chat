@@ -236,6 +236,12 @@ export const agents = pgTable(
      * every other brain. Cleared when the agent changes computer or brain kind.
      */
     brainEngine: text(),
+    /**
+     * Its reserve AIs, in order (ADR 0118 addendum 2026-11-15): accounts on its computer that answer a conversation
+     * while the plan it thinks with is at its limit or signed out. Validated in code (`brain-settings.ts`); an entry
+     * whose account is gone or on another computer is skipped, never an error. `model` null = that brain's default.
+     */
+    brainFallbackChain: jsonb().$type<{ accountId: string; model?: string | null }[]>().notNull().default([]),
     /** How hard its computer brain thinks (`low`…`max`, ADR 0041); null = the CLI's default. */
     brainEffort: text(),
     /**

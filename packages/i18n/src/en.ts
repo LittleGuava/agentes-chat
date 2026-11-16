@@ -6110,6 +6110,22 @@ export const en = {
         addAccount: "Add account",
         signInAgain: "Sign in again",
         connectPlan: "Connect another plan",
+        /** "Mais opções" › its reserve AIs (ADR 0118 addendum 2026-11-15): accounts on its computer, in order. */
+        reserves: {
+          title: "Reserve AIs",
+          none: "None",
+          text: "When its plan reaches its limit or is signed out, the first reserve that can answer does. It goes back to its plan when the limit resets.",
+          /** The chosen ones' list, read aloud. */
+          list: "Reserve AIs, in order",
+          /** The other accounts on its computer, read aloud. */
+          others: "Other accounts on this computer",
+          add: "Add",
+          addName: "Add {{name}}",
+          up: "Move {{name}} up",
+          down: "Move {{name}} down",
+          remove: "Remove {{name}} from the reserves",
+          full: "At most 3 reserves.",
+        },
         fallbackTitle: "If {{computer}} stops answering, answer through the API",
         fallbackHint:
           "It answers through the API and counts against {{name}}'s budget. Otherwise {{name}} tells whoever asked and waits for the computer to come back.",
@@ -18128,6 +18144,14 @@ export const en = {
       text: "{{plan}} refused {{from}} with this key. I answered with {{to}}, which works with it.",
       useAll: "Use {{model}} for all",
       pick: "Choose model",
+    },
+    /**
+     * Under a reply one of the agent's reserve AIs gave (`meta.brainReserve`, ADR 0118 addendum 2026-11-15). `from` and
+     * `to` are an account's name with its AI in brackets ("Trabalho (Claude Code)"), or the AI alone.
+     */
+    brainReserve: {
+      limit: "{{from}} reached its limit, so I answered with {{to}}. I'll go back to {{from}} when it resets.",
+      signedOut: "{{from}} isn't signed in, so I answered with {{to}}.",
     },
     /** When a waiting agent goes on (`usageWhen`). */
     usageWhen: { at: "at {{time}}", on: "{{day}} at {{time}}", date: "on {{date}}" },

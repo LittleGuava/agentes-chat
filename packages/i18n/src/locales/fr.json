@@ -5863,6 +5863,19 @@
         "addAccount": "Ajouter un compte",
         "signInAgain": "Se reconnecter",
         "connectPlan": "Connecter un autre abonnement",
+        "reserves": {
+          "title": "IA de réserve",
+          "none": "Aucune",
+          "text": "Quand son forfait atteint sa limite ou est déconnecté, la première réserve disponible répond. Il revient à son forfait quand la limite se renouvelle.",
+          "list": "IA de réserve, dans l'ordre",
+          "others": "Autres comptes sur cet ordinateur",
+          "add": "Ajouter",
+          "addName": "Ajouter {{name}}",
+          "up": "Monter {{name}}",
+          "down": "Descendre {{name}}",
+          "remove": "Retirer {{name}} des réserves",
+          "full": "3 réserves au maximum."
+        },
         "fallbackTitle": "Si {{computer}} ne répond plus, répondre via l'API",
         "fallbackHint": "Il répond via l'API et cela compte dans le budget de {{name}}. Sinon, {{name}} prévient la personne qui a demandé et attend le retour de l'ordinateur.",
         "fallbackHint_female": "Elle répond via l'API et cela compte dans le budget de {{name}}. Sinon, {{name}} prévient la personne qui a demandé et attend le retour de l'ordinateur.",
@@ -18233,6 +18246,10 @@
       "text": "{{plan}} a refusé {{from}} avec cette clé. J'ai répondu avec {{to}}, qui fonctionne avec elle.",
       "useAll": "Utiliser {{model}} pour tous",
       "pick": "Choisir le modèle"
+    },
+    "brainReserve": {
+      "limit": "{{from}} a atteint sa limite, j'ai donc répondu avec {{to}}. Je reviendrai à {{from}} quand elle se renouvellera.",
+      "signedOut": "{{from}} n'est pas connecté, j'ai donc répondu avec {{to}}."
     },
     "usageWhen": {
       "at": "à {{time}}",

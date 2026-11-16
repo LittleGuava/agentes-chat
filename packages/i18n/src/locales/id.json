@@ -5469,6 +5469,19 @@
         "addAccount": "Tambah akun",
         "signInAgain": "Masuk lagi",
         "connectPlan": "Hubungkan paket lain",
+        "reserves": {
+          "title": "AI cadangan",
+          "none": "Tidak ada",
+          "text": "Saat paketnya mencapai batas atau keluar dari akun, cadangan pertama yang bisa akan menjawab. Kembali ke paketnya saat batasnya diperbarui.",
+          "list": "AI cadangan, berurutan",
+          "others": "Akun lain di komputer ini",
+          "add": "Tambah",
+          "addName": "Tambah {{name}}",
+          "up": "Naikkan {{name}}",
+          "down": "Turunkan {{name}}",
+          "remove": "Keluarkan {{name}} dari cadangan",
+          "full": "Paling banyak 3 cadangan."
+        },
         "fallbackTitle": "Jika {{computer}} berhenti merespons, jawab lewat API",
         "fallbackHint": "Agen menjawab lewat API dan dihitung dari anggaran {{name}}. Jika tidak, {{name}} memberi tahu siapa pun yang meminta dan menunggu komputernya kembali.",
         "effort": "Upaya",
@@ -17139,6 +17152,10 @@
       "text": "{{plan}} menolak {{from}} dengan kunci ini. Aku menjawab dengan {{to}}, yang berfungsi dengannya.",
       "useAll": "Gunakan {{model}} untuk semua",
       "pick": "Pilih model"
+    },
+    "brainReserve": {
+      "limit": "{{from}} sudah mencapai batasnya, jadi saya menjawab dengan {{to}}. Saya akan kembali ke {{from}} saat batasnya diperbarui.",
+      "signedOut": "{{from}} belum masuk, jadi saya menjawab dengan {{to}}."
     },
     "usageWhen": {
       "at": "pukul {{time}}",

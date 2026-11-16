@@ -47,6 +47,8 @@ export * from "./brains/claude-code";
 export * from "./brains/codex";
 export * from "./brains/model";
 export * from "./brains/prompt";
+export * from "./brains/reserve";
+export * from "./brains/reserve-chain";
 export * from "./brains/select";
 export * from "./brains/types";
 export * from "./brakes";

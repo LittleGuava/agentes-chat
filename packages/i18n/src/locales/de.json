@@ -5663,6 +5663,19 @@
         "addAccount": "Konto hinzufügen",
         "signInAgain": "Erneut anmelden",
         "connectPlan": "Weiteres Abo verbinden",
+        "reserves": {
+          "title": "Reserve-KIs",
+          "none": "Keine",
+          "text": "Wenn sein Plan das Limit erreicht oder abgemeldet ist, antwortet die erste Reserve, die kann. Sobald das Limit zurückgesetzt ist, nutzt er wieder seinen Plan.",
+          "list": "Reserve-KIs, in Reihenfolge",
+          "others": "Andere Konten auf diesem Computer",
+          "add": "Hinzufügen",
+          "addName": "{{name}} hinzufügen",
+          "up": "{{name}} nach oben",
+          "down": "{{name}} nach unten",
+          "remove": "{{name}} aus den Reserven entfernen",
+          "full": "Höchstens 3 Reserven."
+        },
         "fallbackTitle": "Wenn {{computer}} nicht mehr antwortet, über die API antworten",
         "fallbackHint": "Die Antwort kommt dann über die API und zählt zum Budget von {{name}}. Sonst sagt {{name}} der Person, die gefragt hat, Bescheid und wartet, bis der Computer zurück ist.",
         "effort": "Aufwand",
@@ -17678,6 +17691,10 @@
       "text": "{{plan}} hat {{from}} mit diesem Schlüssel abgelehnt. Ich habe mit {{to}} geantwortet, das damit funktioniert.",
       "useAll": "{{model}} für alle verwenden",
       "pick": "Modell wählen"
+    },
+    "brainReserve": {
+      "limit": "{{from}} hat sein Limit erreicht, deshalb habe ich mit {{to}} geantwortet. Sobald es sich erneuert, wechsle ich zurück zu {{from}}.",
+      "signedOut": "{{from}} ist nicht angemeldet, deshalb habe ich mit {{to}} geantwortet."
     },
     "usageWhen": {
       "at": "um {{time}}",

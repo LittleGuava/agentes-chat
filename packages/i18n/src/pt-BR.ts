@@ -5986,6 +5986,22 @@ export const ptBR = {
         addAccount: "Adicionar conta",
         signInAgain: "Entrar de novo",
         connectPlan: "Conectar outro plano",
+        /** "Mais opções" › its reserve AIs (ADR 0118 addendum 2026-11-15): accounts on its computer, in order. */
+        reserves: {
+          title: "IAs de reserva",
+          none: "Nenhuma",
+          text: "Quando o plano chega ao limite ou sai da conta, a primeira reserva que puder responde. Volta para o plano quando o limite renova.",
+          /** The chosen ones' list, read aloud. */
+          list: "IAs de reserva, em ordem",
+          /** The other accounts on its computer, read aloud. */
+          others: "Outras contas neste computador",
+          add: "Adicionar",
+          addName: "Adicionar {{name}}",
+          up: "Subir {{name}}",
+          down: "Descer {{name}}",
+          remove: "Tirar {{name}} das reservas",
+          full: "No máximo 3 reservas.",
+        },
         fallbackTitle: "Se o {{computer}} parar de responder, responder pela API",
         /** The switch's ⓘ: the same in both states. */
         fallbackHint:
@@ -17978,6 +17994,14 @@ export const ptBR = {
       text: "O {{plan}} recusou o {{from}} com esta chave. Respondi com o {{to}}, que funciona nela.",
       useAll: "Usar o {{model}} em todos",
       pick: "Escolher modelo",
+    },
+    /**
+     * Under a reply one of the agent's reserve AIs gave (`meta.brainReserve`, ADR 0118 addendum 2026-11-15). `from` and
+     * `to` are an account's name with its AI in brackets ("Trabalho (Claude Code)"), or the AI alone.
+     */
+    brainReserve: {
+      limit: "{{from}} chegou ao limite, então respondi com {{to}}. Volto para {{from}} quando ele renovar.",
+      signedOut: "{{from}} não está conectado, então respondi com {{to}}.",
     },
     /** When a waiting agent goes on (`usageWhen`). */
     usageWhen: { at: "às {{time}}", on: "{{day}} às {{time}}", date: "em {{date}}" },

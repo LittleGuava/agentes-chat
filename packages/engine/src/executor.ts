@@ -73,6 +73,8 @@ import { brainOf } from "./brain-settings";
 import { brainSessionId, missingTurnFolder, recordPlanUsage } from "./brains/claude-code";
 import { ModelBrain } from "./brains/model";
 import type { ComputerTurn } from "./brains/prompt";
+import { mayUseReserve, nextReserve, type ReserveRecord, reservePlan } from "./brains/reserve";
+import { RESERVE_CODES } from "./brains/reserve-chain";
 import {
   BRAIN_NOT_ALLOWED,
   type BrainPlan,
@@ -663,6 +665,11 @@ export interface Transcript {
   /** The computer brain couldn't answer and the model brain did (ADR 0032 §5): the reply carries a quiet note. */
   /** `quiet`: the right hand's stand-in, whose own line says it (`postStandInLine`), not the reply's note. */
   fallback?: { from: BrainKind; code: string; message: string; resetsAt?: string; quiet?: true };
+  /**
+   * One of the agent's reserve AIs thinks for this run (ADR 0118 addendum 2026-11-15): its own plan was at its limit or
+   * signed out. The run keeps it to the end (its session is that account's); the reply says which (`meta.brainReserve`).
+   */
+  reserve?: ReserveRecord;
   /**
    * The key that stood in for the computer brain was refused (no credit, a wrong key) before it answered a turn: the
    * run went back to its own brain, and no key stands in for it again.
@@ -2998,6 +3005,22 @@ async function executeRunInner(
       delete transcript.spill;
     }
   }
+  // A run a reserve took keeps it when it picks up again (an approval, an answer, back from a wait): its session is that
+  // account's. That reserve gone or unable to think now, the run is its own AI's again, in a fresh session (the one it
+  // had is in the reserve's folder), and may go to a reserve again from the first one.
+  const reserved = transcript.reserve;
+  if (reserved && brainPlan.kind !== "model" && !brainPlan.missionId) {
+    const kept = await reservePlan(deps, agent, run, brainPlan, reserved.index);
+    if (kept) brainPlan = kept;
+    else {
+      delete transcript.reserve;
+      if (brainPlan.session) {
+        const fresh = Bun.randomUUIDv7();
+        await db.update(agentRuns).set({ brainSessionId: fresh }).where(eq(agentRuns.id, run.id));
+        brainPlan = { ...brainPlan, session: { ...brainPlan.session, id: fresh, resume: false } };
+      }
+    }
+  }
   // A mission's main session can't be replaced mid-mission: its first turn after an edit reads the settings again.
   if (brainPlan.settingsChanged && needsContext) {
     transcript.system = [
@@ -3398,6 +3421,39 @@ async function executeRunInner(
       const said = line === "cli_failed" ? cliWords({ code: u.code, message: u.message }) : "";
       await failNoAi(line, undefined, ownModel?.label, said || undefined);
       return "failed";
+    }
+    // The agent's reserve AIs come first (ADR 0118 addendum 2026-11-15): another plan of its own, never a key. One that
+    // can't go on hands the run to the ones after it; with none left, the run goes on as below.
+    if (!onlyThisComputer && !u.queued && RESERVE_CODES.has(u.code) && mayUseReserve(agent, run, plan)) {
+      const next = await nextReserve(deps, agent, run, plan, t.reserve?.index ?? -1);
+      const to = next?.plan;
+      if (next && to?.account && to.session && isComputerBrain(to.kind)) {
+        // Who couldn't answer, and why, stays the agent's own AI's however many reserves it went through.
+        const resetsAt = t.reserve ? t.reserve.resetsAt : u.resetsAt;
+        t.reserve = {
+          index: next.index,
+          from: t.reserve?.from ?? { brain: from, ...(plan.account ? { account: plan.account.label } : {}) },
+          to: {
+            brain: to.kind,
+            account: to.account.label,
+            accountId: to.account.id,
+            ...(to.model ? { model: to.model } : {}),
+          },
+          code: t.reserve?.code ?? u.code,
+          ...(resetsAt ? { resetsAt } : {}),
+        };
+        plan = to;
+        brain = createBrain(deps, thinker, run, to.kind, turnToken, () => transcript as Transcript);
+        if (to.kind !== "claude_code") onDemandForOtherBrain(t);
+        await db.update(agentRuns).set({ brainSessionId: to.session.id }).where(eq(agentRuns.id, run.id));
+        await saveTranscript(db, t);
+        if (run.brain !== to.kind) {
+          await recordRunBrain(db, run.id, to.kind);
+          run = { ...run, brain: to.kind };
+        }
+        await addRunStep(db, run, "context", { brainReserve: reserveNote(t.reserve) });
+        return "fallback";
+      }
     }
     // A background run never stands in on the model brain (`mayFallBack`): it waits for its computer.
     // Behind others in the computer's line (`roomGate`) is no refusal: it waits its turn.
@@ -6555,18 +6611,23 @@ const withCode = (meta: Record<string, unknown> | undefined, code: ReturnType<ty
   code ? { ...(meta ?? {}), ...code } : meta;
 
 /**
- * The quiet notes on a reply: the model brain gave it for an unavailable computer brain (`meta.brainFallback`), or
- * Fast was refused and it came at standard speed (`meta.speedFallback`, the apps say so under the reply).
+ * The quiet notes on a reply: the model brain gave it for an unavailable computer brain (`meta.brainFallback`), one of
+ * the agent's reserve AIs did (`meta.brainReserve`), or Fast was refused and it came at standard speed
+ * (`meta.speedFallback`, the apps say so under the reply).
  */
 const withFallback = (t: Transcript, meta: Record<string, unknown> | undefined) =>
-  (t.fallback && !t.fallback.quiet) || t.speedFallback || t.modelStandIn
+  (t.fallback && !t.fallback.quiet) || t.reserve || t.speedFallback || t.modelStandIn
     ? {
         ...(meta ?? {}),
         ...(t.fallback && !t.fallback.quiet ? { brainFallback: t.fallback } : {}),
+        ...(t.reserve && !t.fallback ? { brainReserve: reserveNote(t.reserve) } : {}),
         ...(t.speedFallback ? { speedFallback: true } : {}),
         ...(t.modelStandIn ? { modelStandIn: t.modelStandIn } : {}),
       }
     : meta;
+
+/** What a reply says about the reserve that gave it: its place in the chain is the run's own business. */
+const reserveNote = ({ index: _index, ...note }: ReserveRecord) => note;
 
 /**
  * The conversation a "Continuar" run starts from: the stopped run's messages (what it wrote

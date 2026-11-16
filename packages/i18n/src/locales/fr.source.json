@@ -13944,6 +13944,39 @@
   "agentPage.work.brain.connectPlan": {
     "value": "Connect another plan"
   },
+  "agentPage.work.brain.reserves.title": {
+    "value": "Reserve AIs"
+  },
+  "agentPage.work.brain.reserves.none": {
+    "value": "None"
+  },
+  "agentPage.work.brain.reserves.text": {
+    "value": "When its plan reaches its limit or is signed out, the first reserve that can answer does. It goes back to its plan when the limit resets."
+  },
+  "agentPage.work.brain.reserves.list": {
+    "value": "Reserve AIs, in order"
+  },
+  "agentPage.work.brain.reserves.others": {
+    "value": "Other accounts on this computer"
+  },
+  "agentPage.work.brain.reserves.add": {
+    "value": "Add"
+  },
+  "agentPage.work.brain.reserves.addName": {
+    "value": "Add {{name}}"
+  },
+  "agentPage.work.brain.reserves.up": {
+    "value": "Move {{name}} up"
+  },
+  "agentPage.work.brain.reserves.down": {
+    "value": "Move {{name}} down"
+  },
+  "agentPage.work.brain.reserves.remove": {
+    "value": "Remove {{name}} from the reserves"
+  },
+  "agentPage.work.brain.reserves.full": {
+    "value": "At most 3 reserves."
+  },
   "agentPage.work.brain.fallbackTitle": {
     "value": "If {{computer}} stops answering, answer through the API"
   },
@@ -43503,6 +43536,12 @@
   },
   "chat.modelStandIn.pick": {
     "value": "Choose model"
+  },
+  "chat.brainReserve.limit": {
+    "value": "{{from}} reached its limit, so I answered with {{to}}. I'll go back to {{from}} when it resets."
+  },
+  "chat.brainReserve.signedOut": {
+    "value": "{{from}} isn't signed in, so I answered with {{to}}."
   },
   "chat.usageWhen.at": {
     "value": "at {{time}}"

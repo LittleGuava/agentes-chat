@@ -68,6 +68,7 @@ import {
 } from "./audience";
 import { recordAudit } from "./audit";
 import { type BrainPolicy, brainAllowed, brainPolicyRefusal, orgBrainPolicy } from "./brain-policy";
+import { MAX_RESERVES, type ReserveEntry, reserveChainOf } from "./brains/reserve-chain";
 import { BRAIN_NAMES, type BrainKind, brainRunsOn, isComputerBrain } from "./brains/types";
 import { caches } from "./cache";
 import { defaultCredentials, providerKeyOf } from "./credentials";
@@ -569,6 +570,11 @@ export interface AgentBrainView {
   account: string | null;
   /** How hard its computer brain thinks; `auto` = picked per run; null = the CLI's default. */
   effort: BrainEffortSetting | null;
+  /**
+   * Its reserve AIs in order (ADR 0118 addendum 2026-11-15): accounts in `accounts` that answer a conversation while
+   * its own plan is at its limit or signed out. Entries on another computer, or whose account went, aren't listed.
+   */
+  fallbackChain: ReserveEntry[];
   /** How fast it answers in conversations (ADR 0149): kept whatever it thinks with, applied only where it fits. */
   speed: BrainSpeed;
   /** The most context it reads, in tokens (`CONTEXT_LIMITS`, any brain); null = its model's window. */
@@ -755,6 +761,9 @@ function view(
     canEdit: true,
     account: agent.brainAccountId,
     effort: isBrainEffortSetting(agent.brainEffort) ? agent.brainEffort : null,
+    fallbackChain: reserveChainOf(agent.brainFallbackChain).filter((e) =>
+      accounts.accounts.some((a) => a.id === e.accountId),
+    ),
     speed: isBrainSpeed(agent.brainSpeed) ? agent.brainSpeed : "standard",
     contextTokens: isContextLimit(agent.contextTokens) ? agent.contextTokens : null,
     ...accounts,
@@ -1095,6 +1104,11 @@ export interface AgentBrainInput {
   effort?: unknown;
   /** `standard` or `fast`, kept through any change of brain, account or model. Omitted = keep it. */
   speed?: unknown;
+  /**
+   * Its reserve AIs in order (`ReserveEntry[]`, at most `MAX_RESERVES`): accounts on its computer it may think with,
+   * other than its own. Omitted = keep it (less the account it now thinks with); [] = none.
+   */
+  fallbackChain?: unknown;
   /** One of `CONTEXT_LIMITS`, or null for the model's window; kept through brain switches. Omitted = keep it. */
   contextTokens?: unknown;
   /**
@@ -1283,6 +1297,8 @@ export async function setAgentBrain(
       );
   }
   const accounts = await brainAccounts(deps.db, userId, orgId, agent, machine);
+  const fallbackChain = nextFallbackChain(agent, account, accounts.accounts, input.fallbackChain);
+  const chainChanged = JSON.stringify(fallbackChain) !== JSON.stringify(reserveChainOf(agent.brainFallbackChain));
   const thinks =
     changed ||
     model !== agent.brainModel ||
@@ -1293,7 +1309,8 @@ export async function setAgentBrain(
     speed !== agent.brainSpeed ||
     contextTokens !== agent.contextTokens ||
     planForOthers !== agent.planForOthers ||
-    engine !== agent.brainEngine;
+    engine !== agent.brainEngine ||
+    chainChanged;
   if (!thinks && !audience) return view(agent, machine, machines, accounts, userId, policy);
   const { row, released } = await deps.db.transaction(async (tx) => {
     // A login made for one agent thinks for one: the check is taken again under its row's lock, so two agents
@@ -1340,6 +1357,7 @@ export async function setAgentBrain(
         brainAccountLentBy: lentBy,
         brainEffort: effort,
         brainSpeed: speed,
+        brainFallbackChain: fallbackChain,
         contextTokens,
         planForOthers,
         // The people and roles lists stay while it is its owner's only, for when it is let out again.
@@ -1403,8 +1421,20 @@ export async function setAgentBrain(
           speed: agent.brainSpeed,
           contextTokens: agent.contextTokens,
           engine: agent.brainEngine,
+          reserves: reserveChainOf(agent.brainFallbackChain),
         },
-        to: { brain, model, fallback, extraUsage, account, effort, speed, contextTokens, engine },
+        to: {
+          brain,
+          model,
+          fallback,
+          extraUsage,
+          account,
+          effort,
+          speed,
+          contextTokens,
+          engine,
+          reserves: fallbackChain,
+        },
         ...(rightHand ? { planForOthers: { from: agent.planForOthers, to: planForOthers } } : {}),
         ...options.audit,
       },
@@ -1439,6 +1469,7 @@ export async function setAgentBrain(
     brainAccountLentBy: lentBy,
     brainEffort: effort,
     brainSpeed: speed,
+    brainFallbackChain: fallbackChain,
     contextTokens,
     planForOthers,
     ...(audience ? { audienceMode: audience.mode } : {}),
@@ -1490,6 +1521,45 @@ function acpEngineOf(
     });
   }
   return wanted;
+}
+
+/**
+ * The agent's reserve AIs after this save (ADR 0118 addendum 2026-11-15): omitted, the ones it had less the account it
+ * thinks with now; else at most `MAX_RESERVES` distinct accounts on its computer that it may think with (`listed`:
+ * its owner's, or one that serves the whole workspace), never its own account, never on the team's right hand.
+ */
+function nextFallbackChain(
+  agent: Pick<Agent, "brainFallbackChain" | "ownerUserId" | "builtin">,
+  account: string | null,
+  listed: MachineAccountView[],
+  input: unknown,
+): ReserveEntry[] {
+  if (input === undefined) return reserveChainOf(agent.brainFallbackChain).filter((e) => e.accountId !== account);
+  const invalid = (message: string) => new ValidationError(message, "brain.reserve_invalid");
+  if (!Array.isArray(input)) throw invalid("Reserves are a list of accounts");
+  if (input.length > MAX_RESERVES) throw invalid(`At most ${MAX_RESERVES} reserves`);
+  if (input.length > 0 && isRightHand(agent)) throw invalid("The team's right hand has no reserves");
+  const seen = new Set<string>();
+  return input.map((raw): ReserveEntry => {
+    const { accountId, model } = (raw && typeof raw === "object" ? raw : {}) as {
+      accountId?: unknown;
+      model?: unknown;
+    };
+    if (typeof accountId !== "string") throw invalid("Each reserve is an account");
+    if (model !== undefined && model !== null && (typeof model !== "string" || model.length > 80))
+      throw invalid("A reserve's model is a name, or null for its brain's default");
+    if (accountId === account) throw invalid("The account it thinks with isn't a reserve of its own");
+    if (seen.has(accountId)) throw invalid("Each account is a reserve once");
+    seen.add(accountId);
+    const found = listed.find(
+      (a) =>
+        a.id === accountId &&
+        ((a.ownerId !== null && a.serves === "everyone") ||
+          (agent.ownerUserId !== null && a.ownerId === agent.ownerUserId)),
+    );
+    if (!found) throw invalid("Choose an account on the agent's computer that it may think with");
+    return { accountId, ...(typeof model === "string" ? { model } : {}) };
+  });
 }
 
 /**

@@ -5645,6 +5645,19 @@
         "addAccount": "Hesap ekle",
         "signInAgain": "Yeniden giriş yap",
         "connectPlan": "Başka bir plan bağla",
+        "reserves": {
+          "title": "Yedek yapay zekâlar",
+          "none": "Yok",
+          "text": "Planı sınırına ulaştığında ya da oturumu kapandığında, yanıt verebilen ilk yedek yanıtlar. Sınır yenilendiğinde planına geri döner.",
+          "list": "Yedek yapay zekâlar, sırayla",
+          "others": "Bu bilgisayardaki diğer hesaplar",
+          "add": "Ekle",
+          "addName": "{{name}} ekle",
+          "up": "{{name}} yukarı taşı",
+          "down": "{{name}} aşağı taşı",
+          "remove": "{{name}} yedeklerden çıkar",
+          "full": "En fazla 3 yedek."
+        },
         "fallbackTitle": "{{computer}} yanıt vermezse API üzerinden yanıtla",
         "fallbackHint": "API üzerinden yanıt verir ve {{name}} ajanının bütçesinden düşer. Aksi halde {{name}} isteyen kişiye haber verir ve bilgisayarın geri gelmesini bekler.",
         "effort": "Çaba",
@@ -17608,6 +17621,10 @@
       "text": "{{plan}} bu anahtarla {{from}} modelini reddetti. Onunla çalışan {{to}} ile yanıt verdim.",
       "useAll": "Hepsinde {{model}} kullan",
       "pick": "Model seç"
+    },
+    "brainReserve": {
+      "limit": "{{from}} sınırına ulaştı, bu yüzden {{to}} ile yanıtladım. Sınır yenilendiğinde {{from}} hesabına döneceğim.",
+      "signedOut": "{{from}} oturum açmamış, bu yüzden {{to}} ile yanıtladım."
     },
     "usageWhen": {
       "at": "saat {{time}}",

@@ -44,7 +44,7 @@ import { missionSetupOf } from "@agenteschat/client/lib/missions";
 import { isStandInLine } from "@agenteschat/client/lib/no-ai";
 import { isTalkerReply, routineReportText, talkerWaited } from "@agenteschat/client/lib/notices";
 import { can } from "@agenteschat/client/lib/permissions";
-import { modelStandInText } from "@agenteschat/client/lib/plan-usage";
+import { brainReserveText, modelStandInText } from "@agenteschat/client/lib/plan-usage";
 import { reachHandoffs } from "@agenteschat/client/lib/reach";
 import { replyOf } from "@agenteschat/client/lib/reply";
 import { isReminderMessage, reminderBody, routineReplyOf } from "@agenteschat/client/lib/routines";
@@ -144,7 +144,7 @@ import { QuoteAbove, QuotePlate } from "./QuoteLine";
 import { ReachLines } from "./ReachLines";
 import { Receipts } from "./Receipts";
 import { SecretCard } from "./SecretCard";
-import { ModelStandInLine, SpeedFallbackLine, StopPill } from "./StoppedLine";
+import { ModelStandInLine, ReplyNoteLine, StopPill } from "./StoppedLine";
 import { useStopMovedOn, useStoppedRun } from "./stopped-runs";
 import { TeamChecks } from "./TeamChecks";
 import { SavedTools, TurnTools } from "./ToolCalls";
@@ -220,6 +220,7 @@ export const MessageRow = memo(function MessageRow({
   const name = dir.nameOf(m.author) || t("mobile.chat.someone");
   const meta = m.meta;
   const standIn = modelStandInText(t, meta);
+  const reserve = brainReserveText(t, meta);
   // What a routine found, told by its agent (as on the web): a small tag, and the report it answers on demand
   // (that report's own line folds into this message).
   const routine = routineReplyOf(m);
@@ -859,7 +860,10 @@ export const MessageRow = memo(function MessageRow({
             ) : null}
             {media ? <ChatMedia media={media} liveId={m.id} /> : null}
             {voiceOf(meta) ? <VoiceMessage message={m} /> : null}
-            {isAgent && meta?.speedFallback === true ? <SpeedFallbackLine message={m} /> : null}
+            {isAgent && meta?.speedFallback === true ? (
+              <ReplyNoteLine message={m} text={t("chat.speedFallback.text")} />
+            ) : null}
+            {isAgent && reserve ? <ReplyNoteLine message={m} text={reserve} /> : null}
             {isAgent && standIn ? <ModelStandInLine message={m} text={standIn} /> : null}
             {(stopped || atLimit || providerCut) && m.agentRunId ? (
               <StoppedLine
