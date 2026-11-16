@@ -403,6 +403,11 @@ export const organizationSettings = pgTable("organization_settings", {
   teamWatch: boolean().notNull().default(true),
   /** "Dar boas-vindas a quem entra": the right hand greets each person who joins, once. On without a row too. */
   welcomePeople: boolean().notNull().default(true),
+  /**
+   * "Cuidar das falhas" (ADR 0177 addendum 2026-11-15): a task that failed for a cause that may pass becomes an incident
+   * in the right hand's DM with the person behind it, which may try it again (`retry_run`). On without a row too.
+   */
+  incidents: boolean().notNull().default(true),
   updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
 

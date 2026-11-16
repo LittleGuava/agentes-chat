@@ -11,6 +11,7 @@ import { publishDelivery } from "./delivery";
 import { isAgentOnlyDm } from "./dms";
 import { decisionNudge, FOLLOW_THROUGH_NUDGE, FOLLOW_THROUGH_NUDGE_DM, MISSION_ASK_NUDGE } from "./follow-through";
 import { cutText, cutTextEnd } from "./format";
+import { raiseIncident } from "./incidents";
 import type { Judge } from "./judge";
 import type { NoticeKind } from "./notices";
 import { notifyRunFailed } from "./notification-producers";
@@ -730,7 +731,8 @@ const UNREPORTED = new Set(["agent_archived", "no_ai", "person_limit", "canceled
  * creator, else the agent's owner) gets one `run_failed` notification per agent and conversation, resolved by the
  * agent's next run there that ends well. A run another agent's @mention woke tells that agent once ("couldn't
  * finish"), so it tries another way or tells the person; hand-offs in an agents' DM close through their own rows
- * (`onConsultedRunFinished`) and notify nobody here. Never throws.
+ * (`onConsultedRunFinished`) and notify nobody here. Any other becomes the right hand's incident when its cause may
+ * pass (`raiseIncident`, ADR 0177 addendum 2026-11-15). Never throws.
  */
 export async function reportRunFailure(
   deps: { db: Database; pubsub?: PubSub },
@@ -752,7 +754,10 @@ export async function reportRunFailure(
       .select({ agentId: schema.messages.authorAgentId, runId: schema.messages.agentRunId })
       .from(schema.messages)
       .where(and(eq(schema.messages.orgId, run.orgId), eq(schema.messages.id, run.triggerMessageId)));
-    if (!trigger?.agentId || !trigger.runId || trigger.agentId === run.agentId) return;
+    if (!trigger?.agentId || !trigger.runId || trigger.agentId === run.agentId) {
+      await raiseIncident(deps, run, reason);
+      return;
+    }
     const [sender] = await deps.db
       .select()
       .from(schema.agentRuns)

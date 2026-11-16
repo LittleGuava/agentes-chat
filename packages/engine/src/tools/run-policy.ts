@@ -140,6 +140,8 @@ const ELSEWHERE = new Set([
   "propose_event",
   // An email to whoever runs the server, in a person's name (ADR 0160 §11): only a run a person is behind sends it.
   "send_feedback",
+  // The right hand starts another agent's failed task again, in that task's conversation (ADR 0177, 2026-11-15).
+  "retry_run",
 ]);
 
 /** Long work's tools (ADR 0121), on the run's own work: `self`. */

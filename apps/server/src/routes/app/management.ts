@@ -206,6 +206,10 @@ const Settings = z
     welcomePeople: z.boolean().openapi({
       description: "The right hand greets each person who joins the workspace, once. On by default.",
     }),
+    incidents: z.boolean().openapi({
+      description:
+        "A task that failed for a cause that may pass (an AI provider's outage, a computer or its CLI that stopped) becomes an incident in the right hand's DM with the person behind it, and the right hand may try it again, within limits (ADR 0177 addendum 2026-11-15). On by default.",
+    }),
     voiceAvailable: z.boolean().openapi({
       description: "Read only: this server has a speech engine now, from its environment or from its owner's Settings.",
     }),
@@ -639,6 +643,7 @@ export function managementRoutes(deps: AppDeps) {
             mode: z.enum(WORKSPACE_MODES).optional().openapi({ description: "`team` or `personal` (ADR 0159)." }),
             teamWatch: z.boolean().optional(),
             welcomePeople: z.boolean().optional(),
+            incidents: z.boolean().optional(),
           }),
         ),
       },

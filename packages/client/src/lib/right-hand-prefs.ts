@@ -8,7 +8,7 @@ import { hourText } from "./team-week";
  */
 
 /** The right hand's other switches, shown only where the server lists them (`LodiPrefs.switches`). */
-export type LodiSwitch = "digest" | "reminders" | "teamWatch" | "welcomePeople";
+export type LodiSwitch = "digest" | "reminders" | "teamWatch" | "welcomePeople" | "incidents";
 
 export interface LodiPrefs {
   weekOff: boolean;

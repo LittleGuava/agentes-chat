@@ -307,7 +307,7 @@ export interface FakeState {
   /** What Lodi does by itself for the signed-in person; unset: both cards on, no other switch. */
   teamWeek?: Partial<LodiPrefs>;
   /** The workspace's own switches of Lodi; unset: on. */
-  lodiSwitches?: { teamWatch?: boolean; welcomePeople?: boolean };
+  lodiSwitches?: { teamWatch?: boolean; welcomePeople?: boolean; incidents?: boolean };
   memories: Memory[];
   proposals: Proposal[];
   reactions: Record<string, ReactionCount[]>;
@@ -1977,6 +1977,7 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         autoModels: state.autoModels ?? {},
         teamWatch: state.lodiSwitches?.teamWatch ?? true,
         welcomePeople: state.lodiSwitches?.welcomePeople ?? true,
+        incidents: state.lodiSwitches?.incidents ?? true,
         ...mediaSettings(state),
         mode: personalOrg(orgId) ? "personal" : "team",
         // Money: admins only, like the backend.
@@ -1998,11 +1999,12 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         if (input.defaultAgentBudgetUsd !== undefined) state.defaultAgentBudgetUsd = input.defaultAgentBudgetUsd;
         if (input.actionCheck !== undefined) state.actionCheck = input.actionCheck;
         if (input.routerModel !== undefined) state.routerModel = input.routerModel;
-        if (input.teamWatch !== undefined || input.welcomePeople !== undefined)
+        if (input.teamWatch !== undefined || input.welcomePeople !== undefined || input.incidents !== undefined)
           state.lodiSwitches = {
             ...state.lodiSwitches,
             ...(input.teamWatch !== undefined ? { teamWatch: input.teamWatch } : {}),
             ...(input.welcomePeople !== undefined ? { welcomePeople: input.welcomePeople } : {}),
+            ...(input.incidents !== undefined ? { incidents: input.incidents } : {}),
           };
         const { gifs, gifRating, agentStickers, agentMedia } = input;
         state.media = {
@@ -2031,6 +2033,7 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
           autoModels: state.autoModels ?? {},
           teamWatch: state.lodiSwitches?.teamWatch ?? true,
           welcomePeople: state.lodiSwitches?.welcomePeople ?? true,
+          incidents: state.lodiSwitches?.incidents ?? true,
           ...mediaSettings(state),
           mode: personalOrg(orgId) ? "personal" : "team",
           // As the server's answer: the same settings a read gives, money included for who sees it.

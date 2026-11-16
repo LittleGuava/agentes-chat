@@ -15,7 +15,7 @@ import { closedRefusal, orgStanding } from "./standing";
 
 /**
  * What the right hand does without being asked rests on these: who it may write to, one message in a person's DM
- * with it, a thing said only once, a card rewritten in place and the workspace's two switches. Each feature built on
+ * with it, a thing said only once, a card rewritten in place and the workspace's three switches. Each feature built on
  * them is a lane (`right-hand-lane.ts`). No model is called from here.
  */
 
@@ -146,14 +146,18 @@ export async function setCardOnMessage(
   if (updated && deps.pubsub) await publishMessageCreated(deps.pubsub, messageView(updated));
 }
 
-/** The workspace's two switches. A workspace that never saved a setting has no row, and both on. */
+/** The workspace's three switches. A workspace that never saved a setting has no row, and all on. */
 export async function lodiSwitches(
   db: Executor,
   orgId: string,
-): Promise<{ teamWatch: boolean; welcomePeople: boolean }> {
+): Promise<{ teamWatch: boolean; welcomePeople: boolean; incidents: boolean }> {
   const [s] = await db
-    .select({ teamWatch: organizationSettings.teamWatch, welcomePeople: organizationSettings.welcomePeople })
+    .select({
+      teamWatch: organizationSettings.teamWatch,
+      welcomePeople: organizationSettings.welcomePeople,
+      incidents: organizationSettings.incidents,
+    })
     .from(organizationSettings)
     .where(eq(organizationSettings.orgId, orgId));
-  return { teamWatch: s?.teamWatch ?? true, welcomePeople: s?.welcomePeople ?? true };
+  return { teamWatch: s?.teamWatch ?? true, welcomePeople: s?.welcomePeople ?? true, incidents: s?.incidents ?? true };
 }
