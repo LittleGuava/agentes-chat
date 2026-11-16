@@ -64,7 +64,10 @@ export interface LegacyTeamWeek {
   hour: number;
 }
 
-export type LodiPrefsPatch = Partial<LodiPrefs & LegacyTeamWeek>;
+export type LodiPrefsPatch = Partial<LodiPrefs & LegacyTeamWeek> & {
+  /** "Resumo escrito pela IA" (`aiSummaryOf`). */
+  aiSummary?: boolean;
+};
 
 const whole = (v: unknown, max: number) => wholeIn(v, 0, max);
 const flag = (v: unknown) => (typeof v === "boolean" ? v : null);
@@ -94,6 +97,15 @@ export function lodiPrefsOf(raw: unknown): LodiPrefs {
     muted: stringsOf(r.muted).slice(-MUTED_MAX),
   };
 }
+
+/**
+ * "Resumo escrito pela IA" (ADR 0177, addendum 2026-11-16): the day's card opens with a short paragraph a small model
+ * writes from the card's own facts, on the right hand's budget. Off unless the person turns it on, and kept apart from
+ * `LodiPrefs`: those are what the right hand does with no model call, and the sweeps read them in SQL; this one only
+ * the day's job reads, once the card is built.
+ */
+export const aiSummaryOf = (raw: unknown) =>
+  (raw && typeof raw === "object" ? (raw as Record<string, unknown>).aiSummary : undefined) === true;
 
 /**
  * What an older build shows and its one switch stops: `off` only when nothing comes, `daily` when the day's card comes
@@ -175,6 +187,8 @@ export const zoneSql = (zone: SQL, fallback: SQL) =>
 /** A person's choice with what reading it takes: whether they administer, and the two time zones its hours are in. */
 export interface LodiPrefsOfMember {
   prefs: LodiPrefs;
+  /** `aiSummaryOf` the same row. */
+  aiSummary: boolean;
   admin: boolean;
   /** The workspace's time zone: `day` and `weekHour` are in it. */
   timezone: string;
@@ -199,6 +213,7 @@ export async function readLodiPrefs(
   const timezone = row.tz || "UTC";
   return {
     prefs: lodiPrefsOf(row.team_week),
+    aiSummary: aiSummaryOf(row.team_week),
     admin: row.admin === true,
     timezone,
     dayTimezone: row.own_tz || timezone,
@@ -206,11 +221,12 @@ export async function readLodiPrefs(
 }
 
 /** What the apps read and save: the choice, an older build's view of it and the time zones. */
-export type LodiPrefsView = Omit<LodiPrefs, "muted"> & LegacyTeamWeek & { timezone: string; dayTimezone: string };
+export type LodiPrefsView = Omit<LodiPrefs, "muted"> &
+  LegacyTeamWeek & { aiSummary: boolean; timezone: string; dayTimezone: string };
 
-const viewOf = ({ prefs, admin, timezone, dayTimezone }: LodiPrefsOfMember): LodiPrefsView => {
+const viewOf = ({ prefs, aiSummary, admin, timezone, dayTimezone }: LodiPrefsOfMember): LodiPrefsView => {
   const { muted: _, ...shown } = prefs;
-  return { ...shown, ...legacyTeamWeek(prefs, admin), timezone, dayTimezone };
+  return { ...shown, ...legacyTeamWeek(prefs, admin), aiSummary, timezone, dayTimezone };
 };
 
 /** This person's choice as the apps read it. */
@@ -230,12 +246,19 @@ export async function setLodiPrefs(
 ): Promise<LodiPrefsView> {
   return db.transaction(async (tx) => {
     const now = await readLodiPrefs(tx, orgId, userId, true);
-    const prefs = patchLodiPrefs(now.prefs, patch, now.admin);
-    const stored = { ...prefs, ...legacyTeamWeek(prefs, now.admin) };
+    const { aiSummary: asked, ...rest } = patch;
+    const prefs = patchLodiPrefs(now.prefs, rest, now.admin);
+    const aiSummary = typeof asked === "boolean" ? asked : now.aiSummary;
+    // Written only when sent: the merge below keeps what the row had.
+    const stored = {
+      ...prefs,
+      ...legacyTeamWeek(prefs, now.admin),
+      ...(typeof asked === "boolean" ? { aiSummary } : {}),
+    };
     await tx
       .update(schema.organizationMembers)
       .set({ teamWeek: sql`${schema.organizationMembers.teamWeek} || ${JSON.stringify(stored)}::jsonb` })
       .where(and(eq(schema.organizationMembers.orgId, orgId), eq(schema.organizationMembers.userId, userId)));
-    return viewOf({ ...now, prefs });
+    return viewOf({ ...now, prefs, aiSummary });
   });
 }

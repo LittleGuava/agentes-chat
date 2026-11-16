@@ -3264,6 +3264,8 @@ export const en = {
     improve: "To improve",
     /** The same heading on the day's card, over what waits on the reader and what is stuck. */
     needsYou: "Needs you",
+    /** Under the paragraph that opens a daily card when the person turned on "Summary written by the AI". */
+    aiWritten: "Written by the AI",
     approvals: {
       title_one: "{{count}} request from {{name}} waits for you",
       title_other: "{{count}} requests from {{name}} wait for you",
@@ -3414,6 +3416,10 @@ export const en = {
       agendaLabel: "The day ahead",
       agendaHelp:
         "The daily summary opens with today's meetings, your agents' routines and your tasks due, and comes every day that has any, even with nothing else new.",
+      /** A switch under the daily summary: a short paragraph a small model writes from the card's own facts. Off unless turned on. */
+      aiSummaryLabel: "Summary written by the AI",
+      aiSummaryHelp:
+        "The daily summary opens with a short paragraph {{name}}'s AI writes from what the card lists, on its budget. With no AI or budget, the card comes without it.",
     },
   },
   routing: {

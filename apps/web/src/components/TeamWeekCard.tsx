@@ -148,6 +148,12 @@ export function TeamWeekCardView({ message, card }: { message: Message; card: Te
             </span>
           )}
         </div>
+        {card.summary && (
+          <>
+            <p className="tw__summary">{card.summary}</p>
+            <p className="tw__summary-by">{t("teamWeek.aiWritten")}</p>
+          </>
+        )}
         <div className="tw__stats">
           <Stat value={String(stats.done)} label={t("teamWeek.stat.done")} />
           <Stat value={String(stats.stuck)} label={t("teamWeek.stat.stuck")} warn={stats.stuck > 0} />

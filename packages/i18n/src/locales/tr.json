@@ -3008,6 +3008,7 @@
     "workedTasks_other": "{{name}} {{count}} görevi kapattı",
     "improve": "İyileştirilecekler",
     "needsYou": "Sana ihtiyaç var",
+    "aiWritten": "Yapay zekâ yazdı",
     "approvals": {
       "title_one": "{{name}} için {{count}} istek seni bekliyor",
       "title_other": "{{name}} için {{count}} istek seni bekliyor",
@@ -3137,7 +3138,9 @@
       "dayLabel": "Günün özeti",
       "dayHelp": "{{name}} her gün DM'inde seni neyin beklediğini, ajanlarının neyi bitirdiğini ve neyin takıldığını anlatır, yalnızca yeni bir şey olan günlerde.",
       "agendaLabel": "Önündeki gün",
-      "agendaHelp": "Günlük özet bugünün toplantıları, ajanlarınızın rutinleri ve teslim tarihi gelen görevlerinizle başlar. Başka yenilik olmasa da bunların olduğu her gün gelir."
+      "agendaHelp": "Günlük özet bugünün toplantıları, ajanlarınızın rutinleri ve teslim tarihi gelen görevlerinizle başlar. Başka yenilik olmasa da bunların olduğu her gün gelir.",
+      "aiSummaryLabel": "Yapay zekânın yazdığı özet",
+      "aiSummaryHelp": "Günlük özet, {{name}} yapay zekâsının kartta listelenenlerden yazdığı kısa bir paragrafla başlar ve onun bütçesini kullanır. Yapay zekâ ya da bütçe yoksa kart paragrafsız gelir."
     }
   },
   "routing": {

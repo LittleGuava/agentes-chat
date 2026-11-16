@@ -3011,6 +3011,7 @@
     "workedTasks_other": "{{name}} sloot {{count}} taken",
     "improve": "Te verbeteren",
     "needsYou": "Heeft jou nodig",
+    "aiWritten": "Geschreven door de AI",
     "approvals": {
       "title_one": "{{count}} verzoek van {{name}} wacht op jou",
       "title_other": "{{count}} verzoeken van {{name}} wachten op jou",
@@ -3140,7 +3141,9 @@
       "dayLabel": "Dagoverzicht",
       "dayHelp": "Elke dag vertelt {{name}} je in je DM wat op je wacht, wat je agents hebben afgerond en wat vastzit, alleen op dagen met iets nieuws.",
       "agendaLabel": "De dag die komt",
-      "agendaHelp": "De dagsamenvatting begint met de vergaderingen van vandaag, de routines van je agents en je taken met deadline, en komt elke dag waarop er zijn, ook zonder ander nieuws."
+      "agendaHelp": "De dagsamenvatting begint met de vergaderingen van vandaag, de routines van je agents en je taken met deadline, en komt elke dag waarop er zijn, ook zonder ander nieuws.",
+      "aiSummaryLabel": "Samenvatting door de AI",
+      "aiSummaryHelp": "De dagsamenvatting begint met een korte alinea die de AI van {{name}} schrijft op basis van wat de kaart toont, op diens budget. Zonder AI of budget komt de kaart zonder alinea."
     }
   },
   "routing": {

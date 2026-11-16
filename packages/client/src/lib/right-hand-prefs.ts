@@ -24,6 +24,8 @@ export interface LodiPrefs {
    * has no such choice, and no switch shows.
    */
   agenda?: boolean;
+  /** "Resumo escrito pela IA" on the daily card, off unless asked for. Absent: the server has no such choice. */
+  aiSummary?: boolean;
   digestOff: boolean;
   remindOff: boolean;
   timezone: string;
@@ -61,6 +63,7 @@ export function lodiPrefsOf(raw: unknown): LodiPrefs {
     dayOff: r.dayOff ?? (r.off === true || r.daily !== true),
     dayHour: r.dayHour ?? r.hour ?? 9,
     ...(typeof r.agenda === "boolean" ? { agenda: r.agenda } : {}),
+    ...(typeof r.aiSummary === "boolean" ? { aiSummary: r.aiSummary } : {}),
     digestOff: r.digestOff === true,
     remindOff: r.remindOff === true,
     timezone,

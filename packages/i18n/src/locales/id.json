@@ -2904,6 +2904,7 @@
     "workedTasks_other": "{{name}} menutup {{count}} tugas",
     "improve": "Untuk diperbaiki",
     "needsYou": "Butuh kamu",
+    "aiWritten": "Ditulis oleh AI",
     "approvals": {
       "title_other": "{{count}} permintaan dari {{name}} menunggumu",
       "line": "Menunggu sejak {{since}}.",
@@ -3021,7 +3022,9 @@
       "dayLabel": "Ringkasan harian",
       "dayHelp": "Setiap hari {{name}} memberi tahu di DM-mu apa yang menunggumu, apa yang diselesaikan agenmu, dan apa yang macet, hanya pada hari yang ada kabar baru.",
       "agendaLabel": "Hari di depan",
-      "agendaHelp": "Ringkasan harian dibuka dengan rapat hari ini, rutinitas agen Anda, dan tugas Anda yang jatuh tempo, dan datang setiap hari yang memilikinya, meski tidak ada hal baru lainnya."
+      "agendaHelp": "Ringkasan harian dibuka dengan rapat hari ini, rutinitas agen Anda, dan tugas Anda yang jatuh tempo, dan datang setiap hari yang memilikinya, meski tidak ada hal baru lainnya.",
+      "aiSummaryLabel": "Ringkasan ditulis oleh AI",
+      "aiSummaryHelp": "Ringkasan harian dibuka dengan satu paragraf singkat yang ditulis AI {{name}} dari isi kartu, dengan anggarannya. Tanpa AI atau anggaran, kartu datang tanpa paragraf itu."
     }
   },
   "routing": {

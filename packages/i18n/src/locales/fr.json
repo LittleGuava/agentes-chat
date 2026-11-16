@@ -3124,6 +3124,7 @@
     "workedTasks_other": "{{name}} a fermé {{count}} tâches",
     "improve": "À améliorer",
     "needsYou": "A besoin de vous",
+    "aiWritten": "Écrit par l’IA",
     "approvals": {
       "title_one": "{{count}} demande de {{name}} vous attend",
       "title_many": "{{count}} demandes de {{name}} vous attendent",
@@ -3265,7 +3266,9 @@
       "dayLabel": "Résumé du jour",
       "dayHelp": "Chaque jour {{name}} vous raconte dans votre DM ce qui vous attend, ce que vos agents ont terminé et ce qui est bloqué, seulement les jours où il y a du nouveau.",
       "agendaLabel": "La journée à venir",
-      "agendaHelp": "Le résumé du jour commence par les réunions du jour, les routines de vos agents et vos tâches à rendre, et arrive chaque jour où il y en a, même sans autre nouveauté."
+      "agendaHelp": "Le résumé du jour commence par les réunions du jour, les routines de vos agents et vos tâches à rendre, et arrive chaque jour où il y en a, même sans autre nouveauté.",
+      "aiSummaryLabel": "Résumé écrit par l’IA",
+      "aiSummaryHelp": "Le résumé du jour commence par un court paragraphe que l’IA de {{name}} écrit à partir de ce que la carte liste, sur son budget. Sans IA ou sans budget, la carte arrive sans lui."
     }
   },
   "routing": {

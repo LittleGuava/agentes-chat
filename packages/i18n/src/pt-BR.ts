@@ -3148,6 +3148,7 @@ export const ptBR = {
     workedTasks_other: "{{name}} fechou {{count}} tarefas",
     improve: "Para melhorar",
     needsYou: "Precisa de você",
+    aiWritten: "Escrito pela IA",
     approvals: {
       title_one: "{{count}} pedido de {{name}} espera você",
       title_other: "{{count}} pedidos de {{name}} esperam você",
@@ -3289,6 +3290,11 @@ export const ptBR = {
       dayHelp_female:
         "Todo dia a {{name}} conta na sua DM o que espera você, o que seus agentes terminaram e o que travou, só nos dias com algo novo.",
       agendaLabel: "O dia pela frente",
+      aiSummaryLabel: "Resumo escrito pela IA",
+      aiSummaryHelp:
+        "O resumo do dia abre com um parágrafo curto que a IA do {{name}} escreve a partir do que o card lista, com o orçamento dele. Sem IA ou sem orçamento, o card chega sem ele.",
+      aiSummaryHelp_female:
+        "O resumo do dia abre com um parágrafo curto que a IA da {{name}} escreve a partir do que o card lista, com o orçamento dela. Sem IA ou sem orçamento, o card chega sem ele.",
       agendaHelp:
         "O resumo do dia abre com as reuniões de hoje, as rotinas dos seus agentes e as suas tarefas com prazo, e chega todo dia que tiver alguma, mesmo sem outra novidade.",
     },

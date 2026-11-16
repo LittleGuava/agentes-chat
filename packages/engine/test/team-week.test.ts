@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { and, eq, inArray, schema, sql } from "@agenteschat/db";
 import { en, STRINGS } from "@agenteschat/i18n";
+import { modelForTier } from "@agenteschat/providers";
 import {
   actOnTeamWeek,
   createCalendarEvent,
@@ -1462,6 +1463,82 @@ describe("Resumo do dia", () => {
     // A day with no meeting, routine or task of theirs says nothing.
     await f.db.update(schema.routines).set({ active: false });
     expect(await post(f, f.owner.id, new Date(NINE.getTime() + 3 * DAY))).toBeNull();
+  });
+
+  /** The day's job as the worker runs it: with the gateway, for "Resumo escrito pela IA". */
+  const postWithAi = (fx: Fixture, userId: string, slot: Date) =>
+    postTeamWeek({ db: fx.db, pubsub: fx.pubsub, gateway: fx.gateway }, fx.org.id, {
+      userId,
+      slot: slot.toISOString(),
+      period: "day",
+    });
+
+  test("written by the AI, for who turns it on: a short paragraph from the card's own facts, on Lodi's budget", async () => {
+    f = await setup({
+      rightHand: true,
+      reply: () => ({ chunks: ["Uma coisa espera você ", "e o Dev terminou um trabalho."] }),
+    });
+    await inZone(f);
+    const bia = await addMember(f.db, f.org.id, "member", "bia");
+    const caio = await addMember(f.db, f.org.id, "member", "caio");
+    for (const who of [bia, caio]) {
+      await ask(f, who.id, new Date(NINE.getTime() - 5 * HOUR), "done");
+      await waits(f, who.id, `question:${who.id}`);
+    }
+
+    // Off by default: the card the ADR describes, and no model call.
+    expect((await getLodiPrefs(f.db, f.org.id, caio.id)).aiSummary).toBe(false);
+    const plain = await postWithAi(f, caio.id, NINE);
+    expect((await cardOf(f, plain as string)).card.summary).toBeUndefined();
+    expect(f.provider.calls).toHaveLength(0);
+
+    expect((await setLodiPrefs(f.db, f.org.id, bia.id, { aiSummary: true })).aiSummary).toBe(true);
+    // A save of the other choices keeps it.
+    expect((await setLodiPrefs(f.db, f.org.id, bia.id, { dayHour: 9 })).aiSummary).toBe(true);
+    const id = await postWithAi(f, bia.id, NINE);
+    const { card } = await cardOf(f, id as string);
+    expect(card.summary).toBe("Uma coisa espera você e o Dev terminou um trabalho.");
+    // The same rows as without it.
+    expect(card.moreRows?.map((r) => r.kind)).toEqual(["waiting"]);
+
+    expect(f.provider.calls).toHaveLength(1);
+    const [call] = f.provider.calls;
+    const facts = JSON.stringify(call?.request.messages);
+    // What the card shows, as outside data: never what the question or a run said.
+    expect(facts).toContain("external_data");
+    expect(facts).toContain("Dev finished 1 job(s) in #general.");
+    expect(facts).not.toContain("Which plan");
+    expect(facts).not.toContain("faz isso");
+    // Through the gateway, on Lodi's budget and the reader's month, at a small model.
+    const lodi = await lodiOf(f);
+    const usage = await f.db.select().from(schema.usageRecords).where(eq(schema.usageRecords.agentId, lodi.id));
+    expect(usage.map((u) => [u.personId, u.kind])).toEqual([[bia.id, "agent"]]);
+    expect(call?.request.model).toBe(modelForTier("anthropic", "small") ?? "no small model");
+  });
+
+  test("without an answer from the AI, or with no budget left, the card goes out as it is, at once", async () => {
+    f = await setup({ rightHand: true, reply: () => new Error("provider down") });
+    await inZone(f);
+    const bia = await addMember(f.db, f.org.id, "member", "bia");
+    await ask(f, bia.id, new Date(NINE.getTime() - 5 * HOUR), "done");
+    await waits(f, bia.id, "question:1");
+    await setLodiPrefs(f.db, f.org.id, bia.id, { aiSummary: true });
+
+    const failed = await postWithAi(f, bia.id, NINE);
+    expect(failed).not.toBeNull();
+    const { card } = await cardOf(f, failed as string);
+    expect(card.summary).toBeUndefined();
+    expect(card.moreRows?.map((r) => r.kind)).toEqual(["waiting"]);
+
+    // Lodi's budget spent: the gateway refuses before any call.
+    const lodi = await lodiOf(f);
+    await f.db.update(schema.agents).set({ monthlyBudgetNanoUsd: 1 }).where(eq(schema.agents.id, lodi.id));
+    const calls = f.provider.calls.length;
+    await waits(f, bia.id, "question:2");
+    const next = await postWithAi(f, bia.id, new Date(NINE.getTime() + DAY));
+    expect(next).not.toBeNull();
+    expect((await cardOf(f, next as string)).card.summary).toBeUndefined();
+    expect(f.provider.calls.length).toBe(calls);
   });
 });
 

@@ -123,6 +123,7 @@ export * from "./databases/identifiers";
 export * from "./databases/policies";
 export * from "./databases/tools";
 export * from "./day-agenda";
+export * from "./day-summary";
 export * from "./desktop";
 export * from "./desktop/pointer";
 export * from "./desktop/tools";

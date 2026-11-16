@@ -3232,6 +3232,7 @@
     "workedTasks_other": "{{name}}: {{count}} zamkniętych zadań",
     "improve": "Do poprawy",
     "needsYou": "Potrzebuje ciebie",
+    "aiWritten": "Napisane przez AI",
     "approvals": {
       "title_one": "{{count}} prośba od {{name}} czeka na ciebie",
       "title_few": "{{count}} prośby od {{name}} czekają na ciebie",
@@ -3385,7 +3386,9 @@
       "dayLabel": "Podsumowanie dnia",
       "dayHelp": "Codziennie {{name}} mówi ci w DM, co na ciebie czeka, co skończyli twoi agenci i co utknęło, tylko w dni, gdy jest coś nowego.",
       "agendaLabel": "Dzień przed tobą",
-      "agendaHelp": "Podsumowanie dnia zaczyna się od dzisiejszych spotkań, rutyn twoich agentów i twoich zadań z terminem i przychodzi każdego dnia, w którym coś takiego jest, nawet bez innych nowości."
+      "agendaHelp": "Podsumowanie dnia zaczyna się od dzisiejszych spotkań, rutyn twoich agentów i twoich zadań z terminem i przychodzi każdego dnia, w którym coś takiego jest, nawet bez innych nowości.",
+      "aiSummaryLabel": "Podsumowanie pisane przez AI",
+      "aiSummaryHelp": "Podsumowanie dnia zaczyna się krótkim akapitem, który AI {{name}} pisze na podstawie tego, co pokazuje karta, z jego budżetu. Bez AI lub budżetu karta przychodzi bez niego."
     }
   },
   "routing": {

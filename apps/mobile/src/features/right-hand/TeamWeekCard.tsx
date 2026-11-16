@@ -164,6 +164,16 @@ function WeekCard({ message, card }: { message: Message; card: TeamWeekCard }) {
             </Text>
           ) : null}
         </View>
+        {card.summary ? (
+          <View style={styles.summary}>
+            <Text variant="small" tone="ink">
+              {card.summary}
+            </Text>
+            <Text variant="caption" tone="muted">
+              {t("teamWeek.aiWritten")}
+            </Text>
+          </View>
+        ) : null}
         <View style={styles.stats}>
           {stat(String(stats.done), t("teamWeek.stat.done"))}
           {stat(String(stats.stuck), t("teamWeek.stat.stuck"), stats.stuck > 0 ? c.danger : undefined)}
@@ -419,6 +429,8 @@ const styles = StyleSheet.create({
   head: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8 },
   semibold: { fontWeight: "600" },
   stats: { flexDirection: "row", flexWrap: "wrap", rowGap: 12, columnGap: 8, marginTop: 12 },
+  // "Resumo escrito pela IA": the paragraph between the head and the numbers, its source under it.
+  summary: { marginTop: 12, gap: 4 },
   stat: { flexGrow: 1, gap: 2 },
   statOfFour: { flexBasis: "47%" },
   statOfThree: { flexBasis: "30%" },
