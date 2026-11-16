@@ -412,7 +412,8 @@ export function draftOf(r: Routine | undefined, zone: string, today = new Date()
     target: targetChoice(r?.target),
     prompt: r?.prompt ?? "",
     name: r?.name ?? "",
-    kind: r && isEventDriven(r) ? (r.trigger.type as TriggerKind) : "schedule",
+    // A meeting trigger (ADR 0190) has no place in the form yet: it opens as the form's default and stays as it was.
+    kind: r && isEventDriven(r) && r.trigger.type !== "meeting" ? (r.trigger.type as TriggerKind) : "schedule",
     event: r?.trigger.type === "event" ? r.trigger.event : "sentry.issue_created",
     email: emailDraftOf(r),
     connector:
@@ -478,32 +479,35 @@ export function draftChanges(r: Routine, d: RoutineDraft, savedRule: string, rul
   if (d.agentId !== r.agentId) patch.agentId = d.agentId;
   if (d.target !== TARGET_KEEP && d.target !== targetChoice(r.target)) patch.target = draftTarget(d);
   const once = d.rule.freq === "once";
+  // The form can't set a meeting trigger (ADR 0190): it keeps it, whatever the form shows.
   const triggerChanged =
-    d.kind === "connector"
-      ? r.trigger.type !== "connector" ||
-        JSON.stringify(connectorTrigger(d.connector)) !==
-          JSON.stringify(connectorTrigger({ connectionId: r.trigger.connectionId, filter: r.trigger.filter }))
-      : d.kind === "webhook"
-        ? r.trigger.type !== "webhook"
-        : d.kind === "email"
-          ? r.trigger.type !== "email" ||
-            JSON.stringify(emailTrigger(d.email)) !==
-              JSON.stringify({
-                type: "email",
-                accountId: r.trigger.accountId,
-                folder: r.trigger.folder,
-                filter: cleanFilter(r.trigger.filter ?? {}),
-              })
-          : d.kind === "event"
-            ? r.trigger.type !== "event" || r.trigger.event !== d.event
-            : once
-              ? // To the minute, as the form shows it: the server's instant has seconds ("em 10 minutos"), and a
-                // one-off that already ran would be sent again as a time in the past.
-                r.trigger.type !== "once" || minuteOf(onceAt(d.rule)) !== minuteOf(r.trigger.at)
-              : r.trigger.type !== "schedule" ||
-                // A routine kept as a cron (every N minutes) changes only with a phrase read into a rule (`ruleTyped`):
-                // its form holds a placeholder rule, which must never replace it.
-                (r.trigger.rule ? JSON.stringify(toApiRule(d.rule)) !== savedRule : ruleTyped);
+    r.trigger.type === "meeting"
+      ? false
+      : d.kind === "connector"
+        ? r.trigger.type !== "connector" ||
+          JSON.stringify(connectorTrigger(d.connector)) !==
+            JSON.stringify(connectorTrigger({ connectionId: r.trigger.connectionId, filter: r.trigger.filter }))
+        : d.kind === "webhook"
+          ? r.trigger.type !== "webhook"
+          : d.kind === "email"
+            ? r.trigger.type !== "email" ||
+              JSON.stringify(emailTrigger(d.email)) !==
+                JSON.stringify({
+                  type: "email",
+                  accountId: r.trigger.accountId,
+                  folder: r.trigger.folder,
+                  filter: cleanFilter(r.trigger.filter ?? {}),
+                })
+            : d.kind === "event"
+              ? r.trigger.type !== "event" || r.trigger.event !== d.event
+              : once
+                ? // To the minute, as the form shows it: the server's instant has seconds ("em 10 minutos"), and a
+                  // one-off that already ran would be sent again as a time in the past.
+                  r.trigger.type !== "once" || minuteOf(onceAt(d.rule)) !== minuteOf(r.trigger.at)
+                : r.trigger.type !== "schedule" ||
+                  // A routine kept as a cron (every N minutes) changes only with a phrase read into a rule (`ruleTyped`):
+                  // its form holds a placeholder rule, which must never replace it.
+                  (r.trigger.rule ? JSON.stringify(toApiRule(d.rule)) !== savedRule : ruleTyped);
   if (triggerChanged) patch.trigger = draftTrigger(d);
   if (d.active !== r.active) patch.active = d.active;
   if (d.report !== r.report) patch.report = d.report;
