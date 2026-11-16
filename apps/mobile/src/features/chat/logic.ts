@@ -17,7 +17,7 @@ import type { ChatStyle, ChatTextSize } from "@agenteschat/client/lib/chat-look"
 import { agentsByAnyHandle } from "@agenteschat/client/lib/directory";
 import { loneIdRef, splitIdRefs } from "@agenteschat/client/lib/id-refs";
 import { issueWorkOf } from "@agenteschat/client/lib/issues";
-import { detailsAt, MENTION, type TableAlign, tableAt } from "@agenteschat/client/lib/markdown";
+import { detailsAt, MENTION, type TableAlign, tableAt, taskItem } from "@agenteschat/client/lib/markdown";
 import { messageMediaOf } from "@agenteschat/client/lib/media";
 import {
   answeredNotices,
@@ -690,6 +690,8 @@ export type Block =
   | { kind: "paragraph"; inline: Inline[] }
   | { kind: "heading"; inline: Inline[] }
   | { kind: "bullet"; inline: Inline[]; ordinal: string | null }
+  /** A list item that opens with `[ ]` or `[x]` (`taskItem`, the web's rule): read only, as on the web. */
+  | { kind: "task"; inline: Inline[]; done: boolean }
   | { kind: "quote"; inline: Inline[] }
   | { kind: "code"; lang: string; text: string }
   | { kind: "table"; header: Inline[][]; rows: Inline[][][]; align: TableAlign[] }
@@ -834,7 +836,7 @@ export function parseInline(text: string): Inline[] {
 /**
  * Blocks: collapsed `<details>` (outside fenced code), then in the text around them fenced code (with its language),
  * tables (the web's rule: `tableAt` from the shared parser, so a table right under a sentence is still a table),
- * headings, lists, quotes and paragraphs (lines of a paragraph keep their breaks).
+ * headings, lists (`- [ ]` items as tasks), quotes and paragraphs (lines of a paragraph keep their breaks).
  */
 export function parseBlocks(body: string): Block[] {
   const lines = body.split("\n");
@@ -908,7 +910,12 @@ function textBlocks(chunk: string, out: Block[]) {
       out.push({ kind: "heading", inline: parseInline(heading[1] ?? "") });
     } else if (bullet) {
       flush();
-      out.push({ kind: "bullet", inline: parseInline(bullet[2] ?? ""), ordinal: bullet[1] ?? null });
+      const task = taskItem(bullet[2] ?? "");
+      out.push(
+        task
+          ? { kind: "task", inline: parseInline(task.text), done: task.done }
+          : { kind: "bullet", inline: parseInline(bullet[2] ?? ""), ordinal: bullet[1] ?? null },
+      );
     } else if (quote) {
       flush();
       out.push({ kind: "quote", inline: parseInline(quote[1] ?? "") });
