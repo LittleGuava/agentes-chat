@@ -1,9 +1,9 @@
 # 0055. Imports from other apps, and our own export, through one bundle
 
-- Status: Accepted (2026-10-21). Addendum 2026-10-31: an old id handle still reaches its agent. Addendum 2026-11-12: private repositories through the workspace's GitHub. Addendum 2026-11-15: exporting a part, setores or chosen agents (§6). Addendum 2026-11-15: a conversation's transcript, for whoever reads it
+- Status: Accepted (2026-10-21). Addendum 2026-10-31: an old id handle still reaches its agent. Addendum 2026-11-12: private repositories through the workspace's GitHub. Addendum 2026-11-15: exporting a part, setores or chosen agents (§6). Addendum 2026-11-15: a conversation's transcript, for whoever reads it. Addendum 2026-11-15: a team file applied, checked and pruned from the command line
 - Date: 2026-10-21
 - Extends: ADR 0020 (skills), ADR 0016 (connectors), ADR 0017 (context items), ADR 0019 (SSRF guard)
-- Out of scope for now: chat history, a CLI, a scan of `~/.openclaw` / `~/.hermes` on a connected computer, the Manus API, rollback
+- Out of scope for now: chat history, a scan of `~/.openclaw` / `~/.hermes` on a connected computer, the Manus API, rollback
 - Amended 2026-10-31: §8, the agents' own files into the Drive
 
 ## Context
@@ -171,3 +171,79 @@ The bundle (§6) still never carries messages: it moves a workspace's setup to a
 - Apps: "Exportar conversa" in a channel's menu (members and administrators reading it), in the person's or agent's menu when a DM with them exists, and "Exportar thread" in a thread's "…": one dialog (`ConversationExport.tsx`) with the format and "Incluir anexos", saving what the server sends.
 
 Later: the phone; a date range; streaming the zip from a job for very large conversations.
+
+## Addendum (2026-11-15): a team file kept in git, applied, checked and pruned from the server's command line
+
+People who keep their agents in a repository asked for the "Later" CLI: a file they edit by hand, review in a pull request and apply, and a check their CI runs to fail when the workspace and the file disagree. This is that, as the smallest piece that works: a hand-written format that becomes the bundle, and a command inside the server's own image.
+
+### The format: `team.yaml`
+
+YAML (JSON is YAML too), read by `parseTeamFile` in `packages/client/src/lib/import/team-file.ts` (pure, the `yaml` package the clients already use, so the same reader can serve the import page later). It maps one to one onto the bundle; nothing in it exists only here.
+
+```yaml
+version: 1                       # required
+name: Launch Room                # required: the package's name
+id: launch-room                  # optional, default the name as a slug: what this file made is found by it (write it: a new name without one is a new package)
+agents:
+  - handle: scout                # required, the item's key
+    name: Scout                  # required
+    role: Researcher
+    instructions: TEXT | { file: PATH }   # required, not empty
+    model: claude-sonnet-5-5     # only when the agent is created
+    look: { color: sky, eyes: round, accessory: none }
+    skills: [research]           # skill keys
+skills:
+  - file: skills/research/SKILL.md   # key: the folder's name, unless `key`
+  - { key: tone, markdown: TEXT }
+channels:
+  - name: launch                 # the key
+    topic: TEXT                  # only when the channel is created
+    agents: [scout, { handle: lead, autoReply: false }]   # autoReply defaults to true
+routines:
+  - name: Morning digest         # the key, unless `key`
+    agent: scout
+    channel: launch              # left out: the DM of whoever applies
+    cron: "0 9 * * 1-5"
+    timezone: America/Sao_Paulo  # left out: whoever applies, then the workspace
+    prompt: TEXT | { file: PATH }
+notes:
+  - key: cycle                   # left out: the title
+    agent: scout                 # left out: workspace-wide
+    kind: fact                   # fact | preference | decision | note | lesson; default note
+    title: TEXT
+    content: TEXT | { file: PATH }
+```
+
+- `source` is `{ app: "team-file", ref: <id> }`, so everything the file made is one package (§3).
+- Refused before anything is planned, each problem with its line and column (`team.yaml:12:5: unknown field "rol"`): YAML that doesn't parse, an unknown field, a wrong type, a missing required field, an agent with no instructions (an import keeps what an earlier one brought for an agent that comes with none, §4, so its other changes would never land), a repeated key, a handle that isn't one, a reference to an agent, channel or skill the file doesn't have, a routine with no `cron`, a `{ file }` that is absolute, leaves the file's folder (`..`) or isn't there. Paths take either separator; text read from the file or beside it loses its BOM and has its line ends made LF, so a Windows checkout and a Linux CI hash the same.
+- No one-off routine (`at`): once its moment passes the plan skips it (`schedule_in_past`), and a check would never pass again.
+- Keys and passwords are found by the server as for any bundle (`secret_like`, §4): the item is skipped, which a check reports as a difference.
+
+### Prune: only what this file made
+
+`ImportInput.prune` (left out: removals aren't looked at, as before). The candidates are the provenance rows of this package (same person, `team-file`, same `id`), still there, not `adopted`, whose `kind:key` isn't anywhere in the file: compared with every key the file has, so an item the file keeps but the plan skips (a key in its text, a taken name) is never removed, and a `pick` only narrows which removals one call applies. They come back in `removals`, apart from `items`, so the import page and its contract don't change: `keep` (listed; `prune: false`), `delete` (planned, or done), `skip` with `failed`. Applied in reverse dependency order through the app's own functions: notes deleted (`deleteContextItem`), routines deleted (`deleteRoutine`), channels archived (`archiveChannel`), agents archived (`archiveAgent`, which can be undone), skills deleted (`deleteSkill`). The provenance row stays, no longer a candidate since its target is gone: put back in the file, a skill comes back as it was (§4: the import's own deleted skill), a routine or a note is made anew, and an agent or a channel someone unarchived in the app is matched again; still archived, the agent comes back as a new one with the next handle (`lead-2`) and the channel's name stays taken (`exists`) until someone unarchives or renames it. Restoring them from the plan is Later. Nothing someone made by hand, nothing another person's file made, nothing of another file, never a channel the import only joined. Removals count against the 200 writes of one apply.
+
+### Check: the file's answer, not a reconciliation
+
+The import brings, it doesn't reconcile (§2): `unchanged` means the file's item has the hash the last apply stored, not that the workspace still looks like it. What a check sees, field by field:
+
+- compared and updated: an agent's name, role and instructions; a skill's SKILL.md; which agents a channel lists (joining only: an agent the file drops stays in the channel); a routine's name, agent, channel, prompt and schedule; a note's title and content;
+- set only when the item is created: an agent's handle (a new handle is a new agent), model and look, a channel's topic, skills turning on for an agent (§ addendum 2026-11-01);
+- not seen: changes made in the app after an apply. An agent's instructions edited by hand stay `unchanged` until the file changes; then the file's version wins (§ Consequences).
+
+"In sync" is: every item `unchanged`, nothing skipped, and, with prune, nothing to remove. Without prune, what the file no longer has is listed as kept and doesn't fail the check.
+
+### The command: `agentes team`
+
+`docker compose run --rm -T agentes team plan|check|apply FILE --as EMAIL [--org ID] [--prune]` (`apps/server/src/team-file.ts`, from `main.ts`, the image's entry point), FILE `-` for standard input (then a `{ file }` path is refused). It runs in the server's own image with its `DATABASE_URL`, like `password-link` (ADR 0158): whoever can run commands there already holds the database. It acts as the member named by `--as`, with that person's permissions (`create_agents`; removals need `manage_agents`); `--org` may be left out when that person is in one workspace. The bundle goes through the route's own schema (`Bundle`, the same caps), applies in chunks of 200 in the plan's order, and reaches the running server through Postgres: its events, and its caches' invalidations (`shareCacheInvalidations`), before the command closes its connection. Exit codes: 0 done or in sync, 1 refused or failed, 2 the file is invalid, 6 the check found differences.
+
+- Provenance belongs to a person (§3): the same `--as` every time, or the second account sees everything as new and prunes nothing.
+- Only where one can run commands in the server's image against its Postgres: a self-hosted server with Docker (the native server keeps its PGlite to itself while it runs). agentes.chat Cloud has no way in for it yet.
+
+### Later
+
+- Writing `team.yaml` from a workspace (the export, §6, in this format).
+- The import page reading a dropped `team.yaml`, with prune as a choice.
+- The same command from outside the server, once the app API has tokens of its own for scripts.
+- A check that compares with the workspace as it is now (instructions edited in the app), not with the last apply.
+- Unarchiving, from the plan, an agent or a channel that `--prune` archived when the file has it again.

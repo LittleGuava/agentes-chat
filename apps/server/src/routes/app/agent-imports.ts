@@ -78,7 +78,7 @@ const BundleRule = z.object({
  * `MigrationBundle` (ADR 0055). Text may be longer than our limits (the
  * import cuts it and reports `trimmed`); these caps only bound the request.
  */
-const Bundle = z
+export const Bundle = z
   .object({
     format: z.literal("agenteschat.bundle"),
     version: z.literal(1),

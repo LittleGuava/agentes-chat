@@ -2,20 +2,34 @@ import type { BlobStoreResolver, PubSub } from "@agenteschat/adapters";
 import { and, type Database, eq, inArray, isNull, like, or, schema, sql } from "@agenteschat/db";
 import { isCustomModel, isKnownModel, isOpenRouterModel } from "@agenteschat/providers";
 import { driveFolder, isIdHandle, isSecretFile } from "@agenteschat/ui/names";
-import { createAgent, freeHandle, HANDLE_PATTERN, updateAgent } from "./agents";
+import { archiveAgent, createAgent, freeHandle, HANDLE_PATTERN, updateAgent } from "./agents";
 import { type AgentAppearance, setAgentAppearance, validateAppearance } from "./appearance";
 import { ARTIFACT_LIMITS, type ArtifactDeps, createFileArtifact } from "./artifacts";
 import { recordAudit } from "./audit";
-import { addChannelMember, CHANNEL_NAME_PATTERN, createChannel } from "./channels";
+import { addChannelMember, archiveChannel, CHANNEL_NAME_PATTERN, createChannel } from "./channels";
 import type { ConnectorTriggerDeps } from "./connector-triggers";
-import { addContextItemByPerson, editContextItem, holdsSecret, looksLikeSecret } from "./context/items";
+import {
+  addContextItemByPerson,
+  deleteContextItem,
+  editContextItem,
+  holdsSecret,
+  looksLikeSecret,
+} from "./context/items";
 import { nextCronTime, zonedParts } from "./cron";
 import { sha256 } from "./crypto";
 import { ConflictError, NotFoundError, ValidationError } from "./errors";
+import { publishMachineAgentsChanged } from "./machines";
 import { can, requirePermission } from "./organizations";
-import { createRoutine, type RoutineDeps, type RoutineTriggerInput, routineTimezone, updateRoutine } from "./routines";
+import {
+  createRoutine,
+  deleteRoutine,
+  type RoutineDeps,
+  type RoutineTriggerInput,
+  routineTimezone,
+  updateRoutine,
+} from "./routines";
 import { localDate, nextOccurrence, normalizeRule, type ScheduleRule } from "./rrule";
-import { type ParsedSkill, parseSkillMarkdown, saveSkill, setAgentSkills } from "./skills";
+import { deleteSkill, type ParsedSkill, parseSkillMarkdown, saveSkill, setAgentSkills } from "./skills";
 import { canonicalJson } from "./tools/json-schema";
 
 const { importItems, agents, skills, channels, channelMembers, routines, contextItems, organizationMembers } = schema;
@@ -121,10 +135,27 @@ export interface ImportInput {
   dryRun: boolean;
   /** `kind:key` of the items to apply; default every item. Items left out aren't in the result. */
   pick?: string[];
+  /**
+   * What this package made and the bundle no longer has (ADR 0055, addendum 2026-11-15). Left out: not looked at;
+   * false: listed as `keep`; true: removed (`delete`). A `pick` narrows the removals one call applies.
+   */
+  prune?: boolean;
+}
+
+/** One item an earlier import of this package made, still there, that the bundle no longer has. */
+export interface ImportRemoval {
+  kind: ImportItemKind;
+  key: string;
+  targetId: string;
+  /** `keep`: listed only; `delete`: removed (planned, on a dry run); `skip`: its removal failed (`reason`). */
+  action: "keep" | "delete" | "skip";
+  reason?: "failed";
 }
 
 export interface ImportPlan {
   items: ImportItemResult[];
+  /** Only when the input says `prune`. */
+  removals?: ImportRemoval[];
 }
 
 /** How much one import carries (the route refuses more) and applies per call. */
@@ -288,7 +319,10 @@ function triggerProblem(trigger: BundleTrigger, now: Date): ImportSkipReason | n
  * (`trimmed`). Items come in dependency order: skills, agents, channels,
  * routines, notes.
  */
-export function planImport(input: ImportInput, state: ImportState): { items: PlannedItem[] } {
+export function planImport(
+  input: ImportInput,
+  state: ImportState,
+): { items: PlannedItem[]; removals?: ImportRemoval[] } {
   const { bundle } = input;
   const items: PlannedItem[] = [];
   const pick = input.pick ? new Set(input.pick) : null;
@@ -520,7 +554,33 @@ export function planImport(input: ImportInput, state: ImportState): { items: Pla
     });
   }
 
-  return { items };
+  if (input.prune === undefined) return { items };
+  return { items, removals: planRemovals(input, state) };
+}
+
+/** Removals go against dependencies: what uses an agent or a channel first, skills last. */
+const REMOVAL_ORDER: ImportItemKind[] = ["note", "routine", "channel", "agent", "skill"];
+
+/**
+ * What an earlier import of this package made, still there and not only joined (`adopted`), whose key the bundle
+ * doesn't have at all: compared with every key it carries, so an item it keeps but the plan skips (a key in its text,
+ * a taken name) is never removed.
+ */
+function planRemovals(input: ImportInput, state: ImportState): ImportRemoval[] {
+  const { bundle } = input;
+  const pick = input.pick ? new Set(input.pick) : null;
+  const inBundle = new Set([
+    ...bundle.skills.map((s) => `skill:${s.key}`),
+    ...bundle.agents.map((a) => `agent:${a.key}`),
+    ...bundle.channels.map((c) => `channel:${c.key}`),
+    ...bundle.routines.map((r) => `routine:${r.key}`),
+    ...bundle.notes.map((n) => `note:${n.key}`),
+  ]);
+  return [...state.made.entries()]
+    .filter(([id, m]) => m.live && !m.adopted && !inBundle.has(id) && (!pick || pick.has(id)))
+    .map(([, m]) => m)
+    .sort((a, b) => REMOVAL_ORDER.indexOf(a.kind) - REMOVAL_ORDER.indexOf(b.kind))
+    .map((m) => ({ kind: m.kind, key: m.key, targetId: m.targetId, action: input.prune ? "delete" : "keep" }));
 }
 
 /** The workspace as the plan needs it, for one source package as this person imported it. */
@@ -684,8 +744,12 @@ export async function applyImport(
   const { source } = input.bundle;
   const state = await loadImportState(db, actorId, orgId, source);
   const plan = planImport(input, state);
-  if (input.dryRun) return { items: plan.items.map(publicItem) };
-  const writes = plan.items.filter((i) => i.action === "create" || i.action === "update").length;
+  const removals = plan.removals;
+  const result = () => ({ items: plan.items.map(publicItem), ...(removals ? { removals } : {}) });
+  if (input.dryRun) return result();
+  const writes =
+    plan.items.filter((i) => i.action === "create" || i.action === "update").length +
+    (removals ?? []).filter((r) => r.action === "delete").length;
   if (writes > IMPORT_LIMITS.perApply) {
     throw new ValidationError(
       `Apply at most ${IMPORT_LIMITS.perApply} items per call: send them in chunks of pick, in the plan's order`,
@@ -884,6 +948,25 @@ export async function applyImport(
     }
   }
 
+  // What the bundle no longer has goes through the app's own functions; agents and channels are archived, which
+  // can be undone. Its provenance row stays: a bundle that has it again restores the skill it made, and finds the
+  // agent or channel someone unarchived (ADR 0055, addendum 2026-11-15).
+  for (const removal of removals ?? []) {
+    if (removal.action !== "delete") continue;
+    try {
+      const id = removal.targetId;
+      if (removal.kind === "note") await deleteContextItem(db, actorId, orgId, id);
+      else if (removal.kind === "routine") await deleteRoutine(routineDeps, actorId, orgId, id);
+      else if (removal.kind === "channel") await archiveChannel(db, actorId, orgId, id, { pubsub });
+      else if (removal.kind === "agent") {
+        await archiveAgent(db, actorId, orgId, id, pubsub);
+        await publishMachineAgentsChanged(pubsub, orgId);
+      } else await deleteSkill(db, actorId, orgId, id);
+    } catch {
+      Object.assign(removal, { action: "skip", reason: "failed" });
+    }
+  }
+
   const count = (action: ImportItemResult["action"]) => plan.items.filter((i) => i.action === action).length;
   await recordAudit(db, {
     orgId,
@@ -898,9 +981,10 @@ export async function applyImport(
       updated: count("update"),
       unchanged: count("unchanged"),
       skipped: count("skip"),
+      ...(removals ? { removed: removals.filter((r) => r.action === "delete").length } : {}),
     },
   });
-  return { items: plan.items.map(publicItem) };
+  return result();
 }
 
 /**
