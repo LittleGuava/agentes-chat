@@ -152,6 +152,8 @@ export interface MachineAccess {
     desktop?: boolean;
     terminal?: boolean;
   };
+  /** The sites it lends its connection for, and to which agents (ADR 0203). */
+  relay?: { site: string; agents: string[] }[];
 }
 
 /**

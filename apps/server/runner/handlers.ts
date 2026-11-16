@@ -18,6 +18,7 @@ import {
   type RunnerFrame,
   type RunnerPause,
   type RunnerTools,
+  relaySitesFor,
   STEER_LIMITS,
   type TurnCheckpoint,
 } from "@agenteschat/adapters/machine-protocol";
@@ -52,6 +53,7 @@ import { agentWorkspace, hiddenIn, isInside, resolveForAgent } from "./paths";
 import type { PhoneManager, PhoneRequest } from "./phones";
 import { pullFile } from "./pull";
 import { type FetchLike, pushPath } from "./push";
+import type { RelayExits } from "./relay";
 import { openDesktopStream } from "./rfb";
 import type { Spawn } from "./scope-gate";
 import { agentSecrets, handleSecret, holdsSecretFile } from "./secrets";
@@ -112,6 +114,7 @@ export const MAX_LIST_ENTRIES = 5000;
 /** Ops that start new work: refused while the owner paused the computer (protocol 9). Reads of status, output and cancel still go. */
 export const NEW_WORK_OPS: ReadonlySet<string> = new Set([
   "exec",
+  "relay.open",
   "read",
   "write",
   "list",
@@ -196,6 +199,8 @@ export const OP_ROUTES: Readonly<Record<MachineOp, "machine" | "agent">> = {
   "stream.open": "machine",
   // The live view's data socket is the process's that holds the server connection (only it has the token).
   "browser.view.open": "machine",
+  // The person's own computer lends its connection (ADR 0203): a data socket, which only this process can dial.
+  "relay.open": "machine",
   // The helper runs as the agent's own user, in its worker; the worker asks the supervisor for the desktop.
   "desktop.look": "agent",
   "desktop.act": "agent",
@@ -360,6 +365,8 @@ export interface HandlerContext {
   streams?: DataSockets;
   /** Protocol 49: the live views of the agents' browsers (`browser.view.open`, ADR 0040 §7.1). */
   browserViews?: BrowserViews;
+  /** `RELAY_PROTOCOL`: the tunnels this computer serves for agents' browsers (ADR 0203); without it `relay.open` is refused. */
+  relayExits?: RelayExits;
   /** Protocol 21: the agents' use of their own desktops (ADR 0062); without it the runner refuses `desktop.look`… */
   desktopUse?: DesktopManager;
   /** A person takes control of the agent's desktop: what the agent's pointer and keys are doing stops. */
@@ -739,6 +746,7 @@ async function routeRequest(ctx: HandlerContext, req: MachineRequest, scope: Req
   if (req.op === "mychrome.act" || req.op === "mychrome.list" || req.op === "mychrome.disconnect") {
     return handleMyChrome(ctx, req);
   }
+  if (req.op === "relay.open") return openRelay(ctx, req);
   // Protocol 34: a browser profile's session, never an agent's worker or folder (ADR 0110).
   if (
     req.profile ||
@@ -1235,6 +1243,35 @@ async function openBrowserView(
   const key = typeof profileId === "string" ? profileKey(profileId) : String(req.agent?.id ?? "");
   if (!key || !isStreamId(req.streamId)) throw new RunnerError("bad_request", "A live view needs an agent and its id");
   return ctx.browserViews.open(key, req.streamId);
+}
+
+/**
+ * `relay.open` (`RELAY_PROTOCOL`, ADR 0203): this computer lends its connection to one tunnel of `agentId`. It dials
+ * the data socket and serves the `CONNECT` that comes through it, deciding by its own access only: the server's word
+ * that a site is lent counts for nothing here. Never in system mode (a person's own computer is in single mode).
+ */
+async function openRelay(
+  ctx: HandlerContext,
+  req: Extract<MachineRequest, { op: "relay.open" }>,
+): Promise<MachineReplies["relay.open"]> {
+  const { streams, access, relayExits } = ctx;
+  if (!streams || !access || !relayExits)
+    throw new RunnerError("unsupported", "This runner lends its connection to no site");
+  if (ctx.systemMode?.()) {
+    throw new RunnerError(
+      "not_allowed",
+      "A computer where each agent runs as its own user lends its connection to no site",
+    );
+  }
+  const agentId = typeof req.agentId === "string" ? req.agentId : "";
+  if (!agentId || !isStreamId(req.streamId)) throw new RunnerError("bad_request", "A tunnel needs an agent and its id");
+  if (relaySitesFor(access(), agentId).length === 0) {
+    throw new RunnerError("not_allowed", "This computer lends its connection to that agent for no site");
+  }
+  if (!relayExits.hasRoom()) throw new RunnerError("no_slot", "This computer serves as many tunnels as it can");
+  const socket = await streams.dial(req.streamId, "relay");
+  relayExits.serve(socket, () => relaySitesFor(access(), agentId));
+  return { opened: true };
 }
 
 /**
@@ -1845,6 +1882,8 @@ function describeOp(req: MachineRequest): string {
       return `browser.input ${Array.isArray(req.events) ? req.events.length : 0} events`;
     case "browser.view.open":
       return "browser.view.open";
+    case "relay.open":
+      return "relay.open";
     case "stream.open":
       return req.kind === "terminal"
         ? `stream.open terminal ${String(req.cols)}×${String(req.rows)}`

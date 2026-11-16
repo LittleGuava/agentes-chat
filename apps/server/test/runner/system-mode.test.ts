@@ -500,6 +500,8 @@ test("a system-mode runner (root) without workers does no agent work; machine-le
     "stream.open",
     // The live view's data socket needs the machine token, which only root holds (ADR 0040 §7.1).
     "browser.view.open",
+    // A tunnel's data socket too; root then refuses it: a person's own computer lends its connection (ADR 0203).
+    "relay.open",
     // The phones belong to the computer, not to one agent: their lock and adb, simctl and devicectl stay with root.
     "phone.claim",
     "phone.release",

@@ -291,6 +291,7 @@ export * from "./push-relay-client";
 export * from "./questions";
 export * from "./read-aloud";
 export * from "./recovery";
+export * from "./relay";
 export * from "./reply-policy";
 export * from "./reporting";
 export * from "./right-hand";

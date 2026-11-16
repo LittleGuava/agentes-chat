@@ -12,18 +12,23 @@ import path from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import {
   type AgentScope,
+  ALL_AGENTS,
   browserNeeded,
   CLI_NAMES,
   MACHINE_PROTOCOL_VERSION,
   type RunnerTools,
+  relaySite,
 } from "@agenteschat/adapters/machine-protocol";
 import { createTerm, type Spinner, type Term } from "@agenteschat/setup/src/term";
 import {
   addFolder,
+  allowRelaySite,
   ControlError,
   checkFolder,
   readAgents,
+  relayAgentIds,
   removeFolder,
+  removeRelaySite,
   resolveAgentHandle,
   setTool,
   TOOL_LABELS,
@@ -158,6 +163,9 @@ Usage:
       Agents run it before something heavy.
   agentes-runner folders [list | allow <path> [--agent <handle>]... | remove <path> [--agent <handle>]...] [--org <id | name>]
       Folders agents may use besides their own (an agent's handle, as on the site).
+  agentes-runner relay [list | allow <site> (--agent <id or handle>... | --every-agent) | remove <site> [--agent <id>]...]
+      Lends this computer's internet connection to agents for sites that refuse data centers (each site and
+      agent named; only HTTPS on port 443, never a local address). The site sees this computer's address.
   agentes-runner tools [list | enable <tool> | disable <tool>] [--org <id | name>]
       Turns claude (Claude Code), codex (Codex), commands, browser, desktop or terminal on or off on
       this computer.
@@ -1148,6 +1156,83 @@ function safeReal(p: string) {
   }
 }
 
+const RELAY_USAGE =
+  "Usage: agentes-runner relay [list | allow <site> (--agent <id or handle>... | --every-agent) | remove <site> [--agent <id or handle>]...]";
+
+/**
+ * `agentes-runner relay …` (ADR 0203): the sites this computer lends its connection for, and to which agents. The
+ * same config the app edits; a running runner applies it at once and tells the server.
+ */
+function relay(p: Parsed): number {
+  const paired = pairedOrExit(p, runnerHome());
+  if (!paired) return 1;
+  const home = paired.home;
+  const [, sub = "list", site] = p.positional;
+  const access = effectiveAccess(paired.stored);
+  const agents = readAgents(home);
+  const nameOf = (id: string) => {
+    if (id === ALL_AGENTS) return "every agent";
+    const a = agents.find((x) => x.id === id);
+    return a ? `${a.name} (@${a.handle})` : id;
+  };
+  // The agents that use a site lent here work on another computer: named by their id (or every agent).
+  const named = relayAgentIds(agents, p.lists.get("agent") ?? [], p.flags.has("every-agent"));
+  if ("unknown" in named) {
+    console.error(
+      `${unknownAgent(named.unknown, agents)} An agent that works on another computer is named by its id (on its page on the site), or use --every-agent.`,
+    );
+    return 1;
+  }
+  const ids = named.ids;
+  try {
+    switch (sub) {
+      case "list": {
+        const sites = access.relay ?? [];
+        if (sites.length === 0) console.log("This computer lends its connection for no site.");
+        for (const g of sites) {
+          console.log(`${g.site}\n    ${g.agents.length ? g.agents.map(nameOf).join(", ") : "no agent uses it yet"}`);
+        }
+        return 0;
+      }
+      case "allow": {
+        if (!site || ids.length === 0) {
+          console.error("Usage: agentes-runner relay allow <site> (--agent <id or handle>... | --every-agent)");
+          return 1;
+        }
+        saveAccess(home, allowRelaySite(access, site, ids));
+        const stored = relaySite(site) ?? site;
+        console.log(
+          `${stored} now opens through this computer's connection for ${ids.map(nameOf).join(", ")}. The site sees this computer's address.`,
+        );
+        return 0;
+      }
+      case "remove": {
+        if (!site) {
+          console.error("Usage: agentes-runner relay remove <site> [--agent <handle>]...");
+          return 1;
+        }
+        let next = access;
+        if (ids.length) for (const id of ids) next = removeRelaySite(next, site, id);
+        else next = removeRelaySite(next, site);
+        saveAccess(home, next);
+        console.log(
+          ids.length ? `Stopped lending ${site} to ${ids.map(nameOf).join(", ")}.` : `Stopped lending ${site}.`,
+        );
+        return 0;
+      }
+      default:
+        console.error(RELAY_USAGE);
+        return 1;
+    }
+  } catch (err) {
+    if (err instanceof ControlError) {
+      console.error(err.message);
+      return 1;
+    }
+    throw err;
+  }
+}
+
 /** `agentes-runner tools …`. */
 function tools(p: Parsed): number {
   const paired = pairedOrExit(p, runnerHome());
@@ -1565,6 +1650,8 @@ async function main(argv: string[]): Promise<number> {
       return folders(p);
     case "tools":
       return tools(p);
+    case "relay":
+      return relay(p);
     case "desktop-check":
       return desktopCheck(p);
     case "mcp": {

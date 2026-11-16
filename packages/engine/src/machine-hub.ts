@@ -11,6 +11,7 @@ import {
   IPHONE_WIFI_PROTOCOL,
   KEEP_RUNNING_PROTOCOL,
   MAX_FRAME_BYTES,
+  type MachineAgent,
   type MachineErrorCode,
   type MachineOp,
   type MachineReplies,
@@ -25,6 +26,7 @@ import {
   PHONES_PROTOCOL,
   type PubSub,
   parseRunnerFrame,
+  RELAY_PROTOCOL,
   type RunnerAccess,
   type RunnerFrame,
   type RunnerPause,
@@ -518,6 +520,18 @@ export interface MachineBrowserHooks {
   connected?(machineId: string): void;
 }
 
+/**
+ * Sites through a person's computer (ADR 0203): a runner's `relay.want`, answered `relay.ready`, and the sites each
+ * agent is lent in its computer's `agents` frame.
+ */
+export interface MachineRelayHooks {
+  want?(
+    machine: { id: string; orgId: string },
+    frame: Extract<RunnerFrame, { type: "relay.want" }>,
+  ): Promise<Extract<ServerFrame, { type: "relay.ready" }>>;
+  agents?(orgId: string, machineId: string, agents: MachineAgent[]): Promise<MachineAgent[]>;
+}
+
 export function createMachineHub(deps: MachineHubDeps) {
   const { db, pubsub } = deps;
   const replicaId = deps.replicaId ?? crypto.randomUUID();
@@ -540,6 +554,7 @@ export function createMachineHub(deps: MachineHubDeps) {
   const subscriptions: Unsubscribe[] = [];
   let hooks: MachineMissionHooks = {};
   let browserHooks: MachineBrowserHooks = {};
+  let relayHooks: MachineRelayHooks = {};
 
   const send = (conn: MachineConnection, frame: ServerFrame) => {
     if (conn.closed) return;
@@ -910,8 +925,14 @@ export function createMachineHub(deps: MachineHubDeps) {
   /** The `agents` frame (protocol 9): the org's agents pointed at this machine. */
   async function sendAgents(conn: MachineConnection) {
     if (!conn.machineId || !conn.orgId || conn.protocol < PAUSE_PROTOCOL) return;
-    const agents = await machineAgents(db, conn.orgId, conn.machineId).catch(() => null);
-    if (!agents) return;
+    const listed = await machineAgents(db, conn.orgId, conn.machineId).catch(() => null);
+    if (!listed) return;
+    // ADR 0203: the sites another computer lends each agent, only to a runner that knows what to do with them.
+    const lend = relayHooks.agents;
+    const agents =
+      lend && conn.protocol >= RELAY_PROTOCOL
+        ? await lend(conn.orgId, conn.machineId, listed).catch(() => listed)
+        : listed;
     const deleted =
       conn.protocol >= CLAUDE_SHARED_PROTOCOL ? await deletedAgentIds(db, conn.orgId).catch(() => []) : [];
     send(conn, { type: "agents", agents, ...(deleted.length ? { deleted } : {}) });
@@ -1043,6 +1064,24 @@ export function createMachineHub(deps: MachineHubDeps) {
       if (!row || Date.now() >= until) return { ok: false, error: { code: "bridge.cut_off", message: MCP_CUT_OFF } };
       await Bun.sleep(rpcPollMs);
     }
+  }
+
+  /** `relay.want` (ADR 0203): answered with `relay.ready`; never blocks other frames. */
+  function relayWant(conn: MachineConnection, frame: Extract<RunnerFrame, { type: "relay.want" }>) {
+    const machine = { id: conn.machineId as string, orgId: conn.orgId as string };
+    const refused = (message: string): Extract<ServerFrame, { type: "relay.ready" }> => ({
+      type: "relay.ready",
+      callId: frame.callId,
+      ok: false,
+      error: { code: "relay_none", message },
+    });
+    const want = relayHooks.want;
+    void (want ? want(machine, frame) : Promise.resolve(refused("This server lends no connection for sites")))
+      .catch((error: unknown) => {
+        deps.log?.warn("relay.want failed", { machineId: machine.id, error: String(error) });
+        return refused("No tunnel for that site now");
+      })
+      .then((out) => send(conn, out));
   }
 
   /** `mcp.list` (protocol 8): answered with `mcp.tools`; never blocks other frames. */
@@ -1510,6 +1549,8 @@ export function createMachineHub(deps: MachineHubDeps) {
       } else if (frame.type === "mcp.list") {
         touchBrain(conn, (b) => b.token === frame.token);
         mcpList(conn, frame);
+      } else if (frame.type === "relay.want") {
+        relayWant(conn, frame);
       } else if (frame.type === "brain.event" || frame.type === "brain.done") {
         touchBrain(conn, (b) => b.runId === frame.runId);
         // Brain turns (protocol 8, ADR 0032): to whichever replica runs the turn; it checks the machine.
@@ -1550,6 +1591,10 @@ export function createMachineHub(deps: MachineHubDeps) {
           ? storeMachineAccess({ db, pubsub }, machineId, frame.access)
           : storeMachineExecutors({ db, pubsub }, machineId, frame.executors)
         ).catch((error) => deps.log?.warn(`${frame.type} failed`, { machineId, error: String(error) }));
+        // The sites it lends changed (ADR 0203): the workspace's computers list their agents' sites again.
+        if (frame.type === "access.changed" && frame.access.relay && conn.orgId) {
+          await publishMachineAgentsChanged(pubsub, conn.orgId);
+        }
         // A tool turned on or a CLI found (Claude Code, Codex, commands): what waited for this computer goes on.
         if (hooks.online) {
           const online = hooks.online;
@@ -1668,6 +1713,11 @@ export function createMachineHub(deps: MachineHubDeps) {
     /** The agent browser's live view plugs in (set once the engine is built). */
     setBrowserHooks(next: MachineBrowserHooks) {
       browserHooks = next;
+    },
+
+    /** Sites through a person's computer plug in (ADR 0203, set once the engine is built). */
+    setRelayHooks(next: MachineRelayHooks) {
+      relayHooks = next;
     },
 
     /** Whether this replica holds the machine's socket. */

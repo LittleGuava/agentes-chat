@@ -141,6 +141,7 @@ import { type DeviceGrant, devicePair, type FetchFn, LINK_CODE, PairingError, un
 import { ackPark, takePark } from "./park";
 import { agentId8, agentWorkspace } from "./paths";
 import { iphonesWifiFileOf, PhoneManager, type PhoneManagerOptions } from "./phones";
+import { RelayEntrance, RelayExits, RelayWants } from "./relay";
 import { agentSecrets, dropStoredSiteSecrets, secretValue } from "./secrets";
 import { AGENTS_CGROUP, systemdBooted } from "./service";
 import {
@@ -341,6 +342,8 @@ interface Session {
   browser: BrowserManager;
   /** Desktop and terminal streams (ADR 0058): they end with the session. */
   streams: DataSockets;
+  /** Sites through a person's computer (ADR 0203): the agents' entrances on loopback; null in system mode. */
+  relayEntrance: RelayEntrance | null;
   /** The agents' use of their desktops (ADR 0062): its helpers end with the session, the desktops don't. */
   desktopUse: DesktopManager;
   connection: RunnerConnection;
@@ -1292,6 +1295,7 @@ export class RunnerDaemon implements RequestObserver {
         egress: this.egress.current,
       }),
       locale: (agent) => this.agents.find((a) => a.id === agent.id)?.locale,
+      relayPac: async (agentId) => relayEntrance?.pacFor(agentId) ?? null,
     });
     // Browsers a previous run of this runner left open (a crash, a kill) close now.
     void browser.closeAll();
@@ -1310,6 +1314,18 @@ export class RunnerDaemon implements RequestObserver {
       token: config.token,
       relayed: this.relayed,
     });
+    // Sites through a person's computer (ADR 0203), on a single-user runner only (system mode is for later): as the
+    // agent's computer, an entrance per agent its Chrome reaches; as the person's, the tunnels it serves.
+    const single = config.mode !== "system";
+    const relayWants = new RelayWants((frame) => live?.send(frame) ?? false);
+    const relayEntrance = single
+      ? new RelayEntrance({
+          sitesOf: (agentId) => this.agents.find((a) => a.id === agentId)?.relay ?? [],
+          open: async (agentId, host) => streams.dial(await relayWants.want(agentId, host), "relay"),
+          log,
+        })
+      : null;
+    const relayExits = single ? new RelayExits({ log }) : null;
     let supervisor: Supervisor | null = null;
     let agentUser: Session["agentUser"] = null;
     let accountBrains: AccountBrains | null = null;
@@ -1557,6 +1573,7 @@ export class RunnerDaemon implements RequestObserver {
       terminals: this.terminals,
       streams,
       browserViews: views,
+      ...(relayExits ? { relayExits } : {}),
       desktopUse,
       desktopTaken: (agentId) => {
         if (supervisor) supervisor.desktopTaken(agentId);
@@ -1618,12 +1635,14 @@ export class RunnerDaemon implements RequestObserver {
       onAgents: (raw, deleted) => this.setAgents(raw, deleted),
       onBrowserHandoff: (frame) =>
         supervisor ? supervisor.handoff(frame) : browser.setHandoff(frame.agentId, frame.handoff),
+      onRelayReady: (frame) => relayWants.ready(frame),
       onState: (state) => {
         // Offline: frames have nowhere to go; the server starts the live view again when it is back.
         if (state !== "online") {
           this.observeEgress = false;
           browser.stopStreams();
           views.closeAll();
+          relayWants.failAll();
           // What it said about people's turns is stale; it says again on reconnect.
           browser.clearHandoffs();
         }
@@ -1675,6 +1694,7 @@ export class RunnerDaemon implements RequestObserver {
       mcp,
       browser,
       streams,
+      relayEntrance,
       desktopUse,
       connection,
       supervisor,
@@ -1927,6 +1947,7 @@ export class RunnerDaemon implements RequestObserver {
     this.egress.reset();
     s.connection.stop();
     s.streams.closeAll();
+    await s.relayEntrance?.close();
     s.desktopUse.stopAll();
     await s.supervisor?.close();
     s.tasks.close();

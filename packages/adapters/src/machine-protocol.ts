@@ -7,7 +7,7 @@ import type { MergeDone } from "./command-policy";
  */
 
 /** Bumped on breaking changes; the server refuses runners older than `MIN_RUNNER_PROTOCOL`. */
-export const MACHINE_PROTOCOL_VERSION = 82;
+export const MACHINE_PROTOCOL_VERSION = 83;
 export const MIN_RUNNER_PROTOCOL = 1;
 /** From this protocol on, requests carry `agent` and each agent works in its own folder. */
 export const AGENT_FOLDERS_PROTOCOL = 2;
@@ -795,6 +795,15 @@ export interface BrowserSite {
 /** A site as the runner takes it in `browser.sites.forget`: a lowercase host name, at most 253 characters. */
 export const BROWSER_SITE_HOST =
   /^(?=.{1,253}$)[a-z0-9_](?:[a-z0-9_-]{0,62}[a-z0-9_])?(?:\.[a-z0-9_](?:[a-z0-9_-]{0,62}[a-z0-9_])?)*$/;
+
+/**
+ * From this protocol on (ADR 0203): sites that refuse data centers open through a person's own computer.
+ * `access.relay` lists the sites the person lends their connection for, and to which agents; the `agents` frame's
+ * `relay` lists, per agent, the sites another computer of the workspace lends it; `relay.want` asks the server for
+ * a tunnel and `relay.ready` answers it; `relay.open` has the lending computer dial its end. The server sends none
+ * of these to an older runner.
+ */
+export const RELAY_PROTOCOL = 83;
 
 export type PhonePlatform = "android" | "ios";
 export type PhoneKind = "device" | "emulator" | "simulator";
@@ -2441,6 +2450,8 @@ export interface MachineAgent {
   look?: { color?: string; eyes?: string; accessory?: string };
   /** Protocol 33: language of the responsible person; absent falls back to English. */
   locale?: string;
+  /** `RELAY_PROTOCOL`: the sites another computer of the workspace opens for its browser (ADR 0203). */
+  relay?: string[];
   /** Protocol 20: the account on this machine it thinks with (system mode lends its folder to the agent's user). */
   account?: string;
   /** The other accounts here it thinks with: the team's right hand on people's own plans (ADR 0137 §11). */
@@ -2505,10 +2516,20 @@ export const grantedTo = (grant: Pick<RunnerFolderGrant, "agents">, agentId: str
 export const sharedFolderOf = (access: Pick<RunnerAccess, "folders"> | null | undefined) =>
   access?.folders.find((f) => f.agents.includes(ALL_AGENTS))?.path ?? null;
 
+/** A site whose pages this computer's connection opens for some agents (`RELAY_PROTOCOL`, ADR 0203). */
+export interface RunnerRelayGrant {
+  /** A domain as `relaySite` normalizes it: it covers itself and every name under it. */
+  site: string;
+  /** Agent ids it serves; `ALL_AGENTS`: every agent; empty: listed, but no agent uses it yet. */
+  agents: string[];
+}
+
 /** What the machine allows (protocol 10). */
 export interface RunnerAccess {
   folders: RunnerFolderGrant[];
   tools: RunnerTools;
+  /** `RELAY_PROTOCOL`: the sites it lends its connection for (ADR 0203). Absent: none (older runners). */
+  relay?: RunnerRelayGrant[];
 }
 
 /** Largest pieces of access frames. */
@@ -2765,6 +2786,11 @@ export type MachineRequest = (
    * socket `streamId` names and answers once the server took it (`BROWSER_VIEW_PROTOCOL`).
    */
   | { op: "browser.view.open"; streamId: string }
+  /**
+   * `RELAY_PROTOCOL` (ADR 0203): this computer lends its connection to `agentId` for one tunnel: it dials the data
+   * socket `streamId` names and answers once the server took it; the `CONNECT` it serves comes through that socket.
+   */
+  | { op: "relay.open"; streamId: string; agentId: string }
   | { op: "browser.stream.stop" }
   /** Protocol 12: a person's input during a take over, in order. */
   | { op: "browser.input"; events: BrowserInputEvent[] }
@@ -2937,6 +2963,7 @@ export const MACHINE_OPS: readonly MachineOp[] = [
   "desktop.session.status",
   "stream.open",
   "browser.view.open",
+  "relay.open",
   "desktop.look",
   "desktop.act",
   "desktop.capture",
@@ -3100,6 +3127,7 @@ export interface MachineReplies {
   "desktop.session.status": { running: boolean; startedAt?: string; lastUsedAt?: string; streams: number };
   "stream.open": { opened: true };
   "browser.view.open": { opened: true };
+  "relay.open": { opened: true };
   "desktop.look": DesktopLookReply;
   /** `look` with `settle`; `settled: false`: the screen kept changing until the wait's cap. */
   "desktop.act": { look?: DesktopLookReply; settled?: boolean };
@@ -3294,6 +3322,9 @@ export type ServerFrame =
    * runners ignore it.
    */
   | { type: "browser.handoff"; agentId: string; handoff: BrowserHandoffInfo | null }
+  /** `RELAY_PROTOCOL`: the answer to a `relay.want`: the data socket to dial for that tunnel, or why there is none. */
+  | { type: "relay.ready"; callId: string; ok: true; streamId: string }
+  | { type: "relay.ready"; callId: string; ok: false; error: { code: RelayRefusal; message: string } }
   /** The server closes after sending this (bad token, revoked, outdated runner). */
   | { type: "refused"; reason: "invalid_token" | "revoked" | "outdated" | "replaced"; message: string };
 
@@ -3385,7 +3416,9 @@ export type RunnerFrame =
   /** The same on the agent's desktop (ADR 0062), in the screen's pixels: desktop use, and its browser's window there. */
   | ({ type: "desktop.pointer"; agentId: string } & AgentPointer)
   /** `KEEP_RUNNING_PROTOCOL`: a hold ended on the computer by itself (the next `hello` says so again). */
-  | { type: "keep.ended"; holdId: string; reason: HoldEnd };
+  | { type: "keep.ended"; holdId: string; reason: HoldEnd }
+  /** `RELAY_PROTOCOL`: an agent's browser opens `host` through a person's computer: a tunnel, answered `relay.ready`. */
+  | { type: "relay.want"; callId: string; agentId: string; host: string };
 
 /** A tool as `mcp.tools` lists it (what MCP `tools/list` returns). */
 export interface McpToolInfo {
@@ -4095,6 +4128,11 @@ export function parseRunnerFrame(raw: string): RunnerFrame | null {
         ...(isRunToolToken(f.token) ? { token: f.token } : {}),
       };
     }
+    case "relay.want": {
+      const host = isString(f.host) ? relayHost(f.host) : null;
+      if (!isString(f.callId) || !f.callId || !isString(f.agentId) || !f.agentId || !host) return null;
+      return { type: "relay.want", callId: f.callId.slice(0, 64), agentId: f.agentId.slice(0, 64), host };
+    }
     case "mcp.list":
       if (!isString(f.callId) || !isString(f.taskId) || !isRunToolToken(f.token)) return null;
       return { type: "mcp.list", callId: f.callId.slice(0, 64), taskId: f.taskId.slice(0, 64), token: f.token };
@@ -4121,6 +4159,7 @@ const SERVER_FRAME_TYPES = [
   "mcp.tools",
   "agents",
   "browser.handoff",
+  "relay.ready",
 ];
 
 /** Parses a server frame (runner side); null when it isn't one. */
@@ -4142,6 +4181,7 @@ export function parseServerFrame(raw: string): ServerFrame | null {
   if ((f.type === "mcp.result" || f.type === "mcp.tools") && !isString(f.callId)) return null;
   if (f.type === "mcp.tools" && f.ok === true && !Array.isArray(f.tools)) return null;
   if (f.type === "agents" && !Array.isArray(f.agents)) return null;
+  if (f.type === "relay.ready" && (!isString(f.callId) || (f.ok === true && !isStreamId(f.streamId)))) return null;
   if (f.type === "browser.handoff" && (!isString(f.agentId) || (f.handoff !== null && !isObject(f.handoff)))) {
     return null;
   }
@@ -4545,8 +4585,10 @@ export function parseAccess(v: unknown): RunnerAccess | undefined {
       : [];
     folders.push({ path: f.path.slice(0, ACCESS_LIMITS.path), agents });
   }
+  const relay = parseRelayGrants(v.relay);
   return {
     folders,
+    ...(relay ? { relay } : {}),
     tools: {
       claude: t.claude === true,
       codex: t.codex === true,
@@ -4888,4 +4930,151 @@ export function parseToolNotice(f: Record<string, unknown>): ToolNotice | null {
     outputFile,
     ...(moved === true ? { moved } : {}),
   };
+}
+
+// ── Sites through a person's computer (ADR 0203) ────────────────────────────
+
+/** The limits of what a computer lends its connection for, and of one tunnel. */
+export const RELAY_LIMITS = {
+  /** Sites one computer lends its connection for. */
+  sites: 50,
+  /** A site's length (a domain's). */
+  site: 253,
+  /** Agents per site. */
+  agentsPerSite: 100,
+  /** The head of a tunnel's request (`CONNECT host:443 HTTP/1.1` and its headers). */
+  headBytes: 8 * 1024,
+  /** How long the head may take to arrive. */
+  headTimeoutMs: 10_000,
+  /** How long the server keeps one end of a tunnel waiting for the other. */
+  pairTimeoutMs: 15_000,
+  /** Tunnels one computer serves at once. */
+  tunnels: 16,
+  /** Bytes one tunnel carries, both ways together. */
+  tunnelBytes: 512 * 1024 * 1024,
+  /** A tunnel with nothing sent either way for this long ends. */
+  idleMs: 5 * 60_000,
+  /** The only port a tunnel reaches: what goes through is TLS between the agent's browser and the site. */
+  port: 443,
+} as const;
+
+/** Why a `relay.want` got no tunnel. */
+export type RelayRefusal = "relay_none" | "relay_offline" | "relay_refused";
+
+/** Names that only mean something on a local network: never lent, whatever the person types. */
+const LOCAL_NAMES = ["localhost", "local", "localdomain", "internal", "intranet", "home.arpa", "lan", "home", "corp"];
+const LABEL = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+
+/**
+ * A host name as a tunnel names it: lower case, no trailing dot, two labels or more of letters, digits and hyphens.
+ * Null for anything else: an IP address, a local name (`localhost`, `printer.local`), a port or a path.
+ */
+export function relayHost(input: string): string | null {
+  const host = input.trim().toLowerCase().replace(/\.$/, "");
+  if (!host || host.length > RELAY_LIMITS.site) return null;
+  const labels = host.split(".");
+  if (labels.length < 2 || !labels.every((l) => LABEL.test(l))) return null;
+  // A last label of digits is an IPv4 address (or nothing a public site is named).
+  if (/^\d+$/.test(labels[labels.length - 1] as string)) return null;
+  if (LOCAL_NAMES.some((n) => host === n || host.endsWith(`.${n}`))) return null;
+  return host;
+}
+
+/**
+ * A site as a person types it (`https://www.example.com/jobs`, `*.example.com`, `Example.com.`), as stored:
+ * `www.example.com`, `example.com`. Null when it names no public site.
+ */
+export function relaySite(input: string): string | null {
+  let s = input.trim().toLowerCase();
+  s = s.replace(/^[a-z][a-z0-9+.-]*:\/\//, "");
+  s = s.split(/[/?#]/, 1)[0] ?? "";
+  if (s.includes("@") || s.includes("[")) return null;
+  s = s.replace(/:\d{1,5}$/, "");
+  if (s.startsWith("*.")) s = s.slice(2);
+  return relayHost(s);
+}
+
+/** Whether `host` is one of `sites` or a name under one at a dot (`example.com` covers `www.example.com`). */
+export function relayCovers(host: string, sites: readonly string[]): boolean {
+  const h = relayHost(host);
+  if (!h) return false;
+  return sites.some((site) => h === site || h.endsWith(`.${site}`));
+}
+
+/** The sites `access` lends to `agentId` (by its id, or to every agent). */
+export function relaySitesFor(access: Pick<RunnerAccess, "relay"> | null | undefined, agentId: string): string[] {
+  const out: string[] = [];
+  for (const g of access?.relay ?? []) if (grantedTo(g, agentId) && !out.includes(g.site)) out.push(g.site);
+  return out;
+}
+
+/** `access.relay` as a runner said it, checked and cut; undefined when it isn't a list. */
+export function parseRelayGrants(v: unknown): RunnerRelayGrant[] | undefined {
+  if (!Array.isArray(v)) return undefined;
+  const out: RunnerRelayGrant[] = [];
+  for (const g of v) {
+    if (out.length >= RELAY_LIMITS.sites) break;
+    if (!isObject(g) || !isString(g.site)) continue;
+    const site = relaySite(g.site);
+    if (!site || out.some((x) => x.site === site)) continue;
+    const agents = Array.isArray(g.agents)
+      ? [...new Set(g.agents.filter(isString).map((a) => a.slice(0, 64)))].slice(0, RELAY_LIMITS.agentsPerSite)
+      : [];
+    out.push({ site, agents });
+  }
+  return out;
+}
+
+/**
+ * The proxy script for an agent's Chrome (`--proxy-pac-url`): `https` pages of `sites` go to the entrance on
+ * `127.0.0.1:<port>`, everything else straight. As a `data:` address, so no file or listener serves it.
+ */
+export function relayPac(sites: readonly string[], port: number): string {
+  const listed = sites.map((s) => relaySite(s)).filter((s): s is string => s !== null);
+  const script = [
+    "function FindProxyForURL(url, host) {",
+    '  if (url.substring(0, 6) !== "https:") return "DIRECT";',
+    "  host = host.toLowerCase();",
+    `  var sites = ${JSON.stringify(listed)};`,
+    "  for (var i = 0; i < sites.length; i++) {",
+    `    if (host === sites[i] || dnsDomainIs(host, "." + sites[i])) return "PROXY 127.0.0.1:${Math.trunc(port)}";`,
+    "  }",
+    '  return "DIRECT";',
+    "}",
+  ].join("\n");
+  return `data:application/x-ns-proxy-autoconfig;base64,${btoa(script)}`;
+}
+
+/** The head of a tunnel's request: still coming, refused, or a `CONNECT` to `host:port` that took `length` bytes. */
+export type ConnectHead =
+  | { status: "partial" }
+  | { status: "bad"; reason: string }
+  | { status: "ok"; host: string; port: number; length: number };
+
+const HEAD_END = [13, 10, 13, 10];
+
+/**
+ * Reads what arrived so far as an HTTP `CONNECT` request (RFC 9110 §9.3.6): only `CONNECT <name>:<port> HTTP/1.x`,
+ * a name as `relayHost` takes it (never an address), at most `RELAY_LIMITS.headBytes`.
+ */
+export function readConnectHead(bytes: Uint8Array): ConnectHead {
+  let end = -1;
+  for (let i = 0; i + 3 < bytes.length && i < RELAY_LIMITS.headBytes; i++) {
+    if (HEAD_END.every((b, k) => bytes[i + k] === b)) {
+      end = i;
+      break;
+    }
+  }
+  if (end < 0) {
+    return bytes.length >= RELAY_LIMITS.headBytes ? { status: "bad", reason: "head too long" } : { status: "partial" };
+  }
+  let line = "";
+  for (let i = 0; i < end && bytes[i] !== 13; i++) line += String.fromCharCode(bytes[i] as number);
+  const m = /^CONNECT ([^\s:]+):(\d{1,5}) HTTP\/1\.[01]$/.exec(line);
+  if (!m) return { status: "bad", reason: "not a CONNECT" };
+  const host = relayHost(m[1] as string);
+  if (!host) return { status: "bad", reason: "not a site's name" };
+  const port = Number(m[2]);
+  if (port < 1 || port > 65535) return { status: "bad", reason: "bad port" };
+  return { status: "ok", host, port, length: end + 4 };
 }

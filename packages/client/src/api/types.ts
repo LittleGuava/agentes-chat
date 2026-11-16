@@ -5143,6 +5143,8 @@ export interface MachineAccess {
     desktop?: boolean;
     terminal?: boolean;
   };
+  /** Protocol 83 (ADR 0203): the sites this computer lends its internet connection for, and to which agents. */
+  relay?: { site: string; agents: string[] }[];
 }
 
 /** `POST …/machines/{id}/access/reduce`: the site can only take away, never grant. */
