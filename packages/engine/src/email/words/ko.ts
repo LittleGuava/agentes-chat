@@ -7,6 +7,11 @@ import type { EmailWords } from "./index";
  * Korean has no plural forms: `n === 1` only picks the wording English uses for a single item. A name is followed
  * by a particle that reads right after any final sound (에, 에서, 의, 님이) or by both forms (을(를), 이(가), (으)로).
  */
+/** How long the reader was away, and how often the away email comes (ADR 0069, addendum 2026-11-15). */
+const awayFor = (m: number) => (m >= 1440 ? "하루" : m >= 60 ? "1시간" : `${m}분`);
+const awayOften = (m: number) =>
+  `많아야 ${m >= 1440 ? "하루에 한 번" : m >= 60 ? "1시간에 한 번" : `${m}분에 한 번`} 보내고, 같은 내용은 두 번 보내지 않아요. 설정의 알림에서 바꾸거나 끌 수 있어요.`;
+
 export const words: EmailWords = {
   sentBy: (host) =>
     host
@@ -173,6 +178,22 @@ export const words: EmailWords = {
       body: () => "내 에이전트가 승인이 필요한 일을 요청했어요.",
       why: (_org, hours) =>
         `이 요청들을 승인할 수 있어서 이 메일을 보내 드렸어요.${hours ? ` 요청이 ${hours}시간 넘게 기다리면 요청마다 한 번 보내요.` : ""}`,
+    },
+  },
+  away: {
+    subject: (n) => (n === 1 ? "자리를 비운 사이 새 소식이 있어요" : `자리를 비운 사이 새 소식 ${n}개가 있어요`),
+    preheader: "아직 보지 못한 멘션, 다이렉트 메시지, 완료된 작업이에요.",
+    headline: (n) => (n === 1 ? "1개가 기다리고 있어요" : `${n}개가 기다리고 있어요`),
+    body: (org) => ["자리를 비운 사이 ", { b: org }, "에 도착했지만 아직 보지 못한 것들이에요."],
+    groups: { mentions: "나를 멘션함", dms: "다이렉트 메시지", done: "완료된 작업" },
+    media: { gif: "GIF를 보냄", sticker: "스티커를 보냄", voice: "음성 메시지를 보냄" },
+    message: "메시지를 보냄",
+    more: (k) => `받은편지함에 ${k}개가 더 있어요.`,
+    button: "받은편지함 열기",
+    why: (org, minutes) => `${org}에서 ${awayFor(minutes)} 자리를 비워서 이 이메일을 보냈어요. ${awayOften(minutes)}`,
+    personal: {
+      body: () => "자리를 비운 사이 도착했지만 아직 보지 못한 것들이에요.",
+      why: (_org, minutes) => `${awayFor(minutes)} 자리를 비워서 이 이메일을 보냈어요. ${awayOften(minutes)}`,
     },
   },
   ready: {

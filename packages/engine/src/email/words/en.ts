@@ -25,6 +25,11 @@ export const sentences = (...parts: (Inline[] | null)[]): Inline[] =>
 export const atHost = (lead: string, word: string, host: string): Text =>
   host.length > 36 ? [`${lead} ${word} `, { nobr: `${host}.` }] : [`${lead} `, { nobr: `${word} ${host}.` }];
 
+/** How long the reader was away, and how often the away email comes (ADR 0069, addendum 2026-11-15). */
+const awayFor = (minutes: number) => (minutes >= 1440 ? "a day" : minutes >= 60 ? "an hour" : `${minutes} minutes`);
+const awayOften = (minutes: number) =>
+  `It comes at most once ${minutes >= 1440 ? "a day" : minutes >= 60 ? "an hour" : `every ${minutes} minutes`}, never twice about the same thing. Change it or turn it off in Settings, Notifications.`;
+
 export const en = {
   /** Who sent it: agentes.chat, or a self-hosted server named by its host. */
   sentBy: (host: string | null): Text =>
@@ -207,6 +212,31 @@ export const en = {
         }),
       why: (_org: string, hours: number | undefined) =>
         `You got this email because you can approve these requests.${hours ? ` It goes out when a request waits more than ${hours} hours, once per request.` : ""}`,
+    },
+  },
+  /** What came in while the reader was away (ADR 0069, addendum 2026-11-15). `minutes`: their wait, 15, 60 or 1440. */
+  away: {
+    subject: (n: number) =>
+      plural("en", n, { one: "Something new while you were away", other: `${n} new things while you were away` }),
+    preheader: "Mentions, direct messages and finished work you haven't seen yet.",
+    headline: (n: number) =>
+      plural("en", n, { one: "One thing is waiting for you", other: `${n} things are waiting for you` }),
+    body: (org: string): Text => [
+      "While you were away from ",
+      { b: org },
+      ", this came in and you haven't seen it yet.",
+    ],
+    groups: { mentions: "Mentioned you", dms: "Direct messages", done: "Finished work" } as Record<string, string>,
+    media: { gif: "Sent a GIF", sticker: "Sent a sticker", voice: "Sent a voice message" } as Record<string, string>,
+    message: "Sent a message",
+    more: (k: number) => `And ${k} more in your inbox.`,
+    button: "Open the inbox",
+    why: (org: string, minutes: number) =>
+      `You got this email because you were away from ${org} for ${awayFor(minutes)}. ${awayOften(minutes)}`,
+    personal: {
+      body: (): Text => "While you were away, this came in and you haven't seen it yet.",
+      why: (_org: string, minutes: number) =>
+        `You got this email because you were away for ${awayFor(minutes)}. ${awayOften(minutes)}`,
     },
   },
   ready: {

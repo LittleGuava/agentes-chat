@@ -6,6 +6,11 @@ import type { EmailWords } from "./index";
  * The emails in tr: whatever is here replaces English, word group by word group (`deepMerge`); write a count's
  * forms with `plural("tr", n, { one, few, many, other })` from `@agenteschat/i18n/format`.
  */
+/** How long the reader was away, and how often the away email comes (ADR 0069, addendum 2026-11-15). */
+const awayFor = (m: number) => (m >= 1440 ? "bir gün" : m >= 60 ? "bir saat" : `${m} dakika`);
+const awayOften = (m: number) =>
+  `En fazla ${m >= 1440 ? "günde bir kez" : m >= 60 ? "saatte bir kez" : `${m} dakikada bir`} gelir, aynı şey için asla iki kez gelmez. Ayarlar, Bildirimler bölümünden değiştir veya kapat.`;
+
 export const words: EmailWords = {
   sentBy: (host) =>
     host
@@ -189,6 +194,23 @@ export const words: EmailWords = {
         }),
       why: (_org, hours) =>
         `Bu e-postayı, bu istekleri onaylayabildiğiniz için aldınız.${hours ? ` Bir istek ${hours} saatten uzun beklediğinde, her istek için bir kez gönderilir.` : ""}`,
+    },
+  },
+  away: {
+    subject: (n) => (n === 1 ? "Sen yokken yeni bir şey var" : `Sen yokken ${n} yeni şey var`),
+    preheader: "Henüz görmediğin bahsetmeler, doğrudan mesajlar ve biten işler.",
+    headline: (n) => (n === 1 ? "Bir şey seni bekliyor" : `${n} şey seni bekliyor`),
+    body: (org) => ["Sen yokken ", { b: org }, " içinde bunlar geldi ve henüz görmedin."],
+    groups: { mentions: "Senden bahsettiler", dms: "Doğrudan mesajlar", done: "Biten işler" },
+    media: { gif: "Bir GIF gönderdi", sticker: "Bir çıkartma gönderdi", voice: "Bir sesli mesaj gönderdi" },
+    message: "Bir mesaj gönderdi",
+    more: (k) => `Gelen kutunda ${k} tane daha var.`,
+    button: "Gelen kutusunu aç",
+    why: (org, minutes) =>
+      `Bu e-postayı, ${org} alanından ${awayFor(minutes)} uzak kaldığın için aldın. ${awayOften(minutes)}`,
+    personal: {
+      body: () => "Sen yokken bunlar geldi ve henüz görmedin.",
+      why: (_org, minutes) => `Bu e-postayı ${awayFor(minutes)} uzak kaldığın için aldın. ${awayOften(minutes)}`,
     },
   },
   ready: {

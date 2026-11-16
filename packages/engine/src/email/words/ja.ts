@@ -5,6 +5,11 @@ import type { EmailWords } from "./index";
  * forms with `plural("ja", n, { one, few, many, other })` from `@agenteschat/i18n/format`.
  * Japanese has no plural forms: `n === 1` only picks the wording English uses for a single item.
  */
+/** How long the reader was away, and how often the away email comes (ADR 0069, addendum 2026-11-15). */
+const awayFor = (m: number) => (m >= 1440 ? "1日" : m >= 60 ? "1時間" : `${m}分`);
+const awayOften = (m: number) =>
+  `送信は多くても${m >= 1440 ? "1日に1回" : m >= 60 ? "1時間に1回" : `${m}分に1回`}で、同じ内容を2回送ることはありません。設定の通知で変更またはオフにできます。`;
+
 export const words: EmailWords = {
   sentBy: (host) =>
     host
@@ -173,6 +178,23 @@ export const words: EmailWords = {
       body: () => "あなたのエージェントが、あなたの承認が必要な操作をリクエストしました。",
       why: (_org, hours) =>
         `これらのリクエストを承認できるため、このメールをお送りしています。${hours ? `リクエストが${hours}時間以上待っているときに、リクエストごとに1回送信されます。` : ""}`,
+    },
+  },
+  away: {
+    subject: (n) => (n === 1 ? "不在のあいだに新着があります" : `不在のあいだに${n}件の新着があります`),
+    preheader: "まだ見ていないメンション、ダイレクトメッセージ、完了した作業です。",
+    headline: (n) => (n === 1 ? "1件があなたを待っています" : `${n}件があなたを待っています`),
+    body: (org) => ["不在のあいだに ", { b: org }, " に届いたもので、まだ見ていないものです。"],
+    groups: { mentions: "あなたへのメンション", dms: "ダイレクトメッセージ", done: "完了した作業" },
+    media: { gif: "GIFを送信しました", sticker: "スタンプを送信しました", voice: "ボイスメッセージを送信しました" },
+    message: "メッセージを送信しました",
+    more: (k) => `ほかに${k}件が受信トレイにあります。`,
+    button: "受信トレイを開く",
+    why: (org, minutes) =>
+      `${org} を${awayFor(minutes)}離れていたため、このメールをお送りしています。${awayOften(minutes)}`,
+    personal: {
+      body: () => "不在のあいだに届いたもので、まだ見ていないものです。",
+      why: (_org, minutes) => `${awayFor(minutes)}離れていたため、このメールをお送りしています。${awayOften(minutes)}`,
     },
   },
   ready: {

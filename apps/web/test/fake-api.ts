@@ -74,6 +74,7 @@ import type {
   ModelTier,
   MySuggestion,
   NewAgentSetup,
+  NoticePrefs,
   OrgRole,
   OrgSettings,
   OrgStanding,
@@ -369,6 +370,8 @@ export interface FakeState {
   teamActions?: SearchHit[];
   /** My inbox (`notifications.*`); empty unless a test fills it. */
   notifications?: AppNotification[];
+  /** My notification choices (`/notification-prefs`); the server's defaults unless a test sets them. */
+  noticePrefs?: NoticePrefs;
   /** `actions.undo`/`redo`/`undoMessage` fail for these receipt ids with this error (`action.changed_since`…). */
   actionErrors?: Record<string, ApiError>;
   /** Set by `createFakeApi`: `chat.post` with `openThread` marks the thread (the threads fake). */
@@ -4293,6 +4296,12 @@ export function createFakeApi(state: FakeState = seedState(), options: { seed?: 
         get items() {
           state.notifications ??= [];
           return state.notifications;
+        },
+        get prefs() {
+          return state.noticePrefs;
+        },
+        set prefs(prefs) {
+          state.noticePrefs = prefs;
         },
       },
       (method, ...args) => state.calls.push({ method, args }),

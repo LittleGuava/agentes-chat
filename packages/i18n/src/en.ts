@@ -2056,6 +2056,16 @@ export const en = {
     on: "On",
     failed: "Couldn't save that. Try again.",
     loadFailed: "Couldn't load your choices right now.",
+    /** The email of what you missed while away from the workspace (ADR 0069, addendum 2026-11-15). */
+    away: {
+      title: "Email when I'm away",
+      label: "Email what I missed",
+      help: "Mentions, direct messages and finished work you haven't seen, by email, once you've been away from this workspace this long. Then at most that often.",
+      off: "Never",
+      m15: "After 15 minutes",
+      m60: "After an hour",
+      m1440: "After a day",
+    },
     category: {
       waiting: {
         title: "Waiting for you",

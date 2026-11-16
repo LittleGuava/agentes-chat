@@ -179,12 +179,27 @@ export const organizationMembers = pgTable(
      * default. Read through `lodiPrefsOf` and saved by merging (packages/engine/src/right-hand-prefs.ts).
      */
     teamWeek: jsonb().$type<Record<string, unknown>>().notNull().default({}),
+    /**
+     * Last time the person had this workspace open: on connecting, on leaving and every few minutes while it stays
+     * open, hidden too (ADR 0069, addendum 2026-11-15). Never shown to anyone: `lastSeenAt` is what others may learn.
+     * Null: not known, so never away.
+     */
+    activeAt: timestamp({ withTimezone: true }),
+    /**
+     * How long the person is away before an email of the mentions, DMs and finished work they haven't read, and then
+     * at most how often (`AWAY_EMAIL_CHOICES` in packages/engine/src/away-email.ts); 0: never.
+     */
+    awayEmailMinutes: integer().notNull().default(60),
+    /** When the last of those emails was queued; the next one waits `awayEmailMinutes` after it. */
+    awayEmailAt: timestamp({ withTimezone: true }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     primaryKey({ columns: [t.orgId, t.userId] }),
     index().on(t.userId),
     uniqueIndex("organization_members_org_handle").on(t.orgId, t.handle),
+    // The away-email tick: people who want it, by when they were last active.
+    index("organization_members_away").on(t.activeAt).where(sql`${t.awayEmailMinutes} > 0`),
   ],
 );
 

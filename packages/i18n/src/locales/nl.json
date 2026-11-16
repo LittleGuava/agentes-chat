@@ -1892,6 +1892,15 @@
     "on": "Aan",
     "failed": "Kon dat niet opslaan. Probeer het opnieuw.",
     "loadFailed": "Kon je keuzes nu niet laden.",
+    "away": {
+      "title": "E-mail als ik weg ben",
+      "label": "Mail wat ik heb gemist",
+      "help": "Vermeldingen, directe berichten en afgerond werk die je niet hebt gezien, per e-mail, als je zo lang niet in deze workspace was. Daarna hooguit zo vaak.",
+      "off": "Nooit",
+      "m15": "Na 15 minuten",
+      "m60": "Na een uur",
+      "m1440": "Na een dag"
+    },
     "category": {
       "waiting": {
         "title": "Wacht op jou",

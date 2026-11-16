@@ -1,5 +1,11 @@
-import { type NoticeCategory, useNoticePrefs, useSetNoticePref } from "@agenteschat/client";
-import { Button, Card, CardHeader, Chip, Icon, type IconName, InfoHint, Switch } from "@agenteschat/ui";
+import {
+  type AwayEmailMinutes,
+  type NoticeCategory,
+  useNoticePrefs,
+  useSetAwayEmail,
+  useSetNoticePref,
+} from "@agenteschat/client";
+import { Button, Card, CardHeader, Chip, Icon, type IconName, InfoHint, Select, Switch } from "@agenteschat/ui";
 import { cloneElement, isValidElement, type ReactElement, type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { LoadingLine } from "@/components/Loading";
@@ -20,10 +26,15 @@ const ICONS: Record<NoticeCategory, IconName> = {
   reactions: "smile",
 };
 
+/** The away email's waits, in the order the select lists them (`AWAY_EMAIL_CHOICES` on the server). */
+const AWAY_WAITS: readonly AwayEmailMinutes[] = [15, 60, 1440, 0];
+const AWAY_LABEL = { 0: "off", 15: "m15", 60: "m60", 1440: "m1440" } as const;
+
 /**
  * Configurações › Notificações (ADR 0071 §8): where notifications reach me (this browser, my phone, the Mac app),
  * then one switch per kind for this workspace. The inbox keeps everything; these choose what becomes a push or a
- * banner.
+ * banner. Where the server sends emails, how long I'm away before an email of what I missed (ADR 0069, addendum
+ * 2026-11-15).
  */
 export function NoticePrefsSection() {
   const { t } = useTranslation();
@@ -31,6 +42,7 @@ export function NoticePrefsSection() {
   const toast = useToast();
   const prefs = useNoticePrefs(org.id);
   const set = useSetNoticePref(org.id);
+  const setAway = useSetAwayEmail(org.id);
   const browser = useBrowserNotices();
   const phones = prefs.data?.phones ?? 0;
   const [phoneCode, setPhoneCode] = useState(false);
@@ -113,6 +125,33 @@ export function NoticePrefsSection() {
           <LoadingLine width={320} />
         )}
       </Card>
+
+      {prefs.data?.emails && (
+        <Card aria-labelledby="notice-away">
+          <CardHeader id="notice-away" icon="mail" title={t("noticePrefs.away.title")} />
+          <div className="settings-rows">
+            <PrefRow
+              id="notice-away-wait"
+              icon="clock"
+              label={t("noticePrefs.away.label")}
+              hint={t("noticePrefs.away.help")}
+              control={
+                <Select
+                  value={String(prefs.data.awayEmail)}
+                  onValueChange={(v) => {
+                    const minutes = AWAY_WAITS.find((m) => String(m) === v);
+                    if (minutes === undefined) return;
+                    setAway.mutate(minutes, { onError: () => toast.show(t("noticePrefs.failed"), "error") });
+                  }}
+                  aria-label={t("noticePrefs.away.label")}
+                  align="end"
+                  options={AWAY_WAITS.map((m) => ({ value: String(m), label: t(`noticePrefs.away.${AWAY_LABEL[m]}`) }))}
+                />
+              }
+            />
+          </div>
+        </Card>
+      )}
     </>
   );
 }

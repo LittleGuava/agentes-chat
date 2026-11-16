@@ -6,6 +6,11 @@ import type { EmailWords } from "./index";
  * The emails in nl: whatever is here replaces English, word group by word group (`deepMerge`); write a count's
  * forms with `plural("nl", n, { one, few, many, other })` from `@agenteschat/i18n/format`.
  */
+/** How long the reader was away, and how often the away email comes (ADR 0069, addendum 2026-11-15). */
+const awayFor = (m: number) => (m >= 1440 ? "een dag" : m >= 60 ? "een uur" : `${m} minuten`);
+const awayOften = (m: number) =>
+  `Hij komt hooguit ${m >= 1440 ? "één keer per dag" : m >= 60 ? "één keer per uur" : `elke ${m} minuten`}, nooit twee keer voor hetzelfde. Wijzig of zet hem uit in Instellingen, Meldingen.`;
+
 export const words: EmailWords = {
   sentBy: (host) =>
     host ? atHost("Verstuurd door de agentes.chat-server", "op", host) : "Verstuurd door agentes.chat.",
@@ -188,6 +193,24 @@ export const words: EmailWords = {
         }),
       why: (_org, hours) =>
         `Je krijgt deze e-mail omdat je deze verzoeken kunt goedkeuren.${hours ? ` We sturen hem als een verzoek langer dan ${hours} uur wacht, één keer per verzoek.` : ""}`,
+    },
+  },
+  away: {
+    subject: (n) =>
+      plural("nl", n, { one: "Iets nieuws terwijl je weg was", other: `${n} nieuwe dingen terwijl je weg was` }),
+    preheader: "Vermeldingen, directe berichten en afgerond werk die je nog niet hebt gezien.",
+    headline: (n) => plural("nl", n, { one: "Er wacht één ding op je", other: `Er wachten ${n} dingen op je` }),
+    body: (org) => ["Terwijl je weg was, kwam dit binnen in ", { b: org }, " en je hebt het nog niet gezien."],
+    groups: { mentions: "Noemden je", dms: "Directe berichten", done: "Afgerond werk" },
+    media: { gif: "Stuurde een GIF", sticker: "Stuurde een sticker", voice: "Stuurde een spraakbericht" },
+    message: "Stuurde een bericht",
+    more: (k) => `En nog ${k} in je inbox.`,
+    button: "Inbox openen",
+    why: (org, minutes) =>
+      `Je krijgt deze e-mail omdat je ${awayFor(minutes)} niet in ${org} was. ${awayOften(minutes)}`,
+    personal: {
+      body: () => "Terwijl je weg was, kwam dit binnen en je hebt het nog niet gezien.",
+      why: (_org, minutes) => `Je krijgt deze e-mail omdat je ${awayFor(minutes)} weg was. ${awayOften(minutes)}`,
     },
   },
   ready: {

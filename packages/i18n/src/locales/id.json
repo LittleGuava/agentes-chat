@@ -1841,6 +1841,15 @@
     "on": "Aktif",
     "failed": "Tidak bisa menyimpan. Coba lagi.",
     "loadFailed": "Tidak bisa memuat pilihanmu saat ini.",
+    "away": {
+      "title": "Email saat saya pergi",
+      "label": "Kirim lewat email yang saya lewatkan",
+      "help": "Sebutan, pesan langsung, dan pekerjaan selesai yang belum kamu lihat, lewat email, setelah kamu pergi dari workspace ini selama itu. Setelah itu paling sering sesuai jeda ini.",
+      "off": "Tidak pernah",
+      "m15": "Setelah 15 menit",
+      "m60": "Setelah satu jam",
+      "m1440": "Setelah satu hari"
+    },
     "category": {
       "waiting": {
         "title": "Menunggumu",

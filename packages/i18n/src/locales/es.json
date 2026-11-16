@@ -1944,6 +1944,15 @@
     "on": "Activado",
     "failed": "No se pudo guardar. Inténtalo de nuevo.",
     "loadFailed": "No se pudieron cargar tus opciones ahora.",
+    "away": {
+      "title": "Email cuando no estoy",
+      "label": "Enviarme por email lo que me perdí",
+      "help": "Menciones, mensajes directos y trabajo terminado que no viste, por email, cuando llevas ese tiempo fuera de este workspace. Después, como mucho con esa frecuencia.",
+      "off": "Nunca",
+      "m15": "Tras 15 minutos",
+      "m60": "Tras una hora",
+      "m1440": "Tras un día"
+    },
     "category": {
       "waiting": {
         "title": "Te esperan",

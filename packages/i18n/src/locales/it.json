@@ -1945,6 +1945,15 @@
     "on": "Attive",
     "failed": "Impossibile salvare. Riprova.",
     "loadFailed": "Impossibile caricare le tue scelte adesso.",
+    "away": {
+      "title": "Email quando sono via",
+      "label": "Inviami via email ciò che ho perso",
+      "help": "Menzioni, messaggi diretti e lavoro finito che non hai visto, via email, dopo questo tempo lontano da questo workspace. Poi al massimo con questa frequenza.",
+      "off": "Mai",
+      "m15": "Dopo 15 minuti",
+      "m60": "Dopo un'ora",
+      "m1440": "Dopo un giorno"
+    },
     "category": {
       "waiting": {
         "title": "Ti aspetta",

@@ -1,6 +1,11 @@
 import { plural } from "@agenteschat/i18n/format";
 import { atHost, sentences, type Words } from "./en";
 
+/** How long the reader was away, and how often the away email comes, in pt-BR. */
+const awayFor = (minutes: number) => (minutes >= 1440 ? "um dia" : minutes >= 60 ? "uma hora" : `${minutes} minutos`);
+const awayOften = (minutes: number) =>
+  `Ele vem no máximo ${minutes >= 1440 ? "uma vez por dia" : minutes >= 60 ? "uma vez por hora" : `a cada ${minutes} minutos`}, nunca duas vezes pela mesma coisa. Mude ou desligue em Configurações, Notificações.`;
+
 export const ptBR: Words = {
   sentBy: (host) => (host ? atHost("Enviado pelo servidor do agentes.chat", "em", host) : "Enviado pelo agentes.chat."),
   fallback: "O botão não funcionou? Copie e cole este endereço no navegador:",
@@ -167,6 +172,27 @@ export const ptBR: Words = {
         }),
       why: (_org, hours) =>
         `Você recebeu este e-mail porque pode aprovar estes pedidos.${hours ? ` É enviado quando um pedido espera mais de ${hours} horas, uma vez por pedido.` : ""}`,
+    },
+  },
+  away: {
+    subject: (n) =>
+      plural("pt-BR", n, {
+        one: "Uma novidade enquanto você estava fora",
+        other: `${n} novidades enquanto você estava fora`,
+      }),
+    preheader: "Menções, mensagens diretas e trabalho concluído que você ainda não viu.",
+    headline: (n) => plural("pt-BR", n, { one: "Uma coisa espera por você", other: `${n} coisas esperam por você` }),
+    body: (org) => ["Enquanto você estava fora, chegou isto em ", { b: org }, " e você ainda não viu."],
+    groups: { mentions: "Mencionaram você", dms: "Mensagens diretas", done: "Trabalho concluído" },
+    media: { gif: "Mandou um GIF", sticker: "Mandou uma figurinha", voice: "Mandou um áudio" },
+    message: "Mandou uma mensagem",
+    more: (k) => `E mais ${k} na sua caixa de entrada.`,
+    button: "Abrir a caixa de entrada",
+    why: (org, minutes) =>
+      `Você recebeu este e-mail porque ficou ${awayFor(minutes)} fora de ${org}. ${awayOften(minutes)}`,
+    personal: {
+      body: () => "Enquanto você estava fora, chegou isto e você ainda não viu.",
+      why: (_org, minutes) => `Você recebeu este e-mail porque ficou ${awayFor(minutes)} fora. ${awayOften(minutes)}`,
     },
   },
   ready: {

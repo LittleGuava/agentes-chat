@@ -1960,6 +1960,15 @@ export const ptBR = {
     on: "Ligado",
     failed: "Não deu para salvar. Tente de novo.",
     loadFailed: "Não deu para carregar suas escolhas agora.",
+    away: {
+      title: "E-mail quando estou fora",
+      label: "Mandar por e-mail o que perdi",
+      help: "Menções, mensagens diretas e trabalho concluído que você não viu, por e-mail, depois de ficar esse tempo fora deste workspace. Depois, no máximo com essa frequência.",
+      off: "Nunca",
+      m15: "Depois de 15 minutos",
+      m60: "Depois de uma hora",
+      m1440: "Depois de um dia",
+    },
     category: {
       waiting: {
         title: "Esperando você",

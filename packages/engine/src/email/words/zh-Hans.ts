@@ -5,6 +5,11 @@ import type { EmailWords } from "./index";
  * forms with `plural("zh-Hans", n, { one, few, many, other })` from `@agenteschat/i18n/format`.
  * Chinese has no plural forms: `n === 1` only picks the wording English uses for a single item.
  */
+/** How long the reader was away, and how often the away email comes (ADR 0069, addendum 2026-11-15). */
+const awayFor = (m: number) => (m >= 1440 ? "一天" : m >= 60 ? "一小时" : ` ${m} 分钟`);
+const awayOften = (m: number) =>
+  `最多${m >= 1440 ? "每天一封" : m >= 60 ? "每小时一封" : `每 ${m} 分钟一封`}，同一件事不会发两次。可在设置的通知中更改或关闭。`;
+
 export const words: EmailWords = {
   sentBy: (host) => (host ? ["由 ", { nobr: host }, " 上的 agentes.chat 服务器发送。"] : "由 agentes.chat 发送。"),
   fallback: "按钮无法使用？把这个地址复制到浏览器中打开：",
@@ -161,6 +166,22 @@ export const words: EmailWords = {
       body: () => "你的智能体请求做需要你批准的事。",
       why: (_org, hours) =>
         `你收到这封邮件，是因为你可以批准这些请求。${hours ? `请求等待超过 ${hours} 小时后发送，每个请求只发一次。` : ""}`,
+    },
+  },
+  away: {
+    subject: (n) => (n === 1 ? "你离开期间有新动态" : `你离开期间有 ${n} 条新动态`),
+    preheader: "你还没看到的提及、私信和已完成的工作。",
+    headline: (n) => (n === 1 ? "有 1 件事在等你" : `有 ${n} 件事在等你`),
+    body: (org) => ["你离开期间，", { b: org }, " 收到了这些，你还没看到。"],
+    groups: { mentions: "提及了你", dms: "私信", done: "已完成的工作" },
+    media: { gif: "发送了一个 GIF", sticker: "发送了一个贴纸", voice: "发送了一条语音消息" },
+    message: "发送了一条消息",
+    more: (k) => `收件箱里还有 ${k} 条。`,
+    button: "打开收件箱",
+    why: (org, minutes) => `你收到这封邮件，是因为你离开 ${org} 已有${awayFor(minutes)}。${awayOften(minutes)}`,
+    personal: {
+      body: () => "你离开期间收到了这些，你还没看到。",
+      why: (_org, minutes) => `你收到这封邮件，是因为你已离开${awayFor(minutes)}。${awayOften(minutes)}`,
     },
   },
   ready: {

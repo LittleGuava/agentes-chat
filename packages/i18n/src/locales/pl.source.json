@@ -4691,6 +4691,27 @@
   "noticePrefs.loadFailed": {
     "value": "Couldn't load your choices right now."
   },
+  "noticePrefs.away.title": {
+    "value": "Email when I'm away"
+  },
+  "noticePrefs.away.label": {
+    "value": "Email what I missed"
+  },
+  "noticePrefs.away.help": {
+    "value": "Mentions, direct messages and finished work you haven't seen, by email, once you've been away from this workspace this long. Then at most that often."
+  },
+  "noticePrefs.away.off": {
+    "value": "Never"
+  },
+  "noticePrefs.away.m15": {
+    "value": "After 15 minutes"
+  },
+  "noticePrefs.away.m60": {
+    "value": "After an hour"
+  },
+  "noticePrefs.away.m1440": {
+    "value": "After a day"
+  },
   "noticePrefs.category.waiting.title": {
     "value": "Waiting for you"
   },
