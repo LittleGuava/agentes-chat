@@ -11,6 +11,7 @@ import {
   enqueue,
   enqueueAccountContacts,
   enqueueAutonomyReport,
+  enqueueHealthScan,
   enqueueIdleReflections,
   enqueueOverdueAccountDeletions,
   enqueueOverdueDeletions,
@@ -196,6 +197,8 @@ export const WORKER_INTERVALS_MS = {
   mailReconcile: 15 * 60_000,
   /** Workspaces past their deletion's date that nothing keeps any more (a hold lifted, a job lost): also at boot. */
   deletions: 3600_000,
+  /** Failures grouped into the workspaces' health issues (ADR 0214): queued once per five-minute window (its dedupe key). */
+  healthScan: 5 * 60_000,
   /** Yesterday's stall-and-noise report, queued for an hour after the UTC day ended (once per day: its dedupe key). */
   opsReport: 3600_000,
   /** AI apps' expired requests, tokens and unused registrations (ADR 0119). */
@@ -506,6 +509,7 @@ export function startWorkers(deps: WorkerDeps) {
   }
 
   const ops = deps.opsReport;
+  every("healthScan", WORKER_INTERVALS_MS.healthScan, () => enqueueHealthScan(db));
   if (ops) every("opsReport", WORKER_INTERVALS_MS.opsReport, () => enqueueAutonomyReport(db, ops));
 
   const digest = deps.approvalDigest;

@@ -73,6 +73,7 @@ import { FOLLOW_UP_JOB, wakeFollowUp } from "./follow-through";
 import { cutText } from "./format";
 import type { GitHubAppAccess } from "./git/github-call";
 import { GITHUB_EVENT_JOB, type GitHubAppEvent, handleGitHubAppEvent } from "./git/github-events";
+import { HEALTH_SCAN_JOB, scanHealth } from "./health";
 import { FILE_JOIN_REQUEST_JOB, fileJoinRequest } from "./invite-requests";
 import { announceTaskConversation } from "./issues";
 import type { JevKey, JevKeySource } from "./jev-key";
@@ -1195,6 +1196,10 @@ export function createJobHandlers(deps: JobDeps): JobHandlers {
     [OUTGOING_WEBHOOK_JOB]: async (job, ctx) => {
       if (!deps.outgoingWebhooks) throw new PermanentJobError("outgoing webhooks aren't set up on this server");
       await deliverOutgoingWebhook({ db: deps.db, ...deps.outgoingWebhooks }, String(job.payload.deliveryId), ctx);
+    },
+    // Every workspace's failures of the last window, counted into their issues (ADR 0214).
+    [HEALTH_SCAN_JOB]: async () => {
+      await scanHealth(deps.db);
     },
     // What happened on GitHub to an item an agent worked on, or naming the app (ADR 0156).
     [GITHUB_EVENT_JOB]: async (job) => {

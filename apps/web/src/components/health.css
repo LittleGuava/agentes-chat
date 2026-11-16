@@ -1,0 +1,54 @@
+/* Configurações › Saúde: one card per cause, the latest first. */
+
+.health {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.health__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* The kit's card: what failed, how often, since when. The words wrap, never cut. */
+.health-issue.ac-card {
+  gap: var(--space-1);
+}
+.health-issue__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.health-issue__count {
+  margin-left: auto;
+  font-size: 13.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.health-issue__title {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.health-issue__sub {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+/* The chip stays neutral, the icon says how bad: a failure warns, a stall or a spike waits. */
+.ac-chip[class*="health-chip--"] .ac-icon {
+  color: var(--warn);
+}
+.ac-chip.health-chip--queue_stalled .ac-icon,
+.ac-chip.health-chip--cost_spike .ac-icon {
+  color: var(--muted);
+}

@@ -111,6 +111,7 @@ export const keys = {
   usageReport: (orgId: string) => ["org", orgId, "usage-report"] as const,
   composioUsage: (orgId: string) => ["org", orgId, "usage-composio"] as const,
   audit: (orgId: string, query: object) => ["org", orgId, "audit", query] as const,
+  healthIssues: (orgId: string) => ["org", orgId, "health-issues"] as const,
   /** The usage views; an agent's sits under it, so one invalidation refreshes both. */
   planUsage: (orgId: string) => ["org", orgId, "plan-usage"] as const,
   agentPlanUsage: (orgId: string, agentId: string) => ["org", orgId, "plan-usage", "agent", agentId] as const,
