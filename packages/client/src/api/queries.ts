@@ -3309,6 +3309,16 @@ export const useComposioUsage = (orgId: string, enabled = true) => {
   });
 };
 
+/** Configurações › Saúde: the workspace's failures grouped by cause, latest first (ADR 0214). */
+export function useHealthIssues(orgId: string) {
+  const api = useApi();
+  return useQuery({
+    queryKey: keys.healthIssues(orgId),
+    queryFn: () => api.orgs.healthIssues(orgId),
+    staleTime: 60_000,
+  });
+}
+
 /** Configurações › Auditoria: pages of 50, newest first (admins). */
 export function useAudit(orgId: string, query: AuditQuery, enabled = true) {
   const api = useApi();

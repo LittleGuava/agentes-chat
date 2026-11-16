@@ -17637,6 +17637,26 @@
     "via": "przez {{name}}",
     "viaTip": "Wysłane przez {{person}} za pomocą połączonej aplikacji {{name}}"
   },
+  "health": {
+    "emptyTitle": "Nic nie zawodzi raz po raz",
+    "empty": "Gdy narzędzie, uruchomienie lub praca w kolejce zawiedzie, pojawi się tutaj, pogrupowane według przyczyny.",
+    "kind": {
+      "tool_error": "Błąd narzędzia",
+      "timeout": "Przekroczony czas",
+      "run_failed": "Nieudane uruchomienie",
+      "queue_stalled": "Utknęło w kolejce",
+      "job_failed": "Nieudane w kolejce",
+      "cost_spike": "Drogie uruchomienie"
+    },
+    "runFailed": "Praca agenta zatrzymała się na błędzie.",
+    "stalled": "Czekało ponad 5 minut po swojej godzinie startu.",
+    "jobFailed": "Poddało się po ostatniej próbie.",
+    "costSpike": "Jedno uruchomienie {{agent}} kosztowało przestrzeń roboczą ponad 5 US$.",
+    "costSpikeNoName": "Jedno uruchomienie kosztowało przestrzeń roboczą ponad 5 US$.",
+    "count": "Wystąpienia: {{count}}",
+    "since": "Pierwsze {{first}}, ostatnie {{last}}",
+    "latest": "Najnowsze:"
+  },
   "audit": {
     "filters": "Pokaż",
     "filter": {
@@ -17873,6 +17893,7 @@
       "devices": "Urządzenia",
       "usage": "AI i zużycie",
       "audit": "Dziennik audytu",
+      "health": "Kondycja",
       "import": "Import i eksport",
       "billing": "Plan i płatności",
       "media": "GIF-y i naklejki",
@@ -17904,6 +17925,7 @@
       "storage": "Gdzie są przechowywane pliki przestrzeni roboczej.",
       "usage": "Konta AI przestrzeni roboczej oraz ile zużywa każda osoba i każdy agent.",
       "audit": "Co agenci zrobili poza rozmową i co zmienili ludzie.",
+      "health": "Co ciągle zawodzi w przestrzeni roboczej, pogrupowane według przyczyny.",
       "import": "Przenieś agentów z innej aplikacji lub przestrzeni albo zabierz tę.",
       "billing": "Plan, karta i faktury, na naszej stronie poza aplikacją.",
       "media": "Co można wysłać w rozmowie, oraz GIF-y i naklejki agentów.",

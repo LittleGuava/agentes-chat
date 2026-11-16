@@ -16624,6 +16624,26 @@
     "via": "via {{name}}",
     "viaTip": "Verstuurd door {{person}} via {{name}}, een gekoppelde app"
   },
+  "health": {
+    "emptyTitle": "Niets gaat steeds mis",
+    "empty": "Als een tool, een run of werk in de wachtrij mislukt, verschijnt het hier, gegroepeerd per oorzaak.",
+    "kind": {
+      "tool_error": "Toolfout",
+      "timeout": "Tijd verstreken",
+      "run_failed": "Run mislukt",
+      "queue_stalled": "Vast in de wachtrij",
+      "job_failed": "Mislukt in de wachtrij",
+      "cost_spike": "Dure run"
+    },
+    "runFailed": "Het werk van de agent stopte op een fout.",
+    "stalled": "Wachtte meer dan 5 minuten na de starttijd.",
+    "jobFailed": "Opgegeven na de laatste poging.",
+    "costSpike": "Een run van {{agent}} kostte de werkruimte meer dan US$ 5.",
+    "costSpikeNoName": "Een run kostte de werkruimte meer dan US$ 5.",
+    "count": "Keren: {{count}}",
+    "since": "Eerst {{first}}, laatst {{last}}",
+    "latest": "Laatste:"
+  },
   "audit": {
     "filters": "Toon",
     "filter": {
@@ -16860,6 +16880,7 @@
       "devices": "Apparaten",
       "usage": "AI en gebruik",
       "audit": "Auditlog",
+      "health": "Gezondheid",
       "import": "Importeren en exporteren",
       "billing": "Abonnement en facturatie",
       "media": "GIF's en stickers",
@@ -16891,6 +16912,7 @@
       "storage": "Waar de bestanden van de werkruimte staan.",
       "usage": "De AI-accounts van de werkruimte, en hoeveel elke persoon en elke agent gebruikt.",
       "audit": "Wat agents buiten het gesprek deden en wat mensen veranderden.",
+      "health": "Wat in de werkruimte steeds misgaat, gegroepeerd per oorzaak.",
       "import": "Haal agents uit een andere app of werkruimte, of neem deze mee.",
       "billing": "Het abonnement, de kaart en de facturen, op een pagina van ons buiten de app.",
       "media": "Wat je in een gesprek kunt sturen, en de gifs en stickers van de agents.",

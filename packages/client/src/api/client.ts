@@ -163,6 +163,7 @@ import type {
   GitHubOrgAccess,
   GitHubRepositories,
   Health,
+  HealthIssue,
   HostComputer,
   IdRef,
   ImportedFile,
@@ -743,6 +744,8 @@ export interface ApiClient {
     audit(orgId: string, query?: AuditQuery & { before?: string; limit?: number }): Promise<AuditPage>;
     /** Where the audit log downloads from as CSV, with the list's filters: its newest rows, up to the server's cap. */
     auditCsvUrl(orgId: string, query?: AuditQuery): string;
+    /** What keeps failing, grouped by cause, latest first (who may read the audit log, ADR 0214). */
+    healthIssues(orgId: string): Promise<{ issues: HealthIssue[] }>;
   };
   /** A workspace's roles (ADR 0085): every member reads them; who may manage roles changes those below theirs. */
   roles: {

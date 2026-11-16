@@ -6,6 +6,7 @@ import {
   countToolCall,
   enableOperatorEvents,
   grantScopes,
+  scanHealth,
   type ToolSource,
 } from "@agenteschat/engine";
 import { createLogger } from "../src/logger";
@@ -129,6 +130,8 @@ const KEPT: Record<string, string[]> = {
   db_connections: ["label", "status", "last_error"],
   // The operator's own words to the instance's people, written only through this API (ADR 0056, announcements).
   announcements: ["title", "body", "link_url", "link_label", "audience"],
+  // Never `title`: a failure's normalized text, which may still hold a word someone typed (ADR 0214 §6).
+  health_issues: ["kind", "signature", "source", "subject"],
 };
 
 /** The places the proof is about: each holds a canary before any read, and after every column got one. */
@@ -340,6 +343,13 @@ beforeAll(async () => {
     isError: true,
     content: "canary-refusal words",
     data: { code: "tool.not_allowed", refusal: "policy", note: "canary-result-data" },
+  });
+  // A tool that failed by itself, counted into the workspace's health issues (ADR 0214) by the scan below.
+  await addRunStep(db, run, "tool_result", {
+    toolUseId: "call-2",
+    name: "get_issue",
+    isError: true,
+    content: 'canary-failure 12 in "canary-quoted"',
   });
   await addRunStep(db, run, "error", {
     reason: "transient",
@@ -825,6 +835,8 @@ beforeAll(async () => {
     .insert(schema.machineProvisioning)
     .values({ orgId: waiting?.id ?? "", state: "preparing", step: "installing", stage: "apps", since: new Date() });
 
+  await scanHealth(db);
+
   // The secrets the server made itself, as it stored them.
   for (const s of await db.select({ token: schema.sessions.token }).from(schema.sessions)) hidden.push(s.token);
   for (const a of await db.select({ password: schema.accounts.password }).from(schema.accounts)) {
@@ -893,6 +905,7 @@ beforeAll(async () => {
       ...["tool", "agent", "outcome"].map((by) => `/orgs/${id}/tool-calls?groupBy=${by}`),
       ...["connections", "audit", "asks", "routines", "unanswered"].map((list) => `/orgs/${id}/${list}?limit=200`),
       `/orgs/${id}/unanswered?summary=true`,
+      `/orgs/${id}/health-issues`,
       `/analytics/work/orgs/${id}?${days}`,
     ]),
     // Each person's notifications, and whether they reach one thing of each kind.
@@ -958,6 +971,7 @@ beforeAll(async () => {
     [`/orgs/${orgId}/access?userId=${ownerId}&targetKind=agent&targetId=${UNKNOWN}`, 404],
     [`/orgs/${orgId}/access?userId=${ownerId}&targetKind=wiki&targetId=${agentId}`, 400],
     [`/orgs/${UNKNOWN}/unanswered`, 404],
+    [`/orgs/${UNKNOWN}/health-issues`, 404],
     [`/orgs/${orgId}/unanswered?outcome=run`, 400],
     ["/email-jobs", 400],
     ["/users", 400],

@@ -16053,6 +16053,26 @@
     "via": "通过 {{name}}",
     "viaTip": "由 {{person}} 通过已连接的应用 {{name}} 发送"
   },
+  "health": {
+    "emptyTitle": "没有反复失败的问题",
+    "empty": "工具、运行或队列中的任务失败时，会按原因分组显示在这里。",
+    "kind": {
+      "tool_error": "工具错误",
+      "timeout": "超时",
+      "run_failed": "运行失败",
+      "queue_stalled": "在队列中卡住",
+      "job_failed": "在队列中失败",
+      "cost_spike": "高成本运行"
+    },
+    "runFailed": "智能体的工作因错误而停止。",
+    "stalled": "超过开始时间 5 分钟仍在等待。",
+    "jobFailed": "最后一次重试后放弃了。",
+    "costSpike": "{{agent}} 的一次运行让工作区花费超过 US$ 5。",
+    "costSpikeNoName": "一次运行让工作区花费超过 US$ 5。",
+    "count": "次数：{{count}}",
+    "since": "首次 {{first}}，最近 {{last}}",
+    "latest": "最近："
+  },
   "audit": {
     "filters": "显示",
     "filter": {
@@ -16289,6 +16309,7 @@
       "devices": "设备",
       "usage": "AI 和用量",
       "audit": "审计日志",
+      "health": "运行状况",
       "import": "导入和导出",
       "billing": "套餐和账单",
       "media": "GIF 和贴纸",
@@ -16320,6 +16341,7 @@
       "storage": "工作区文件的存放位置。",
       "usage": "工作区的 AI 账号,以及每个人和每个智能体的用量。",
       "audit": "智能体在对话之外做了什么，以及人们改了什么。",
+      "health": "工作区里反复失败的问题，按原因分组。",
       "import": "从其他应用或工作区导入智能体，或把这个带走。",
       "billing": "套餐、银行卡和账单都在应用外的我们的页面上。",
       "media": "对话中可以发送的内容，以及智能体的 GIF 和贴纸。",

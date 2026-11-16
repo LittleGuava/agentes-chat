@@ -16044,6 +16044,26 @@
     "via": "via {{name}}",
     "viaTip": "Dikirim oleh {{person}} lewat {{name}}, aplikasi yang terhubung"
   },
+  "health": {
+    "emptyTitle": "Tidak ada yang terus gagal",
+    "empty": "Saat alat, proses, atau pekerjaan di antrean gagal, itu muncul di sini, dikelompokkan menurut penyebab.",
+    "kind": {
+      "tool_error": "Kesalahan alat",
+      "timeout": "Waktu habis",
+      "run_failed": "Proses gagal",
+      "queue_stalled": "Macet di antrean",
+      "job_failed": "Gagal di antrean",
+      "cost_spike": "Proses mahal"
+    },
+    "runFailed": "Pekerjaan agen berhenti karena kesalahan.",
+    "stalled": "Menunggu lebih dari 5 menit setelah waktunya mulai.",
+    "jobFailed": "Menyerah setelah percobaan terakhirnya.",
+    "costSpike": "Satu proses {{agent}} memakan biaya ruang kerja lebih dari US$ 5.",
+    "costSpikeNoName": "Satu proses memakan biaya ruang kerja lebih dari US$ 5.",
+    "count": "Kejadian: {{count}}",
+    "since": "Pertama {{first}}, terakhir {{last}}",
+    "latest": "Terbaru:"
+  },
   "audit": {
     "filters": "Tampilkan",
     "filter": {
@@ -16280,6 +16300,7 @@
       "devices": "Perangkat",
       "usage": "AI dan pemakaian",
       "audit": "Log audit",
+      "health": "Kesehatan",
       "import": "Impor dan ekspor",
       "billing": "Paket dan tagihan",
       "media": "GIF dan stiker",
@@ -16311,6 +16332,7 @@
       "storage": "Tempat file ruang kerja disimpan.",
       "usage": "Akun AI ruang kerja, dan berapa banyak yang dipakai tiap orang dan tiap agen.",
       "audit": "Apa yang dilakukan agen di luar percakapan dan apa yang diubah orang.",
+      "health": "Apa yang terus gagal di ruang kerja, dikelompokkan menurut penyebab.",
       "import": "Bawa agen dari aplikasi atau ruang kerja lain, atau bawa yang ini.",
       "billing": "Paket, kartu, dan tagihan, di halaman kami di luar aplikasi.",
       "media": "Apa yang bisa dikirim di percakapan, serta GIF dan stiker agen.",

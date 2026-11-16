@@ -17105,6 +17105,26 @@
     "via": "tramite {{name}}",
     "viaTip": "Inviato da {{person}} tramite {{name}}, un'app collegata"
   },
+  "health": {
+    "emptyTitle": "Niente continua a fallire",
+    "empty": "Quando uno strumento, un'esecuzione o un lavoro in coda fallisce, compare qui, raggruppato per causa.",
+    "kind": {
+      "tool_error": "Errore dello strumento",
+      "timeout": "Tempo scaduto",
+      "run_failed": "Esecuzione fallita",
+      "queue_stalled": "Fermo in coda",
+      "job_failed": "Fallito in coda",
+      "cost_spike": "Esecuzione costosa"
+    },
+    "runFailed": "Il lavoro dell'agente si è fermato per un errore.",
+    "stalled": "Ha aspettato più di 5 minuti oltre l'ora di partenza.",
+    "jobFailed": "Ha rinunciato dopo l'ultimo tentativo.",
+    "costSpike": "Un'esecuzione di {{agent}} è costata allo spazio di lavoro più di 5 US$.",
+    "costSpikeNoName": "Un'esecuzione è costata allo spazio di lavoro più di 5 US$.",
+    "count": "Occorrenze: {{count}}",
+    "since": "Prima {{first}}, ultima {{last}}",
+    "latest": "Più recenti:"
+  },
   "audit": {
     "filters": "Mostra",
     "filter": {
@@ -17341,6 +17361,7 @@
       "devices": "Dispositivi",
       "usage": "IA e consumi",
       "audit": "Registro attività",
+      "health": "Salute",
       "import": "Importa ed esporta",
       "billing": "Piano e fatturazione",
       "media": "GIF e sticker",
@@ -17372,6 +17393,7 @@
       "storage": "Dove si trovano i file dello spazio di lavoro.",
       "usage": "Gli account IA dello spazio di lavoro, e quanto usa ogni persona e ogni agente.",
       "audit": "Cosa hanno fatto gli agenti fuori dalla conversazione e cosa ha cambiato la gente.",
+      "health": "Ciò che continua a fallire nello spazio di lavoro, raggruppato per causa.",
       "import": "Porta agenti da un'altra app o spazio di lavoro, o porta questo altrove.",
       "billing": "Il piano, la carta e le fatture, su una nostra pagina fuori dall'app.",
       "media": "Cosa si può inviare in conversazione, e le GIF e gli sticker degli agenti.",

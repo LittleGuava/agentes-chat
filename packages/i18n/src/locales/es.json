@@ -17021,6 +17021,26 @@
     "via": "via {{name}}",
     "viaTip": "Enviado por {{person}} a través de {{name}}, una app conectada"
   },
+  "health": {
+    "emptyTitle": "Nada sigue fallando",
+    "empty": "Cuando falla una herramienta, una ejecución o un trabajo en la cola, aparece aquí, agrupado por causa.",
+    "kind": {
+      "tool_error": "Error de herramienta",
+      "timeout": "Tiempo agotado",
+      "run_failed": "Ejecución fallida",
+      "queue_stalled": "Detenido en la cola",
+      "job_failed": "Falló en la cola",
+      "cost_spike": "Ejecución costosa"
+    },
+    "runFailed": "El trabajo del agente se detuvo por un error.",
+    "stalled": "Esperó más de 5 minutos después de su hora de inicio.",
+    "jobFailed": "Se rindió tras su último intento.",
+    "costSpike": "Una ejecución de {{agent}} le costó al espacio de trabajo más de US$ 5.",
+    "costSpikeNoName": "Una ejecución le costó al espacio de trabajo más de US$ 5.",
+    "count": "Ocurrencias: {{count}}",
+    "since": "Primera {{first}}, última {{last}}",
+    "latest": "Más recientes:"
+  },
   "audit": {
     "filters": "Mostrar",
     "filter": {
@@ -17257,6 +17277,7 @@
       "devices": "Dispositivos",
       "usage": "IA y uso",
       "audit": "Registro de auditoría",
+      "health": "Salud",
       "import": "Importar y exportar",
       "billing": "Plan y facturación",
       "media": "GIFs y stickers",
@@ -17288,6 +17309,7 @@
       "storage": "Dónde viven los archivos del espacio de trabajo.",
       "usage": "Las cuentas de IA del espacio de trabajo, y cuánto usa cada persona y cada agente.",
       "audit": "Lo que los agentes hicieron fuera de la conversación y lo que cambió la gente.",
+      "health": "Lo que sigue fallando en el espacio de trabajo, agrupado por causa.",
       "import": "Trae agentes de otra app o espacio de trabajo, o llévate este.",
       "billing": "El plan, la tarjeta y las facturas, en una página nuestra fuera de la app.",
       "media": "Lo que se puede enviar en la conversación, y los GIF y stickers de los agentes.",

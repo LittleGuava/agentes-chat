@@ -21,6 +21,7 @@ export type SettingsSection =
   | "roles"
   | "vault"
   | "audit"
+  | "health"
   | "access"
   | "connectors"
   | "skills"
@@ -83,6 +84,8 @@ export const SETTINGS_SECTIONS: {
   { id: "import", icon: "archiveBox", allowed: (o) => can(o, "create_agents") },
   // What agents did and people changed: only for who may see it (it shows everyone's work).
   { id: "audit", icon: "shield", allowed: (o) => can(o, "view_audit") },
+  // What keeps failing, grouped by cause (ADR 0214): for who reads the audit log, which already shows why calls failed.
+  { id: "health", icon: "alert", allowed: (o) => can(o, "view_audit") },
   // AGPL-3.0's legal notices and the license's required attribution: for everyone on a self-hosted server, never
   // hidden there; none on agentes.chat Cloud (`showsAbout`).
   { id: "about", icon: "info", allowed: (_o, server) => showsAbout(server) },

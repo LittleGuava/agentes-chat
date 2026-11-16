@@ -7250,6 +7250,30 @@ export interface AppNotification {
   updatedAt: string;
 }
 
+// ── Health (Configurações › Saúde, ADR 0214) ─────────────────────────────────
+
+export type HealthIssueKind = "tool_error" | "timeout" | "run_failed" | "queue_stalled" | "job_failed" | "cost_spike";
+
+/**
+ * A workspace's failures with one cause (`GET …/health-issues`, who may read the audit log): how many, since when.
+ * `title` is the failure's normalized text (`<n>`, `<path>`…), empty for a stalled job or a cost spike; `source` the
+ * tool, the job's kind or a run's error code (`run.provider_timeout`), worded by `runErrorText`.
+ */
+export interface HealthIssue {
+  id: string;
+  kind: HealthIssueKind;
+  signature: string;
+  title: string;
+  source: string | null;
+  subject: string | null;
+  agentId: string | null;
+  count: number;
+  firstAt: string;
+  lastAt: string;
+  /** The latest three of the last 14 days: references only. */
+  examples: { at: string; runId: string | null; agent: { id: string; name: string | null } | null }[];
+}
+
 // ── Audit (Configurações › Auditoria) ────────────────────────────────────────
 
 export type AuditOutcome = "done" | "failed" | "refused" | "pending";

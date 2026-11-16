@@ -45,6 +45,7 @@ import { dmRoutes } from "./routes/app/dms";
 import { feedbackRoutes, registerFeedbackFiles, registerFeedbackInbox } from "./routes/app/feedback";
 import { gifKeyRoutes } from "./routes/app/gif-key";
 import { gifRoutes } from "./routes/app/gifs";
+import { healthIssueRoutes } from "./routes/app/health-issues";
 import { inviteRoutes } from "./routes/app/invites";
 import { issueRoutes } from "./routes/app/issues";
 import { jevRoutes } from "./routes/app/jev";
@@ -199,6 +200,7 @@ export function createApp(options: AppOptions) {
     api.route("/app", appRoutes(deps));
     api.route("/app", agentApiKeyRoutes(deps));
     api.route("/app", auditRoutes(deps));
+    api.route("/app", healthIssueRoutes(deps));
     api.route("/app", customConnectorRoutes(deps));
     api.route("/app", connectorRoutes(deps));
     api.route("/app", mailRoutes(deps, log));

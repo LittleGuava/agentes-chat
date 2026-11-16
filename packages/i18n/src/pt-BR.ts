@@ -16825,6 +16825,28 @@ export const ptBR = {
     via: "via {{name}}",
     viaTip: "Enviada por {{person}} pelo {{name}}, um app conectado",
   },
+  /** Configurações › Saúde (ADR 0214): what keeps failing, one card per cause. */
+  health: {
+    emptyTitle: "Nada falhando",
+    empty: "Quando uma ferramenta, uma execução ou um trabalho na fila falha, aparece aqui, agrupado pela causa.",
+    runFailed: "O trabalho do agente parou num erro.",
+    stalled: "Esperou mais de 5 minutos além da hora de começar.",
+    jobFailed: "Desistiu depois da última tentativa.",
+    costSpike: "Uma execução de {{agent}} custou ao workspace mais de US$ 5.",
+    costSpikeNoName: "Uma execução custou ao workspace mais de US$ 5.",
+    count: "Ocorrências: {{count}}",
+    since: "Primeira {{first}}, última {{last}}",
+    latest: "Mais recentes:",
+    /** What failed, on the card's chip. */
+    kind: {
+      tool_error: "Erro de ferramenta",
+      timeout: "Tempo esgotado",
+      run_failed: "Execução falhou",
+      queue_stalled: "Parado na fila",
+      job_failed: "Falhou na fila",
+      cost_spike: "Execução cara",
+    },
+  },
   audit: {
     filters: "Mostrar",
     filter: {
@@ -17064,6 +17086,7 @@ export const ptBR = {
       devices: "Dispositivos",
       usage: "IA e uso",
       audit: "Auditoria",
+      health: "Saúde",
       import: "Importar e exportar",
       billing: "Plano e cobrança",
       media: "GIFs e figurinhas",
@@ -17093,6 +17116,7 @@ export const ptBR = {
       storage: "Onde ficam os arquivos do workspace.",
       usage: "As contas de IA do workspace, e quanto cada pessoa e agente usa.",
       audit: "O que os agentes fizeram fora da conversa e o que as pessoas mudaram.",
+      health: "O que vem falhando no workspace, agrupado pela causa.",
       import: "Traga agentes de outro app ou workspace, e leve este para onde quiser.",
       billing: "O plano, o cartão e as faturas, numa página nossa fora do app.",
       media: "O que dá para mandar na conversa, e os GIFs e figurinhas dos agentes.",

@@ -16496,6 +16496,26 @@
     "via": "{{name}} aracılığıyla",
     "viaTip": "{{person}} tarafından, bağlı bir uygulama olan {{name}} üzerinden gönderildi"
   },
+  "health": {
+    "emptyTitle": "Sürekli başarısız olan bir şey yok",
+    "empty": "Bir araç, bir çalıştırma veya kuyruktaki bir iş başarısız olduğunda, nedenine göre gruplanmış olarak burada görünür.",
+    "kind": {
+      "tool_error": "Araç hatası",
+      "timeout": "Süre doldu",
+      "run_failed": "Çalıştırma başarısız",
+      "queue_stalled": "Kuyrukta takıldı",
+      "job_failed": "Kuyrukta başarısız",
+      "cost_spike": "Pahalı çalıştırma"
+    },
+    "runFailed": "Ajanın işi bir hatayla durdu.",
+    "stalled": "Başlama zamanından sonra 5 dakikadan fazla bekledi.",
+    "jobFailed": "Son denemesinden sonra vazgeçti.",
+    "costSpike": "{{agent}} ajanının bir çalıştırması çalışma alanına 5 US$'dan fazlaya mal oldu.",
+    "costSpikeNoName": "Bir çalıştırma çalışma alanına 5 US$'dan fazlaya mal oldu.",
+    "count": "Sayı: {{count}}",
+    "since": "İlk {{first}}, son {{last}}",
+    "latest": "En son:"
+  },
   "audit": {
     "filters": "Göster",
     "filter": {
@@ -16732,6 +16752,7 @@
       "devices": "Cihazlar",
       "usage": "Yapay zeka ve kullanım",
       "audit": "Denetim kaydı",
+      "health": "Sağlık",
       "import": "İçe ve dışa aktarma",
       "billing": "Plan ve faturalandırma",
       "media": "GIF'ler ve çıkartmalar",
@@ -16763,6 +16784,7 @@
       "storage": "Çalışma alanının dosyalarının durduğu yer.",
       "usage": "Çalışma alanının yapay zeka hesapları ve her kişinin ve her ajanın ne kadar kullandığı.",
       "audit": "Ajanların konuşma dışında yaptıkları ve kişilerin değiştirdikleri.",
+      "health": "Çalışma alanında sürekli başarısız olanlar, nedenine göre gruplanmış olarak.",
       "import": "Başka bir uygulamadan veya çalışma alanından ajan getirin ya da bunu taşıyın.",
       "billing": "Plan, kart ve faturalar, uygulama dışındaki sayfamızda.",
       "media": "Konuşmada neler gönderilebildiği ve ajanların GIF'leri ile çıkartmaları.",

@@ -40762,6 +40762,54 @@
   "apps.viaTip": {
     "value": "Sent by {{person}} through {{name}}, a connected app"
   },
+  "health.emptyTitle": {
+    "value": "Nothing keeps failing"
+  },
+  "health.empty": {
+    "value": "When a tool, a run or work in the queue fails, it shows up here, grouped by cause."
+  },
+  "health.kind.tool_error": {
+    "value": "Tool error"
+  },
+  "health.kind.timeout": {
+    "value": "Timed out"
+  },
+  "health.kind.run_failed": {
+    "value": "Run failed"
+  },
+  "health.kind.queue_stalled": {
+    "value": "Stuck in the queue"
+  },
+  "health.kind.job_failed": {
+    "value": "Failed in the queue"
+  },
+  "health.kind.cost_spike": {
+    "value": "Costly run"
+  },
+  "health.runFailed": {
+    "value": "The agent's work stopped on an error."
+  },
+  "health.stalled": {
+    "value": "Waited more than 5 minutes past its time to start."
+  },
+  "health.jobFailed": {
+    "value": "Gave up after its last try."
+  },
+  "health.costSpike": {
+    "value": "A run of {{agent}} cost the workspace over US$ 5."
+  },
+  "health.costSpikeNoName": {
+    "value": "A run cost the workspace over US$ 5."
+  },
+  "health.count": {
+    "value": "Occurrences: {{count}}"
+  },
+  "health.since": {
+    "value": "First {{first}}, last {{last}}"
+  },
+  "health.latest": {
+    "value": "Latest:"
+  },
   "audit.filters": {
     "value": "Show"
   },
@@ -41344,6 +41392,9 @@
   "settings.section.audit": {
     "value": "Audit log"
   },
+  "settings.section.health": {
+    "value": "Health"
+  },
   "settings.section.import": {
     "value": "Import and export"
   },
@@ -41424,6 +41475,9 @@
   },
   "settings.sectionText.audit": {
     "value": "What agents did outside the conversation and what people changed."
+  },
+  "settings.sectionText.health": {
+    "value": "What keeps failing in the workspace, grouped by cause."
   },
   "settings.sectionText.import": {
     "value": "Bring agents from another app or workspace, or take this one along."

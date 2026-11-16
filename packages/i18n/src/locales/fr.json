@@ -17092,6 +17092,26 @@
     "via": "via {{name}}",
     "viaTip": "Envoyé par {{person}} via {{name}}, une app connectée"
   },
+  "health": {
+    "emptyTitle": "Rien n'échoue en boucle",
+    "empty": "Quand un outil, une exécution ou un travail en file d'attente échoue, il apparaît ici, groupé par cause.",
+    "kind": {
+      "tool_error": "Erreur d'outil",
+      "timeout": "Délai dépassé",
+      "run_failed": "Exécution échouée",
+      "queue_stalled": "Bloqué dans la file",
+      "job_failed": "Échoué dans la file",
+      "cost_spike": "Exécution coûteuse"
+    },
+    "runFailed": "Le travail de l'agent s'est arrêté sur une erreur.",
+    "stalled": "A attendu plus de 5 minutes après son heure de départ.",
+    "jobFailed": "Abandonné après sa dernière tentative.",
+    "costSpike": "Une exécution de {{agent}} a coûté plus de 5 US$ à l'espace de travail.",
+    "costSpikeNoName": "Une exécution a coûté plus de 5 US$ à l'espace de travail.",
+    "count": "Occurrences : {{count}}",
+    "since": "Première {{first}}, dernière {{last}}",
+    "latest": "Les plus récentes :"
+  },
   "audit": {
     "filters": "Afficher",
     "filter": {
@@ -17328,6 +17348,7 @@
       "devices": "Appareils",
       "usage": "IA et utilisation",
       "audit": "Journal d'audit",
+      "health": "Santé",
       "import": "Importer et exporter",
       "billing": "Abonnement et facturation",
       "media": "GIF et stickers",
@@ -17359,6 +17380,7 @@
       "storage": "Où sont stockés les fichiers de l'espace de travail.",
       "usage": "Les comptes IA de l'espace de travail, et ce que chaque personne et chaque agent utilisent.",
       "audit": "Ce que les agents ont fait hors de la conversation et ce que les gens ont changé.",
+      "health": "Ce qui échoue encore et encore dans l'espace de travail, groupé par cause.",
       "import": "Importez des agents d'une autre app ou d'un autre espace, ou emportez celui-ci.",
       "billing": "Le forfait, la carte et les factures, sur une page à nous hors de l'app.",
       "media": "Ce qu'on peut envoyer dans une conversation, et les GIF et stickers des agents.",

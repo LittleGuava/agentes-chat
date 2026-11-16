@@ -125,6 +125,7 @@ import type {
   GitHubOrgAccess,
   GitHubRepositories,
   Health,
+  HealthIssue,
   HostComputer,
   IdRef,
   ImportedFile,
@@ -842,6 +843,7 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         );
         return `${base}${org(orgId)}/audit.csv${qs.size ? `?${qs}` : ""}`;
       },
+      healthIssues: (orgId) => request<{ issues: HealthIssue[] }>(`${org(orgId)}/health-issues`),
     },
     roles: {
       list: (orgId) => request<OrgRoles>(`${org(orgId)}/roles`),

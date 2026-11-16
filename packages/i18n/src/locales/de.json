@@ -16560,6 +16560,26 @@
     "via": "via {{name}}",
     "viaTip": "Gesendet von {{person}} über {{name}}, eine verbundene App"
   },
+  "health": {
+    "emptyTitle": "Nichts schlägt wiederholt fehl",
+    "empty": "Wenn ein Tool, ein Lauf oder Arbeit in der Warteschlange fehlschlägt, erscheint es hier, nach Ursache gruppiert.",
+    "kind": {
+      "tool_error": "Tool-Fehler",
+      "timeout": "Zeit überschritten",
+      "run_failed": "Lauf fehlgeschlagen",
+      "queue_stalled": "Hängt in der Warteschlange",
+      "job_failed": "In der Warteschlange gescheitert",
+      "cost_spike": "Teurer Lauf"
+    },
+    "runFailed": "Die Arbeit des Agenten ist an einem Fehler gestoppt.",
+    "stalled": "Hat mehr als 5 Minuten über seine Startzeit hinaus gewartet.",
+    "jobFailed": "Nach dem letzten Versuch aufgegeben.",
+    "costSpike": "Ein Lauf von {{agent}} hat den Workspace über 5 US$ gekostet.",
+    "costSpikeNoName": "Ein Lauf hat den Workspace über 5 US$ gekostet.",
+    "count": "Vorkommen: {{count}}",
+    "since": "Zuerst {{first}}, zuletzt {{last}}",
+    "latest": "Zuletzt:"
+  },
   "audit": {
     "filters": "Anzeigen",
     "filter": {
@@ -16796,6 +16816,7 @@
       "devices": "Geräte",
       "usage": "KI und Verbrauch",
       "audit": "Audit-Log",
+      "health": "Zustand",
       "import": "Import und Export",
       "billing": "Tarif und Abrechnung",
       "media": "GIFs und Sticker",
@@ -16827,6 +16848,7 @@
       "storage": "Wo die Dateien des Workspace liegen.",
       "usage": "Die KI-Konten des Workspace und wie viel jede Person und jeder Agent nutzt.",
       "audit": "Was Agenten außerhalb der Unterhaltung taten und was Personen änderten.",
+      "health": "Was im Workspace immer wieder fehlschlägt, nach Ursache gruppiert.",
       "import": "Hol Agenten aus einer anderen App oder einem anderen Workspace, oder nimm diesen mit.",
       "billing": "Plan, Karte und Rechnungen, auf einer Seite von uns außerhalb der App.",
       "media": "Was man in Unterhaltungen senden kann, und die GIFs und Sticker der Agenten.",
