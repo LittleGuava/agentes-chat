@@ -417,7 +417,12 @@ export function usePersonMenu() {
   const pins = useSidebarPins();
   const exportEntry = useExportEntry();
   const viewer = { role: org.role, rank: org.rank, userId: me.user.id, permissions: org.permissions };
-  return (p: { userId: string; name: string; handle?: string | null }, openCard?: () => void): MenuEntry[] => {
+  /** `extra`: the sidebar row's own items ("Mover para cima" / "para baixo" in my order), after Fixar no topo. */
+  return (
+    p: { userId: string; name: string; handle?: string | null },
+    openCard?: () => void,
+    extra: MenuEntry[] = [],
+  ): MenuEntry[] => {
     const dm = dms?.find((d) => d.with.id === p.userId);
     const handle = p.handle ?? undefined;
     const mine = p.userId === me.user.id;
@@ -443,6 +448,7 @@ export function usePersonMenu() {
           ] satisfies MenuEntry[])
         : []),
       ...(mine ? [] : pins.entries("people", p.userId)),
+      ...extra,
       ...mention(handle),
       ...copyHandle(handle),
       ...markRead(dm?.channelId, readToggleOf({ dm })),

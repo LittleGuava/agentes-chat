@@ -2011,6 +2011,8 @@
       "orderHint": "Zieh oder nutze die Pfeile. Zum Beispiel Agenten zuerst.",
       "moveSection": "Ziehen, um den Bereich {{name}} zu verschieben, oder klicken für Optionen",
       "moveTool": "Ziehen, um {{name}} zu verschieben",
+      "ownOrder": "Meine Reihenfolge verwenden",
+      "ownOrderHint": "Ordne Kanäle, Agenten und Unterhaltungen nach deiner Art, innerhalb jedes Abschnitts. Die Liste der anderen ändert sich nicht.",
       "links": "Links",
       "linksHint": "Seiten, die du griffbereit haben willst, unter den Werkzeugen. Sie öffnen sich in einem neuen Tab.",
       "linkTitle": "Name",

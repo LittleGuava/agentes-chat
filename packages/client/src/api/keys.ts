@@ -250,6 +250,7 @@ export const keys = {
   sidebarToolOrder: (orgId: string) => ["org", orgId, "sidebar-tool-order"] as const,
   sidebarView: (orgId: string) => ["org", orgId, "sidebar-view"] as const,
   sidebarLinks: (orgId: string) => ["org", orgId, "sidebar-links"] as const,
+  ownOrder: (orgId: string) => ["org", orgId, "own-order"] as const,
   wiki: (orgId: string) => ["org", orgId, "wiki"] as const,
   wikiTree: (orgId: string) => ["org", orgId, "wiki", "tree"] as const,
   wikiPage: (orgId: string, slug: string) => ["org", orgId, "wiki", "page", slug] as const,

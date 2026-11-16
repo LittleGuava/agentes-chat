@@ -2165,6 +2165,10 @@ export const en = {
       linkUrlExample: "e.g. https://crm.example.com",
       addLink: "Add link",
       removeLink: "Remove {{name}}",
+      /** "Usar a minha ordem" (ADR 0080, addendum of 2026-11-16): the person's own order of the rows, off by default. */
+      ownOrder: "Use my order",
+      ownOrderHint:
+        "Order channels, agents and conversations your own way, inside each section. Nobody else's list changes.",
     },
     inviteHint: "By email or link",
     profileHint: "Name, photo and @",

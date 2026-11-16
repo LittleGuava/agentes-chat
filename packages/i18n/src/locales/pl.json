@@ -2116,6 +2116,8 @@
       "orderHint": "Przeciągnij albo użyj strzałek. Na przykład agenci na początku.",
       "moveSection": "Przeciągnij, aby przenieść sekcję {{name}}, lub kliknij, aby zobaczyć opcje",
       "moveTool": "Przeciągnij, aby przenieść: {{name}}",
+      "ownOrder": "Używaj mojej kolejności",
+      "ownOrderHint": "Ułóż kanały, agentów i rozmowy po swojemu, w obrębie każdej sekcji. Lista innych osób się nie zmienia.",
       "links": "Linki",
       "linksHint": "Strony, które chcesz mieć pod ręką, pod narzędziami. Otwierają się w nowej karcie.",
       "linkTitle": "Nazwa",

@@ -78,6 +78,7 @@ import type {
   OrgRole,
   OrgSettings,
   OrgStanding,
+  OwnOrder,
   PendingReturn,
   PeopleUsage,
   Person,
@@ -521,6 +522,8 @@ export interface FakeState {
   sidebarToolOrder?: SidebarItem[];
   /** How my sidebar shows the agents and what I pinned (`orgs.sidebarView`); unset = never changed. */
   sidebarView?: SidebarView;
+  /** "Usar a minha ordem" and my order (`orgs.ownOrder`); unset = never changed (off). */
+  ownOrder?: OwnOrder;
   /**
    * The task manager (ADR 0128, `working.taskManager`); unset = a server without it (no `working` part). Stopping a
    * task (`agents.cancelRun`) moves it to `ended`, stopped by me.
@@ -2010,6 +2013,12 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         log("orgs.removeSidebarLink", orgId, linkId);
         state.sidebarLinks = (state.sidebarLinks ?? []).filter((l) => l.id !== linkId);
         return structuredClone(state.sidebarLinks);
+      },
+      ownOrder: async () => structuredClone(state.ownOrder ?? { on: false, channels: [], people: [], agents: [] }),
+      setOwnOrder: async (orgId, own) => {
+        log("orgs.setOwnOrder", orgId, own);
+        state.ownOrder = structuredClone(own);
+        return structuredClone(own);
       },
       setAvatar: async (orgId, input) => {
         log("orgs.setAvatar", orgId, { contentType: input.contentType, bytes: input.imageBase64.length });

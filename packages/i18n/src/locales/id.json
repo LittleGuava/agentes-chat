@@ -1960,6 +1960,8 @@
       "orderHint": "Seret atau pakai tanda panah. Misalnya, Agen di urutan pertama.",
       "moveSection": "Seret untuk memindahkan bagian {{name}}, atau klik untuk melihat opsi",
       "moveTool": "Seret untuk memindahkan {{name}}",
+      "ownOrder": "Pakai urutan saya",
+      "ownOrderHint": "Urutkan kanal, agen, dan percakapan sesukamu, di dalam tiap bagian. Daftar orang lain tidak berubah.",
       "links": "Tautan",
       "linksHint": "Halaman yang ingin Anda simpan dekat, di bawah alat. Terbuka di tab baru.",
       "linkTitle": "Nama",

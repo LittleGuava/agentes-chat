@@ -1,10 +1,18 @@
-import { useChannels, useDms, useMarkChannelRead, useMarkChannelUnread } from "@agenteschat/client";
+import {
+  useChannels,
+  useDms,
+  useMarkChannelRead,
+  useMarkChannelUnread,
+  useOwnOrder,
+  useSetOwnOrder,
+} from "@agenteschat/client";
+import { stepInOwnOrder } from "@agenteschat/client/lib/own-order";
 import { readToggleOf } from "@agenteschat/client/lib/unread";
 import { useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useOrg } from "@/providers/org";
 import { router } from "@/ui/navigation";
-import type { ConversationRow } from "../chats/logic";
+import type { ConversationRow, HomeBlock } from "../chats/logic";
 import { usePins } from "../chats/pins";
 import { useDirectory, useMeId, useOrgId } from "../shared/hooks";
 import { SheetTitle } from "../shared/PromptForm";
@@ -16,7 +24,7 @@ const NO_CHANNELS: never[] = [];
 
 /** One of a row's long press actions: the app's sheet shows `icon`, iOS's own menu the SF Symbol `symbol`. */
 export interface RowAction {
-  key: "pin" | "pin-up" | "pin-down" | "move" | "read";
+  key: "pin" | "pin-up" | "pin-down" | "own-up" | "own-down" | "move" | "read";
   icon: "pin" | "up" | "down" | "list" | "check" | "mail";
   symbol: "pin" | "pin.slash" | "arrow.up" | "arrow.down" | "folder" | "envelope.open" | "envelope.badge";
   label: string;
@@ -26,9 +34,10 @@ export interface RowAction {
 /**
  * The home's long presses (ADR 0080), as short sheets: a row's "Fixar no topo" (a channel, an agent's or a person's
  * DM), "Marcar como lida" or "Marcar como não lida" (`readToggleOf`), a pinned row's Mover para cima and Mover para
- * baixo among the pinned ones (ADR 0083, addendum of 2026-11-15) and a channel's "Mover para…" (only where
- * `movesChannel`), and a category header's Renomear, Categorias and Nova categoria (admins; undefined otherwise, so
- * the header has no long press at all).
+ * baixo among the pinned ones (ADR 0083, addendum of 2026-11-15), with "Usar a minha ordem" any other row's among
+ * its section's (ADR 0080, addendum of 2026-11-16, `setLayout` says the sections), and a channel's "Mover para…"
+ * (only where `movesChannel`), and a category header's Renomear, Categorias and Nova categoria (admins; undefined
+ * otherwise, so the header has no long press at all).
  */
 export function useCategoryMenus() {
   const { t } = useTranslation();
@@ -43,6 +52,10 @@ export function useCategoryMenus() {
   const admin = arrangesCategories(org);
   const dir = useDirectory();
   const pins = usePins();
+  const own = useOwnOrder(orgId);
+  const setOwn = useSetOwnOrder(orgId);
+  // Each row's section in my order (`HomeBlock.order`, the whole section), from the home as it last drew.
+  const sections = useRef(new Map<string, string[]>());
   const go = useCallback(
     (href: Parameters<typeof router.push>[0]) => {
       sheet.close();
@@ -52,6 +65,23 @@ export function useCategoryMenus() {
   );
   // What a row's long press offers: pin it on top (a channel, an agent's or a person's DM) or take it off, and move
   // a channel (only where `movesChannel`). The same list fills the app's sheet and iOS's own menu.
+  const ownSteps = (kind: "channels" | "people" | "agents", id: string): RowAction[] => {
+    const shown = own.on ? sections.current.get(`${kind}:${id}`) : undefined;
+    if (!shown) return [];
+    return ([-1, 1] as const).flatMap((by) =>
+      stepInOwnOrder(own[kind], shown, id, by)
+        ? [
+            {
+              key: by < 0 ? ("own-up" as const) : ("own-down" as const),
+              icon: by < 0 ? ("up" as const) : ("down" as const),
+              symbol: by < 0 ? ("arrow.up" as const) : ("arrow.down" as const),
+              label: t(by < 0 ? "sidebarPins.moveUp" : "sidebarPins.moveDown"),
+              run: () => setOwn((now) => ({ ...now, [kind]: stepInOwnOrder(now[kind], shown, id, by) ?? now[kind] })),
+            },
+          ]
+        : [],
+    );
+  };
   const rowActions = (r: ConversationRow): RowAction[] => {
     const channel = r.kind === "channel" ? channels.find((c) => c.id === r.channelId) : undefined;
     const pin =
@@ -118,6 +148,7 @@ export function useCategoryMenus() {
               },
             ]
           : []),
+      ...ownSteps(pin.kind, pin.id),
       ...(channel && movesChannel(channel, meId, org)
         ? [
             {
@@ -192,5 +223,14 @@ export function useCategoryMenus() {
   latest.current = { rowMenu, rowActions };
   const openRowMenu = useCallback((r: ConversationRow) => latest.current.rowMenu(r), []);
   const rowActionsOf = useCallback((r: ConversationRow) => latest.current.rowActions(r), []);
-  return { openRowMenu, rowActionsOf, categoryMenu };
+  // The home tells which section each row is in, as it draws (no state: the menus read it when they open).
+  const setLayout = (blocks: readonly HomeBlock[]) => {
+    const next = new Map<string, string[]>();
+    for (const b of blocks) {
+      const kind = b.key === "agents" || b.key === "people" ? b.key : "channels";
+      for (const id of b.order ?? []) next.set(`${kind}:${id}`, b.order ?? []);
+    }
+    sections.current = next;
+  };
+  return { openRowMenu, rowActionsOf, categoryMenu, setLayout };
 }

@@ -2064,6 +2064,8 @@
       "orderHint": "Trascina o usa le frecce. Ad esempio, prima gli agenti.",
       "moveSection": "Trascina per spostare la sezione {{name}} o fai clic per le opzioni",
       "moveTool": "Trascina per spostare {{name}}",
+      "ownOrder": "Usa il mio ordine",
+      "ownOrderHint": "Ordina canali, agenti e conversazioni a modo tuo, dentro ogni sezione. L'elenco degli altri non cambia.",
       "links": "Link",
       "linksHint": "Le pagine che vuoi avere a portata di mano, sotto gli strumenti. Si aprono in una nuova scheda.",
       "linkTitle": "Nome",

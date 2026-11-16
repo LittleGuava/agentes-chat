@@ -2011,6 +2011,8 @@
       "orderHint": "Sürükleyin ya da okları kullanın. Örneğin önce ajanlar.",
       "moveSection": "{{name}} bölümünü taşımak için sürükleyin veya seçenekler için tıklayın",
       "moveTool": "{{name}} öğesini taşımak için sürükleyin",
+      "ownOrder": "Kendi sıramı kullan",
+      "ownOrderHint": "Kanalları, ajanları ve konuşmaları her bölümün içinde kendi sırana koy. Başkalarının listesi değişmez.",
       "links": "Bağlantılar",
       "linksHint": "Araçların altında el altında tutmak istediğiniz sayfalar. Yeni sekmede açılırlar.",
       "linkTitle": "Ad",

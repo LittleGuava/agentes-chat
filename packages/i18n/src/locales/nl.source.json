@@ -4943,6 +4943,12 @@
   "shell.sidebarSetup.moveTool": {
     "value": "Drag to move {{name}}"
   },
+  "shell.sidebarSetup.ownOrder": {
+    "value": "Use my order"
+  },
+  "shell.sidebarSetup.ownOrderHint": {
+    "value": "Order channels, agents and conversations your own way, inside each section. Nobody else's list changes."
+  },
   "shell.sidebarSetup.links": {
     "value": "Links"
   },

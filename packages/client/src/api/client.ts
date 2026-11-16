@@ -276,6 +276,7 @@ import type {
   OrgPlanUsage,
   OrgRoles,
   OrgSettings,
+  OwnOrder,
   PageTarget,
   PendingReturn,
   PeopleUsage,
@@ -656,6 +657,10 @@ export interface ApiClient {
     addSidebarLink(orgId: string, link: { title: string; url: string }): Promise<SidebarLink[]>;
     /** Removes one of my links; answers with the rest. */
     removeSidebarLink(orgId: string, linkId: string): Promise<SidebarLink[]>;
+    /** "Usar a minha ordem" here, and my order. */
+    ownOrder(orgId: string): Promise<OwnOrder>;
+    /** Replaces my own order here; answers with what the server kept. */
+    setOwnOrder(orgId: string, own: OwnOrder): Promise<OwnOrder>;
     /** My profile photo: a square image (JSON only: base64), already cropped. */
     /** `portrait`: the recipe of a portrait drawn in the app; it comes back on the address as a `#px=` fragment. */
     setAvatar(

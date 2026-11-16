@@ -206,6 +206,7 @@ import type {
   OrgPlanUsage,
   OrgRoles,
   OrgSettings,
+  OwnOrder,
   PageTarget,
   PendingReturn,
   PeopleUsage,
@@ -789,6 +790,9 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
             method: "DELETE",
           })
         ).links,
+      ownOrder: async (orgId) => (await request<{ own: OwnOrder }>(`${org(orgId)}/me/sidebar/own-order`)).own,
+      setOwnOrder: async (orgId, own) =>
+        (await request<{ own: OwnOrder }>(`${org(orgId)}/me/sidebar/own-order`, { method: "PUT", json: { own } })).own,
       sidebarToolOrder: async (orgId) =>
         (await request<{ order: SidebarItem[] }>(`${org(orgId)}/me/sidebar/tools`)).order,
       setSidebarToolOrder: async (orgId, order) =>

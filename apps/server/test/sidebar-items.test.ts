@@ -351,6 +351,56 @@ test("the pinned rows' order is each person's own: saved as moved, on every devi
   expect((await view(member)).pins).toBeNull();
 });
 
+test("my own order (ADR 0080, addendum of 2026-11-16): off by default, mine alone, kept while off, and everyone's order stays", async () => {
+  t = await createTestServer();
+  const owner = browser(t);
+  await signUp(owner, "owner@example.com");
+  const orgId = await workspace(owner, "Acme");
+  const channelsUrl = `/api/app/organizations/${orgId}/channels`;
+  for (const name of ["alpha", "beta", "gamma"]) await owner(channelsUrl, { json: { name } });
+  type Channels = { channels: { id: string; name: string }[] };
+  const made = ["alpha", "beta", "gamma"];
+  const listed = async (b = owner) =>
+    ((await (await b(channelsUrl)).json()) as Channels).channels.filter((c) => made.includes(c.name));
+  const before = (await listed()).map((c) => c.name);
+  expect(before).toHaveLength(3);
+  const ids = (await listed()).map((c) => c.id);
+  const url = `/api/app/organizations/${orgId}/me/sidebar/own-order`;
+  const own = async (b = owner) => ((await (await b(url)).json()) as { own: unknown }).own;
+  const put = (json: unknown, b = owner) => b(url, { method: "PUT", json });
+
+  expect(await own()).toEqual({ on: false, channels: [], people: [], agents: [] });
+  const mine = { on: true, channels: [ids[2], ids[0], ids[1]], people: ["u-1"], agents: [] };
+  const saved = await put({ own: mine });
+  expect(saved.status).toBe(200);
+  expect(await saved.json()).toEqual({ own: mine });
+  // Another device of mine reads it.
+  const phone = browser(t);
+  await phone("/api/auth/sign-in/email", { json: { email: "owner@example.com", password: "correct horse battery" } });
+  expect(await own(phone)).toEqual(mine);
+  // Off keeps the order for the next time; on again finds it.
+  await put({ own: { ...mine, on: false } });
+  expect(await own()).toEqual({ ...mine, on: false });
+  // Resetting the tools' places, or saving the view, keeps it.
+  await owner(`/api/app/organizations/${orgId}/me/sidebar`, { method: "PUT", json: { items: {} } });
+  await owner(`/api/app/organizations/${orgId}/me/sidebar/view`, {
+    method: "PUT",
+    json: { view: { agentSort: "workspace", showAllAgents: false, pins: null } },
+  });
+  expect(await own()).toEqual({ ...mine, on: false });
+  // Each id once; an id too long is refused.
+  expect((await put({ own: { ...mine, channels: ["x".repeat(65)] } })).status).toBe(400);
+  expect(await (await put({ own: { ...mine, channels: ["a", "a", "b"] } })).json()).toEqual({
+    own: { ...mine, channels: ["a", "b"] },
+  });
+
+  // Everyone's order of the channels never moved, for me and for anyone else, who has the default.
+  expect((await listed()).map((c) => c.name)).toEqual(before);
+  const member = await joinByInvitation(t, owner, orgId, "member@example.com");
+  expect((await listed(member)).map((c) => c.name)).toEqual(before);
+  expect(await own(member)).toEqual({ on: false, channels: [], people: [], agents: [] });
+});
+
 test("a personal workspace reads its own default orders (ADR 0159); a saved order stays, the team's included", async () => {
   t = await createTestServer();
   const owner = browser(t);

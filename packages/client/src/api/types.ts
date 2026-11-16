@@ -7576,6 +7576,17 @@ export interface SidebarView {
   /** Never saved: the apps pin my own agents (`dayOnePins`). */
   pins: SidebarPins | null;
 }
+/**
+ * "Usar a minha ordem" (ADR 0080, addendum of 2026-11-16): whether my sidebar lists its channels, agents and people in
+ * my own order, and that order (ids; only their order inside each section counts), in one workspace
+ * (`GET …/me/sidebar/own-order`). Off, the order stays saved for the next time it's on.
+ */
+export interface OwnOrder {
+  on: boolean;
+  channels: string[];
+  people: string[];
+  agents: string[];
+}
 
 /**
  * One of my own links in the sidebar of a workspace (`GET …/me/sidebar/links`, ADR 0083 amendment of 2026-11-15): an
