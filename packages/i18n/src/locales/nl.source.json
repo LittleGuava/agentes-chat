@@ -35155,6 +35155,36 @@
   "connectFlow.serverSaid": {
     "value": "The server answered: {{detail}}"
   },
+  "connectFlow.ownApp.title": {
+    "value": "Sign in with an app you registered"
+  },
+  "connectFlow.ownApp.redirectUri": {
+    "value": "Redirect URI"
+  },
+  "connectFlow.ownApp.redirectUriHelp": {
+    "value": "Add this address to the app you registered with the server's sign-in (in Microsoft Entra ID, for one)."
+  },
+  "connectFlow.ownApp.clientId": {
+    "value": "Client ID"
+  },
+  "connectFlow.ownApp.clientIdMissing": {
+    "value": "Type the app's client ID"
+  },
+  "connectFlow.ownApp.clientSecret": {
+    "value": "Client secret (optional)"
+  },
+  "connectFlow.ownApp.clientSecretHelp": {
+    "value": "Only for a confidential app. It's stored encrypted and never shown again. Left blank, a saved one stays."
+  },
+  "connectFlow.ownApp.scopes": {
+    "value": "Scopes (optional)"
+  },
+  "connectFlow.ownApp.scopesExample": {
+    "value": "Separated by spaces, e.g. api://my-server/.default. Blank: the server's."
+  },
+  "connectFlow.ownApp.signIn": {
+    "value": "Sign in with this app"
+  },
   "connectFlow.headers.title": {
     "value": "Request headers"
   },

@@ -147,8 +147,10 @@ export const oauthStates = pgTable(
 
 /**
  * OAuth clients agentes.chat registered with an MCP server's authorization
- * server (Dynamic Client Registration, RFC 7591), one per org and issuer.
- * A client secret, when the server issues one, is sealed like other secrets.
+ * server (Dynamic Client Registration, RFC 7591), one per org and issuer, and
+ * apps an admin registered there by hand (`preregistered`, for servers that
+ * register no apps themselves, ADR 0016), one per org, issuer and client id.
+ * A client secret, when the server issues one or the admin types it, is sealed like other secrets.
  */
 export const oauthClients = pgTable(
   "oauth_clients",
@@ -171,9 +173,14 @@ export const oauthClients = pgTable(
      * registered before we chose, as `none`, and a secret it gave anyway goes in the form.
      */
     tokenAuthMethod: text(),
+    /** An app the admin registered with the authorization server and typed in: never registered again or replaced by one. */
+    preregistered: boolean().notNull().default(false),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [uniqueIndex("oauth_clients_org_issuer").on(t.orgId, t.issuer)],
+  (t) => [
+    uniqueIndex("oauth_clients_org_issuer").on(t.orgId, t.issuer).where(sql`not ${t.preregistered}`),
+    uniqueIndex("oauth_clients_org_issuer_app").on(t.orgId, t.issuer, t.clientId).where(sql`${t.preregistered}`),
+  ],
 );
 
 /**

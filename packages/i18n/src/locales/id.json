@@ -13801,6 +13801,18 @@
     "needsKey": "Server ini tidak mendukung OAuth. Hubungkan dengan kunci API.",
     "notApproved": "{{name}} hanya mengizinkan aplikasi yang sudah disetujuinya untuk masuk, dan agentes.chat belum disetujui. Kalau {{name}} memberimu kunci API, kamu bisa menghubungkan dengan kunci itu.",
     "serverSaid": "Jawaban server: {{detail}}",
+    "ownApp": {
+      "title": "Masuk dengan aplikasi yang kamu daftarkan",
+      "redirectUri": "URI pengalihan",
+      "redirectUriHelp": "Tambahkan alamat ini ke aplikasi yang kamu daftarkan di layanan masuk server (misalnya di Microsoft Entra ID).",
+      "clientId": "ID klien",
+      "clientIdMissing": "Ketik ID klien aplikasi",
+      "clientSecret": "Rahasia klien (opsional)",
+      "clientSecretHelp": "Hanya untuk aplikasi rahasia. Disimpan terenkripsi dan tidak pernah ditampilkan lagi. Jika dikosongkan, yang tersimpan tetap dipakai.",
+      "scopes": "Cakupan (opsional)",
+      "scopesExample": "Dipisahkan spasi, mis. api://server-saya/.default. Kosong: cakupan server.",
+      "signIn": "Masuk dengan aplikasi ini"
+    },
     "headers": {
       "title": "Header permintaan",
       "help": "Untuk kunci yang dikirim di header lain, atau gateway di depan server. Kebanyakan server tidak memerlukannya.",

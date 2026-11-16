@@ -14278,6 +14278,18 @@
     "needsKey": "Dieser Server unterstützt kein OAuth. Verbinde ihn mit einem API-Schlüssel.",
     "notApproved": "{{name}} lässt nur freigegebene Apps zur Anmeldung zu, und agentes.chat ist noch nicht freigegeben. Wenn du dort einen API-Schlüssel bekommst, kannst du dich damit verbinden.",
     "serverSaid": "Der Server hat geantwortet: {{detail}}",
+    "ownApp": {
+      "title": "Mit einer selbst registrierten App anmelden",
+      "redirectUri": "Weiterleitungs-URI",
+      "redirectUriHelp": "Füge diese Adresse der App hinzu, die du bei der Anmeldung des Servers registriert hast (zum Beispiel in Microsoft Entra ID).",
+      "clientId": "Client-ID",
+      "clientIdMissing": "Gib die Client-ID der App ein",
+      "clientSecret": "Client-Geheimnis (optional)",
+      "clientSecretHelp": "Nur für eine vertrauliche App. Es wird verschlüsselt gespeichert und nie wieder angezeigt. Leer gelassen, bleibt ein gespeichertes erhalten.",
+      "scopes": "Berechtigungsbereiche (optional)",
+      "scopesExample": "Durch Leerzeichen getrennt, z. B. api://mein-server/.default. Leer: die des Servers.",
+      "signIn": "Mit dieser App anmelden"
+    },
     "headers": {
       "title": "Anfrage-Header",
       "help": "Für einen Schlüssel, der in einen anderen Header gehört, oder ein Gateway vor dem Server. Die meisten Server brauchen keine.",

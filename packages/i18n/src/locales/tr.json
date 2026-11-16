@@ -14214,6 +14214,18 @@
     "needsKey": "Bu sunucu OAuth desteklemiyor. API anahtarıyla bağlayın.",
     "notApproved": "{{name}} yalnızca onayladığı uygulamaların giriş yapmasına izin veriyor ve agentes.chat henüz onaylanmadı. Size bir API anahtarı veriyorsa onunla bağlanabilirsiniz.",
     "serverSaid": "Sunucunun yanıtı: {{detail}}",
+    "ownApp": {
+      "title": "Kaydettiğin bir uygulamayla giriş yap",
+      "redirectUri": "Yönlendirme URI'si",
+      "redirectUriHelp": "Bu adresi, sunucunun girişine kaydettiğin uygulamaya ekle (örneğin Microsoft Entra ID'de).",
+      "clientId": "İstemci kimliği",
+      "clientIdMissing": "Uygulamanın istemci kimliğini yaz",
+      "clientSecret": "İstemci gizli anahtarı (isteğe bağlı)",
+      "clientSecretHelp": "Yalnızca gizli bir uygulama için. Şifreli saklanır ve bir daha gösterilmez. Boş bırakılırsa kayıtlı olan kalır.",
+      "scopes": "Kapsamlar (isteğe bağlı)",
+      "scopesExample": "Boşlukla ayrılmış, örn. api://sunucum/.default. Boş: sunucununkiler.",
+      "signIn": "Bu uygulamayla giriş yap"
+    },
     "headers": {
       "title": "İstek başlıkları",
       "help": "Başka bir başlıkta gönderilen bir anahtar ya da sunucunun önündeki bir ağ geçidi için. Çoğu sunucunun buna ihtiyacı yoktur.",

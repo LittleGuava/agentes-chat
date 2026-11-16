@@ -15276,6 +15276,18 @@
     "needsKey": "Ten serwer nie obsługuje OAuth. Połącz go kluczem API.",
     "notApproved": "{{name}} pozwala logować się tylko zatwierdzonym aplikacjom, a agentes.chat jeszcze nie jest zatwierdzony. Jeśli dostaniesz tam klucz API, możesz połączyć się nim.",
     "serverSaid": "Odpowiedź serwera: {{detail}}",
+    "ownApp": {
+      "title": "Zaloguj się aplikacją, którą zarejestrowałeś",
+      "redirectUri": "Identyfikator URI przekierowania",
+      "redirectUriHelp": "Dodaj ten adres do aplikacji zarejestrowanej w logowaniu serwera (na przykład w Microsoft Entra ID).",
+      "clientId": "Identyfikator klienta",
+      "clientIdMissing": "Wpisz identyfikator klienta aplikacji",
+      "clientSecret": "Klucz tajny klienta (opcjonalnie)",
+      "clientSecretHelp": "Tylko dla aplikacji poufnej. Jest przechowywany w postaci zaszyfrowanej i nigdy więcej nie jest pokazywany. Pozostawiony pusty, zachowuje zapisany.",
+      "scopes": "Zakresy (opcjonalnie)",
+      "scopesExample": "Oddzielone spacjami, np. api://moj-serwer/.default. Puste: zakresy serwera.",
+      "signIn": "Zaloguj się tą aplikacją"
+    },
     "headers": {
       "title": "Nagłówki żądania",
       "help": "Dla klucza wysyłanego w innym nagłówku albo bramy przed serwerem. Większość serwerów ich nie potrzebuje.",

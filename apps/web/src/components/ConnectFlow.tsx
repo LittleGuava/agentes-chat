@@ -282,7 +282,11 @@ function ConnectStep({
   const [apiKey, setApiKey] = useState("");
   const [keyOpen, setKeyOpen] = useState(false);
   const [needsKey, setNeedsKey] = useState<Extract<CustomConnectStart, { status: "needs_key" }> | null>(null);
-  const [touched, setTouched] = useState<"oauth" | "key" | null>(null);
+  const [touched, setTouched] = useState<"oauth" | "key" | "app" | null>(null);
+  const [appOpen, setAppOpen] = useState(false);
+  const [clientId, setClientId] = useState("");
+  const [clientSecret, setClientSecret] = useState("");
+  const [scopes, setScopes] = useState("");
   // Reconectar: the headers the account has, by name. They stay unless new ones are typed or "Remover" drops them.
   const savedHeaders = (mode === "reconnect" && item?.server?.headerNames) || [];
   const [headerRows, setHeaderRows] = useState<HeaderRow[]>(savedHeaders.length > 0 ? [] : [BLANK_HEADER]);
@@ -376,6 +380,9 @@ function ConnectStep({
 
   const urlError = touched && askUrl && !isHttpsUrl(url) ? t("connectors.serverUrlInvalid") : undefined;
   const keyError = touched === "key" && apiKey.trim().length < 8 ? t("connectors.apiKeyInvalid") : undefined;
+  // A server that only lets in apps it approved (Entra ID, for one) takes an app the admin registered with it.
+  const ownAppOffered = byAddress && needsKey?.reason === "not_approved";
+  const clientIdError = touched === "app" && !clientId.trim() ? t("connectFlow.ownApp.clientIdMissing") : undefined;
 
   const done = (next: ConnectedItem, outcome: ConnectOutcome) => {
     // A new account's confirmation says it connected; any other ending is a toast.
@@ -390,6 +397,7 @@ function ConnectStep({
       setKeyOpen(true);
       // "Check their values": the headers it sent are in sight.
       if (sendsHeaders) setHeadersOpen(true);
+      setAppOpen(false);
       setTouched(null);
     } else done(fromServer(result.server, catalog.data?.connectors ?? []), result.outcome ?? "connected");
   };
@@ -426,6 +434,26 @@ function ConnectStep({
     }
   };
   const startApp = () => installApp.mutate(back, { onSuccess: (to) => navigateAway(to) });
+  const submitOwnApp = () => {
+    setTouched("app");
+    if (!clientId.trim()) return;
+    const secret = clientSecret.trim();
+    const scopeList = scopes.split(/\s+/).filter(Boolean);
+    connect.mutate(
+      {
+        serverUrl,
+        label: name,
+        returnTo: back,
+        connectionId,
+        oauthClient: {
+          clientId: clientId.trim(),
+          ...(secret ? { clientSecret: secret } : {}),
+          ...(scopeList.length > 0 ? { scopes: scopeList } : {}),
+        },
+      },
+      { onSuccess: byAddressResult },
+    );
+  };
   const submitKey = () => {
     setTouched("key");
     if ((askUrl && !isHttpsUrl(url)) || apiKey.trim().length < 8) return;
@@ -554,10 +582,74 @@ function ConnectStep({
             <details
               className="cflow__more"
               open={keyOpen}
-              onToggle={(e) => setKeyOpen((e.currentTarget as HTMLDetailsElement).open)}
+              onToggle={(e) => {
+                const open = (e.currentTarget as HTMLDetailsElement).open;
+                setKeyOpen(open);
+                if (open) setAppOpen(false);
+              }}
             >
               <summary>{t("connectFlow.withKey")}</summary>
               {keyForm}
+            </details>
+          )}
+          {!viaApp && ownAppOffered && (
+            <details
+              className="cflow__more"
+              open={appOpen}
+              onToggle={(e) => {
+                const open = (e.currentTarget as HTMLDetailsElement).open;
+                setAppOpen(open);
+                if (open) setKeyOpen(false);
+              }}
+            >
+              <summary>{t("connectFlow.ownApp.title")}</summary>
+              <form
+                className="cflow__key"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  submitOwnApp();
+                }}
+              >
+                <Field
+                  label={t("connectFlow.ownApp.redirectUri")}
+                  id="cflow-app-redirect"
+                  hint={{
+                    name: t("common.about", { label: t("connectFlow.ownApp.redirectUri") }),
+                    text: t("connectFlow.ownApp.redirectUriHelp"),
+                  }}
+                >
+                  <Input
+                    readOnly
+                    value={`${window.location.origin}/api/app/connectors/oauth/callback`}
+                    onFocus={(e) => e.currentTarget.select()}
+                  />
+                </Field>
+                <Field label={t("connectFlow.ownApp.clientId")} id="cflow-app-id" error={clientIdError}>
+                  <Input autoComplete="off" value={clientId} onChange={(e) => setClientId(e.target.value)} />
+                </Field>
+                <Field
+                  label={t("connectFlow.ownApp.clientSecret")}
+                  id="cflow-app-secret"
+                  hint={{
+                    name: t("common.about", { label: t("connectFlow.ownApp.clientSecret") }),
+                    text: t("connectFlow.ownApp.clientSecretHelp"),
+                  }}
+                >
+                  <Input
+                    type="password"
+                    autoComplete="off"
+                    value={clientSecret}
+                    onChange={(e) => setClientSecret(e.target.value)}
+                  />
+                </Field>
+                <Field
+                  label={t("connectFlow.ownApp.scopes")}
+                  id="cflow-app-scopes"
+                  example={t("connectFlow.ownApp.scopesExample")}
+                >
+                  <Input autoComplete="off" value={scopes} onChange={(e) => setScopes(e.target.value)} />
+                </Field>
+              </form>
             </details>
           )}
           {!viaApp && !canOAuth && canKey && keyForm}
@@ -602,6 +694,15 @@ function ConnectStep({
         {viaApp ? (
           <Button variant="primary" disabled={busy} loading={installApp.isPending} onClick={startApp}>
             {t("githubApp.install")}
+          </Button>
+        ) : ownAppOffered && appOpen ? (
+          <Button
+            variant="primary"
+            disabled={busy}
+            loading={connect.isPending && touched === "app"}
+            onClick={submitOwnApp}
+          >
+            {t("connectFlow.ownApp.signIn")}
           </Button>
         ) : keyed ? (
           <Button

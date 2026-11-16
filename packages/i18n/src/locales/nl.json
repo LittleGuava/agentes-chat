@@ -14342,6 +14342,18 @@
     "needsKey": "Deze server ondersteunt geen OAuth. Koppel met een API-sleutel.",
     "notApproved": "{{name}} laat alleen goedgekeurde apps inloggen, en agentes.chat is nog niet goedgekeurd. Krijg je er een API-sleutel, dan kun je daarmee koppelen.",
     "serverSaid": "De server antwoordde: {{detail}}",
+    "ownApp": {
+      "title": "Inloggen met een app die je hebt geregistreerd",
+      "redirectUri": "Omleidings-URI",
+      "redirectUriHelp": "Voeg dit adres toe aan de app die je bij de aanmelding van de server hebt geregistreerd (bijvoorbeeld in Microsoft Entra ID).",
+      "clientId": "Client-ID",
+      "clientIdMissing": "Typ de client-ID van de app",
+      "clientSecret": "Clientgeheim (optioneel)",
+      "clientSecretHelp": "Alleen voor een vertrouwelijke app. Het wordt versleuteld bewaard en nooit meer getoond. Leeg gelaten blijft een opgeslagen geheim staan.",
+      "scopes": "Scopes (optioneel)",
+      "scopesExample": "Gescheiden door spaties, bijv. api://mijn-server/.default. Leeg: die van de server.",
+      "signIn": "Inloggen met deze app"
+    },
     "headers": {
       "title": "Headers van het verzoek",
       "help": "Voor een sleutel die in een andere header hoort, of een gateway vóór de server. De meeste servers hebben er geen nodig.",

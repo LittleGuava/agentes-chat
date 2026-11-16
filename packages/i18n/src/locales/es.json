@@ -14702,6 +14702,18 @@
     "needsKey": "Este servidor no admite OAuth. Conéctalo con una clave de API.",
     "notApproved": "{{name}} solo deja iniciar sesión a las apps que aprobó, y agentes.chat todavía no está aprobado. Si te da una clave de API, puedes conectarlo con ella.",
     "serverSaid": "El servidor respondió: {{detail}}",
+    "ownApp": {
+      "title": "Iniciar sesión con una app que registraste",
+      "redirectUri": "URI de redirección",
+      "redirectUriHelp": "Añade esta dirección a la app que registraste en el inicio de sesión del servidor (en Microsoft Entra ID, por ejemplo).",
+      "clientId": "ID de cliente",
+      "clientIdMissing": "Escribe el ID de cliente de la app",
+      "clientSecret": "Secreto de cliente (opcional)",
+      "clientSecretHelp": "Solo para una app confidencial. Se guarda cifrado y no se vuelve a mostrar. Si lo dejas en blanco, se mantiene el guardado.",
+      "scopes": "Ámbitos (opcional)",
+      "scopesExample": "Separados por espacios, p. ej. api://mi-servidor/.default. En blanco: los del servidor.",
+      "signIn": "Iniciar sesión con esta app"
+    },
     "headers": {
       "title": "Encabezados de la solicitud",
       "help": "Para una clave que va en otro encabezado, o un gateway delante del servidor. La mayoría de los servidores no los necesita.",

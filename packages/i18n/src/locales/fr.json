@@ -14773,6 +14773,18 @@
     "needsKey": "Ce serveur ne prend pas en charge OAuth. Connectez-le avec une clé API.",
     "notApproved": "{{name}} n'autorise la connexion qu'aux applications qu'il a approuvées, et agentes.chat ne l'est pas encore. S'il vous fournit une clé API, vous pouvez vous connecter avec.",
     "serverSaid": "Le serveur a répondu : {{detail}}",
+    "ownApp": {
+      "title": "Se connecter avec une app que vous avez enregistrée",
+      "redirectUri": "URI de redirection",
+      "redirectUriHelp": "Ajoutez cette adresse à l’app que vous avez enregistrée auprès de la connexion du serveur (dans Microsoft Entra ID, par exemple).",
+      "clientId": "ID client",
+      "clientIdMissing": "Saisissez l’ID client de l’app",
+      "clientSecret": "Secret client (facultatif)",
+      "clientSecretHelp": "Seulement pour une app confidentielle. Il est stocké chiffré et n’est plus jamais affiché. Laissé vide, celui enregistré est conservé.",
+      "scopes": "Scopes (facultatif)",
+      "scopesExample": "Séparés par des espaces, p. ex. api://mon-serveur/.default. Vide : ceux du serveur.",
+      "signIn": "Se connecter avec cette app"
+    },
     "headers": {
       "title": "En-têtes de requête",
       "help": "Pour une clé à envoyer dans un autre en-tête, ou une passerelle placée devant le serveur. La plupart des serveurs n'en ont pas besoin.",

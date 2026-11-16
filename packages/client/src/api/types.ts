@@ -3123,6 +3123,17 @@ export type CustomConnectStart =
    */
   | { status: "needs_key"; reason?: "not_approved"; detail?: string };
 
+/**
+ * An OAuth app the admin registered with an MCP server's authorization server, for one that registers no apps itself
+ * (ADR 0016): its client id, its secret when it is a confidential app (blank keeps a saved one), and scopes that
+ * replace the server's.
+ */
+export interface OAuthAppInput {
+  clientId: string;
+  clientSecret?: string;
+  scopes?: string[];
+}
+
 // ── Knowledge (phase 5: apps/server/src/routes/app/knowledge.ts) ─────────────
 
 export type SearchKind = "message" | "context_item" | "issue" | "file" | "wiki" | "action";

@@ -45,11 +45,15 @@ import {
 } from "./connections";
 import type { McpCallResult, McpConnect, McpSession, McpTool } from "./mcp";
 import {
+  type AdminOAuthApp,
+  adminOAuthApp,
+  adminOAuthAppFor,
   authServerMetadata,
   ensureOAuthClient,
   type McpOAuthDeps,
   oauthScope,
   probeMcpServer,
+  saveAdminOAuthApp,
   serverKey,
 } from "./oauth-mcp";
 import { oauthReturnTo } from "./oauth-return";
@@ -781,7 +785,8 @@ async function savedHeaders(deps: CustomDeps, c: ConnectorConnection) {
 /**
  * Connects an https MCP server by URL (admins): a new account, or with `connectionId` a new sign-in for that one
  * ("Reconectar", same address only). With an API key: stored and connected. Without: if it answers openly,
- * connected; if it speaks MCP OAuth with dynamic registration, the authorize URL comes back; otherwise `needs_key`.
+ * connected; if it speaks MCP OAuth with dynamic registration, or `oauthClient` brings an app the admin registered
+ * with its authorization server, the authorize URL comes back; otherwise `needs_key`.
  * `headers` (ADR 0186) go with every request to the server, the key's `Authorization` on top; without a key the
  * server is asked with them, and one that answers is connected by them alone. Reconectar keeps the ones the account
  * has unless `headers` says otherwise (`[]` removes them), and is refused when it can't read them
@@ -798,10 +803,12 @@ export async function connectCustomServer(
     returnTo?: string;
     connectionId?: string;
     headers?: RequestHeader[];
+    oauthClient?: AdminOAuthApp;
   },
 ): Promise<CustomConnectStart> {
   await requirePermission(deps.db, actorId, orgId, "manage_connectors");
   const signInOnly = () => new ValidationError("This service connects by signing in", "connector.oauth_only");
+  const app = input.oauthClient ? adminOAuthApp(input.oauthClient) : undefined;
   // A service through Composio signs in on Composio's page: its address is never fetched.
   if (composioToolkitOf(input.serverUrl.trim())) {
     if (input.headers?.length) throw signInOnly();
@@ -845,7 +852,9 @@ export async function connectCustomServer(
     throw signInOnly();
   }
   if (apiKey) return stored("api_key", { apiKey, ...(headers ? { headers } : {}) });
-  const probe = await probeMcpServer(deps, serverUrl, secretHeaders({ headers }, serverUrl));
+  const probe = await probeMcpServer(deps, serverUrl, secretHeaders({ headers }, serverUrl), {
+    ownApp: app !== undefined,
+  });
   // Headers a person typed are a secret of theirs, as a key is.
   if (probe.kind === "open") return headers ? stored("api_key", { headers }) : stored("none", null);
   if (probe.kind === "needs_key") return { status: "needs_key" };
@@ -865,14 +874,16 @@ export async function connectCustomServer(
     scopes: probe.scopes,
     returnTo: input.returnTo,
     connectionId: input.connectionId,
+    app,
   });
 }
 
 /**
  * Starts an MCP-native OAuth authorization: authorization server metadata,
- * a registered client (DCR), state + PKCE S256 + `resource`. `needs_key` when
- * the server can't do it, with `not_approved` when it only registers clients
- * it approved.
+ * a client (the admin's app: the one typed now, else the one this server
+ * already signs in with; otherwise ours by DCR), state + PKCE S256 +
+ * `resource`. `needs_key` when the server can't do it, with `not_approved`
+ * when it only registers clients it approved.
  */
 export async function beginMcpOAuth(
   deps: McpOAuthDeps,
@@ -888,15 +899,21 @@ export async function beginMcpOAuth(
     returnTo?: string;
     /** "Reconectar": the connection whose sign-in this replaces. */
     connectionId?: string;
+    /** An app the admin registered with the authorization server (checked by `adminOAuthApp`). */
+    app?: AdminOAuthApp;
   },
 ): Promise<Exclude<CustomConnectStart, { status: "connected" }>> {
   const meta = await authServerMetadata(deps, input.issuer);
   if (!meta) return { status: "needs_key" };
   const redirectUri = oauthRedirectUri(deps.publicUrl);
+  const own = input.app
+    ? await saveAdminOAuthApp(deps, orgId, input.issuer, meta, input.app)
+    : await adminOAuthAppFor(deps.db, orgId, input.issuer, input.serverUrl, input.connectionId);
+  if (input.app && !own) return { status: "needs_key" };
   // Worked out again each time: a client still in use keeps the scope it was registered with, maybe without
-  // offline_access.
-  const scope = oauthScope(meta, input.scopes);
-  const client = await ensureOAuthClient(deps, orgId, input.issuer, meta, { redirectUri, scope });
+  // offline_access. The admin's app asks for the scopes they typed instead of the server's.
+  const scope = oauthScope(meta, own?.scope ? own.scope.split(" ") : input.scopes);
+  const client = own ?? (await ensureOAuthClient(deps, orgId, input.issuer, meta, { redirectUri, scope }));
   if (client && "notApproved" in client) {
     return { status: "needs_key", reason: "not_approved", ...(client.detail ? { detail: client.detail } : {}) };
   }

@@ -106,6 +106,8 @@ function oauthServer(
     authMethods?: string[];
     /** Each refresh token works once, and a refresh gives a new one, good for an hour. */
     rotate?: boolean;
+    /** The authorization server's metadata is served at the MCP server's own origin too (the spec's fallback). */
+    atOrigin?: boolean;
   } = {},
 ) {
   const seen = {
@@ -141,7 +143,10 @@ function oauthServer(
         ...(scopes.length > 0 ? { scopes_supported: scopes } : {}),
       });
     }
-    if (url.toString() === "https://auth.example.com/.well-known/oauth-authorization-server") {
+    if (
+      url.toString() === "https://auth.example.com/.well-known/oauth-authorization-server" ||
+      (options.atOrigin && url.toString() === "https://tickets.example.com/.well-known/oauth-authorization-server")
+    ) {
       return Response.json({
         issuer: "https://auth.example.com",
         authorization_endpoint: "https://auth.example.com/authorize",
@@ -1357,5 +1362,206 @@ describe("custom MCP servers", () => {
     await expect(connectCustomServer(sneaky, f.owner.id, f.org.id, { serverUrl: SERVER })).rejects.toBeInstanceOf(
       ValidationError,
     );
+  });
+});
+
+describe("an OAuth app the admin registered with the server's authorization server", () => {
+  /** Finishes an authorization the connect started: the connection it made. */
+  async function finish(deps: CustomDeps, auth: ReturnType<typeof oauthServer>, started: { authorizeUrl: string }) {
+    const url = new URL(started.authorizeUrl);
+    auth.seen.challenge = url.searchParams.get("code_challenge") ?? "";
+    const state = url.searchParams.get("state") ?? "";
+    return (await completeOAuth(deps, { id: f.owner.id }, { state, code: "code-1" })).connection;
+  }
+  const oauthOf = (started: Awaited<ReturnType<typeof connectCustomServer>>) => {
+    if (started.status !== "oauth") throw new Error(`expected oauth, got ${started.status}`);
+    return started;
+  };
+  const basicOf = (id: string, secret: string) =>
+    `Basic ${Buffer.from(`${encodeURIComponent(id)}:${encodeURIComponent(secret)}`).toString("base64")}`;
+
+  test("a server that registers no apps (Entra ID) signs in as the admin's app: its id, secret and scopes, PKCE and resource kept, refreshed with it", async () => {
+    f = await setup();
+    const secret = "entra/secret+=";
+    const auth = oauthServer({
+      registration: false,
+      serverScopes: ["openid", "offline_access"],
+      authMethods: ["client_secret_basic", "client_secret_post"],
+    });
+    const deps = depsOf(f, { connect: ticketsMcp().connect, http: auth.http });
+    const started = oauthOf(
+      await connectCustomServer(deps, f.owner.id, f.org.id, {
+        serverUrl: SERVER,
+        oauthClient: {
+          clientId: " entra-app ",
+          clientSecret: secret,
+          scopes: ["api://tickets/read  api://tickets/write"],
+        },
+      }),
+    );
+    const url = new URL(started.authorizeUrl);
+    expect(url.origin + url.pathname).toBe("https://auth.example.com/authorize");
+    expect(Object.fromEntries(url.searchParams)).toMatchObject({
+      client_id: "entra-app",
+      response_type: "code",
+      code_challenge_method: "S256",
+      resource: SERVER,
+      // The admin's scopes replace the server's, with offline_access since the authorization server lists it.
+      scope: "api://tickets/read api://tickets/write offline_access",
+      redirect_uri: "https://chat.example.com/api/app/connectors/oauth/callback",
+    });
+    expect(auth.seen.registrations).toBe(0);
+    const connection = await finish(deps, auth, started);
+    expect(connection.authType).toBe("oauth");
+    // The token is about to expire: refreshed with the same app, its secret by HTTP Basic both times.
+    expect(await connectionHeaders(deps, connection)).toEqual({ authorization: "Bearer at-2" });
+    expect(auth.seen.tokenForms.map((x) => [x.get("grant_type"), x.get("client_id"), x.get("resource")])).toEqual([
+      ["authorization_code", null, SERVER],
+      ["refresh_token", null, SERVER],
+    ]);
+    expect(auth.seen.tokenAuth).toEqual([basicOf("entra-app", secret), basicOf("entra-app", secret)]);
+    expect(JSON.stringify(await f.db.select().from(schema.oauthClients))).not.toContain(secret);
+    // "Reconectar" and another account of that server use the same app without asking for it again.
+    for (const extra of [{ connectionId: connection.id }, {}]) {
+      const again = oauthOf(await connectCustomServer(deps, f.owner.id, f.org.id, { serverUrl: SERVER, ...extra }));
+      expect(new URL(again.authorizeUrl).searchParams.get("client_id")).toBe("entra-app");
+    }
+    expect(auth.seen.registrations).toBe(0);
+    // Every connection to it gone: the server only lets approved apps in, so the admin's app is asked for again.
+    await revokeConnection(f.db, f.owner.id, f.org.id, connection.id);
+    expect(await connectCustomServer(deps, f.owner.id, f.org.id, { serverUrl: SERVER })).toEqual({
+      status: "needs_key",
+      reason: "not_approved",
+    });
+  });
+
+  test("the secret goes in the form when the server lists only client_secret_post; without a secret the app is public", async () => {
+    f = await setup();
+    const post = oauthServer({ registration: false, authMethods: ["client_secret_post"] });
+    const deps = depsOf(f, { connect: ticketsMcp().connect, http: post.http });
+    const started = oauthOf(
+      await connectCustomServer(deps, f.owner.id, f.org.id, {
+        serverUrl: SERVER,
+        oauthClient: { clientId: "app-post", clientSecret: "s3cret" },
+      }),
+    );
+    // No scopes typed: the server's own.
+    expect(new URL(started.authorizeUrl).searchParams.get("scope")).toBe("tickets");
+    await finish(deps, post, started);
+    expect(post.seen.tokenForms.map((x) => [x.get("client_id"), x.get("client_secret")])).toEqual([
+      ["app-post", "s3cret"],
+    ]);
+    expect(post.seen.tokenAuth).toEqual([null]);
+
+    const open = oauthServer({ registration: false });
+    const publicDeps = depsOf(f, { connect: ticketsMcp().connect, http: open.http });
+    const publicStart = oauthOf(
+      await connectCustomServer(publicDeps, f.owner.id, f.org.id, {
+        serverUrl: SERVER,
+        oauthClient: { clientId: "app-public" },
+      }),
+    );
+    await finish(publicDeps, open, publicStart);
+    expect(open.seen.tokenForms.map((x) => [x.get("client_id"), x.get("client_secret")])).toEqual([
+      ["app-public", null],
+    ]);
+    expect(open.seen.tokenAuth).toEqual([null]);
+  });
+
+  test("two apps on one authorization server keep their own sign-ins; the same app again takes its new secret in place", async () => {
+    f = await setup();
+    const auth = oauthServer({ registration: false, authMethods: ["client_secret_post"] });
+    const deps = depsOf(f, { connect: ticketsMcp().connect, http: auth.http });
+    const first = await finish(
+      deps,
+      auth,
+      oauthOf(
+        await connectCustomServer(deps, f.owner.id, f.org.id, {
+          serverUrl: SERVER,
+          oauthClient: { clientId: "app-a", clientSecret: "secret-a" },
+        }),
+      ),
+    );
+    await finish(
+      deps,
+      auth,
+      oauthOf(
+        await connectCustomServer(deps, f.owner.id, f.org.id, {
+          serverUrl: SERVER,
+          oauthClient: { clientId: "app-b", clientSecret: "secret-b" },
+        }),
+      ),
+    );
+    await connectionHeaders(deps, first);
+    const last = () => [
+      auth.seen.tokenForms.at(-1)?.get("client_id"),
+      auth.seen.tokenForms.at(-1)?.get("client_secret"),
+    ];
+    expect(last()).toEqual(["app-a", "secret-a"]);
+    // A's secret rotated: typed again, it replaces the old one on the same app, and the first sign-in refreshes with it.
+    oauthOf(
+      await connectCustomServer(deps, f.owner.id, f.org.id, {
+        serverUrl: SERVER,
+        oauthClient: { clientId: "app-a", clientSecret: "secret-a2" },
+        connectionId: first.id,
+      }),
+    );
+    expect(await f.db.select().from(schema.oauthClients)).toHaveLength(2);
+    const [stale] = await f.db
+      .update(schema.connectorConnections)
+      .set({ tokenExpiresAt: new Date(0) })
+      .where(eq(schema.connectorConnections.id, first.id))
+      .returning();
+    if (!stale) throw new Error("connection missing");
+    await connectionHeaders(deps, stale);
+    expect(last()).toEqual(["app-a", "secret-a2"]);
+    // Typed again with the secret blank (other scopes, say): the saved secret stays.
+    oauthOf(
+      await connectCustomServer(deps, f.owner.id, f.org.id, {
+        serverUrl: SERVER,
+        oauthClient: { clientId: "app-a", scopes: ["tickets", "admin"] },
+        connectionId: first.id,
+      }),
+    );
+    await f.db
+      .update(schema.connectorConnections)
+      .set({ tokenExpiresAt: new Date(0) })
+      .where(eq(schema.connectorConnections.id, first.id));
+    const [again] = await f.db
+      .select()
+      .from(schema.connectorConnections)
+      .where(eq(schema.connectorConnections.id, first.id));
+    if (!again) throw new Error("connection missing");
+    await connectionHeaders(deps, again);
+    expect(last()).toEqual(["app-a", "secret-a2"]);
+  });
+
+  test("a server without protected-resource metadata, with an authorization server at its origin that registers no apps, connects with the admin's app", async () => {
+    f = await setup();
+    const auth = oauthServer({ metadata: false, registration: false, atOrigin: true });
+    const deps = depsOf(f, { connect: ticketsMcp().connect, http: auth.http });
+    // Without an app: a key, as before.
+    expect(await connectCustomServer(deps, f.owner.id, f.org.id, { serverUrl: SERVER })).toEqual({
+      status: "needs_key",
+    });
+    const started = oauthOf(
+      await connectCustomServer(deps, f.owner.id, f.org.id, {
+        serverUrl: SERVER,
+        oauthClient: { clientId: "app-origin", scopes: ["read"] },
+      }),
+    );
+    expect(Object.fromEntries(new URL(started.authorizeUrl).searchParams)).toMatchObject({
+      client_id: "app-origin",
+      scope: "read",
+      resource: SERVER,
+    });
+  });
+
+  test("an app without a client id is refused", async () => {
+    f = await setup();
+    const deps = depsOf(f, { connect: ticketsMcp().connect, http: oauthServer({ registration: false }).http });
+    await expect(
+      connectCustomServer(deps, f.owner.id, f.org.id, { serverUrl: SERVER, oauthClient: { clientId: "  " } }),
+    ).rejects.toBeInstanceOf(ValidationError);
   });
 });

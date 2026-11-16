@@ -13746,6 +13746,18 @@
     "needsKey": "このサーバーはOAuthに対応していません。APIキーで接続してください。",
     "notApproved": "{{name}}は承認済みのアプリしかログインを許可しておらず、agentes.chatはまだ承認されていません。APIキーが発行されれば、それで接続できます。",
     "serverSaid": "サーバーの応答: {{detail}}",
+    "ownApp": {
+      "title": "自分で登録したアプリでサインイン",
+      "redirectUri": "リダイレクト URI",
+      "redirectUriHelp": "サーバーのサインインに登録したアプリにこのアドレスを追加してください (Microsoft Entra ID など)。",
+      "clientId": "クライアント ID",
+      "clientIdMissing": "アプリのクライアント ID を入力してください",
+      "clientSecret": "クライアントシークレット (任意)",
+      "clientSecretHelp": "機密アプリの場合のみ。暗号化して保存され、二度と表示されません。空欄なら保存済みのものが残ります。",
+      "scopes": "スコープ (任意)",
+      "scopesExample": "スペース区切り。例: api://my-server/.default。空欄ならサーバーのスコープ。",
+      "signIn": "このアプリでサインイン"
+    },
     "headers": {
       "title": "リクエストヘッダー",
       "help": "キーを別のヘッダーで送る場合や、サーバーの前にゲートウェイがある場合に使います。ほとんどのサーバーでは不要です。",

@@ -14537,6 +14537,20 @@ export const ptBR = {
       undo: "Desfazer",
       refused: "O servidor não aceitou esses cabeçalhos. Confira os valores, ou conecte com uma chave de API.",
     },
+    ownApp: {
+      title: "Entrar com um app registrado por você",
+      redirectUri: "URI de redirecionamento",
+      redirectUriHelp:
+        "Adicione este endereço ao app que você registrou no login do servidor (no Microsoft Entra ID, por exemplo).",
+      clientId: "ID do cliente",
+      clientIdMissing: "Digite o ID do cliente do app",
+      clientSecret: "Segredo do cliente (opcional)",
+      clientSecretHelp:
+        "Só para um app confidencial. Fica guardado cifrado e nunca aparece de novo. Em branco, o salvo continua.",
+      scopes: "Escopos (opcional)",
+      scopesExample: "Separados por espaço, ex.: api://meu-servidor/.default. Em branco: os do servidor.",
+      signIn: "Entrar com este app",
+    },
     nothingYet: "Nada fica disponível para os agentes até o passo 3.",
     allCanUse: "Ao conectar, todos os agentes podem usar. Dá para ajustar depois.",
     replace: "Substitui o login atual. Quem usa continua igual.",

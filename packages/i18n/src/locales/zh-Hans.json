@@ -13810,6 +13810,18 @@
     "needsKey": "此服务器不支持 OAuth，请用 API 密钥连接。",
     "notApproved": "{{name}} 只允许它批准过的应用登录，而 agentes.chat 还未获批。如果它提供 API 密钥，你可以用密钥连接。",
     "serverSaid": "服务器返回：{{detail}}",
+    "ownApp": {
+      "title": "使用你注册的应用登录",
+      "redirectUri": "重定向 URI",
+      "redirectUriHelp": "将此地址添加到你在服务器登录中注册的应用 (例如在 Microsoft Entra ID 中)。",
+      "clientId": "客户端 ID",
+      "clientIdMissing": "请输入应用的客户端 ID",
+      "clientSecret": "客户端密钥 (可选)",
+      "clientSecretHelp": "仅用于机密应用。加密保存，之后不再显示。留空则保留已保存的密钥。",
+      "scopes": "范围 (可选)",
+      "scopesExample": "以空格分隔，例如 api://my-server/.default。留空：使用服务器的范围。",
+      "signIn": "使用此应用登录"
+    },
     "headers": {
       "title": "请求标头",
       "help": "用于密钥需要放在其他标头中，或服务器前面有网关的情况。大多数服务器不需要。",
