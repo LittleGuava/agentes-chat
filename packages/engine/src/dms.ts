@@ -367,6 +367,7 @@ export async function listDms(db: Database, actorId: string, orgId: string, only
       .orderBy(messages.channelId, desc(messages.createdAt)),
   ]);
   const readAt = new Map(reads.map((r) => [r.channelId, r.lastReadAt]));
+  const marked = new Set(reads.filter((r) => r.markedUnread).map((r) => r.channelId));
   const unreadRows = await Promise.all(
     ids.map(async (id) => {
       const [row] = await db
@@ -384,7 +385,8 @@ export async function listDms(db: Database, actorId: string, orgId: string, only
             sql`${messages.meta}->>'mediaAfter' is null`,
           ),
         );
-      return [id, row?.n ?? 0] as const;
+      // Marked unread (`markChannelUnread`): one at least, whatever landed since.
+      return [id, Math.max(row?.n ?? 0, marked.has(id) ? 1 : 0)] as const;
     }),
   );
   const unread = new Map(unreadRows);
@@ -448,7 +450,10 @@ export async function markChannelRead(
   await db
     .insert(channelReads)
     .values({ orgId, channelId, userId: actorId, lastReadAt: at })
-    .onConflictDoUpdate({ target: [channelReads.channelId, channelReads.userId], set: { lastReadAt: at } });
+    .onConflictDoUpdate({
+      target: [channelReads.channelId, channelReads.userId],
+      set: { lastReadAt: at, markedUnread: false },
+    });
   await resolveNotifications({ db, pubsub }, orgId, {
     groupKeyPrefix: `agent_reply:${channelId}:`,
     userIds: [actorId],
@@ -459,6 +464,37 @@ export async function markChannelRead(
   if (member.kind === "dm") await publishChannelEvent(pubsub, read);
   // My other devices: the conversation stops looking unread there too.
   await publishUserEvent(pubsub, orgId, actorId, read);
+}
+
+/**
+ * Marks a channel (or DM) unread for me ("Marcar como não lida"): it counts as one unread at least, on all my devices
+ * (`channel.unread`), until I read it again (`markChannelRead`). Where I stopped reading stays, so the other people of a
+ * DM keep their "Visto". A DM I never read has nothing to mark: what's in it is already unread to me.
+ */
+export async function markChannelUnread(
+  db: Database,
+  actorId: string,
+  orgId: string,
+  channelId: string,
+  pubsub?: PubSub,
+) {
+  const [member] = await db
+    .select({ joinedAt: channelMembers.createdAt, kind: channels.kind })
+    .from(channelMembers)
+    .innerJoin(channels, eq(channels.id, channelMembers.channelId))
+    .where(
+      and(eq(channelMembers.orgId, orgId), eq(channelMembers.channelId, channelId), eq(channelMembers.userId, actorId)),
+    );
+  if (!member) throw new NotFoundError("Channel not found");
+  const where = and(eq(channelReads.channelId, channelId), eq(channelReads.userId, actorId));
+  if (member.kind === "dm") await db.update(channelReads).set({ markedUnread: true }).where(where);
+  // Never read yet: the new row reads from my joining (listChannels' fallback), as muting does.
+  else
+    await db
+      .insert(channelReads)
+      .values({ orgId, channelId, userId: actorId, markedUnread: true, lastReadAt: member.joinedAt })
+      .onConflictDoUpdate({ target: [channelReads.channelId, channelReads.userId], set: { markedUnread: true } });
+  await publishUserEvent(pubsub, orgId, actorId, { type: "channel.unread", channelId });
 }
 
 /**

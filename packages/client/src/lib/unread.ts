@@ -6,6 +6,27 @@ export const looksUnread = (c: Pick<Channel, "isMember" | "unreadCount" | "muted
   c.isMember && !c.muted && (c.unreadCount ?? 0) > 0;
 
 /**
+ * What a conversation's menu offers about its read state: "Marcar como lida" while something is unread, "Marcar como
+ * não lida" once read where it can look unread to me (a channel I'm in and haven't muted, a DM I've read before:
+ * one never read has nothing to mark), nothing otherwise. Never for an empty one: opening it reads nothing (the
+ * screens mark read up to the last message), so its mark would never leave.
+ */
+export function readToggleOf(
+  c:
+    | { channel: Pick<Channel, "isMember" | "unreadCount" | "muted" | "lastMessage"> }
+    | { dm: Pick<DirectMessage, "unread" | "everRead" | "lastMessage"> | undefined },
+): "read" | "unread" | null {
+  if ("channel" in c) {
+    if (!c.channel.isMember) return null;
+    if ((c.channel.unreadCount ?? 0) > 0) return "read";
+    return c.channel.muted || !c.channel.lastMessage ? null : "unread";
+  }
+  if (!c.dm) return null;
+  if (c.dm.unread > 0) return "read";
+  return c.dm.everRead && c.dm.lastMessage ? "unread" : null;
+}
+
+/**
  * The number on the tab's title and the phone's icon: what the numbered marks add up to, unread DM messages
  * (people and agents, but not `hiddenAgents`, whose rows aren't shown) plus mentions of me in channels (muted ones
  * too, like their mark).

@@ -1640,6 +1640,7 @@
     "lookOurs": "agentes.chat",
     "lookSystem": "System",
     "markRead": "Als gelesen markieren",
+    "markUnread": "Als ungelesen markieren",
     "muteChannel": "Kanal stummschalten",
     "unmuteChannel": "Stummschaltung aufheben",
     "mention": "Erwähnen",
