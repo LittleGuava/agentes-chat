@@ -24,6 +24,17 @@ export type MdBlock =
 export type TableAlign = "left" | "center" | "right";
 
 const LIST = /^\s*([-*+]|\d+[.)])\s+(.*)$/;
+const TASK = /^\[( |x|X)\]\s+(.*)$/;
+
+/**
+ * A list item's words that open with a box, `[ ] to do` or `[x] done` (GFM task lists): whether it is done and the
+ * words after the box, else null. The same rule on the web (the reader and the wiki's editor) and the phone.
+ */
+export function taskItem(item: string): { done: boolean; text: string } | null {
+  const task = TASK.exec(item);
+  return task ? { done: task[1] !== " ", text: task[2] ?? "" } : null;
+}
+
 const splitRow = (line: string) =>
   line
     .trim()

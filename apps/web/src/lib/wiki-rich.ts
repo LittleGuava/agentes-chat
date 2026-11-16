@@ -1,4 +1,11 @@
-import { INLINE, type MdRangedBlock, parseMarkdown, parseWikiToken, SAFE_URL } from "@agenteschat/client/lib/markdown";
+import {
+  INLINE,
+  type MdRangedBlock,
+  parseMarkdown,
+  parseWikiToken,
+  SAFE_URL,
+  taskItem,
+} from "@agenteschat/client/lib/markdown";
 
 /**
  * The wiki's visual editor works on the page as it reads (the same `.md` elements) and saves Markdown, the format
@@ -25,7 +32,6 @@ export interface RichDoc {
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-const TASK = /^\[( |x|X)\]\s+(.*)$/;
 const CALLOUT = /^\[!([\w-]+)\][+-]?\s*(.*)$/i;
 /** Obsidian's callout kinds in the reader's three looks (the same rule as `Markdown`). */
 const calloutLook = (kind: string) =>
@@ -91,10 +97,9 @@ function blockHtml(b: MdRangedBlock, at: number): string {
     case "list": {
       const items = b.items
         .map((item) => {
-          const task = item.match(TASK);
+          const task = taskItem(item);
           if (!task) return `<li>${inlineHtml(item)}</li>`;
-          const done = task[1] !== " ";
-          return `<li class="md__task"${done ? " data-done" : ""}><span class="md__task-box" contenteditable="false"></span>${inlineHtml(task[2] ?? "")}</li>`;
+          return `<li class="md__task"${task.done ? " data-done" : ""}><span class="md__task-box" contenteditable="false"></span>${inlineHtml(task.text)}</li>`;
         })
         .join("");
       return tag(b.ordered ? "ol" : "ul", items);
