@@ -297,6 +297,7 @@ import type {
   SecretRequest,
   SeriesScope,
   ServerTelemetry,
+  ServerUpdate,
   SetupStep,
   SidebarItem,
   SidebarItems,
@@ -383,6 +384,10 @@ export interface ApiClient {
     /** `null` unless I am the installation's owner (and not on agentes.chat itself). */
     telemetry(): Promise<ServerTelemetry | null>;
     setTelemetry(enabled: boolean): Promise<ServerTelemetry>;
+    /** `null` unless I am the installation's owner on a server with the updater (ADR 0200). */
+    serverUpdate(): Promise<ServerUpdate | null>;
+    /** Asks the updater for one update; the server restarts. */
+    updateServer(): Promise<ServerUpdate>;
     /** By email to whoever runs the server; only where it takes feedback (`AuthConfig.feedback`). */
     sendFeedback(input: FeedbackInput): Promise<void>;
     /** A picture or a video for the feedback being written: kept an hour unless it is sent. */

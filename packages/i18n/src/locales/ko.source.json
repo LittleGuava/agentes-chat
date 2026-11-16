@@ -8047,11 +8047,11 @@
   "connectAi.plan.grok.title": {
     "value": "Your Grok plan"
   },
-  "connectAi.plan.copilot.title": {
-    "value": "Your GitHub Copilot plan"
-  },
   "connectAi.plan.grok.tiers": {
     "value": "SuperGrok, SuperGrok Heavy or X Premium+"
+  },
+  "connectAi.plan.copilot.title": {
+    "value": "Your GitHub Copilot plan"
   },
   "connectAi.plan.copilot.tiers": {
     "value": "Copilot Pro, Pro+, Business or Enterprise"
@@ -40764,6 +40764,54 @@
   },
   "settings.telemetry.dialogText": {
     "value": "Once a day. This is the next report, exactly."
+  },
+  "settings.serverUpdate.title": {
+    "value": "Server updates"
+  },
+  "settings.serverUpdate.label": {
+    "value": "Update this server to the newest version"
+  },
+  "settings.serverUpdate.help": {
+    "value": "The server stops for a few minutes and a copy of its data is made first. If the new version doesn't start, the previous one and its data come back on their own."
+  },
+  "settings.serverUpdate.button": {
+    "value": "Update server"
+  },
+  "settings.serverUpdate.confirmTitle": {
+    "value": "Update the server?"
+  },
+  "settings.serverUpdate.confirmText": {
+    "value": "The server stops for a few minutes, and what agents are doing stops with it. The apps reconnect on their own when it's back."
+  },
+  "settings.serverUpdate.confirm": {
+    "value": "Update now"
+  },
+  "settings.serverUpdate.absent": {
+    "value": "The updater isn't running on this server: start it with the updater profile (docker compose --profile updater up -d)."
+  },
+  "settings.serverUpdate.requested": {
+    "value": "Update requested. It starts within a few minutes."
+  },
+  "settings.serverUpdate.running": {
+    "value": "Updating the server…"
+  },
+  "settings.serverUpdate.updated": {
+    "value": "Updated to the newest version."
+  },
+  "settings.serverUpdate.current": {
+    "value": "This server already runs the newest version."
+  },
+  "settings.serverUpdate.pinned": {
+    "value": "This server is held on one version (AGENTES_IMAGE in .env), so it isn't updated from here."
+  },
+  "settings.serverUpdate.rolledBack": {
+    "value": "The new version didn't start, so the previous one and its data came back."
+  },
+  "settings.serverUpdate.failed": {
+    "value": "The last update didn't finish. The updater's log says why: docker compose logs updater"
+  },
+  "settings.serverUpdate.interrupted": {
+    "value": "The last update was interrupted, and the previous version came back."
   },
   "settings.tileState.members": {
     "value": {

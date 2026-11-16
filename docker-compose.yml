@@ -65,6 +65,10 @@ services:
       FILES_DIR: /data/files
     volumes:
       - files:/data/files
+      # Where it asks the updater for an update and reads how it went (ADR 0200): empty and unused unless .env sets
+      # SERVER_UPDATER_DIR=/updater and the updater profile runs.
+      - update-requests:/updater/requests
+      - update-status:/updater/status:ro
     ports:
       # Loopback by default: Docker publishes ports through iptables, past any host firewall.
       - "${BIND_ADDRESS:-127.0.0.1}:${HOST_PORT:-3000}:3000"
@@ -168,6 +172,28 @@ services:
     read_only: true
     tmpfs:
       - /tmp
+
+  updater:
+    # Updates the app from Settings › General (ADR 0200; SELF_HOSTING.md, Updating from the app): a copy of the
+    # database first, and the previous version and its data back when the new one never gets healthy. On with
+    # updater in COMPOSE_PROFILES and SERVER_UPDATER_DIR=/updater in .env. The only service with the Docker socket,
+    # which is root on this machine: it has no network and shares only two volumes with the app, one where the app
+    # leaves a request that says nothing and one the app reads its status from.
+    image: "${AGENTES_UPDATER_IMAGE:-ghcr.io/agentes-chat/updater:latest}"
+    profiles: ["updater"]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # This folder, for its .env and this file: the updater runs the same docker compose a person here would.
+      - .:/project:ro
+      - update-requests:/updater/requests
+      - update-status:/updater/status
+      # The copies of the database and the update in progress; the app never sees them.
+      - update-backups:/var/lib/agentes-updater
+    network_mode: none
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
 
   tailscale:
     image: tailscale/tailscale:v1.102.5@sha256:c507f3a2a6ab1cabd8d809b98edeb41edbd5c3fb6ad9632ffd098b4c7d0b4065
@@ -446,3 +472,6 @@ volumes:
   embeddings-models:
   caddy-data:
   tailscale-state:
+  update-requests:
+  update-status:
+  update-backups:

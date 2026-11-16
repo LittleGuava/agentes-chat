@@ -218,6 +218,7 @@ import type {
   SearchHit,
   SecretRequest,
   ServerTelemetry,
+  ServerUpdate,
   SidebarItem,
   SidebarItems,
   SidebarSection,
@@ -577,6 +578,8 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       instance: () => request<Instance>("/api/instance"),
       telemetry: () => nullOn(404, () => request<ServerTelemetry>("/api/app/telemetry")),
       setTelemetry: (enabled) => request<ServerTelemetry>("/api/app/telemetry", { method: "PUT", json: { enabled } }),
+      serverUpdate: () => nullOn(404, () => request<ServerUpdate>("/api/app/server-update")),
+      updateServer: () => request<ServerUpdate>("/api/app/server-update", { method: "POST", json: {} }),
       sendFeedback: (input) => request<void>("/api/app/feedback", { json: input }),
       uploadFeedbackFile: (file) => {
         const form = new FormData();

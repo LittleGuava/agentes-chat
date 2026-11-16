@@ -12,8 +12,10 @@ import {
   useRemoveCredentialCopies,
   useRotateCredential,
   useServerTelemetry,
+  useServerUpdate,
   useSetServerTelemetry,
   useSettings,
+  useUpdateServer,
   useUpdateSettings,
   useUsageReport,
   useWorkspaceUsesApi,
@@ -41,6 +43,7 @@ import {
   shownKeys,
 } from "@agenteschat/client/lib/providers";
 import type { RoleTab } from "@agenteschat/client/lib/roles";
+import { serverUpdateLine } from "@agenteschat/client/lib/server-update";
 import { settingsNav, settingsTabs } from "@agenteschat/client/lib/settings-nav";
 import { parseAmount } from "@agenteschat/client/lib/text";
 import { isPersonal, modeKey } from "@agenteschat/client/lib/workspace-mode";
@@ -670,6 +673,7 @@ function GeneralSection() {
       <TeamMemoryCard />
 
       <UsageStatisticsCard />
+      <ServerUpdateCard />
       {org.role === "owner" && !org.deletion && <DeleteWorkspaceCard />}
       <OrgLogoDialog open={logo} onClose={() => setLogo(false)} />
       <WorkspaceModeDialog
@@ -792,6 +796,78 @@ function UsageStatisticsCard() {
             {JSON.stringify(data.report, null, 2)}
           </pre>
         </DialogBody>
+      </Dialog>
+    </Card>
+  );
+}
+
+/**
+ * Updates from the app (ADR 0200): the button that asks the updater service for one update, after a yes, and what
+ * its last run did. Only the installation's owner on a server with the updater gets it (the API answers `null` to
+ * everyone else).
+ */
+function ServerUpdateCard() {
+  const { t } = useTranslation();
+  const update = useServerUpdate();
+  const ask = useUpdateServer();
+  const [open, setOpen] = useState(false);
+  const data = update.data;
+  if (!data) return null;
+  const line = serverUpdateLine(data);
+  return (
+    <Card aria-labelledby="sec-server-update">
+      <CardHeader id="sec-server-update" icon="refresh" title={t("settings.serverUpdate.title")} />
+      <div className="settings-rows">
+        <div className="settings-row ac-actline">
+          <div className="settings-row__text">
+            <span className="ac-hintline">
+              <span className="settings-row__label" id="set-server-update">
+                {t("settings.serverUpdate.label")}
+              </span>
+              <InfoHint
+                name={t("common.about", { label: t("settings.serverUpdate.label") })}
+                id="set-server-update-hint"
+              >
+                {t("settings.serverUpdate.help")}
+              </InfoHint>
+            </span>
+            {line && (
+              <span className="settings-row__status" id="set-server-update-status" role="status">
+                {t(line)}
+              </span>
+            )}
+          </div>
+          <Button
+            size="sm"
+            disabled={!data.canUpdate}
+            aria-describedby={line ? "set-server-update-hint set-server-update-status" : "set-server-update-hint"}
+            onClick={() => setOpen(true)}
+          >
+            {t("settings.serverUpdate.button")}
+          </Button>
+        </div>
+      </div>
+      <Dialog
+        open={open}
+        onOpenChange={setOpen}
+        title={t("settings.serverUpdate.confirmTitle")}
+        description={t("settings.serverUpdate.confirmText")}
+        closeLabel={t("common.close")}
+        width={440}
+      >
+        <DialogFooter>
+          <Button disabled={ask.isPending} onClick={() => setOpen(false)}>
+            {t("common.cancel")}
+          </Button>
+          <Button
+            variant="primary"
+            disabled={ask.isPending}
+            loading={ask.isPending}
+            onClick={() => ask.mutate(undefined, { onSettled: () => setOpen(false) })}
+          >
+            {t("settings.serverUpdate.confirm")}
+          </Button>
+        </DialogFooter>
       </Dialog>
     </Card>
   );

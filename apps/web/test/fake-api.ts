@@ -89,6 +89,7 @@ import type {
   SearchHit,
   SecretRequest,
   ServerTelemetry,
+  ServerUpdate,
   SidebarItem,
   SidebarItems,
   SidebarSection,
@@ -387,6 +388,8 @@ export interface FakeState {
   setupResults?: Record<string, Omit<AgentSetupResult, "agentId">>;
   /** `system.telemetry`: the usage report's switch; unset = I'm not the installation's owner (null). */
   telemetry?: ServerTelemetry;
+  /** `system.serverUpdate`: updates from the app (ADR 0200); unset = I'm not the owner or there is no updater (null). */
+  serverUpdate?: ServerUpdate;
   /** `system.jev`: the installation's Jev key; unset = I'm not its owner on a self-hosted server (null). */
   jev?: JevKey;
   /**
@@ -1437,6 +1440,14 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         if (!state.telemetry) throw new ApiError(404, "not_found", "Not found");
         state.telemetry = { ...state.telemetry, enabled };
         return state.telemetry;
+      },
+      serverUpdate: async () => state.serverUpdate ?? null,
+      updateServer: async () => {
+        log("system.updateServer");
+        if (!state.serverUpdate) throw new ApiError(404, "not_found", "Not found");
+        if (!state.serverUpdate.canUpdate) throw new ApiError(409, "update_in_progress", "Conflict");
+        state.serverUpdate = { ...state.serverUpdate, requested: true, canUpdate: false };
+        return state.serverUpdate;
       },
       sendFeedback: async (input) => {
         log("system.sendFeedback", input);
