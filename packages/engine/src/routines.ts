@@ -33,6 +33,7 @@ import {
   type ConnectorTriggerFilter,
   type ConnectorTriggerSource,
   checkConnectorTrigger,
+  connectorEventHasInboxes,
   isConnectorEvent,
   normalizeConnectorFilter,
   syncConnectorTrigger,
@@ -1208,10 +1209,10 @@ async function resolveTrigger(
   if (trigger.type === "webhook" || trigger.type === "connector") {
     if (trigger.type === "connector") {
       if (!isConnectorEvent(trigger.event)) throw new ValidationError("Unknown event", "routine.unknown_event");
-      if (trigger.inboxId && !UUID.test(trigger.inboxId)) {
+      if (trigger.inboxId && (!connectorEventHasInboxes(trigger.event) || !UUID.test(trigger.inboxId))) {
         throw new ValidationError("Pick an inbox", "routine.connector_inbox_invalid");
       }
-      normalizeConnectorFilter(trigger.filter);
+      normalizeConnectorFilter(trigger.event, trigger.filter);
     }
     return { ...none, triggerType: "event", event: WEBHOOK_EVENT as string | null, nextRunAt: null as Date | null };
   }
@@ -1441,7 +1442,7 @@ const connectorSource = (t: Extract<RoutineTriggerInput, { type: "connector" }>)
 async function connectorOf(db: Database, routineId: string) {
   const source = (await routineHookKeys(db, [routineId])).get(routineId)?.source;
   if (!source) return null;
-  const { externalId: _e, status: _s, lastError: _l, ...rest } = source;
+  const { externalId: _e, status: _s, lastError: _l, selfId: _i, ...rest } = source;
   return rest;
 }
 
@@ -1449,7 +1450,7 @@ async function connectorOf(db: Database, routineId: string) {
 async function syncConnector(
   deps: RoutineDeps,
   row: RoutineRow,
-  next: Omit<ConnectorTriggerSource, "externalId" | "status" | "lastError"> | null,
+  next: Omit<ConnectorTriggerSource, "externalId" | "status" | "lastError" | "selfId"> | null,
 ) {
   const hook = (await routineHookKeys(deps.db, [row.id])).get(row.id);
   if (!hook) return;

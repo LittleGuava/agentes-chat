@@ -1,4 +1,4 @@
-import type { AgentMailbox, Routine, RoutineHookOutcome, ScopeGrant } from "../api/types";
+import type { AgentMailbox, Routine, RoutineConnectorTrigger, RoutineHookOutcome, ScopeGrant } from "../api/types";
 import { clockHour } from "./format";
 
 /** A plain reminder the agent posted (`meta.reminder`): shown as the agent's message with a "Reminder" label. */
@@ -289,3 +289,74 @@ export const mailboxReader = (levels: AgentMailbox[]) => (accountId: string) =>
 /** Whether the agent reads a connection's tools, from its grants (a custom connection's `custom:<id>:read`). */
 export const connectionReader = (grants: ScopeGrant[]) => (connectionId: string) =>
   grants.some((g) => g.connectionId === connectionId && g.scope === `custom:${connectionId}:read`);
+
+/** Slack's new message, through Composio (ADR 0196). */
+export const SLACK_MESSAGE: RoutineConnectorTrigger["event"] = "slack.message.received";
+
+/**
+ * A routine's connector event in the person's words (ADR 0130, 0196): an email names its inbox when it has one, else
+ * the service; a Slack message names Slack.
+ */
+export function connectorWhenWords(
+  trigger: RoutineConnectorTrigger,
+):
+  | { key: "mail.routine.when"; values: { address: string } }
+  | { key: "mail.routine.whenMillionSend" | "mail.routine.whenSlack" } {
+  if (trigger.event === SLACK_MESSAGE) return { key: "mail.routine.whenSlack" };
+  const to = trigger.filter.to;
+  return to ? { key: "mail.routine.when", values: { address: to } } : { key: "mail.routine.whenMillionSend" };
+}
+
+/** The routine form's name for a connector event's kind: "Email no MillionSend" or "Mensagem no Slack". */
+export const connectorKindKey = (
+  event: RoutineConnectorTrigger["event"],
+): "routines.form.kind.connectorSlack" | "routines.form.kind.connector" =>
+  event === SLACK_MESSAGE ? "routines.form.kind.connectorSlack" : "routines.form.kind.connector";
+
+type ConnectorEvent = RoutineConnectorTrigger["event"];
+
+/** The connector events a routine can wait on, in the order the When picker shows them (ADR 0130, 0196). */
+const CONNECTOR_TRIGGER_EVENTS: readonly ConnectorEvent[] = ["millionsend.email.received", SLACK_MESSAGE];
+
+/**
+ * The connector events the When picker offers: each one a connection of the workspace brings, and the routine's own
+ * (`current`) even when its connection is gone, so it can still be read and moved.
+ */
+export function connectorEventChoices(
+  servers: readonly { events?: readonly ConnectorEvent[] }[],
+  current?: ConnectorEvent,
+): ConnectorEvent[] {
+  return CONNECTOR_TRIGGER_EVENTS.filter((e) => e === current || servers.some((s) => s.events?.includes(e)));
+}
+
+/** A connector event's own choice in the When picker, beside "schedule", "email" and the rest. */
+export const connectorChoiceKey = (event: ConnectorEvent): `connector:${ConnectorEvent}` => `connector:${event}`;
+
+/** The connector event a When choice stands for, else null (a schedule, an email, an unknown event). */
+export function connectorEventOfChoice(key: string): ConnectorEvent | null {
+  return CONNECTOR_TRIGGER_EVENTS.find((e) => connectorChoiceKey(e) === key) ?? null;
+}
+
+/** The connector part of a routine form (web and phone): its connection, event and filter. */
+export interface ConnectorDraftShape {
+  connectionId: string;
+  event: ConnectorEvent;
+  filter: RoutineConnectorTrigger["filter"];
+}
+
+/**
+ * The form's connector part after picking `event`: another event starts over (its own connections, its own filter
+ * fields: a Slack channel never goes out as an email's filter); the same one is kept as it is.
+ */
+export function connectorDraftFor(draft: ConnectorDraftShape, event: ConnectorEvent): ConnectorDraftShape {
+  return draft.event === event ? draft : { ...draft, connectionId: "", event, filter: {} };
+}
+
+/** Only the filters that say something, for any connector event, as the server keeps them. */
+export const cleanConnectorFilter = (f: RoutineConnectorTrigger["filter"]): RoutineConnectorTrigger["filter"] => ({
+  ...(f.to?.trim() ? { to: f.to.trim().toLowerCase() } : {}),
+  ...(f.from?.length ? { from: f.from } : {}),
+  ...(f.subject?.trim() ? { subject: f.subject.trim() } : {}),
+  ...(f.channel?.trim() ? { channel: f.channel.trim().toUpperCase() } : {}),
+  ...(f.text?.trim() ? { text: f.text.trim() } : {}),
+});

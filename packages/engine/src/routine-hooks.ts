@@ -15,7 +15,14 @@ import {
   sql,
 } from "@agenteschat/db";
 import { recordAudit } from "./audit";
-import { connectorCallPasses, connectorTriggerAllowed, sourceOf } from "./connector-triggers";
+import {
+  composioEventPasses,
+  composioTriggerOf,
+  connectorCallPasses,
+  connectorTriggerAllowed,
+  sourceOf,
+} from "./connector-triggers";
+import { countComposio } from "./connector-usage";
 import { openSecret, randomToken, routineHookToken, sealSecret, sha256 } from "./crypto";
 import { ConflictError, TooManyError } from "./errors";
 import { publishRoutineRuns } from "./events";
@@ -375,6 +382,87 @@ export async function receiveRoutineHook(
   });
   if (!answer.duplicate) await publishRoutineRuns(deps.pubsub, hook.orgId, hook.routineId);
   return answer;
+}
+
+/**
+ * An event of a Composio trigger connector routines made (ADR 0196), already verified by the server's Composio
+ * endpoint. Composio's upsert gives routines on the same account, trigger type and config one trigger, so each
+ * routine holding it hears the event, while it is on and its workspace open, and only from the connection's own
+ * account at Composio. The delivery is counted once (Composio bills it once); then, per routine, the webhook path's
+ * checks (its limit, its filter, the agent still reading the connection, a repeat of Composio's `webhook-id`), and
+ * the event's data joins its next run as a call whose body is that data. Returns how many runs were queued.
+ */
+export async function receiveComposioTrigger(
+  deps: RoutineHookDeps,
+  event: { triggerId: string; connectedAccountId: string; slug: string; payload: unknown },
+  headers: Headers,
+): Promise<{ fired: number }> {
+  const rows = await deps.db
+    .select({ hook: routineHooks, account: schema.connectorConnections.composioAccountId })
+    .from(routineHooks)
+    .innerJoin(routines, eq(routines.id, routineHooks.routineId))
+    .innerJoin(organizations, eq(organizations.id, routines.orgId))
+    .innerJoin(
+      schema.connectorConnections,
+      and(
+        sql`${schema.connectorConnections.id}::text = ${routineHooks.source}->>'connectionId'`,
+        eq(schema.connectorConnections.orgId, routineHooks.orgId),
+        isNull(schema.connectorConnections.revokedAt),
+      ),
+    )
+    .where(
+      and(
+        sql`${routineHooks.source}->>'externalId' = ${event.triggerId}`,
+        eq(routines.event, WEBHOOK_EVENT),
+        eq(routines.active, true),
+        isNull(routines.deletedAt),
+        sql`not ${closedOrg}`,
+      ),
+    );
+  // The trigger belongs to the account it was made on; any other account's event naming it is ignored.
+  const mine = rows.flatMap(({ hook, account }) => {
+    const source = sourceOf(hook.source);
+    const made = source ? composioTriggerOf(source) : null;
+    return source && made && account === event.connectedAccountId ? [{ hook, source, made }] : [];
+  });
+  const first = mine[0];
+  if (!first) return { fired: 0 };
+  // Composio bills every delivery of the trigger, a filtered or repeated one too (ADR 0103).
+  await countComposio(deps.db, {
+    orgId: first.hook.orgId,
+    toolkit: first.made.toolkit,
+    action: first.made.slug,
+    events: 1,
+  });
+  const body = new TextEncoder().encode(JSON.stringify(event.payload ?? null));
+  const id = headers.get("webhook-id");
+  let fired = 0;
+  for (const { hook, source } of mine) {
+    if (!(await underLimit(deps, hook))) continue;
+    if (
+      !composioEventPasses(source, event) ||
+      !(await connectorTriggerAllowed(deps.db, hook.orgId, hook.routineId, source))
+    ) {
+      continue;
+    }
+    if (body.byteLength > HOOK_MAX_BYTES) {
+      await logCall(deps.db, hook, { outcome: "too_large", status: 413, bytes: body.byteLength });
+      continue;
+    }
+    const answer = await accept(deps, hook, {
+      headers: new Headers({
+        "content-type": "application/json",
+        "x-composio-event": event.slug,
+        ...(id ? { "webhook-id": id } : {}),
+      }),
+      body,
+      test: false,
+    });
+    if (answer.duplicate) continue;
+    await publishRoutineRuns(deps.pubsub, hook.orgId, hook.routineId);
+    fired += 1;
+  }
+  return { fired };
 }
 
 async function liveHook(db: Database, tokenHash: string) {
