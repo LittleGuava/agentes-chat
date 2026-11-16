@@ -17721,6 +17721,13 @@
       "dialogTitle": "Что отправляется",
       "dialogText": "Раз в день. Вот следующий отчёт, ровно в таком виде."
     },
+    "serverUpdate": {
+      "title": "Доступна agentes.chat {{version}}",
+      "current": "Этот сервер работает на {{version}}.",
+      "notes": "Примечания к выпуску",
+      "docker": "Чтобы обновить, выполните это в папке с docker-compose.yml:",
+      "native": "Чтобы обновить, распакуйте новый пакет рядом с текущим и выполните:"
+    },
     "tileState": {
       "members_one": "{{count}} участник",
       "members_few": "{{count}} участника",

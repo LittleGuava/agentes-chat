@@ -103,6 +103,7 @@ import { ApiCard, PlanUsageCards } from "@/components/PlanUsage";
 import { MyFace, OrgLogoDialog, OrgMark } from "@/components/ProfilePhoto";
 import { KeyMismatch, KeyRefused, KeySite, ProviderKeySelect } from "@/components/ProviderKey";
 import { RolesSection } from "@/components/roles/RolesSection";
+import { ServerUpdateCard } from "@/components/ServerUpdate";
 import { SkillsSection } from "@/components/Skills";
 import { StorageSection } from "@/components/StorageSettings";
 import { TeamMemoryCard } from "@/components/TeamMemory";
@@ -672,6 +673,7 @@ function GeneralSection() {
 
       <TeamMemoryCard />
 
+      <ServerUpdateCard />
       <UsageStatisticsCard />
       {org.role === "owner" && !org.deletion && <DeleteWorkspaceCard />}
       <OrgLogoDialog open={logo} onClose={() => setLogo(false)} />

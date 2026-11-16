@@ -17058,6 +17058,16 @@ export const en = {
       dialogTitle: "What is sent",
       dialogText: "Once a day. This is the next report, exactly.",
     },
+    /** Only the installation's owner sees it, when a newer server release is out. */
+    serverUpdate: {
+      title: "agentes.chat {{version}} is available",
+      current: "This server runs {{version}}.",
+      notes: "Release notes",
+      /** Above the commands, for a server run with Docker. */
+      docker: "To update, run this in the folder with docker-compose.yml:",
+      /** Above the command, for a server run without Docker. */
+      native: "To update, extract the new package beside the current one, then run:",
+    },
     tileState: {
       members_one: "{{count}} member",
       members_other: "{{count}} members",

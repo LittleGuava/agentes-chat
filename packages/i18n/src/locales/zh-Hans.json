@@ -16221,6 +16221,13 @@
       "dialogTitle": "发送的内容",
       "dialogText": "每天一次。下面就是下一份报告的完整内容。"
     },
+    "serverUpdate": {
+      "title": "agentes.chat {{version}} 已发布",
+      "current": "此服务器运行的是 {{version}}。",
+      "notes": "发行说明",
+      "docker": "要更新，请在 docker-compose.yml 所在的文件夹中运行：",
+      "native": "要更新，请把新包解压到当前包旁边，然后运行："
+    },
     "tileState": {
       "members_other": "{{count}} 位成员"
     },

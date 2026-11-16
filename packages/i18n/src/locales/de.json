@@ -16717,6 +16717,13 @@
       "dialogTitle": "Was gesendet wird",
       "dialogText": "Einmal am Tag. Das ist genau der nächste Bericht."
     },
+    "serverUpdate": {
+      "title": "agentes.chat {{version}} ist verfügbar",
+      "current": "Dieser Server läuft mit {{version}}.",
+      "notes": "Versionshinweise",
+      "docker": "Zum Aktualisieren im Ordner mit docker-compose.yml ausführen:",
+      "native": "Zum Aktualisieren das neue Paket neben dem aktuellen entpacken und dann ausführen:"
+    },
     "tileState": {
       "members_one": "{{count}} Mitglied",
       "members_other": "{{count}} Mitglieder"

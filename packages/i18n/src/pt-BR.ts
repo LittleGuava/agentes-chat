@@ -16957,6 +16957,13 @@ export const ptBR = {
       dialogTitle: "O que é enviado",
       dialogText: "Uma vez por dia. Este é o próximo envio, exatamente.",
     },
+    serverUpdate: {
+      title: "agentes.chat {{version}} está disponível",
+      current: "Este servidor está na {{version}}.",
+      notes: "Notas da versão",
+      docker: "Para atualizar, rode isto na pasta do docker-compose.yml:",
+      native: "Para atualizar, extraia o pacote novo ao lado do atual e rode:",
+    },
     tileState: {
       members_one: "{{count}} membro",
       members_other: "{{count}} membros",

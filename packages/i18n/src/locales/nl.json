@@ -16781,6 +16781,13 @@
       "dialogTitle": "Wat er wordt verstuurd",
       "dialogText": "Eén keer per dag. Dit is precies het volgende rapport."
     },
+    "serverUpdate": {
+      "title": "agentes.chat {{version}} is beschikbaar",
+      "current": "Deze server draait {{version}}.",
+      "notes": "Release-opmerkingen",
+      "docker": "Voer dit uit in de map met docker-compose.yml om bij te werken:",
+      "native": "Pak het nieuwe pakket uit naast het huidige en voer dan uit om bij te werken:"
+    },
     "tileState": {
       "members_one": "{{count}} lid",
       "members_other": "{{count}} leden"

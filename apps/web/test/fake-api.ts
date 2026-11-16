@@ -90,6 +90,7 @@ import type {
   SearchHit,
   SecretRequest,
   ServerTelemetry,
+  ServerUpdate,
   SidebarItem,
   SidebarItems,
   SidebarSection,
@@ -392,6 +393,8 @@ export interface FakeState {
   setupResults?: Record<string, Omit<AgentSetupResult, "agentId">>;
   /** `system.telemetry`: the usage report's switch; unset = I'm not the installation's owner (null). */
   telemetry?: ServerTelemetry;
+  /** `system.serverUpdate`: a newer release; unset = I'm not the installation's owner (null). */
+  serverUpdate?: ServerUpdate;
   /** `system.jev`: the installation's Jev key; unset = I'm not its owner on a self-hosted server (null). */
   jev?: JevKey;
   /**
@@ -1439,6 +1442,7 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         ...state.instance,
       }),
       telemetry: async () => state.telemetry ?? null,
+      serverUpdate: async () => state.serverUpdate ?? null,
       setTelemetry: async (enabled) => {
         log("system.setTelemetry", enabled);
         if (!state.telemetry) throw new ApiError(404, "not_found", "Not found");

@@ -16653,6 +16653,13 @@
       "dialogTitle": "Ne gönderiliyor",
       "dialogText": "Günde bir kez. Bir sonraki rapor tam olarak bu."
     },
+    "serverUpdate": {
+      "title": "agentes.chat {{version}} kullanılabilir",
+      "current": "Bu sunucu {{version}} sürümünde çalışıyor.",
+      "notes": "Sürüm notları",
+      "docker": "Güncellemek için bunu docker-compose.yml klasöründe çalıştırın:",
+      "native": "Güncellemek için yeni paketi mevcut olanın yanına çıkarın, sonra çalıştırın:"
+    },
     "tileState": {
       "members_one": "{{count}} üye",
       "members_other": "{{count}} üye"

@@ -27,6 +27,18 @@ export interface ServerTelemetry {
   report: Record<string, unknown>;
 }
 
+/** A newer release for the installation's owner (`GET /api/app/server-update`, ADR 0060 addendum 2026-11-15). */
+export interface ServerUpdate {
+  /** This server's version. */
+  version: string;
+  /** The newest release seen, with its notes' page; null while none was. */
+  latest: { version: string; publishedAt: string | null; notesUrl: string } | null;
+  updateAvailable: boolean;
+  install: "docker" | "native" | "desktop";
+  /** What installs it on this server, one command per line; null with nothing to install. */
+  command: string | null;
+}
+
 /** The installation's Jev key, for its pinned owner on a self-hosted server (`GET /api/app/jev`, ADR 0073). */
 export interface JevKey {
   /** `env`: `TYPESAFE_API_KEY`, read-only here. `settings`: added in Settings. Null: none. */

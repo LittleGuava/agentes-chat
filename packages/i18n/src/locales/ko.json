@@ -16149,6 +16149,13 @@
       "dialogTitle": "보내는 내용",
       "dialogText": "하루에 한 번 보내요. 다음 보고서의 실제 내용이에요."
     },
+    "serverUpdate": {
+      "title": "agentes.chat {{version}}을(를) 사용할 수 있습니다",
+      "current": "이 서버는 {{version}}에서 실행 중입니다.",
+      "notes": "릴리스 노트",
+      "docker": "업데이트하려면 docker-compose.yml이 있는 폴더에서 다음을 실행하세요:",
+      "native": "업데이트하려면 새 패키지를 현재 패키지 옆에 풀고 다음을 실행하세요:"
+    },
     "tileState": {
       "members_other": "멤버 {{count}}명"
     },

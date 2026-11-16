@@ -341,6 +341,12 @@ export function useSetServerTelemetry() {
   });
 }
 
+/** A newer release to install: `null` for everyone but the installation's owner (the server asks GitHub twice a day at most). */
+export const useServerUpdate = () => {
+  const api = useApi();
+  return useQuery({ queryKey: keys.serverUpdate, queryFn: () => api.system.serverUpdate(), staleTime: 3600_000 });
+};
+
 /** The installation's Jev key: `null` for everyone but its owner on a self-hosted server. */
 export const useJevKey = () => {
   const api = useApi();

@@ -1085,6 +1085,13 @@ one, `https://app.agentes.chat/api/desktop/update` (its version and package type
 for its newest version from the browser (Connect a computer, above, says what that request carries).
 The instance itself downloads nothing from agentes.chat.
 
+**New releases.** To tell the installation's owner that a newer version is out (a card in **Settings →
+General** with its notes and the command that installs it), the server asks GitHub's public API for the
+releases of `DESKTOP_RELEASES_REPO` (`GET https://api.github.com/repos/agentes-chat/agentes-chat/releases`),
+only while the owner has Settings open and at most once every 12 hours. The request carries no token and
+nothing about the server beyond its own address. `UPDATE_CHECK=off` in `.env` stops it. agentes.chat's own
+servers and the desktop app's server never ask.
+
 **Help pages.** The app's help links ("How computers work", "About this computer") open the public docs at
 `https://agentes.chat/docs`, in the reader's language (`/pt/docs`, `/zh/docs`, `/fr/docs`…), the same pages for
 every server. They open in a new tab with no referrer and carry only the page, the language and the section, never
@@ -1662,7 +1669,8 @@ computer's backups: they hold sign-ins. The server's database never has them.
 <summary><b>Upgrades</b></summary>
 
 Download the compose file again with each release, since a release can change it, then pull and
-restart. Take it from the release's tag (here `v1.2.3`, the newest on the
+restart. When a newer release is out, the installation's owner sees it in **Settings → General**, with
+these commands for its version (`UPDATE_CHECK=off` hides it). Take it from the release's tag (here `v1.2.3`, the newest on the
 [releases page](https://github.com/agentes-chat/agentes-chat/releases)), so it matches the image:
 
 ```sh

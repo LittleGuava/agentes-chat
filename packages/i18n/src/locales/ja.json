@@ -16157,6 +16157,13 @@
       "dialogTitle": "送信内容",
       "dialogText": "1日1回送信します。次回のレポートは以下のとおりです。"
     },
+    "serverUpdate": {
+      "title": "agentes.chat {{version}} が利用可能です",
+      "current": "このサーバーは {{version}} で動いています。",
+      "notes": "リリースノート",
+      "docker": "更新するには、docker-compose.yml のあるフォルダーで次を実行します:",
+      "native": "更新するには、新しいパッケージを今のものの隣に展開してから次を実行します:"
+    },
     "tileState": {
       "members_other": "メンバー{{count}}人"
     },

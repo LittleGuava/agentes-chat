@@ -41176,6 +41176,21 @@
   "settings.telemetry.dialogText": {
     "value": "Once a day. This is the next report, exactly."
   },
+  "settings.serverUpdate.title": {
+    "value": "agentes.chat {{version}} is available"
+  },
+  "settings.serverUpdate.current": {
+    "value": "This server runs {{version}}."
+  },
+  "settings.serverUpdate.notes": {
+    "value": "Release notes"
+  },
+  "settings.serverUpdate.docker": {
+    "value": "To update, run this in the folder with docker-compose.yml:"
+  },
+  "settings.serverUpdate.native": {
+    "value": "To update, extract the new package beside the current one, then run:"
+  },
   "settings.tileState.members": {
     "value": {
       "one": "{{count}} member",

@@ -1063,7 +1063,7 @@ export const envVars = {
       .regex(/^[\w.-]+\/[\w.-]+$/, "must be owner/repo")
       .default("agentes-chat/agentes-chat"),
     description:
-      "GitHub repository (`owner/repo`) whose releases tagged `desktop-v<version>` hold the desktop app, and `v<version>` the packages without Docker.",
+      "GitHub repository (`owner/repo`) whose releases tagged `desktop-v<version>` hold the desktop app, and `v<version>` the packages without Docker. The update check (`UPDATE_CHECK`) reads its `v<version>` releases too.",
     section: "Sandbox",
   },
   OPERATOR_API_TOKEN: {
@@ -1196,6 +1196,15 @@ export const envVars = {
     description:
       "How this server was installed, as the usage report says it: `docker`, `native` or `desktop`. The desktop app sets it, and `agentes-server` (no Docker) when it isn't set. Unset: `docker` inside a container, else `native`.",
     section: "Usage report",
+  },
+  UPDATE_CHECK: {
+    schema: z
+      .stringbool()
+      .transform((on) => (on ? "on" : "off") as "on" | "off")
+      .default("on"),
+    description:
+      "Tell the installation's owner, in Settings → General, when a newer agentes.chat release is out, with its notes and the command that installs it. The server asks GitHub's public API for the releases of `DESKTOP_RELEASES_REPO`, only while the owner has Settings open and at most once every 12 hours: a GET that sends nothing about this server beyond the request's own address. `off` stops it. Never on agentes.chat itself, nor in the desktop app's server, which updates with the app.",
+    section: "Server",
   },
   LOG_LEVEL: {
     schema: z.enum(["debug", "info", "warn", "error"]).default("info"),

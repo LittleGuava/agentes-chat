@@ -16212,6 +16212,13 @@
       "dialogTitle": "Apa yang dikirim",
       "dialogText": "Sekali sehari. Ini laporan berikutnya, persis apa adanya."
     },
+    "serverUpdate": {
+      "title": "agentes.chat {{version}} sudah tersedia",
+      "current": "Server ini menjalankan {{version}}.",
+      "notes": "Catatan rilis",
+      "docker": "Untuk memperbarui, jalankan ini di folder docker-compose.yml:",
+      "native": "Untuk memperbarui, ekstrak paket baru di samping yang sekarang, lalu jalankan:"
+    },
     "tileState": {
       "members_other": "{{count}} anggota"
     },
