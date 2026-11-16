@@ -18251,6 +18251,7 @@
       "agentNote": "Notatka od: {{from}}",
       "agentNoteAnon": "Notatka od innego agenta",
       "waitResult": "Dotarło to, na co czeka {{name}}",
+      "meetingEnded": "Zakończyło się spotkanie, z którego {{name}} sporządza notatki",
       "other": "Powiadomienie dla: {{name}}",
       "wakeSkipped": "Wzmianka od {{name}} nie dotarła do: {{agents}}",
       "wakeSkippedAnon": "Wzmianka {{name}} nie dotarła do innego agenta",

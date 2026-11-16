@@ -16581,6 +16581,7 @@
       "agentNote": "{{from}}의 메모",
       "agentNoteAnon": "다른 에이전트의 메모",
       "waitResult": "{{name}}이(가) 기다리던 결과가 도착했어요",
+      "meetingEnded": "{{name}}이(가) 메모하던 회의가 끝났습니다",
       "other": "{{name}}에게 온 알림",
       "wakeSkipped": "{{name}}의 멘션이 {{agents}}에게 전달되지 않았어요",
       "wakeSkippedAnon": "{{name}}의 멘션이 다른 에이전트에게 닿지 않았어요",

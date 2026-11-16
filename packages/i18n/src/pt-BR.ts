@@ -17436,6 +17436,7 @@ export const ptBR = {
       agentNote: "Nota de {{from}}",
       agentNoteAnon: "Nota de outro agente",
       waitResult: "Chegou o resultado que {{name}} esperava",
+      meetingEnded: "Terminou a reunião em que {{name}} fazia anotações",
       other: "Aviso para {{name}}",
       wakeSkipped: "A menção de {{name}} não chamou {{agents}}",
       wakeSkippedAnon: "A menção de {{name}} não chamou outro agente",

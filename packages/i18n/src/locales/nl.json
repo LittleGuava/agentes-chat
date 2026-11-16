@@ -17232,6 +17232,7 @@
       "agentNote": "Notitie van {{from}}",
       "agentNoteAnon": "Notitie van een andere agent",
       "waitResult": "Waar {{name}} op wachtte, is binnen",
+      "meetingEnded": "De vergadering waarin {{name}} notities maakte is afgelopen",
       "other": "Melding voor {{name}}",
       "wakeSkipped": "De vermelding van {{name}} bereikte {{agents}} niet",
       "wakeSkippedAnon": "De vermelding van {{name}} bereikte geen andere agent",

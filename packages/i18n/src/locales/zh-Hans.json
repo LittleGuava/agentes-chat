@@ -16658,6 +16658,7 @@
       "agentNote": "来自 {{from}} 的备注",
       "agentNoteAnon": "来自另一个智能体的备注",
       "waitResult": "{{name}} 等待的结果到了",
+      "meetingEnded": "{{name}} 记录笔记的会议已结束",
       "other": "给 {{name}} 的通知",
       "wakeSkipped": "{{name}} 的提及没有传达给 {{agents}}",
       "wakeSkippedAnon": "{{name}} 的提及没有叫到其他智能体",

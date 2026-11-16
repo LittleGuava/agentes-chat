@@ -16589,6 +16589,7 @@
       "agentNote": "{{from}}からのメモ",
       "agentNoteAnon": "別のエージェントからのメモ",
       "waitResult": "{{name}}が待っていたものが届きました",
+      "meetingEnded": "{{name}} がメモを取っていた会議が終了しました",
       "other": "{{name}}へのお知らせ",
       "wakeSkipped": "{{name}}のメンションは{{agents}}に届きませんでした",
       "wakeSkippedAnon": "{{name}} のメンションはほかのエージェントに届きませんでした",

@@ -17494,6 +17494,7 @@ export const en = {
       agentNote: "Note from {{from}}",
       agentNoteAnon: "Note from another agent",
       waitResult: "What {{name}} was waiting for came in",
+      meetingEnded: "The meeting {{name}} took notes in has ended",
       other: "Notice for {{name}}",
       wakeSkipped: "{{name}}'s mention didn't reach {{agents}}",
       /** The same, on an older line that didn't keep whom. */

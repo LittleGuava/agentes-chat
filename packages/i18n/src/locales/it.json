@@ -17718,6 +17718,7 @@
       "agentNote": "Nota di {{from}}",
       "agentNoteAnon": "Nota di un altro agente",
       "waitResult": "È arrivato ciò che {{name}} aspettava",
+      "meetingEnded": "La riunione in cui {{name}} prendeva appunti è finita",
       "other": "Avviso per {{name}}",
       "wakeSkipped": "La menzione di {{name}} non ha raggiunto {{agents}}",
       "wakeSkippedAnon": "La menzione di {{name}} non ha raggiunto un altro agente",
