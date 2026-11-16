@@ -177,6 +177,28 @@ export function itemName(t: TFunction, item: Pick<ConnectedItem, "def" | "label"
   return /^\d+$/.test(number) ? `${name} ${number}` : item.label;
 }
 
+/** The viewer's own account on a per-person connection (ADR 0195): none yet, working, or stopped; null when it isn't one. */
+export function mineOf(item: Pick<ConnectedItem, "perPerson" | "mine">): "none" | "active" | "broken" | null {
+  if (!item.perPerson) return null;
+  if (!item.mine) return "none";
+  return item.mine.status === "needs_reconnect" ? "broken" : "active";
+}
+
+/** What the viewer reads of their own account there, the web's line and the phone's row alike. */
+export function mineText(t: TFunction, item: Pick<ConnectedItem, "perPerson" | "mine">): string | null {
+  const state = mineOf(item);
+  if (state === "none") return t("connectors.personal.mineNone");
+  if (state === "broken") return t("connectors.personal.mineBroken");
+  const account = item.mine?.accountLabel;
+  return state === "active" && account ? t("connectors.personal.mine", { account }) : null;
+}
+
+/** "Connect my account" shows while the viewer has none there or theirs stopped working. */
+export const connectsMine = (item: Pick<ConnectedItem, "perPerson" | "mine">) => {
+  const state = mineOf(item);
+  return state === "none" || state === "broken";
+};
+
 /**
  * What a connect did, as a toast: another account came in, an account got its new sign-in, or the account was
  * already there (with the way to add another when the provider named it).

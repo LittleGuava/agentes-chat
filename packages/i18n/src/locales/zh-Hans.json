@@ -14526,9 +14526,9 @@
       "gone": "那个账号已不再连接。",
       "unfinished": "在 Composio 的登录没有完成，请重试。",
       "unavailable": "这个服务无法在这里连接。",
-      "misconfigured": "服务器上与 {{provider}} 的连接配置有误，所以无法完成连接。运行服务器的人需要在应用的设置中更换密钥。",
-      "notPerPerson": "这个连接不使用每个人自己的账号。",
-      "perPersonUnsupported": "这项服务暂时还不能使用每个人自己的账号。"
+      "notPerPerson": "此连接现在所有人共用一个账号。请刷新页面。",
+      "perPersonUnsupported": "只有通过 Composio 连接的服务才能使用每个人自己的账号。",
+      "misconfigured": "服务器上与 {{provider}} 的连接配置有误，所以无法完成连接。运行服务器的人需要在应用的设置中更换密钥。"
     },
     "wiki": {
       "githubNoNotes": "此链接中没有 Markdown 笔记。",

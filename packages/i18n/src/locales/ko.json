@@ -14456,9 +14456,9 @@
       "gone": "그 계정은 더 이상 연결되어 있지 않아요.",
       "unfinished": "Composio 로그인이 끝나지 않았어요. 다시 시도하세요.",
       "unavailable": "이 서비스는 여기서 연결할 수 없어요.",
-      "misconfigured": "서버에서 {{provider}} 연결이 잘못 설정돼서 연결을 끝낼 수 없어요. 서버를 운영하는 사람이 앱 설정에서 키를 바꿔야 해요.",
-      "notPerPerson": "이 연결은 사람마다 자기 계정을 쓰지 않아요.",
-      "perPersonUnsupported": "이 서비스는 아직 사람마다 자기 계정을 쓸 수 없어요."
+      "notPerPerson": "이 연결은 이제 모두가 하나의 계정을 사용합니다. 페이지를 새로고침하세요.",
+      "perPersonUnsupported": "각자의 계정을 사용할 수 있는 것은 Composio로 연결한 서비스뿐입니다.",
+      "misconfigured": "서버에서 {{provider}} 연결이 잘못 설정돼서 연결을 끝낼 수 없어요. 서버를 운영하는 사람이 앱 설정에서 키를 바꿔야 해요."
     },
     "wiki": {
       "githubNoNotes": "이 링크에는 Markdown 노트가 없어요.",

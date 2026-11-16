@@ -15223,16 +15223,14 @@ export const ptBR = {
       gone: "Essa conta não está mais conectada.",
       unfinished: "O login na Composio não terminou. Tente de novo.",
       unavailable: "Este serviço não conecta aqui.",
+      notPerPerson: "Esta conexão agora usa uma conta para todos. Recarregue a página.",
+      perPersonUnsupported: "Só um serviço conectado pela Composio pode usar a conta de cada pessoa.",
       /**
        * O {{provider}} recusou o app de OAuth deste servidor para ele, com a chave secreta (ou o ID) errada
        * (`connector_error=misconfigured`): tentar de novo não resolve, só quem cuida do servidor conserta.
        */
       misconfigured:
         "A conexão com {{provider}} está mal configurada no servidor, então ela não conclui. Quem cuida do servidor precisa trocar a chave nas configurações do app.",
-      /** `connector.not_per_person`: a person's own account asked of a connection that uses one account for everyone (ADR 0195). */
-      notPerPerson: "Esta conexão não usa a conta de cada pessoa.",
-      /** `connector.per_person_unsupported`: each person's own account turned on for a service that can't do it yet (ADR 0195). */
-      perPersonUnsupported: "Este serviço ainda não pode usar a conta de cada pessoa.",
     },
     /** Restricted wiki pages (ADR 0023). */
     wiki: {

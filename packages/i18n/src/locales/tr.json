@@ -14949,9 +14949,9 @@
       "gone": "O hesap artık bağlı değil.",
       "unfinished": "Composio'da giriş tamamlanmadı. Tekrar deneyin.",
       "unavailable": "Bu hizmet burada bağlanamaz.",
-      "misconfigured": "Sunucuda {{provider}} bağlantısı yanlış ayarlanmış, bu yüzden tamamlanamıyor. Sunucuyu yöneten kişinin anahtarı uygulamanın ayarlarında değiştirmesi gerekiyor.",
-      "notPerPerson": "Bu bağlantı her kişinin kendi hesabını kullanmıyor.",
-      "perPersonUnsupported": "Bu hizmet henüz her kişinin kendi hesabını kullanamıyor."
+      "notPerPerson": "Bu bağlantı artık herkes için tek bir hesap kullanıyor. Sayfayı yenileyin.",
+      "perPersonUnsupported": "Yalnızca Composio üzerinden bağlanan bir hizmet herkesin kendi hesabını kullanabilir.",
+      "misconfigured": "Sunucuda {{provider}} bağlantısı yanlış ayarlanmış, bu yüzden tamamlanamıyor. Sunucuyu yöneten kişinin anahtarı uygulamanın ayarlarında değiştirmesi gerekiyor."
     },
     "wiki": {
       "githubNoNotes": "Bu bağlantıda Markdown notu yok.",

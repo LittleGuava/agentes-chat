@@ -15077,9 +15077,9 @@
       "gone": "Dat account is niet meer gekoppeld.",
       "unfinished": "Het inloggen bij Composio is niet afgerond. Probeer het opnieuw.",
       "unavailable": "Deze dienst kan hier niet gekoppeld worden.",
-      "misconfigured": "De koppeling met {{provider}} is verkeerd ingesteld op de server, dus die kan niet worden afgerond. Wie de server beheert, moet de sleutel vervangen in de instellingen van de app.",
-      "notPerPerson": "Deze verbinding gebruikt niet het eigen account van elke persoon.",
-      "perPersonUnsupported": "Deze dienst kan nog niet het eigen account van elke persoon gebruiken."
+      "notPerPerson": "Deze verbinding gebruikt nu één account voor iedereen. Laad de pagina opnieuw.",
+      "perPersonUnsupported": "Alleen een dienst die via Composio is verbonden, kan ieders eigen account gebruiken.",
+      "misconfigured": "De koppeling met {{provider}} is verkeerd ingesteld op de server, dus die kan niet worden afgerond. Wie de server beheert, moet de sleutel vervangen in de instellingen van de app."
     },
     "wiki": {
       "githubNoNotes": "Geen Markdown-notities in deze link.",
