@@ -7,7 +7,7 @@ import type { MergeDone } from "./command-policy";
  */
 
 /** Bumped on breaking changes; the server refuses runners older than `MIN_RUNNER_PROTOCOL`. */
-export const MACHINE_PROTOCOL_VERSION = 67;
+export const MACHINE_PROTOCOL_VERSION = 68;
 export const MIN_RUNNER_PROTOCOL = 1;
 /** From this protocol on, requests carry `agent` and each agent works in its own folder. */
 export const AGENT_FOLDERS_PROTOCOL = 2;
@@ -705,6 +705,35 @@ export interface CliInstall {
  * The server never sends any of these to an older runner.
  */
 export const COPILOT_PROTOCOL = 67;
+/**
+ * From this protocol on (ADR 0187): `mcp.stdio`, one MCP operation (`tools/list` or `tools/call`) of a local stdio MCP
+ * program the request names, started for that call alone as the request's agent, under the command policy, and stopped
+ * before the answer. The server never sends it to an older runner.
+ */
+export const MCP_STDIO_PROTOCOL = 68;
+
+/** `MCP_STDIO_PROTOCOL`: the program, started with this argv and no shell. */
+export interface McpStdioServer {
+  command: string;
+  args: string[];
+  /** The only variables it gets besides the runner's short allow-list (ADR 0187 §3). */
+  env?: Record<string, string>;
+  /** Relative to the agent's folder (default: the agent's folder). */
+  cwd?: string;
+}
+
+/** `MCP_STDIO_PROTOCOL`: the one call made after the handshake. */
+export type McpStdioCall =
+  | { method: "tools/list" }
+  | { method: "tools/call"; name: string; arguments: Record<string, unknown>; meta?: Record<string, unknown> };
+
+/** A tool as the program listed it (MCP's own shape). */
+export interface McpStdioTool {
+  name: string;
+  description?: string;
+  inputSchema: Record<string, unknown>;
+  annotations?: { readOnlyHint?: boolean; destructiveHint?: boolean };
+}
 
 export type PhonePlatform = "android" | "ios";
 export type PhoneKind = "device" | "emulator" | "simulator";
@@ -2695,6 +2724,8 @@ export type MachineRequest = (
   | { op: "cli.install"; action: "start" | "status" | "cancel"; tool?: InstallableCli }
   /** `IPHONE_DEV_MODE_PROTOCOL`: open Xcode on this Mac (it shows Developer Mode on a plugged iPhone). */
   | { op: "xcode.open" }
+  /** `MCP_STDIO_PROTOCOL` (ADR 0187): one MCP operation of a stdio program, for the request's agent. */
+  | { op: "mcp.stdio"; server: McpStdioServer; call: McpStdioCall; timeoutSeconds: number }
 ) & {
   agent?: AgentScope;
   /** Protocol 34: a `browser.*` op in this browser profile's session instead of the agent's (ADR 0110). */
@@ -2775,6 +2806,7 @@ export const MACHINE_OPS: readonly MachineOp[] = [
   "clis.check",
   "cli.install",
   "xcode.open",
+  "mcp.stdio",
 ];
 
 /** What each op answers with `ok: true`. */
@@ -2946,6 +2978,15 @@ export interface MachineReplies {
   "clis.check": { executors: NonNullable<RunnerInfo["executors"]> };
   "cli.install": { install: CliInstall | null };
   "xcode.open": { opened: boolean };
+  /**
+   * Who the program said it is in `initialize`, and the call's answer: every tool for `tools/list`, the MCP result
+   * (`content`, `isError`, `structuredContent`) for `tools/call`, with the agent's secret values redacted.
+   */
+  "mcp.stdio": {
+    serverInfo: { name?: string; title?: string; version?: string } | null;
+    tools?: McpStdioTool[];
+    result?: { content?: unknown[]; isError?: boolean; structuredContent?: unknown };
+  };
 }
 
 /** An element numbered on a `browser.capture` image: its ref and box (CSS pixels). */
@@ -3017,6 +3058,8 @@ export type MachineErrorCode =
    * push to the default branch, a deploy); the message says why and what the agent can do. Nothing ran.
    */
   | "approval_needed"
+  /** `MCP_STDIO_PROTOCOL`: the program didn't answer before the call's deadline; it was stopped. Older servers read it like `internal`. */
+  | "timed_out"
   /**
    * Protocol 50: this runner can't do it the way it was asked (a Claude sign-in `method` it can't use here); the
    * message says why. Older servers read it like `internal`.
