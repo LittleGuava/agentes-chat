@@ -1256,8 +1256,11 @@ export interface Model {
   pick?: boolean;
   /** The size Automático uses it for on its provider's key, by default. */
   tier?: ModelTier;
-  /** A workspace endpoint's model (ADR 0146): whose credential, under what name. */
-  endpoint?: { credentialId: string; name: string };
+  /**
+   * A workspace endpoint's model (ADR 0146): whose credential, under what name, and the maker's mark its host shows
+   * (a `ProviderLogo` id; absent: the generic endpoint's).
+   */
+  endpoint?: { credentialId: string; name: string; mark?: string };
   /** No prices known: its calls cost 0, so a budget can't count money for it. */
   unpriced?: boolean;
 }

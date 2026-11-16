@@ -12,6 +12,7 @@ import type {
 import { accountChoices, accountTitle, ownSignInReady } from "./ai-accounts";
 import { thinksWith } from "./brain";
 import { isClaudeAlias } from "./brain-advanced";
+import { modelMark } from "./endpoints";
 import { namesComputers } from "./machines";
 import {
   kindOf,
@@ -121,7 +122,8 @@ export function apiPickOptions(t: TFunction, locale: string, choices: [string, M
       label: m.label,
       title: m.label,
       group: m.pick ? t("models.picks", { provider: providerLabel(provider) }) : providerLabel(provider),
-      mark: provider,
+      // A group is an endpoint's name for its models (ADR 0146): the mark is the model's, never the name's.
+      mark: modelMark(m),
       description: available
         ? modelDescription(t, locale, m)
         : t("newAgent.modelNeedsKey", { provider: providerLabel(provider) }),
@@ -619,7 +621,7 @@ export function modelPickerTiles(
       ? [
           {
             key: `api:${provider}`,
-            mark: provider,
+            mark: list[0] ? modelMark(list[0].model) : provider,
             name: t("brain.picker.apiKey", { provider: providerLabel(provider) }),
             kind: "model",
             accounts: [],

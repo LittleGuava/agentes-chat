@@ -41,6 +41,7 @@ import {
   planAccountOption,
 } from "@agenteschat/client/lib/brain-picker";
 import { type ConnectedItem, itemName } from "@agenteschat/client/lib/connected";
+import { credentialMark } from "@agenteschat/client/lib/endpoints";
 import { errorText as failureText } from "@agenteschat/client/lib/errors";
 import { FIELD_LIMITS } from "@agenteschat/client/lib/field-limits";
 import { joinNames } from "@agenteschat/client/lib/format";
@@ -49,7 +50,7 @@ import { choiceOf, defaultPolicy, MAIL_ACTIONS, toMailLevel } from "@agenteschat
 import { type PlanChoice as AiPlan, planOfKind } from "@agenteschat/client/lib/no-ai";
 import { addsAgentsTo, can } from "@agenteschat/client/lib/permissions";
 import { keeperKey } from "@agenteschat/client/lib/personal-view";
-import { AUTO, apiProviderOf, isAuto, modelChoices, usableModels } from "@agenteschat/client/lib/providers";
+import { AUTO, apiMarkOf, isAuto, modelChoices, usableModels } from "@agenteschat/client/lib/providers";
 import { scopeText } from "@agenteschat/client/lib/scopes";
 import { isPersonal, modeKey } from "@agenteschat/client/lib/workspace-mode";
 import {
@@ -667,12 +668,13 @@ function NewAgentFlow({
         : isAuto(model)
           ? t("brain.auto.label")
           : (modelInfo?.label ?? model);
-  const apiProvider = apiProviderOf(model, models.data?.models ?? []);
-  const keys = keyOptions(t, credentials.data ?? [], settings.data?.defaultCredentialId ?? null, apiProvider);
-  // The key's maker: the one picked, else the workspace's default key, else the model's.
-  const keyProvider =
-    (credentials.data ?? []).find((c) => c.id === (key === DEFAULT_KEY ? settings.data?.defaultCredentialId : key))
-      ?.provider ?? apiProvider;
+  const apiMark = apiMarkOf(model, models.data?.models ?? []);
+  const keys = keyOptions(t, credentials.data ?? [], settings.data?.defaultCredentialId ?? null, apiMark);
+  // The key's mark: the one picked, else the workspace's default key, else the model's.
+  const pickedKey = (credentials.data ?? []).find(
+    (c) => c.id === (key === DEFAULT_KEY ? settings.data?.defaultCredentialId : key),
+  );
+  const keyProvider = pickedKey ? credentialMark(pickedKey) : apiMark;
   const keyLabel = keys.find((k) => k.value === key)?.label ?? t("newAgent.defaultKey");
   const granted = connectedList.filter((i) => (levels[i.id] ?? "none") !== "none");
   const grantedMail = mailboxes.filter((a) => (mailLevels[a.id] ?? "none") !== "none");

@@ -8,7 +8,7 @@ import {
   formatUsd,
   joinNames,
 } from "@agenteschat/client/lib/format";
-import { apiProviderOf } from "@agenteschat/client/lib/providers";
+import { apiMarkOf } from "@agenteschat/client/lib/providers";
 import {
   Card,
   CardFooter,
@@ -205,7 +205,7 @@ function BySource({ data }: { data: AgentPlanUsage }) {
   const { t, i18n } = useTranslation();
   const { agent, g } = useAgentEdit();
   const onApi = !agent.brain || agent.brain.kind === "model";
-  const keyProvider = apiProviderOf(agent.model, useModels().data?.models ?? []);
+  const keyProvider = apiMarkOf(agent.model, useModels().data?.models ?? []);
   return (
     <Card as="section" className="agp-card" aria-labelledby="agent-usage-sources">
       <CardHead id="agent-usage-sources" icon="wallet" title={t("usageViews.agent.byAccount")} />

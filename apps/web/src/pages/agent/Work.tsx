@@ -35,7 +35,7 @@ import {
 } from "@agenteschat/client/lib/no-ai";
 import { can as canDo } from "@agenteschat/client/lib/permissions";
 import { brainModelChoice, brainModelChoices, isPlanId, planOf } from "@agenteschat/client/lib/plans";
-import { apiProviderOf, isAuto } from "@agenteschat/client/lib/providers";
+import { apiMarkOf, isAuto } from "@agenteschat/client/lib/providers";
 import { cleanSite, SITE } from "@agenteschat/client/lib/sites";
 import { isPersonal, modeKey } from "@agenteschat/client/lib/workspace-mode";
 import {
@@ -181,7 +181,7 @@ export function WorkCard({
       ? "key"
       : planOfAccount({ kind, provider: agent.brain?.provider ?? null });
   // The model's maker; on Automático, the maker the server says its models come from.
-  const keyProvider = apiProviderOf(saved.model, models.data?.models ?? []) ?? agent.brain?.maker;
+  const keyProvider = apiMarkOf(saved.model, models.data?.models ?? []) ?? agent.brain?.maker;
   const orgModel = isAuto(saved.model)
     ? t("brain.auto.label")
     : (models.data?.models.find((m) => m.id === saved.model)?.label ?? saved.model);

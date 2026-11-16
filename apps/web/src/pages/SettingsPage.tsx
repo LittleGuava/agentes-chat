@@ -23,7 +23,7 @@ import { keyRemovalText } from "@agenteschat/client/lib/ai-accounts";
 import { composioUsageText, showsComposioUsage } from "@agenteschat/client/lib/composio";
 import { computerEdition } from "@agenteschat/client/lib/computer";
 import { settingsFrozen } from "@agenteschat/client/lib/deletion";
-import { CUSTOM_PROVIDER } from "@agenteschat/client/lib/endpoints";
+import { CUSTOM_PROVIDER, credentialMark } from "@agenteschat/client/lib/endpoints";
 import { errorText, keyRefusal } from "@agenteschat/client/lib/errors";
 import { FIELD_LIMITS } from "@agenteschat/client/lib/field-limits";
 import { formatShortDate, formatUsd, relativeTime } from "@agenteschat/client/lib/format";
@@ -869,7 +869,7 @@ function KeysSection() {
             return (
               <div key={c.id} className="ac-list__row key-row ac-mediarow ac-mediarow--row">
                 <span className="ac-mediarow__face">
-                  <ProviderLogo id={c.provider} size="sm" />
+                  <ProviderLogo id={credentialMark(c)} size="sm" />
                 </span>
                 <span className="ac-mediarow__head">
                   <b>{c.label}</b>

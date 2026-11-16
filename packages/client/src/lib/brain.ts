@@ -1,7 +1,7 @@
 import type { TFunction } from "i18next";
 import type { Agent, AgentBrainLine, AiStatus, BrainKind, BrainOption, Model } from "../api/types";
 import { type PlanChoice, planLabel, planOfAccount } from "./no-ai";
-import { apiModelName, apiProviderOf, autoMakerOf, isAuto } from "./providers";
+import { apiMarkOf, apiModelName, autoMakerOf, isAuto } from "./providers";
 
 /*
  * The engine an agent thinks and works with, as its icon draws it
@@ -94,7 +94,7 @@ export function agentThinks(
   const maker = autoMakerOf(status, agent.id);
   const model = apiModelName(t, agent.model, models.find((m) => m.id === agent.model)?.label, maker);
   const thinks = brainLine(t, agent.brain, model, { owner, ...(agents ? { agents } : {}) });
-  return { ...thinks, mark: thinks.mark ?? maker ?? apiProviderOf(agent.model, models) ?? null };
+  return { ...thinks, mark: thinks.mark ?? maker ?? apiMarkOf(agent.model, models) ?? null };
 }
 
 export function brainLine(

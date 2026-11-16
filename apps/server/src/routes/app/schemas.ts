@@ -915,7 +915,13 @@ export const Model = z
       description: "The size Automático uses it for on its provider's key, by default.",
     }),
     endpoint: z
-      .object({ credentialId: z.uuid(), name: z.string() })
+      .object({
+        credentialId: z.uuid(),
+        name: z.string(),
+        mark: z.string().optional().openapi({
+          description: "The maker's mark its address's host shows (`api.deepseek.com`: DeepSeek's); absent: generic.",
+        }),
+      })
       .optional()
       .openapi({ description: "A workspace endpoint's model (ADR 0146): whose credential, under what name." }),
     unpriced: z

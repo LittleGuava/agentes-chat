@@ -23,6 +23,7 @@ import {
 import { advancedContents, effortOf, viewSpeedFits } from "@agenteschat/client/lib/brain-advanced";
 import { computerNameOf, setupView } from "@agenteschat/client/lib/computer";
 import { contextChoices, isContextLimit } from "@agenteschat/client/lib/context-limits";
+import { credentialMark } from "@agenteschat/client/lib/endpoints";
 import { holdText } from "@agenteschat/client/lib/errors";
 import { firstName, namesText } from "@agenteschat/client/lib/format";
 import {
@@ -46,7 +47,7 @@ import {
   planModel as planModelOf,
   planOf,
 } from "@agenteschat/client/lib/plans";
-import { apiProviderOf, isAuto, keyLine, keySource, modelChoices } from "@agenteschat/client/lib/providers";
+import { apiMarkOf, isAuto, keyLine, keySource, modelChoices } from "@agenteschat/client/lib/providers";
 import { isPersonal, modeKey } from "@agenteschat/client/lib/workspace-mode";
 import { Icon, type IconName, ProviderLogo, planState } from "@agenteschat/ui";
 import { useTranslation } from "react-i18next";
@@ -296,7 +297,7 @@ export function useBrainState(view: AgentBrain, opts: { added: readonly MachineA
 
   // The workspace's keys, for whoever may pick one (admins); anyone else gets the API as the agent has it.
   const all = models.data?.models ?? [];
-  const apiProvider = apiProviderOf(saved.model, all);
+  const apiMark = apiMarkOf(saved.model, all);
   const keyMark = (provider: string | undefined) =>
     provider ? <ProviderLogo id={provider} size="xs" /> : <Icon name="key" size={20} className="arrival-have__mark" />;
   const keysGroup = { key: "keys", label: t("connectAi.chat.keys") };
@@ -337,11 +338,11 @@ export function useBrainState(view: AgentBrain, opts: { added: readonly MachineA
             def
               ? t("newAgent.defaultKeyDesc", { provider: keySource(def), hint: def.keyHint })
               : t("agentPage.work.brain.modelText", g),
-            def?.provider ?? apiProvider,
+            def ? credentialMark(def) : apiMark,
           ),
-          ...live.filter((c) => c.id !== defaultId).map((c) => keyRow(c.id, c.label, keyLine(t, c), c.provider)),
+          ...live.filter((c) => c.id !== defaultId).map((c) => keyRow(c.id, c.label, keyLine(t, c), credentialMark(c))),
         ]
-      : [keyRow(undefined, t("agentPage.work.brain.model"), t("agentPage.work.brain.modelText", g), apiProvider)];
+      : [keyRow(undefined, t("agentPage.work.brain.model"), t("agentPage.work.brain.modelText", g), apiMark)];
 
   // A plan whose accounts aren't listed here (it would move the agent, or the app there is too old): the plan itself.
   const planRow = (c: AiChoice, about?: string | null): BrainRow => ({
@@ -362,7 +363,7 @@ export function useBrainState(view: AgentBrain, opts: { added: readonly MachineA
           : t("agentPage.work.brain.planText", { plan: planLabel(t, c) })),
     whose: ownersWhose,
     group: ownersGroup,
-    mark: c === "key" ? keyMark(apiProvider) : <ProviderLogo id={planMark(c)} size="xs" />,
+    mark: c === "key" ? keyMark(apiMark) : <ProviderLogo id={planMark(c)} size="xs" />,
     usage: null,
     off: savedCard !== c && !homeOf(c),
     lends: false,
@@ -379,7 +380,7 @@ export function useBrainState(view: AgentBrain, opts: { added: readonly MachineA
   const currentRow =
     every.find((r) => r.current) ??
     (savedCard === "key"
-      ? keyRow(undefined, t("agentPage.work.brain.model"), t("agentPage.work.brain.modelText", g), apiProvider)
+      ? keyRow(undefined, t("agentPage.work.brain.model"), t("agentPage.work.brain.modelText", g), apiMark)
       : planRow(savedCard, reason(savedCard) ?? side(savedCard)?.text ?? null));
   const rows = every.filter((r) => !r.current);
 
@@ -428,7 +429,7 @@ export function useBrainState(view: AgentBrain, opts: { added: readonly MachineA
       : (planModels.find((m) => m.value === shownModel)?.label ?? view.effectiveModel ?? "");
   const modelMaker =
     kind === "model"
-      ? apiProvider
+      ? apiMark
       : (planModels.find((m) => m.value === shownModel)?.maker ??
         (savedCard === "key" ? undefined : planMark(savedCard)));
 
@@ -486,7 +487,7 @@ export function useBrainState(view: AgentBrain, opts: { added: readonly MachineA
     modelNow,
     modelName,
     modelMaker,
-    apiProvider,
+    apiMark,
     speedOn,
     savedContext,
     shownContext,
