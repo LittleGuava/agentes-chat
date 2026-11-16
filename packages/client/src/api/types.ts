@@ -2595,6 +2595,11 @@ export interface OrgSettings {
   defaultAgentBudgetUsd?: number;
   /** Agents check what the team already did before acting outside (ADR 0064). On by default. */
   actionCheck: boolean;
+  /**
+   * Under the reply of an agent the router's AI picked (Jev, a small model, a plan), a quiet line naming it (ADR 0074
+   * addendum 2026-11-16). Off by default, and absent from an older server: off.
+   */
+  routerCaption?: boolean;
   /** Per provider, the models Automático picks per tier where the workspace chose its own (ADR 0087). */
   autoModels: Partial<Record<string, Partial<Record<ModelTier, string>>>>;
   /** People can send GIFs in chat (ADR 0091); only with `gifsAvailable` too. On by default. */

@@ -205,6 +205,10 @@ const Settings = z
     actionCheck: z.boolean().openapi({
       description: "Agents check what the team already did before acting outside (ADR 0064). On by default.",
     }),
+    routerCaption: z.boolean().openapi({
+      description:
+        "Under the reply of an agent the router's AI picked (Jev, a small model, a plan), a quiet line naming it (ADR 0074 addendum 2026-11-16). Off by default.",
+    }),
     autoModels: z.record(z.string(), z.partialRecord(ModelTier, z.string())).openapi({
       description:
         "Per provider, the models Automático picks per tier where the workspace chose its own (`{ openrouter: { small, medium, large } }`, ADR 0087); a tier left out is the provider's default.",
@@ -679,6 +683,9 @@ export function managementRoutes(deps: AppDeps) {
               .optional()
               .openapi({ description: "Monthly budget of every agent without its own." }),
             actionCheck: z.boolean().optional(),
+            routerCaption: z.boolean().optional().openapi({
+              description: "Name the AI that picked an agent under its reply (ADR 0074 addendum 2026-11-16).",
+            }),
             autoModels: z.partialRecord(ProviderId, z.partialRecord(ModelTier, ModelId.nullable())).optional().openapi({
               description:
                 "Per provider and tier, one of that provider's models; null puts the tier back on its default.",

@@ -83,6 +83,11 @@ export interface OrgSettings extends MediaSettings {
   defaultAgentBudgetNanoUsd: number;
   /** Agents check what the team already did before an outside action (ADR 0064). On by default. */
   actionCheck: boolean;
+  /**
+   * "Mostrar quem escolheu o agente": the agents' replies an AI step of the router picked (Jev, a small model, a plan)
+   * name it in a quiet line. Off by default (ADR 0074 addendum 2026-11-16).
+   */
+  routerCaption: boolean;
   /** People can send voice messages (ADR 0100); they also need `voiceAvailable`. On by default. */
   voiceMessages: boolean;
   /** Agents may join online meetings to take notes (ADR 0199 §6). Off by default. */
@@ -122,6 +127,7 @@ export async function getOrgSettings(db: Database, actorId: string, orgId: strin
     teamSize: TEAM_SIZES.includes(s?.teamSize as TeamSize) ? (s?.teamSize as TeamSize) : null,
     defaultAgentBudgetNanoUsd: s?.defaultAgentBudgetNanoUsd ?? DEFAULT_AGENT_BUDGET_NANO_USD,
     actionCheck: s?.actionCheck ?? true,
+    routerCaption: s?.routerCaption ?? false,
     voiceMessages: s?.voiceMessages ?? true,
     meetingNotes: s?.meetingNotes ?? false,
     autoModels: (s?.autoModels ?? {}) as AutoModels,
@@ -273,6 +279,7 @@ export async function updateOrgSettings(
         ? { defaultAgentBudgetNanoUsd: Math.round(input.defaultAgentBudgetNanoUsd) }
         : {}),
       ...(input.actionCheck !== undefined ? { actionCheck: input.actionCheck } : {}),
+      ...(input.routerCaption !== undefined ? { routerCaption: input.routerCaption } : {}),
       ...(input.voiceMessages !== undefined ? { voiceMessages: input.voiceMessages } : {}),
       ...(input.meetingNotes !== undefined ? { meetingNotes: input.meetingNotes } : {}),
       ...(input.gifs !== undefined ? { gifs: input.gifs } : {}),

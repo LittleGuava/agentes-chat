@@ -3156,6 +3156,17 @@
       "auto": "Otomatik",
       "autoWith": "Otomatik · {{model}}",
       "saved": "Model kaydedildi."
+    },
+    "picked": {
+      "jev": "Jev seçti",
+      "model": "{{model}} seçti",
+      "planYours": "{{brand}} planınız seçti",
+      "planOf": "{{person}} kişisinin {{brand}} planı seçti",
+      "hint": "Kimseden bahsedilmedi, bu yüzden kimin cevap vereceğini seçen yapay zeka bu ajanı çağırdı. Bir yönetici bu satırı Ayarlar › Yapay zeka ve kullanım bölümünden gizleyebilir."
+    },
+    "caption": {
+      "title": "Ajanı kimin seçtiğini göster",
+      "hint": "Kimsenin bahsetmediği bir ajanın cevabının altında, onu seçen yapay zekâyı sade bir satır söyler."
     }
   },
   "noAi": {

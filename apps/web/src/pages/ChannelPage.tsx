@@ -388,6 +388,7 @@ import {
   WaitMark,
 } from "@/components/RequestCard";
 import { ReturnLine } from "@/components/ReturnLine";
+import { RouterCaption } from "@/components/RouterCaption";
 import { SharedDmCard } from "@/components/SharedDm";
 import { SidePanel } from "@/components/SidePanel";
 import { ActivitySky, ChannelWelcome, colorOf } from "@/components/Sky";
@@ -5043,6 +5044,7 @@ export const TimelineMessage = memo(function TimelineMessage({
             {m.author.type === "agent" && !m.local && <AgentActionReceipts message={m} />}
             {m.author.type === "agent" && !m.local && <HandedTaskChips message={m} />}
             {m.author.type === "agent" && !m.local && <TeamChecks message={m} />}
+            {m.author.type === "agent" && !m.local && <RouterCaption message={m} />}
             {m.author.type === "agent" && !m.local && <ReachLines message={m} />}
             {m.author.type === "agent" && !m.local && <FeedbackOfferRow message={m} />}
             {agent &&
