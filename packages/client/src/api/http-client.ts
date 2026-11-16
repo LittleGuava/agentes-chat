@@ -512,6 +512,9 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         request<void>(`${org(orgId)}/agents/${enc(agentId)}/browser-profile`, { method: "PUT", json: { profileId } }),
       request: (orgId, agentId) =>
         request<void>(`${org(orgId)}/agents/${enc(agentId)}/browser-profile/request`, { json: {} }),
+      runPersonal: async (orgId, runId) =>
+        (await request<{ profile: BrowserProfile | null }>(`${org(orgId)}/runs/${enc(runId)}/personal-browser`))
+          .profile,
     },
     desktop: {
       status: (orgId, agentId, seat) =>

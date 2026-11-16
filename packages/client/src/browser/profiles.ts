@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useApi } from "../api/context";
 import { keys } from "../api/keys";
 import type { BrowserProfile, Machine, PageTarget } from "../api/types";
@@ -25,6 +25,21 @@ export function useBrowserProfiles(orgId: string, enabled = true) {
     queryKey: keys.browserProfiles(orgId),
     queryFn: () => api.browserProfiles?.list(orgId) ?? Promise.resolve([] as BrowserProfile[]),
     enabled: enabled && Boolean(api.browserProfiles),
+  });
+}
+
+/**
+ * The viewer's own browser a run in their DM drives (ADR 0110 addendum 2026-11-15); null elsewhere. Asked at most
+ * twice: while the run's first browser command runs, and once it is done (`settled`), when it has surely made it.
+ */
+export function useRunPersonalBrowser(orgId: string, runId: string, settled: boolean, enabled = true) {
+  const api = useApi();
+  return useQuery({
+    queryKey: [...keys.runPersonalBrowser(orgId, runId), settled] as const,
+    queryFn: () => api.browserProfiles?.runPersonal?.(orgId, runId) ?? Promise.resolve(null),
+    enabled: enabled && Boolean(api.browserProfiles?.runPersonal),
+    staleTime: Number.POSITIVE_INFINITY,
+    placeholderData: keepPreviousData,
   });
 }
 

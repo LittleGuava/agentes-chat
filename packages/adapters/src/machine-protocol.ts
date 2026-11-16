@@ -7,7 +7,7 @@ import type { MergeDone } from "./command-policy";
  */
 
 /** Bumped on breaking changes; the server refuses runners older than `MIN_RUNNER_PROTOCOL`. */
-export const MACHINE_PROTOCOL_VERSION = 67;
+export const MACHINE_PROTOCOL_VERSION = 70;
 export const MIN_RUNNER_PROTOCOL = 1;
 /** From this protocol on, requests carry `agent` and each agent works in its own folder. */
 export const AGENT_FOLDERS_PROTOCOL = 2;
@@ -393,6 +393,14 @@ export const GITHUB_APP_TOKEN = /^ghs_[A-Za-z0-9._-]{36,4096}$/;
  * of a profile's stream carry `agentId: "profile:<id>"`. A system-mode runner refuses profiles (phase 2).
  */
 export const BROWSER_PROFILE_PROTOCOL = 34;
+
+/**
+ * Protocol 70: a person's own browser of an agent (ADR 0110 addendum 2026-11-15). A `browser.*` op may carry
+ * `profile: { id, personal: true }` with the real `agent`: the session and its Chrome stay the profile's (its folder
+ * under the runner's home, headless), but the files it reads and writes (uploads, screenshots, PDFs, downloads) are in
+ * that agent's own folder, as in its own browser.
+ */
+export const PERSONAL_BROWSER_PROTOCOL = 70;
 
 /**
  * From this protocol on: `brain.turn` carries `contextTokens`, the most context the agent's model reads
@@ -2697,8 +2705,11 @@ export type MachineRequest = (
   | { op: "xcode.open" }
 ) & {
   agent?: AgentScope;
-  /** Protocol 34: a `browser.*` op in this browser profile's session instead of the agent's (ADR 0110). */
-  profile?: { id: string };
+  /**
+   * Protocol 34: a `browser.*` op in this browser profile's session instead of the agent's (ADR 0110). `personal`
+   * (protocol 70): a person's own browser of `agent`, whose files stay in that agent's folder.
+   */
+  profile?: { id: string; personal?: true };
 };
 
 /** One command of a `browser.batch` (protocol 17). */

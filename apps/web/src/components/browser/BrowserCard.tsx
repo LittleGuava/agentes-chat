@@ -42,6 +42,7 @@ import {
   useBrowserScreen,
   useBrowserStuck,
   useMachines,
+  useRunPersonalBrowser,
   wheelEvent,
 } from "@agenteschat/client";
 import { formatTime, lowerFirst } from "@agenteschat/client/lib/format";
@@ -233,8 +234,16 @@ export function RunBrowserCard({ run, name }: { run: LiveRun; name: string }) {
   // In a shared profile (ADR 0110) the card shows the profile, to those who may watch it.
   const settings = useAgentBrowserSettings(org.id, run.agentId, steps.length > 0);
   const profiles = useBrowserProfiles(org.id, steps.length > 0);
-  const inProfile = runProfile(steps, settings.data?.profileId ?? null, profiles.data);
+  const named = runProfile(steps, settings.data?.profileId ?? null, profiles.data);
   const ended = run.status === "failed";
+  // In the viewer's DM with a shared agent, their own browser of it (ADR 0110 addendum 2026-11-15), theirs to drive.
+  const personal = useRunPersonalBrowser(
+    org.id,
+    run.runId,
+    steps.some((s) => !s.running),
+    steps.length > 0 && !named && !ended,
+  );
+  const inProfile = named ?? personal.data ?? null;
   const ask = !run.provisional && (ended || steps.length === 0);
   const open = useAgentBrowserHandoff(org.id, run.agentId, ask, HELD_STALE_MS);
   const held = isHeldTakeover(open.data, run.runId);
@@ -254,7 +263,9 @@ export function RunBrowserCard({ run, name }: { run: LiveRun; name: string }) {
               id: inProfile.id,
               name: inProfile.name,
               agentIds: inProfile.agentIds,
-              canDrive: canDo(org, "manage_connectors") && canDo(org, "control_browsers"),
+              canDrive: inProfile.personal
+                ? canDo(org, "own_browsers")
+                : canDo(org, "manage_connectors") && canDo(org, "control_browsers"),
             },
           }
         : {})}

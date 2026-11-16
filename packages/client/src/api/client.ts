@@ -2068,6 +2068,8 @@ export interface ApiClient {
     setDefault(orgId: string, agentId: string, profileId: string | null): Promise<void>;
     /** "Pedir mais um perfil": the people who grant profiles hear of it. */
     request(orgId: string, agentId: string): Promise<void>;
+    /** The caller's own browser a run in their DM drives (null elsewhere); absent from older fakes. */
+    runPersonal?(orgId: string, runId: string): Promise<BrowserProfile | null>;
   };
   /**
    * The Vault (ADR 0144): logins, keys and contacts agents use without seeing a password or a key. No answer carries

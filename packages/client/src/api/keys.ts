@@ -263,6 +263,7 @@ export const keys = {
   agentBrowser: (orgId: string, agentId: string) => ["org", orgId, "browser", "agent", agentId] as const,
   /** The workspace's browser profiles (ADR 0110). */
   browserProfiles: (orgId: string) => ["org", orgId, "browser", "profiles"] as const,
+  runPersonalBrowser: (orgId: string, runId: string) => ["org", orgId, "browser", "personal", runId] as const,
   /** Everything of the Vault (ADR 0144), the prefix `vault.changed` refreshes. */
   vault: (orgId: string) => ["org", orgId, "vault"] as const,
   /** The Vault as this person sees it: items (never a value), connections, sources. */
