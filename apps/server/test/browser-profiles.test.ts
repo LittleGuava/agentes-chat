@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
-import { BROWSER_PROFILE_PROTOCOL, type MachineRequest } from "@agenteschat/adapters";
+import { BROWSER_PROFILE_PROTOCOL, BROWSER_SITES_PROTOCOL, type MachineRequest } from "@agenteschat/adapters";
 import { and, eq, schema } from "@agenteschat/db";
 import { MachineRequestError } from "@agenteschat/engine";
 import { parseBrowserClientFrame } from "../src/realtime/browser";
@@ -213,4 +213,58 @@ test("a system-mode computer refuses every profile call: create, list, change, F
   await refused(await api(`/browser-profiles/${p.id}/open`, { json: { url: "chat.example" } }));
   await refused(await api(`/agents/${org.agentId}/browser-profile`, { method: "PUT", json: { profileId: p.id } }));
   expect((await json<{ profiles: Profile[] }>(await api("/browser-profiles"))).profiles).toEqual([]);
+});
+
+test("signed-in sites: its drivers list them and sign out of one; a member can't; an older computer is told to update", async () => {
+  const { owner, org, api, machine, asked } = await seeded();
+  const p = await json<Profile>(
+    await api("/browser-profiles", { json: { machineId: machine.machineId, name: "Shop chat" } }),
+  );
+  const hub = t.engine.machineHub;
+  const answer = hub.call;
+  hub.call = (async (machineId: string, request: MachineRequest, options?: unknown) => {
+    if (request.op === "browser.sites") {
+      asked.push(request);
+      return { sites: [{ site: "web.whatsapp.com", cookies: 1, storage: 1 }] };
+    }
+    if (request.op === "browser.sites.forget") {
+      asked.push(request);
+      return { cookies: 1, storage: 1, sites: [] };
+    }
+    return (answer as (...a: unknown[]) => unknown)(machineId, request, options);
+  }) as typeof hub.call;
+  // Before the computer speaks the protocol: told to update, and nothing asked.
+  const old = await api(`/browser-profiles/${p.id}/sites`);
+  expect(old.status).toBe(400);
+  expect(await old.json()).toMatchObject({ error: { code: "browser_profile.machine" } });
+  expect(asked.some((r) => r.op === "browser.sites")).toBe(false);
+
+  await t.db
+    .update(schema.machines)
+    .set({ protocol: BROWSER_SITES_PROTOCOL })
+    .where(eq(schema.machines.id, machine.machineId));
+  const listed = await api(`/browser-profiles/${p.id}/sites`);
+  expect(listed.status).toBe(200);
+  expect(await listed.json()).toEqual({ sites: [{ site: "web.whatsapp.com", cookies: 1, storage: 1 }] });
+
+  const member = await joinByInvitation(t, owner, org.orgId, "rui@example.com");
+  const asMember = (path: string, init?: Parameters<typeof member>[1]) =>
+    member(`/api/app/organizations/${org.orgId}${path}`, init);
+  expect((await asMember(`/browser-profiles/${p.id}/sites`)).status).toBe(403);
+  expect(
+    (await asMember(`/browser-profiles/${p.id}/sites/sign-out`, { json: { site: "web.whatsapp.com" } })).status,
+  ).toBe(403);
+
+  const out = await api(`/browser-profiles/${p.id}/sites/sign-out`, { json: { site: "web.whatsapp.com" } });
+  expect(out.status).toBe(200);
+  expect(await out.json()).toEqual({ site: "web.whatsapp.com", cookies: 1, storage: 1, sites: [] });
+  expect(asked.at(-1)).toMatchObject({ op: "browser.sites.forget", site: "web.whatsapp.com", profile: { id: p.id } });
+  // The profile is free again, and the audit log names the site.
+  expect((await json<{ profiles: Profile[] }>(await api("/browser-profiles"))).profiles[0]?.holder).toBeNull();
+  const [row] = await t.db
+    .select({ details: schema.auditLog.details })
+    .from(schema.auditLog)
+    .where(and(eq(schema.auditLog.orgId, org.orgId), eq(schema.auditLog.action, "browser_profile.site_signed_out")));
+  expect(row?.details).toEqual({ name: "Shop chat", site: "web.whatsapp.com", cookies: 1, storage: 1 });
+  expect((await api(`/browser-profiles/${p.id}/sites/sign-out`, { json: { site: "not a site" } })).status).toBe(400);
 });

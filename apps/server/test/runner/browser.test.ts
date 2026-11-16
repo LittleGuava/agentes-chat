@@ -1,3 +1,4 @@
+import { Database } from "bun:sqlite";
 import { afterEach, describe, expect, test } from "bun:test";
 import {
   chmodSync,
@@ -4279,6 +4280,164 @@ test.if(posix)("deleting a profile stops its Chrome and removes its folder; syst
       handleRequest(system, { agent: dev, profile: { id: PROFILE }, op: "browser.warm" }, profileScope),
     ),
   ).toBe("not_allowed");
+});
+
+/**
+ * A profile's Chrome whose DevTools answer as Chrome 157 did: its cookies (values included) from `Storage.getCookies`
+ * on the browser's target, `Network.deleteCookies` and `Storage.clearDataForOrigin` only on a tab's session (the
+ * latter drops the origin's row from the quota database, as Chrome does once all its data is cleared).
+ */
+function profileWithSites(cookies: Record<string, unknown>[], storageKeys: string[]) {
+  const devtools: FakeSocket[] = [];
+  const jar = [...cookies];
+  let quota = "";
+  const db = () => {
+    const sqlite = new Database(quota);
+    sqlite.run("CREATE TABLE IF NOT EXISTS buckets (id INTEGER PRIMARY KEY, storage_key TEXT NOT NULL)");
+    return sqlite;
+  };
+  const answer = (s: FakeSocket, m: Record<string, unknown>) => {
+    const params = (m.params ?? {}) as Record<string, unknown>;
+    const onTab = m.sessionId === "tab-1";
+    const reply = (result: unknown) => s.push({ id: m.id, ...(m.sessionId ? { sessionId: m.sessionId } : {}), result });
+    const refuse = () => s.push({ id: m.id, error: { code: -32603, message: "Internal error" } });
+    switch (m.method) {
+      case "Target.setAutoAttach":
+        reply({});
+        if (!m.sessionId) {
+          s.push({
+            method: "Target.attachedToTarget",
+            params: { sessionId: "tab-1", targetInfo: { type: "page", targetId: "t1" } },
+          });
+        }
+        return;
+      case "Storage.getCookies":
+        return m.sessionId ? refuse() : reply({ cookies: jar });
+      case "Network.deleteCookies": {
+        if (!onTab) return refuse();
+        const i = jar.findIndex((c) => c.name === params.name && c.domain === params.domain && c.path === params.path);
+        if (i >= 0) jar.splice(i, 1);
+        return reply({});
+      }
+      case "Storage.clearDataForOrigin": {
+        if (!onTab || params.storageTypes !== "all") return refuse();
+        const sqlite = db();
+        sqlite.run("DELETE FROM buckets WHERE storage_key = ?", [`${String(params.origin)}/`]);
+        sqlite.close();
+        return reply({});
+      }
+      default:
+        return reply({});
+    }
+  };
+  const chromes = fakeChromes();
+  const t = setup({
+    startChrome: async (exe, args, profile) => {
+      quota = path.join(profile, "Default", "WebStorage", "QuotaManager");
+      mkdirSync(path.dirname(quota), { recursive: true });
+      const sqlite = db();
+      for (const key of storageKeys) sqlite.run("INSERT INTO buckets (storage_key) VALUES (?)", [key]);
+      sqlite.close();
+      return { ...(await chromes.start(exe, args, profile)), wsPath: "/devtools/browser/sites" };
+    },
+    connectDevtools: (url) => {
+      const s = new FakeSocket(url);
+      const send = s.send.bind(s);
+      s.send = (data: string) => {
+        send(data);
+        const m = JSON.parse(data) as Record<string, unknown>;
+        queueMicrotask(() => answer(s, m));
+      };
+      devtools.push(s);
+      queueMicrotask(() => s.onopen?.());
+      return s;
+    },
+  });
+  return { t, devtools, jar, chromes: chromes.started };
+}
+
+test("a profile lists its signed-in sites without a value, and signs out of one: its cookies and its stored data", async () => {
+  const { t, devtools, jar, chromes } = profileWithSites(
+    [
+      { name: "SID", value: "google-secret", domain: ".google.com", path: "/" },
+      { name: "LSID", value: "accounts-secret", domain: "accounts.google.com", path: "/" },
+      { name: "wa_ul", value: "whatsapp-secret", domain: "web.whatsapp.com", path: "/" },
+    ],
+    ["https://mail.google.com/", "https://web.whatsapp.com/", "chrome-extension://nkeimhogjdpnpccoofpliimaahmaaome/"],
+  );
+  const ctx = { workspaceReal: t.ws, exec: true, token: "agm_x", access: browserOn, browser: t.manager };
+  const listed = await handleRequest(ctx, { agent: dev, profile: { id: PROFILE }, op: "browser.sites" }, profileScope);
+  expect(listed).toEqual({
+    sites: [
+      { site: "google.com", cookies: 2, storage: 1 },
+      { site: "web.whatsapp.com", cookies: 1, storage: 1 },
+    ],
+  });
+  expect(JSON.stringify(listed)).not.toContain("secret");
+  // Its Chrome started for it, in the profile's own folder, headless.
+  expect(chromes).toHaveLength(1);
+  expect(chromes[0]?.profile).toBe(path.join(t.home, "browser-profiles", PROFILE, ".agentes", "browser"));
+
+  const out = await handleRequest(
+    ctx,
+    { agent: dev, profile: { id: PROFILE }, op: "browser.sites.forget", site: "google.com" },
+    profileScope,
+  );
+  expect(out).toEqual({ cookies: 2, storage: 1, sites: [{ site: "web.whatsapp.com", cookies: 1, storage: 1 }] });
+  expect(jar.map((c) => c.name)).toEqual(["wa_ul"]);
+  const sent = devtools[0]?.sent ?? [];
+  expect(sent.filter((m) => m.method === "Network.deleteCookies")).toEqual([
+    expect.objectContaining({ sessionId: "tab-1", params: { name: "SID", domain: ".google.com", path: "/" } }),
+    expect.objectContaining({ sessionId: "tab-1", params: { name: "LSID", domain: "accounts.google.com", path: "/" } }),
+  ]);
+  expect(sent.filter((m) => m.method === "Storage.clearDataForOrigin")).toEqual([
+    expect.objectContaining({ sessionId: "tab-1", params: { origin: "https://mail.google.com", storageTypes: "all" } }),
+  ]);
+  // A site that isn't there removes nothing.
+  expect(
+    await handleRequest(
+      ctx,
+      { agent: dev, profile: { id: PROFILE }, op: "browser.sites.forget", site: "accounts.google.com" },
+      profileScope,
+    ),
+  ).toMatchObject({ cookies: 0, storage: 0 });
+});
+
+test("signed-in sites are a profile's only: the agent's own browser, a site that isn't a host, the browser off and system mode are refused", async () => {
+  const { t, chromes } = profileWithSites([], []);
+  const ctx = { workspaceReal: t.ws, exec: true, token: "agm_x", access: browserOn, browser: t.manager };
+  expect(await errorCode(() => handleRequest(ctx, { agent: dev, op: "browser.sites" }, profileScope))).toBe(
+    "bad_request",
+  );
+  for (const site of ["https://google.com", "Google.com", "", 42]) {
+    expect(
+      await errorCode(() =>
+        handleRequest(
+          ctx,
+          { agent: dev, profile: { id: PROFILE }, op: "browser.sites.forget", site } as MachineRequest,
+          profileScope,
+        ),
+      ),
+    ).toBe("bad_request");
+  }
+  const off = (): RunnerAccess => ({ folders: [], tools: { claude: false, codex: false, commands: true } });
+  expect(
+    await errorCode(() =>
+      handleRequest(
+        { ...ctx, access: off },
+        { agent: dev, profile: { id: PROFILE }, op: "browser.sites" },
+        profileScope,
+      ),
+    ),
+  ).toBe("not_allowed");
+  const system = { ...ctx, systemMode: () => true, workers: { run: async () => ({}) } };
+  expect(
+    await errorCode(() =>
+      handleRequest(system, { agent: dev, profile: { id: PROFILE }, op: "browser.sites" }, profileScope),
+    ),
+  ).toBe("not_allowed");
+  // Nothing started for any of them.
+  expect(chromes).toHaveLength(0);
 });
 
 // ── The Vault (ADR 0144) ─────────────────────────────────────────────────────

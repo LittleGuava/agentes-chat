@@ -8342,6 +8342,24 @@ export interface BrowserProfile {
   lastUsedAt: string | null;
 }
 
+/**
+ * A site a browser profile is signed in to (ADR 0110, addendum 2026-11-15): a host as wide as a domain cookie that
+ * covers it, how many cookies it has and how many of its origins keep data. Never a cookie's name or value.
+ */
+export interface BrowserSite {
+  site: string;
+  cookies: number;
+  storage: number;
+}
+
+/** What "Sair" removed from one site, and the sites after. */
+export interface BrowserSiteSignOut {
+  site: string;
+  cookies: number;
+  storage: number;
+  sites: BrowserSite[];
+}
+
 /** What an agent's browser command waits for. */
 export interface BrowserProfileWait {
   profileId: string;

@@ -7,7 +7,7 @@ import type { MergeDone } from "./command-policy";
  */
 
 /** Bumped on breaking changes; the server refuses runners older than `MIN_RUNNER_PROTOCOL`. */
-export const MACHINE_PROTOCOL_VERSION = 68;
+export const MACHINE_PROTOCOL_VERSION = 74;
 export const MIN_RUNNER_PROTOCOL = 1;
 /** From this protocol on, requests carry `agent` and each agent works in its own folder. */
 export const AGENT_FOLDERS_PROTOCOL = 2;
@@ -713,6 +713,28 @@ export interface CliInstall {
  * The server never sends any of these to an older runner.
  */
 export const COPILOT_PROTOCOL = 68;
+
+/**
+ * From this protocol on (ADR 0110, addendum 2026-11-15): a browser profile's signed-in sites. `browser.sites` lists
+ * them (hosts and counts only, never a cookie's name or value, never what a site stored) and `browser.sites.forget`
+ * signs the profile out of one: its cookies and every origin of it with stored data. Both only with `profile`: the
+ * agent's own browser answers `bad_request`. The server never sends either to an older runner.
+ */
+export const BROWSER_SITES_PROTOCOL = 74;
+
+/**
+ * One site a browser profile is signed in to: a host (no scheme, no port), as wide as a domain cookie that covers it
+ * says. `cookies`: how many it has; `storage`: how many of its origins keep data (local storage, IndexedDB, caches).
+ */
+export interface BrowserSite {
+  site: string;
+  cookies: number;
+  storage: number;
+}
+
+/** A site as the runner takes it in `browser.sites.forget`: a lowercase host name, at most 253 characters. */
+export const BROWSER_SITE_HOST =
+  /^(?=.{1,253}$)[a-z0-9_](?:[a-z0-9_-]{0,62}[a-z0-9_])?(?:\.[a-z0-9_](?:[a-z0-9_-]{0,62}[a-z0-9_])?)*$/;
 
 export type PhonePlatform = "android" | "ios";
 export type PhoneKind = "device" | "emulator" | "simulator";
@@ -2667,6 +2689,10 @@ export type MachineRequest = (
   | { op: "browser.warm"; desktop?: boolean }
   /** Protocol 34: stops a browser profile's Chrome and removes its folder (the profile was deleted). */
   | { op: "browser.profile.delete" }
+  /** `BROWSER_SITES_PROTOCOL`: the profile's signed-in sites (its Chrome starts when it isn't running). */
+  | { op: "browser.sites" }
+  /** `BROWSER_SITES_PROTOCOL`: the profile signs out of `site` (`BROWSER_SITE_HOST`): its cookies and stored data. */
+  | { op: "browser.sites.forget"; site: string }
   /** Protocol 18: starts the agent's desktop; when it runs already, only marks it used (idempotent). */
   | { op: "desktop.session.start" }
   /** Protocol 18: ends the agent's desktop, and its browser on it. */
@@ -2798,6 +2824,8 @@ export const MACHINE_OPS: readonly MachineOp[] = [
   "browser.capture",
   "browser.warm",
   "browser.profile.delete",
+  "browser.sites",
+  "browser.sites.forget",
   "desktop.session.start",
   "desktop.session.stop",
   "desktop.session.status",
@@ -2936,6 +2964,10 @@ export interface MachineReplies {
   /** `false`: nothing was started (it runs or starts already, a person has the browser, or no room). */
   "browser.warm": { started: boolean; setup?: BrowserSetup };
   "browser.profile.delete": { deleted: boolean };
+  /** Sorted by site. */
+  "browser.sites": { sites: BrowserSite[] };
+  /** What went (cookies deleted, origins cleared) and the sites after. */
+  "browser.sites.forget": { cookies: number; storage: number; sites: BrowserSite[] };
   /**
    * The page as a JPEG (base64), its size in pixels, the page's size in CSS
    * pixels, and its numbered elements with their boxes (CSS pixels).

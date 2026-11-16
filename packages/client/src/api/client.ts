@@ -97,6 +97,8 @@ import type {
   BrainScope,
   BrowserHandoff,
   BrowserProfile,
+  BrowserSite,
+  BrowserSiteSignOut,
   CalendarEvent,
   CalendarEventInput,
   CalendarEventPatch,
@@ -2237,6 +2239,13 @@ export interface ApiClient {
     setDefault(orgId: string, agentId: string, profileId: string | null): Promise<void>;
     /** "Pedir mais um perfil": the people who grant profiles hear of it. */
     request(orgId: string, agentId: string): Promise<void>;
+    /**
+     * The sites the profile is signed in to, for its drivers (its Chrome may start for it: ask when a person opens the
+     * list). 400 `browser_profile.machine` (outdated runner).
+     */
+    sites(orgId: string, profileId: string): Promise<BrowserSite[]>;
+    /** "Sair" from one site; 409 `browser_profile.busy` while an agent or another person has the profile. */
+    signOutSite(orgId: string, profileId: string, site: string): Promise<BrowserSiteSignOut>;
   };
   /**
    * The Vault (ADR 0144): logins, keys and contacts agents use without seeing a password or a key. No answer carries

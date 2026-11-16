@@ -45730,6 +45730,39 @@
   "browser.profiles.outdated": {
     "value": "Update this computer to use browser profiles."
   },
+  "browser.profiles.sites": {
+    "value": "Signed-in sites"
+  },
+  "browser.profiles.sitesTitle": {
+    "value": "Signed-in sites of {{name}}"
+  },
+  "browser.profiles.sitesEmpty": {
+    "value": "This profile isn't signed in to any site."
+  },
+  "browser.profiles.sitesCookies": {
+    "value": {
+      "one": "{{count}} cookie",
+      "other": "{{count}} cookies"
+    }
+  },
+  "browser.profiles.sitesStorage": {
+    "value": "saved data"
+  },
+  "browser.profiles.sitesNote": {
+    "value": "Signing out removes the site's cookies and the data it saved in this profile."
+  },
+  "browser.profiles.sitesOutdated": {
+    "value": "Update this computer to see the sites its profiles are signed in to."
+  },
+  "browser.profiles.signOut": {
+    "value": "Sign out"
+  },
+  "browser.profiles.signOutOf": {
+    "value": "Sign out of {{site}}"
+  },
+  "browser.profiles.signedOut": {
+    "value": "Signed out of {{site}}."
+  },
   "browser.profiles.nameTaken": {
     "value": "A profile with this name already exists."
   },

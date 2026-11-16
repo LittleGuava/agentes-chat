@@ -1,5 +1,5 @@
-import type { BrowserProfile, Machine } from "@agenteschat/client";
-import { profileUser, useBrowserProfileMutations, useBrowserProfiles } from "@agenteschat/client";
+import type { BrowserProfile, BrowserSite, Machine } from "@agenteschat/client";
+import { profileUser, useBrowserProfileMutations, useBrowserProfiles, useProfileSites } from "@agenteschat/client";
 import { profileRefusalLine, profileToolOff, profileUnavailable } from "@agenteschat/client/lib/machines";
 import { can as canDo } from "@agenteschat/client/lib/permissions";
 import {
@@ -20,6 +20,7 @@ import {
   MenuItem,
   SettingNote,
 } from "@agenteschat/ui";
+import type { TFunction } from "i18next";
 import { type ReactNode, useRef, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useDirectory } from "@/hooks/useDirectory";
@@ -257,6 +258,87 @@ function DeleteDialog({ profile, onClose }: { profile: BrowserProfile; onClose: 
   );
 }
 
+/** What a site keeps in the profile, in one quiet line: its cookies, and whether it stored data. */
+function siteLine(t: TFunction, s: BrowserSite) {
+  const parts = [
+    ...(s.cookies > 0 ? [t("browser.profiles.sitesCookies", { count: s.cookies })] : []),
+    ...(s.storage > 0 ? [t("browser.profiles.sitesStorage")] : []),
+  ];
+  return parts.join(" · ");
+}
+
+/**
+ * "Sites conectados" (ADR 0110, addendum 2026-11-15): the sites the profile is signed in to, each with Sair. Asked
+ * for when it opens (the profile's Chrome may start for it), never with the profiles' list.
+ */
+function SitesDialog({ profile, onClose }: { profile: BrowserProfile; onClose: () => void }) {
+  const { t } = useTranslation();
+  const { org } = useOrg();
+  const toast = useToast();
+  const sites = useProfileSites(org.id, profile.id);
+  const actions = useBrowserProfileMutations(org.id);
+  const [leaving, setLeaving] = useState<string | null>(null);
+  const signOut = (site: string) => {
+    setLeaving(site);
+    actions.signOutSite.mutate(
+      { profileId: profile.id, site },
+      {
+        onSuccess: () => toast.show(t("browser.profiles.signedOut", { site })),
+        onError: (err) => toast.show(profileRefusalLine(t, err), "error"),
+        onSettled: () => setLeaving(null),
+      },
+    );
+  };
+  return (
+    <Dialog
+      open
+      onOpenChange={(o) => !o && onClose()}
+      title={t("browser.profiles.sitesTitle", { name: profile.name })}
+      closeLabel={t("common.close")}
+      width={520}
+    >
+      <DialogBody>
+        {sites.isPending ? (
+          <LoadingList count={3} avatar={false} />
+        ) : sites.isError ? (
+          errorCode(sites.error) === "browser_profile.machine" ? (
+            <SettingNote icon="alert">{t("browser.profiles.sitesOutdated")}</SettingNote>
+          ) : (
+            <ErrorState error={sites.error} onRetry={() => void sites.refetch()} />
+          )
+        ) : sites.data.length === 0 ? (
+          <EmptyState size="panel" title={t("browser.profiles.sitesEmpty")} />
+        ) : (
+          <>
+            <div className="machine-page__agents">
+              {sites.data.map((s) => (
+                <div key={s.site} className="machine-page__agent-row">
+                  <span className="machine-page__agent list-col">
+                    <span className="machine-page__agent-name">{s.site}</span>
+                    <span className="small muted">{siteLine(t, s)}</span>
+                  </span>
+                  <Button
+                    className="machine-page__screen"
+                    size="sm"
+                    variant="ghost"
+                    loading={leaving === s.site}
+                    disabled={leaving !== null}
+                    aria-label={t("browser.profiles.signOutOf", { site: s.site })}
+                    onClick={() => signOut(s.site)}
+                  >
+                    {t("browser.profiles.signOut")}
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <SettingNote icon="lock">{t("browser.profiles.sitesNote")}</SettingNote>
+          </>
+        )}
+      </DialogBody>
+    </Dialog>
+  );
+}
+
 /**
  * A profile's live view, in control ("Fazer login") or watching ("Assistir"), in the computer dialog's frame: the page
  * fills it and the card's head is the dialog's head, so the profile's name shows once, in the title.
@@ -385,7 +467,10 @@ function RefusalLine({
   );
 }
 
-type Open = { kind: "new" } | { kind: "rename" | "agents" | "delete" | "view"; profile: BrowserProfile } | null;
+type Open =
+  | { kind: "new" }
+  | { kind: "rename" | "agents" | "delete" | "view" | "sites"; profile: BrowserProfile }
+  | null;
 
 /**
  * "Perfis do navegador" on a computer's page (ADR 0110): named, shared logins that the chosen agents use, one at a
@@ -534,6 +619,11 @@ export function BrowserProfilesCard({ machine: m }: { machine: Machine }) {
                           {t("browser.profiles.watch", { name: userName })}
                         </MenuItem>
                       )}
+                      {drive && (
+                        <MenuItem icon="globe" onSelect={() => setOpen({ kind: "sites", profile: p })}>
+                          {t("browser.profiles.sites")}
+                        </MenuItem>
+                      )}
                       {manage && (
                         <>
                           <MenuItem icon="edit" onSelect={() => setOpen({ kind: "rename", profile: p })}>
@@ -585,6 +675,7 @@ export function BrowserProfilesCard({ machine: m }: { machine: Machine }) {
       {open?.kind === "agents" && <AgentsDialog profile={open.profile} onClose={() => setOpen(null)} />}
       {open?.kind === "delete" && <DeleteDialog profile={open.profile} onClose={() => setOpen(null)} />}
       {open?.kind === "view" && <ProfileView profile={open.profile} machine={m} onClose={() => setOpen(null)} />}
+      {open?.kind === "sites" && <SitesDialog profile={open.profile} onClose={() => setOpen(null)} />}
     </Card>
   );
 }

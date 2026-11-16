@@ -37,6 +37,9 @@ import { urlCarries } from "./vault";
  *
  * It also holds the page size the agent asked for (`emulate`, protocol 52) on every tab.
  *
+ * It also asks Chrome one thing and waits for the answer (`ask`): a browser profile's signed-in sites, and signing
+ * out of one (ADR 0110, addendum 2026-11-15).
+ *
  * It also guards a password about to be typed (ADR 0144, `guard`): for a
  * while, every request of that Chrome pauses (`Fetch.enable` on each of its
  * sessions, new ones too) and one whose address carries the password fails
@@ -119,8 +122,21 @@ export interface TrafficCounter {
    * Null ends it on every tab.
    */
   emulate(commands: CdpCommand[] | null): void;
+  /**
+   * One command and Chrome's answer: on the browser's own target, or (`page`) on one of its tabs' sessions, which
+   * `Network.*` and `Storage.clearDataForOrigin` need (Chrome 157 refuses the latter on the browser's target).
+   * Rejects with Chrome's error, when the socket closes, when no tab is attached for `page`, or after `ms`.
+   */
+  ask(
+    method: string,
+    params: Record<string, unknown>,
+    opts?: { page?: boolean; ms?: number },
+  ): Promise<Record<string, unknown>>;
   close(): void;
 }
+
+/** How long `ask` waits for Chrome's answer by default. */
+export const ASK_MS = 10_000;
 
 export interface CdpCommand {
   method: string;
@@ -246,6 +262,8 @@ export function countChromeTraffic(
   const answers = new Map<number, (result: Params) => void>();
   /** What waits only for Chrome to answer, told whether it was an error, by the id it was asked under. */
   const acks = new Map<number, (failed: boolean) => void>();
+  /** `ask`'s callers, by the id they asked under: settled by the answer, an error, the close or their timer. */
+  const asked = new Map<number, (outcome: { result: Params } | { error: string }) => void>();
   /** Guards waiting on acknowledgements: told when the socket closes (they never come then). */
   const closeWaiters = new Set<() => void>();
   let closed = false;
@@ -397,6 +415,17 @@ export function countChromeTraffic(
       ready();
     }
     if (typeof msg.id === "number") {
+      const asker = asked.get(msg.id);
+      if (asker) {
+        asked.delete(msg.id);
+        if (msg.error === undefined) asker({ result: isObject(msg.result) ? msg.result : {} });
+        else
+          asker({
+            error:
+              isObject(msg.error) && typeof msg.error.message === "string" ? msg.error.message : "Chrome refused it",
+          });
+        return;
+      }
       const then = answers.get(msg.id);
       answers.delete(msg.id);
       const ack = acks.get(msg.id);
@@ -517,6 +546,8 @@ export function countChromeTraffic(
       clearTimeout(guardTimer);
       for (const waiter of [...closeWaiters]) waiter();
       closeWaiters.clear();
+      for (const asker of [...asked.values()]) asker({ error: "The browser closed" });
+      asked.clear();
       fetchStates.clear();
       sessions.clear();
       pages.clear();
@@ -564,6 +595,25 @@ export function countChromeTraffic(
     emulate(commands) {
       emulation = commands;
       for (const id of pages.keys()) for (const c of commands ?? CLEAR_EMULATION) send(c.method, c.params, id);
+    },
+    ask(method, params, opts = {}) {
+      if (closed || !socket) return Promise.reject(new Error("The browser closed"));
+      const sessionId = opts.page ? pages.keys().next().value : undefined;
+      if (opts.page && !sessionId) return Promise.reject(new Error("The browser has no tab open"));
+      return new Promise<Params>((resolve, reject) => {
+        // Its answer comes on a later turn of the event loop, so registering it after sending is in time.
+        const id = send(method, params, sessionId);
+        const timer = setTimeout(() => {
+          asked.delete(id);
+          reject(new Error(`The browser didn't answer ${method}`));
+        }, opts.ms ?? ASK_MS);
+        (timer as { unref?: () => void }).unref?.();
+        asked.set(id, (outcome) => {
+          clearTimeout(timer);
+          if ("error" in outcome) reject(new Error(outcome.error));
+          else resolve(outcome.result);
+        });
+      });
     },
     close() {
       try {

@@ -4,6 +4,7 @@ import path from "node:path";
 import { ASK_AGAIN, inBrowserProfile } from "@agenteschat/adapters/command-policy";
 import {
   type AgentScope,
+  BROWSER_SITE_HOST,
   browserSetupOf,
   type FileEntry,
   isStreamId,
@@ -175,6 +176,9 @@ export const OP_ROUTES: Readonly<Record<MachineOp, "machine" | "agent">> = {
   "browser.warm": "agent",
   // Root answers it, and refuses it (and every op with `profile`) in system mode until profiles have their own users.
   "browser.profile.delete": "machine",
+  // Only a browser profile's (ADR 0110 addendum 2026-11-15), answered by root as above.
+  "browser.sites": "machine",
+  "browser.sites.forget": "machine",
   // Root's: a stream's data socket needs the machine token, which no worker holds, and a desktop's password file
   // must be one its agent can't rewrite.
   "desktop.session.start": "machine",
@@ -643,7 +647,14 @@ async function routeRequest(ctx: HandlerContext, req: MachineRequest, scope: Req
   // Protocol 49: an agent's (or a profile's) live view socket, this process's in every mode (ADR 0040 §7.1).
   if (req.op === "browser.view.open") return openBrowserView(ctx, req);
   // Protocol 34: a browser profile's session, never an agent's worker or folder (ADR 0110).
-  if (req.profile || req.op === "browser.profile.delete") return handleProfileBrowser(ctx, req, scope);
+  if (
+    req.profile ||
+    req.op === "browser.profile.delete" ||
+    req.op === "browser.sites" ||
+    req.op === "browser.sites.forget"
+  ) {
+    return handleProfileBrowser(ctx, req, scope);
+  }
   if (ctx.systemMode?.() && OP_ROUTES[req.op] !== "machine") {
     if (!ctx.workers) {
       throw new RunnerError(
@@ -1117,6 +1128,16 @@ async function handleProfileBrowser(ctx: HandlerContext, req: MachineRequest, sc
   switch (req.op) {
     case "browser.profile.delete":
       return browser.deleteProfile(agent, folder);
+    case "browser.sites":
+      requireTool(ctx, "browser");
+      return browser.sites(agent, folder);
+    case "browser.sites.forget": {
+      requireTool(ctx, "browser");
+      const site = req.site;
+      if (typeof site !== "string" || !BROWSER_SITE_HOST.test(site))
+        throw new RunnerError("bad_request", "Which site?");
+      return browser.forgetSite(agent, folder, site);
+    }
     case "browser.stop":
       return browser.stop(agent);
     case "browser.stream.stop":

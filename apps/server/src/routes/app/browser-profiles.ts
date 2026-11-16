@@ -4,11 +4,13 @@ import {
   deleteBrowserProfile,
   endProfileControl,
   listBrowserProfiles,
+  listProfileSites,
   openProfilePage,
   renameBrowserProfile,
   requestBrowserProfile,
   setAgentBrowserProfile,
   setBrowserProfileAgents,
+  signOutProfileSite,
   startProfileControl,
   ValidationError,
 } from "@agenteschat/engine";
@@ -36,6 +38,14 @@ export const BrowserProfile = z
     lastUsedAt: z.string().nullable(),
   })
   .openapi("BrowserProfile");
+
+const BrowserSite = z
+  .object({
+    site: z.string().openapi({ description: "A host, as wide as a domain cookie that covers it says." }),
+    cookies: z.number().int(),
+    storage: z.number().int().openapi({ description: "How many of its origins keep data (local storage, IndexedDB)." }),
+  })
+  .openapi("BrowserSite");
 
 const ProfileParams = OrgParams.extend({ profileId: z.uuid() });
 const AgentParams = OrgParams.extend({ agentId: z.uuid() });
@@ -189,6 +199,53 @@ export function browserProfileRoutes(deps: AppDeps) {
       const { orgId, profileId } = c.req.valid("param");
       await openProfilePage(control, c.get("user").id, orgId, profileId, pageTarget(c.req.valid("json")));
       return c.body(null, 204);
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/organizations/{orgId}/browser-profiles/{profileId}/sites",
+      tags,
+      security,
+      summary: "The sites the profile is signed in to (hosts and counts, never a cookie)",
+      description:
+        "`manage_connectors` with `control_browsers` (ADR 0110, addendum 2026-11-15). The profile's Chrome starts on its computer when it isn't running. 400 `browser_profile.machine` when the computer's runner is too old.",
+      request: { params: ProfileParams },
+      responses: { 200: json(z.object({ sites: z.array(BrowserSite) })), ...errors },
+    }),
+    async (c) => {
+      const { orgId, profileId } = c.req.valid("param");
+      return c.json(await listProfileSites({ db, hub }, c.get("user").id, orgId, profileId), 200);
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "post",
+      path: "/organizations/{orgId}/browser-profiles/{profileId}/sites/sign-out",
+      tags,
+      security,
+      summary: "Sair: the profile signs out of one site (its cookies and stored data)",
+      description:
+        "As listing. 409 `browser_profile.busy` while an agent's run or another person has the profile; 400 `browser_profile.site` for a site that isn't a host.",
+      request: { params: ProfileParams, body: body(z.object({ site: z.string().min(1).max(253) })) },
+      responses: {
+        200: json(
+          z.object({
+            site: z.string(),
+            cookies: z.number().int(),
+            storage: z.number().int(),
+            sites: z.array(BrowserSite),
+          }),
+        ),
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { orgId, profileId } = c.req.valid("param");
+      const { site } = c.req.valid("json");
+      return c.json(await signOutProfileSite(control, c.get("user").id, orgId, profileId, site), 200);
     },
   );
 

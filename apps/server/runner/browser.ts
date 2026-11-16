@@ -56,6 +56,7 @@ import type { ControlBrowser, ControlBrowserDoing } from "@agenteschat/adapters/
 import { SECRET_NAME } from "@agenteschat/adapters/secret-box";
 import { vaultRuleLabel, vaultRuleMatches } from "@agenteschat/adapters/vault/site";
 import type { BrowserPorts } from "./browser-ports";
+import { cookiesOf, partsOfSite, readStorageKeys, signedInSites, storageOriginsOf } from "./browser-sites";
 import { type CrashedPage, countChromeTraffic, emulationCommands, type TrafficCounter } from "./browser-traffic";
 import { BROWSER_WM_CLASS } from "./desktop-look";
 import type { DesktopSessions } from "./desktop-session";
@@ -238,6 +239,9 @@ const UPDATE_IDLE_MS = 10 * 60_000;
 const KEPT_UPDATE_WAIT_MS = 24 * 3600_000;
 const DOWNLOAD_TIMEOUT_MS = 5 * 60_000;
 const QUICK_TIMEOUT_MS = 15_000;
+/** How long the list after signing out of a site waits for Chrome to drop the cleared origins' rows, and how often it looks. */
+const SITE_FORGET_SETTLE_MS = 3_000;
+const SITE_FORGET_POLL_MS = 200;
 /** One input command on the relay: a click or a key answers in milliseconds. */
 const INPUT_TIMEOUT_MS = 5_000;
 /**
@@ -3788,6 +3792,82 @@ export class BrowserManager {
     await this.stop(agent);
     await rm(folder, { recursive: true, force: true });
     return { deleted: true };
+  }
+
+  /**
+   * `browser.sites` (protocol 74, ADR 0110 addendum 2026-11-15): the sites the session's profile is signed in to,
+   * from Chrome's cookies and its quota database. Hosts and counts only.
+   */
+  async sites(agent: AgentScope, folder: string): Promise<MachineReplies["browser.sites"]> {
+    return this.withDevtools(agent, folder, async (devtools, profile) => ({
+      sites: signedInSites(await this.liveCookies(devtools), storageOriginsOf(readStorageKeys(profile))),
+    }));
+  }
+
+  /**
+   * `browser.sites.forget`: the profile signs out of `site`. Each of its cookies is deleted, then each of its origins
+   * with stored data is cleared, on a tab's session (Chrome refuses the clearing on the browser's own target).
+   * Clearing all of an origin's data removes its row from the quota database, a moment later: the list after waits
+   * up to `SITE_FORGET_SETTLE_MS` for those rows to go.
+   */
+  async forgetSite(agent: AgentScope, folder: string, site: string): Promise<MachineReplies["browser.sites.forget"]> {
+    return this.withDevtools(agent, folder, async (devtools, profile) => {
+      const origins = storageOriginsOf(readStorageKeys(profile));
+      const parts = partsOfSite(await this.liveCookies(devtools), origins, site);
+      for (const c of parts.cookies) {
+        await devtools.ask(
+          "Network.deleteCookies",
+          { name: c.name, domain: c.domain, path: c.path, ...(c.partitionKey ? { partitionKey: c.partitionKey } : {}) },
+          { page: true },
+        );
+      }
+      for (const origin of parts.origins) {
+        await devtools.ask("Storage.clearDataForOrigin", { origin, storageTypes: "all" }, { page: true });
+      }
+      let left = storageOriginsOf(readStorageKeys(profile));
+      for (let waited = 0; waited < SITE_FORGET_SETTLE_MS && left.some((o) => parts.origins.includes(o)); ) {
+        waited += SITE_FORGET_POLL_MS;
+        await Bun.sleep(SITE_FORGET_POLL_MS);
+        left = storageOriginsOf(readStorageKeys(profile));
+      }
+      return {
+        cookies: parts.cookies.length,
+        storage: parts.origins.length,
+        sites: signedInSites(await this.liveCookies(devtools), left),
+      };
+    });
+  }
+
+  private async liveCookies(devtools: TrafficCounter) {
+    return cookiesOf(await devtools.ask("Storage.getCookies", {}));
+  }
+
+  /**
+   * `fn` in the session's queue with its Chrome running (started where it already is, or headless) and the runner's
+   * DevTools socket to it. Chrome's refusals and silences come back as `browser_unavailable`.
+   */
+  private async withDevtools<T>(
+    agent: AgentScope,
+    folder: string,
+    fn: (devtools: TrafficCounter, profile: string) => Promise<T>,
+  ): Promise<T> {
+    const session = await this.session(agent, folder);
+    return this.enqueue(session, async () => {
+      const chrome = await this.ensureOwnChrome(agent, session, session.chrome?.display !== undefined, []);
+      const devtools = this.counters.get(chrome);
+      if (!devtools) {
+        throw new RunnerError(
+          "browser_unavailable",
+          "This computer's browser can't say which sites it is signed in to",
+        );
+      }
+      try {
+        return await fn(devtools, path.join(session.folder, AGENT_BROWSER_PROFILE));
+      } catch (err) {
+        if (err instanceof RunnerError) throw err;
+        throw new RunnerError("browser_unavailable", err instanceof Error ? err.message : String(err));
+      }
+    });
   }
 
   /** Chromes a previous run of this runner home left (it crashed or was killed), or only `on` that profile: stopped. */

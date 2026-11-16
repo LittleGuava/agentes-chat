@@ -3,6 +3,7 @@
     "pt-BR": [
       "settings.import.countSkills",
       "shell.sidebarSetup.links",
+      "browser.profiles.sitesCookies",
       "usageViews.logins",
       "chat.wait.said",
       "access.area.skills",
@@ -307,6 +308,7 @@
       "storage.connect.awsRegion.il-central-1"
     ],
     "es": [
+      "browser.profiles.sitesCookies",
       "devices.iphone.path.general",
       "devices.cpus",
       "devices.memory",
@@ -571,6 +573,7 @@
       "settings.import.setorAgents",
       "settings.import.countRoutines",
       "share.publicVersion",
+      "browser.profiles.sitesCookies",
       "channel.tooLong.fileName",
       "calendar.moreRuns",
       "devices.cpus",
@@ -1484,6 +1487,7 @@
     "it": [
       "settings.import.countSkills",
       "settings.import.countRoutines",
+      "browser.profiles.sitesCookies",
       "shell.email.label",
       "calendar.moreRuns",
       "devices.iphone.steps.account",
@@ -1867,6 +1871,7 @@
       "settings.import.countSkills",
       "settings.import.countRoutines",
       "shell.sidebarSetup.links",
+      "browser.profiles.sitesCookies",
       "calendar.moreRuns",
       "devices.iphone.steps.account",
       "devices.filter.computers",

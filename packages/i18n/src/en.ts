@@ -19165,6 +19165,18 @@ export const en = {
       sameUser:
         "On this computer the agents run as the same user, so any agent with a terminal can reach the profiles.",
       outdated: "Update this computer to use browser profiles.",
+      /** The sites a profile is signed in to, each with "Sign out" (ADR 0110, addendum 2026-11-15). */
+      sites: "Signed-in sites",
+      sitesTitle: "Signed-in sites of {{name}}",
+      sitesEmpty: "This profile isn't signed in to any site.",
+      sitesCookies_one: "{{count}} cookie",
+      sitesCookies_other: "{{count}} cookies",
+      sitesStorage: "saved data",
+      sitesNote: "Signing out removes the site's cookies and the data it saved in this profile.",
+      sitesOutdated: "Update this computer to see the sites its profiles are signed in to.",
+      signOut: "Sign out",
+      signOutOf: "Sign out of {{site}}",
+      signedOut: "Signed out of {{site}}.",
       nameTaken: "A profile with this name already exists.",
       busy: "Someone else is using this profile now.",
       failed: "That didn't work. Try again.",
