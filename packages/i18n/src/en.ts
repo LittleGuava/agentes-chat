@@ -1787,6 +1787,13 @@ export const en = {
     copyId: "Copy ID",
     idCopied: "ID copied.",
     editAgent: "Edit agent",
+    /** An agent's menu: a new agent with its settings, owned by whoever duplicates it. */
+    duplicateAgent: "Duplicate",
+    /** The copy's name. */
+    agentCopyName: "{{name}} (copy)",
+    agentDuplicated: "Copy created: {{name}}.",
+    /** Some settings only an admin (or a plan's owner) gives weren't copied. */
+    agentDuplicatedPartly: "Copy created: {{name}}. What you can't give an agent was left out.",
     openPage: "Open full page",
     moveUp: "Move up",
     moveDown: "Move down",

@@ -4061,6 +4061,18 @@
   "contextMenu.editAgent": {
     "value": "Edit agent"
   },
+  "contextMenu.duplicateAgent": {
+    "value": "Duplicate"
+  },
+  "contextMenu.agentCopyName": {
+    "value": "{{name}} (copy)"
+  },
+  "contextMenu.agentDuplicated": {
+    "value": "Copy created: {{name}}."
+  },
+  "contextMenu.agentDuplicatedPartly": {
+    "value": "Copy created: {{name}}. What you can't give an agent was left out."
+  },
   "contextMenu.openPage": {
     "value": "Open full page"
   },
@@ -8047,11 +8059,11 @@
   "connectAi.plan.grok.title": {
     "value": "Your Grok plan"
   },
-  "connectAi.plan.copilot.title": {
-    "value": "Your GitHub Copilot plan"
-  },
   "connectAi.plan.grok.tiers": {
     "value": "SuperGrok, SuperGrok Heavy or X Premium+"
+  },
+  "connectAi.plan.copilot.title": {
+    "value": "Your GitHub Copilot plan"
   },
   "connectAi.plan.copilot.tiers": {
     "value": "Copilot Pro, Pro+, Business or Enterprise"
