@@ -2995,5 +2995,13 @@
       "title": "Rien à vérifier",
       "text": "Quand un agent fait quelque chose hors de la discussion, cela apparaît ici."
     }
+  },
+  "phoneTools": {
+    "title": "Contacts du téléphone",
+    "contacts": "Les agents peuvent chercher dans mes contacts",
+    "help": "Uniquement dans cet espace de travail et uniquement sur ce téléphone. Quand un agent avec qui vous parlez a besoin des coordonnées de quelqu'un, il cherche son nom dans vos contacts : l'agent reçoit au plus 5 résultats, chacun avec seulement un nom, des numéros de téléphone et des e-mails.",
+    "deniedTitle": "L'accès aux contacts est désactivé",
+    "deniedSub": "Autorisez-le pour agentes.chat dans les Réglages du téléphone.",
+    "failed": "Impossible d'enregistrer. Réessayez."
   }
 }

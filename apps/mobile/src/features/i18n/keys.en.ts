@@ -3057,6 +3057,15 @@ export const featureKeysEn = {
       text: "When an agent does something outside the conversation, it shows up here.",
     },
   },
+  phoneTools: {
+    /** Contatos do celular (ADR 0205): Você's page, its row and its toasts. */
+    title: "Phone contacts",
+    contacts: "Agents can search my contacts",
+    help: "Only in this workspace and only on this phone. When an agent you talk to needs someone's details, it searches your contacts by name: up to 5 matches go to the agent, each with just a name, phone numbers and emails.",
+    deniedTitle: "Contacts access is off",
+    deniedSub: "Allow it for agentes.chat in the phone's Settings.",
+    failed: "Couldn't save. Try again.",
+  },
 };
 
 /** Every language of these strings has this shape (English is the source). */

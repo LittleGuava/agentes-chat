@@ -15675,6 +15675,10 @@ export const ptBR = {
       taken: "O @{{handle}} já é de outra pessoa.",
       takenByAgent: "O @{{handle}} é de um agente.",
     },
+    phone: {
+      jobClosed: "Esse pedido do agente já terminou.",
+      jobNotFound: "Esse pedido do agente não existe mais.",
+    },
     vault: {
       invalid: "Algo neste item não está certo. Confira e tente de novo.",
       notFound: "Este item não está mais no Cofre.",

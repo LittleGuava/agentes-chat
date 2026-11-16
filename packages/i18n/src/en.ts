@@ -15750,6 +15750,10 @@ export const en = {
       taken: "@{{handle}} belongs to someone else.",
       takenByAgent: "@{{handle}} belongs to an agent.",
     },
+    phone: {
+      jobClosed: "This request from the agent already ended.",
+      jobNotFound: "This request from the agent isn't here anymore.",
+    },
     vault: {
       invalid: "Something in this item isn't right. Check it and try again.",
       notFound: "This item isn't in the Vault anymore.",

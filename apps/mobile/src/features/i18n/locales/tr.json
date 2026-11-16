@@ -2886,5 +2886,13 @@
       "title": "İncelenecek bir şey yok",
       "text": "Bir ajan sohbet dışında bir şey yaptığında burada görünür."
     }
+  },
+  "phoneTools": {
+    "title": "Telefondaki kişiler",
+    "contacts": "Ajanlar kişilerimde arama yapabilir",
+    "help": "Yalnızca bu çalışma alanında ve yalnızca bu telefonda. Konuştuğunuz bir ajan birinin bilgilerine ihtiyaç duyduğunda kişilerinizde adına göre arar: ajana en fazla 5 sonuç gider, her birinde yalnızca ad, telefon numaraları ve e-postalar bulunur.",
+    "deniedTitle": "Kişilere erişim kapalı",
+    "deniedSub": "Telefonun Ayarlar bölümünden agentes.chat için izin verin.",
+    "failed": "Kaydedilemedi. Tekrar deneyin."
   }
 }

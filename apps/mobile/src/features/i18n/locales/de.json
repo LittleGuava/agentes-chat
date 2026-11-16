@@ -2886,5 +2886,13 @@
       "title": "Nichts zu prüfen",
       "text": "Wenn ein Agent außerhalb des Gesprächs etwas tut, erscheint es hier."
     }
+  },
+  "phoneTools": {
+    "title": "Kontakte auf dem Telefon",
+    "contacts": "Agenten dürfen meine Kontakte durchsuchen",
+    "help": "Nur in diesem Workspace und nur auf diesem Telefon. Wenn ein Agent, mit dem du sprichst, die Daten einer Person braucht, sucht er in deinen Kontakten nach dem Namen: Bis zu 5 Treffer gehen an den Agenten, jeweils nur mit Name, Telefonnummern und E-Mails.",
+    "deniedTitle": "Kontaktzugriff ist aus",
+    "deniedSub": "Erlaube ihn für agentes.chat in den Einstellungen des Telefons.",
+    "failed": "Speichern hat nicht geklappt. Versuch es noch einmal."
   }
 }

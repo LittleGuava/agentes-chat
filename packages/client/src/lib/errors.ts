@@ -388,6 +388,9 @@ const KNOWN = {
   // Worded with its wait by `knownErrorText` (`widgetWaitText`); this line only names its family.
   "widget.waiting": "widgets.wait.planUnknown",
   // The Vault (ADR 0144): what a person typed, who may see or use an item, an import, a card's "Save to the Vault".
+  // The phone app answering an agent's request that already ended or is gone (ADR 0205).
+  "phone.job_closed": "errors.phone.jobClosed",
+  "phone.job_not_found": "errors.phone.jobNotFound",
   "vault.invalid": "errors.vault.invalid",
   "vault.not_found": "errors.vault.notFound",
   "vault.title_required": "errors.vault.titleRequired",
@@ -644,9 +647,6 @@ const KNOWN = {
   "images.per_run": "errors.images.perRun",
   "memory.invalid_until": "errors.memory.invalidUntil",
   "memory.past_until": "errors.memory.pastUntil",
-  // An agent's request to the person's phone (ADR 0205), answered or expired meanwhile.
-  "phone.job_closed": "errors.said.alreadyDone",
-  "phone.job_not_found": "errors.said.gone",
   // Public pages (ADR 0211).
   "published_page.not_a_page": "errors.publishedPage.notAPage",
   "published_page.not_found": "errors.said.gone",

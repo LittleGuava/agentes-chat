@@ -15484,6 +15484,10 @@
       "taken": "@{{handle}} is van iemand anders.",
       "takenByAgent": "@{{handle}} is van een agent."
     },
+    "phone": {
+      "jobClosed": "Dit verzoek van de agent is al afgelopen.",
+      "jobNotFound": "Dit verzoek van de agent bestaat niet meer."
+    },
     "vault": {
       "invalid": "Er klopt iets niet aan dit item. Controleer het en probeer het opnieuw.",
       "notFound": "Dit item staat niet meer in de Vault.",

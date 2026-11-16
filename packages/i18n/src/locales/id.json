@@ -14921,6 +14921,10 @@
       "taken": "@{{handle}} sudah dipakai orang lain.",
       "takenByAgent": "@{{handle}} sudah dipakai agen."
     },
+    "phone": {
+      "jobClosed": "Permintaan agen ini sudah berakhir.",
+      "jobNotFound": "Permintaan agen ini sudah tidak ada."
+    },
     "vault": {
       "invalid": "Ada yang tidak benar di item ini. Periksa lalu coba lagi.",
       "notFound": "Item ini sudah tidak ada di Vault.",
