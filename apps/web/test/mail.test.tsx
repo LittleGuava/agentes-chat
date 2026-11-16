@@ -346,6 +346,29 @@ describe("Conectores → Email", () => {
     );
   });
 
+  test("'Triagem' on a connected mailbox: what it does and what the check reads, then the switch saved", async () => {
+    const { api, state } = mailApi([{ address: "ana@icloud.com", triage: false }]);
+    await renderApp(`/org/${ORG_ID}/settings/connectors`, { api });
+    await settle(8);
+    await openConnected();
+    expect(screen().queryByText(/Triagem ligada/)).toBeNull();
+    await click(screen().getByRole("button", { name: "Triagem de ana@icloud.com" }));
+    await settle(4);
+    const dialog = screen().getByRole("dialog", { name: "Triagem de ana@icloud.com" });
+    expect(dialog.textContent).toContain("lê só o remetente, o assunto e o trecho de cada e-mail novo");
+    const sorts = within(dialog).getByRole("switch", { name: "Separar e-mails novos" });
+    expect(sorts.getAttribute("aria-checked")).toBe("false");
+    // Nothing changed yet: nothing to save.
+    expect(within(dialog).getByRole("button", { name: "Salvar" }).hasAttribute("disabled")).toBe(true);
+    await click(sorts);
+    await click(within(dialog).getByRole("button", { name: "Salvar" }));
+    await settle(4);
+    expect(state.calls.find((c) => c.method === "mail.update")?.args.slice(1)).toEqual(["mail-1", { triage: true }]);
+    expect(screen().getByText("Triagem ligada em ana@icloud.com.")).toBeTruthy();
+    expect(screen().queryByRole("dialog", { name: "Triagem de ana@icloud.com" })).toBeNull();
+    expect(screen().getByText(/Triagem ligada$/)).toBeTruthy();
+  });
+
   test("each connect error has its own message", async () => {
     const { api, mail } = mailApi();
     const dialog = await openCatalog(api);

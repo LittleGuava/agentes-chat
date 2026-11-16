@@ -15154,6 +15154,19 @@
       "later": "Vous pourrez changer cela plus tard dans Adresses.",
       "saved": "Adresses de {{address}} enregistrées."
     },
+    "triage": {
+      "button": "Tri",
+      "buttonName": "Tri de {{name}}",
+      "title": "Tri de {{address}}",
+      "label": "Trier les nouveaux e-mails",
+      "help": "Une vérification rapide ne lit que l’expéditeur, l’objet et l’aperçu de chaque nouvel e-mail : un e-mail ignoré ne réveille aucune routine, et vous êtes prévenu des e-mails importants qu’aucune routine ne prend.",
+      "scope": "Trie les e-mails des dossiers que surveillent les routines de cette boîte en important, demande une réponse ou à ignorer. Il ne lance jamais de tour d’un agent.",
+      "on": "Tri activé",
+      "savedOn": "Tri activé pour {{address}}.",
+      "savedOff": "Tri désactivé pour {{address}}.",
+      "failed": "Impossible de modifier le tri de {{address}}.",
+      "notice": "E-mail important dans {{name}}"
+    },
     "agent": {
       "title": "E-mail",
       "none": "{{org}} n'a encore connecté aucune messagerie.",

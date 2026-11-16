@@ -14911,6 +14911,25 @@ export const en = {
       later: "You can change this later in Addresses.",
       saved: "Addresses of {{address}} saved.",
     },
+    /** A mailbox's triage (ADR 0038, addendum 2026-11-15): one quick check per new email, never an agent's turn. */
+    triage: {
+      button: "Triage",
+      buttonName: "Triage for {{name}}",
+      title: "Triage for {{address}}",
+      label: "Sort new email",
+      /** What it does and what the check reads: shown under the switch, on the web and the phone. */
+      help: "A quick check reads only the sender, subject and preview of each new email: ignored email wakes no routine, and you hear about important email no routine takes.",
+      /** Behind the ⓘ beside the switch. */
+      scope:
+        "It sorts the email of the folders this mailbox's routines watch, as important, needs a reply or ignore. It never starts an agent's turn.",
+      /** In the mailbox's row, after when it was connected. */
+      on: "Triage on",
+      savedOn: "Triage turned on for {{address}}.",
+      savedOff: "Triage turned off for {{address}}.",
+      failed: "Couldn't change the triage of {{address}}.",
+      /** A notification: an email sorted as worth attention that no routine took. `name`: the mailbox. */
+      notice: "Important email in {{name}}",
+    },
     agent: {
       title: "Email",
       none: "{{org}} hasn't connected any email yet.",

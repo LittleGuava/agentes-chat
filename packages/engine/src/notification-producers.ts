@@ -1589,6 +1589,36 @@ export async function resolveWebhookDisabled(deps: NotificationDeps, orgId: stri
   await resolveNotifications(deps, orgId, { groupKeyPrefix: webhookDisabledGroup(webhookId) });
 }
 
+/**
+ * An email triage sorted as worth attention that no routine of its mailbox took (ADR 0038, addendum 2026-11-15): the
+ * person who connected the mailbox hears of it, one row per email, `source.label` the mailbox, `latest.title` the
+ * subject and `latest.text` who sent it and the subject.
+ */
+export async function notifyImportantMail(
+  deps: NotificationDeps,
+  input: {
+    orgId: string;
+    userId: string;
+    accountId: string;
+    address: string;
+    messageKey: string;
+    from: string;
+    subject: string;
+  },
+) {
+  await notify(deps, {
+    orgId: input.orgId,
+    userIds: [input.userId],
+    kind: "mail_important",
+    groupKey: `mail_important:${input.accountId}:${input.messageKey}`,
+    source: { label: input.address },
+    latest: {
+      title: input.subject,
+      text: [input.from, input.subject].filter(Boolean).join(" · ").slice(0, 280),
+    },
+  });
+}
+
 const skillWaitingGroup = (skillId: string) => `skill_update:waiting:${skillId}:`;
 
 /**

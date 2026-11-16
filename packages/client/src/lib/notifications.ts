@@ -215,6 +215,7 @@ export function workspaceHeadline(n: Pick<AppNotification, "kind" | "latest">) {
   if (n.kind === "computer_ready") return "computerSetup.notification.ready" as const;
   if (n.kind === "composio_limit") return "connectors.composio.limitNotice" as const;
   if (n.kind === "webhook_disabled") return "webhooks.notice.disabled" as const;
+  if (n.kind === "mail_important") return "mail.triage.notice" as const;
   if (n.kind === "computer_disk_full") return "machines.shared.diskFullNotice" as const;
   if (n.kind === "computer_no_chrome") return "machines.chromeMissingNotice" as const;
   if (n.kind === "skill_update") {
@@ -510,6 +511,8 @@ export function openTarget(n: AppNotification): OpenTarget | null {
   if (n.kind === "webhook_disabled") return { to: "/org/$orgId/settings/$section", params: { section: "webhooks" } };
   // The month's Composio calls are counted in Uso.
   if (n.kind === "composio_limit") return { to: "/org/$orgId/settings/$section", params: { section: "usage" } };
+  // An important email no routine took: the email is read in the mailbox itself; Conectores has the mailbox's triage.
+  if (n.kind === "mail_important") return { to: "/org/$orgId/settings/$section", params: { section: "connectors" } };
   // A person's limit (ADR 0141): who decides opens that person's month in Uso › Pessoas; the person, Seu uso.
   if (n.kind === "usage_limit") {
     const theirs = n.latest.statusTo === "reached" || n.latest.statusTo === "request";

@@ -15167,6 +15167,19 @@
       "later": "Puoi cambiarlo più tardi in Indirizzi.",
       "saved": "Indirizzi di {{address}} salvati."
     },
+    "triage": {
+      "button": "Smistamento",
+      "buttonName": "Smistamento di {{name}}",
+      "title": "Smistamento di {{address}}",
+      "label": "Smista le nuove email",
+      "help": "Un controllo rapido legge solo mittente, oggetto e anteprima di ogni nuova email: quella ignorata non sveglia nessuna routine, e ti avvisiamo delle email importanti che nessuna routine prende.",
+      "scope": "Smista le email delle cartelle che le routine di questa casella osservano in importante, richiede risposta o da ignorare. Non avvia mai un turno di un agente.",
+      "on": "Smistamento attivo",
+      "savedOn": "Smistamento attivato per {{address}}.",
+      "savedOff": "Smistamento disattivato per {{address}}.",
+      "failed": "Impossibile cambiare lo smistamento di {{address}}.",
+      "notice": "Email importante in {{name}}"
+    },
     "agent": {
       "title": "Email",
       "none": "{{org}} non ha ancora collegato nessuna email.",

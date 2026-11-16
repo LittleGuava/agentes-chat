@@ -165,6 +165,9 @@ function renderOne(locale: PushLocale, input: PushTextInput): { title: string; b
     case "secret_request":
       // What it is for, in the agent's words: the value is typed in the app, sealed there, never here.
       return out(s.secretTitle(actor), text || what || s.secretBody);
+    case "mail_important":
+      // The mailbox, then who sent it and the subject: the email itself is read in the mailbox.
+      return out(s.mailImportantTitle(input.label?.trim() ?? ""), text || what || s.openBody);
     case "widget_alert":
       // What the agent saw, in its words; never in the chat (ADR 0135 §6).
       return out(s.widgetAlertTitle(actor, what), text || s.openBody);

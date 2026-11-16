@@ -134,6 +134,7 @@ export function createFakeMail(
       if (input.askActions) a.askActions = [...input.askActions];
       if (input.aliases) a.aliases = input.aliases.map((x) => x.toLowerCase()).filter((x) => x !== a.address);
       if (input.defaultFrom !== undefined) a.defaultFrom = input.defaultFrom === a.address ? null : input.defaultFrom;
+      if (input.triage !== undefined) a.triage = input.triage;
       if (input.password) {
         a.status = "active";
         a.lastError = null;

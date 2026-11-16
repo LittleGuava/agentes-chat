@@ -14583,6 +14583,19 @@
       "later": "Bunu daha sonra Adresler bölümünden değiştirebilirsiniz.",
       "saved": "{{address}} adresleri kaydedildi."
     },
+    "triage": {
+      "button": "Ayıklama",
+      "buttonName": "{{name}} için ayıklama",
+      "title": "{{address}} için ayıklama",
+      "label": "Yeni e-postaları ayıkla",
+      "help": "Hızlı bir kontrol her yeni e-postanın yalnızca gönderenini, konusunu ve önizlemesini okur: yok sayılan e-posta hiçbir rutini uyandırmaz, hiçbir rutinin almadığı önemli e-postayı sana bildiririz.",
+      "scope": "Bu posta kutusunun rutinlerinin izlediği klasörlerdeki e-postaları önemli, yanıt bekliyor veya yok say olarak ayırır. Hiçbir zaman bir ajan turu başlatmaz.",
+      "on": "Ayıklama açık",
+      "savedOn": "{{address}} için ayıklama açıldı.",
+      "savedOff": "{{address}} için ayıklama kapatıldı.",
+      "failed": "{{address}} için ayıklama değiştirilemedi.",
+      "notice": "{{name}} adresinde önemli e-posta"
+    },
     "agent": {
       "title": "E-posta",
       "none": "{{org}} henüz hiç e-posta bağlamadı.",

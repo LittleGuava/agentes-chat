@@ -35998,6 +35998,39 @@
   "mail.addresses.saved": {
     "value": "Addresses of {{address}} saved."
   },
+  "mail.triage.button": {
+    "value": "Triage"
+  },
+  "mail.triage.buttonName": {
+    "value": "Triage for {{name}}"
+  },
+  "mail.triage.title": {
+    "value": "Triage for {{address}}"
+  },
+  "mail.triage.label": {
+    "value": "Sort new email"
+  },
+  "mail.triage.help": {
+    "value": "A quick check reads only the sender, subject and preview of each new email: ignored email wakes no routine, and you hear about important email no routine takes."
+  },
+  "mail.triage.scope": {
+    "value": "It sorts the email of the folders this mailbox's routines watch, as important, needs a reply or ignore. It never starts an agent's turn."
+  },
+  "mail.triage.on": {
+    "value": "Triage on"
+  },
+  "mail.triage.savedOn": {
+    "value": "Triage turned on for {{address}}."
+  },
+  "mail.triage.savedOff": {
+    "value": "Triage turned off for {{address}}."
+  },
+  "mail.triage.failed": {
+    "value": "Couldn't change the triage of {{address}}."
+  },
+  "mail.triage.notice": {
+    "value": "Important email in {{name}}"
+  },
   "mail.agent.title": {
     "value": "Email"
   },
