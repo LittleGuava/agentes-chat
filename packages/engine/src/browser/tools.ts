@@ -38,10 +38,17 @@ import { MachineOfflineError, MachinePausedError } from "../machines";
 import { missionOfRun } from "../mission-context";
 import { isRightHand } from "../right-hand";
 import { machineScope, screenKey } from "../right-hand-seats";
-import { getSandboxSettings, SANDBOX_SCOPE, SandboxUnavailableError, withConnectedMachine } from "../sandbox";
+import {
+  type ComputerHandle,
+  getSandboxSettings,
+  SANDBOX_SCOPE,
+  SandboxUnavailableError,
+  withConnectedMachine,
+} from "../sandbox";
 import {
   actsBeforeOpening,
   createLookMemory,
+  createScreenRecorder,
   createTargetCache,
   FRESH_LOOK_MS,
   findInPage,
@@ -50,6 +57,7 @@ import {
   MAX_CODE_BOXES,
   MAX_WAIT_MS,
   type PlanReport,
+  recordedSurface,
   resolveTarget,
   runPlan,
   type ScreenImage,
@@ -59,6 +67,7 @@ import {
   screenStepOf,
   type TargetCache,
 } from "../screen";
+import { keepRecording, RECORD_INPUT, screenHeld } from "../screen-recordings";
 import { requestSecretTool } from "../secret-request-tool";
 import { REQUEST_SECRET_TOOL, SITE_SECRET_TTL_TEXT, siteSecretGone } from "../secrets";
 import { toolDetail } from "../tool-detail";
@@ -361,6 +370,12 @@ const profileData = (profile: { id: string; name: string } | null) => (profile ?
  * screenshot to keep would cross between them. ponytail: refused in phase 1; the runner can copy the one file when
  * people ask.
  */
+/** Each picture of a recording, in the agent's folder, written over at every step. */
+const RECORDING_FRAME = "recordings/.frame.jpg";
+
+export const PROFILE_RECORDING_TEXT =
+  'Recording doesn\'t work in shared browser profiles yet: run the steps without record, or switch to your own browser (browser_profile with "own").';
+
 export const PROFILE_FILES_TEXT =
   'Sending files and screenshots don\'t work in shared browser profiles yet. Read the page instead (browser_read), or switch to your own browser (browser_profile with "own").';
 
@@ -1164,7 +1179,7 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
   async function plan(
     ctx: ToolContext,
     steps: ScreenStep[],
-    options: { trail?: boolean; made?: boolean; onReport?: (report: PlanReport) => void } = {},
+    options: { trail?: boolean; made?: boolean; record?: boolean; onReport?: (report: PlanReport) => void } = {},
   ): Promise<ToolOutput> {
     for (const s of steps) {
       const refused = s.do === "open" && s.url ? await outboundRefusal(ctx, s.url) : null;
@@ -1202,23 +1217,35 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
       if (!held?.site || held.gone) return { content: secretMissingText(name, held), isError: true };
       sites.set(name, held.site);
     }
+    // A recording's pictures go through the agent's own folder, which a shared profile isn't.
+    if (options.record && linked.profile) return { content: PROFILE_RECORDING_TEXT, isError: true };
     const key = await seenKey(ctx);
     let paused: ToolOutput | null = null;
     // A take over that begins and ends within one step leaves no open handoff to see: it is checked too.
     const started = new Date();
     let handedBack = false;
+    const machineId = linked.status.machineId;
+    const recorder = options.record
+      ? createScreenRecorder({
+          held: screenHeld(ctx, "browser", started),
+          grab: () => recordingFrame(ctx, machineId, linked.link),
+        })
+      : null;
+    // The page before the plan, unless the plan opens one first.
+    if (recorder && steps[0]?.do !== "open") await recorder.frame();
+    const surface = browserSurface({
+      link: linked.link,
+      secretSite: (name) => sites.get(name) ?? null,
+      vaultLogin: (login, field, url) => vaultLogin(ctx, linked.status, linked.profile, login, field, url),
+      onLook: (o) => seen.remember(key, o),
+    });
     const report = await runPlan(
       {
         judge,
         orgId: ctx.orgId,
         agentId: ctx.agentId,
         runId: ctx.runId,
-        surface: browserSurface({
-          link: linked.link,
-          secretSite: (name) => sites.get(name) ?? null,
-          vaultLogin: (login, field, url) => vaultLogin(ctx, linked.status, linked.profile, login, field, url),
-          onLook: (o) => seen.remember(key, o),
-        }),
+        surface: recorder ? recordedSurface(surface, recorder) : surface,
         cache: targets,
         scope: key,
         signal: ctx.signal,
@@ -1265,16 +1292,52 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
       timing,
     };
     const waiting = paused as ToolOutput | null;
-    if (waiting) {
-      return {
-        content: `${content}\n${waiting.content}`,
-        ...(waiting.isError ? { isError: true } : {}),
-        data: { ...data, ...(waiting.data ?? {}) },
-      };
-    }
     // A step that ran and only failed its check was done: not an error (it must not be done again).
     const nothingDone = report.steps.every((s) => s.status !== "done" && !s.ran);
-    return { content, ...(f.failed && nothingDone ? { isError: true } : {}), data };
+    const out: ToolOutput = waiting
+      ? {
+          content: `${content}\n${waiting.content}`,
+          ...(waiting.isError ? { isError: true } : {}),
+          data: { ...data, ...(waiting.data ?? {}) },
+        }
+      : { content, ...(f.failed && nothingDone ? { isError: true } : {}), data };
+    if (!recorder) return out;
+    return keepRecording(deps, ctx, {
+      machineId,
+      recorder,
+      out,
+      write: (path, bytes) => onComputer(ctx, machineId, (c) => c.provider.writeFile(c.id, path, bytes)),
+    });
+  }
+
+  /** The agent's folder on its browser's computer, reached as `shareSavedFile` reaches it. */
+  async function onComputer<T>(
+    ctx: ToolContext,
+    machineId: string,
+    fn: (computer: ComputerHandle) => Promise<T>,
+  ): Promise<T> {
+    if (!hub) throw new Error("Connected computers are not available on this server.");
+    const agent = await getAgentCached(ctx.db, ctx.orgId, ctx.agentId);
+    return withConnectedMachine(
+      hub,
+      ctx,
+      { machineId, handle: agent?.handle ?? "agent", ...(agent?.name ? { name: agent.name } : {}) },
+      fn,
+    );
+  }
+
+  /**
+   * A picture of the page for a recording: a plain screenshot (no numbered elements, unlike a judge's capture),
+   * written over the same hidden file in the agent's folder and read back. Null when the browser couldn't take it.
+   */
+  async function recordingFrame(ctx: ToolContext, machineId: string, link: BrowserLink): Promise<Uint8Array | null> {
+    const shot = await link.act({
+      command: "screenshot",
+      args: [RECORDING_FRAME, "--screenshot-format", "jpeg", "--screenshot-quality", "70"],
+      timeoutSeconds: COMMAND_SECONDS,
+    });
+    if (!shot.ok) return null;
+    return onComputer(ctx, machineId, (c) => c.provider.readFile(c.id, RECORDING_FRAME));
   }
 
   /**
@@ -1492,7 +1555,10 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
       `${BROWSER_TOOL_INFO.browser_do.description} The fastest way to use the browser: write the whole task as \`steps\` in one call, from the \`open\` to the last click and wait, the way you'd do it by hand. You don't need to have seen a page to plan on it: name each target in words (\`the Email field\`, \`Export\`) and it is found on the page as it is at that step, even pages the plan reaches on its way. Give \`expect\` on steps whose result matters (\`signed in\`, \`the order is confirmed\`): it's checked, and the plan stops at the first step that fails or doesn't show what you expected, telling you why and what's on the page then, so you can go on from there. To report what the page says at the end, finish with a \`read\` step and \`find\` (\`the status message\`). ${changes}`,
       {
         type: "object",
-        properties: { steps: { type: "array", minItems: 1, maxItems: MAX_PLAN_STEPS, items: STEP_SCHEMA } },
+        properties: {
+          steps: { type: "array", minItems: 1, maxItems: MAX_PLAN_STEPS, items: STEP_SCHEMA },
+          record: RECORD_INPUT,
+        },
         required: ["steps"],
         additionalProperties: false,
       },
@@ -1507,7 +1573,7 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
           const stale = await requirePageRead(ctx.db, ctx);
           if (stale) return stale;
         }
-        return plan(ctx, valid, { trail: true });
+        return plan(ctx, valid, { trail: true, record: input.record === true });
       },
     ),
     tool(

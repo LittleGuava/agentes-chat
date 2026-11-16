@@ -19,6 +19,7 @@ import { getSandboxSettings, SANDBOX_SCOPE, SandboxUnavailableError } from "../s
 import {
   actsBeforeOpening,
   createLookMemory,
+  createScreenRecorder,
   createTargetCache,
   FRESH_LOOK_MS,
   findInPage,
@@ -26,12 +27,14 @@ import {
   KNOWN_LOOK_MS,
   MAX_WAIT_MS,
   type PlanReport,
+  recordedSurface,
   runPlan,
   type ScreenStep,
   type ScreenVerb,
   screenStepOf,
   type TargetCache,
 } from "../screen";
+import { keepRecording, RECORD_INPUT, screenHeld } from "../screen-recordings";
 import type { JsonSchema } from "../tools/json-schema";
 import { accessWithNeeds, grantedScopeKeys, isAllowed, toolAccess } from "../tools/scopes";
 import type { ToolContext, ToolDefinition, ToolOutput, ToolSource } from "../tools/types";
@@ -348,7 +351,7 @@ export function createDesktopToolSource(deps: DesktopToolDeps): ToolSource {
   }
 
   /** Runs steps on the agent's desktop (`runPlan`) and answers with the report and the screen at the end. */
-  async function plan(ctx: ToolContext, steps: ScreenStep[]): Promise<ToolOutput> {
+  async function plan(ctx: ToolContext, steps: ScreenStep[], options: { record?: boolean } = {}): Promise<ToolOutput> {
     const linked = await linkFor(ctx);
     if (!linked.ok) return { content: linked.text, isError: true };
     const key = await seenKey(ctx);
@@ -357,18 +360,27 @@ export function createDesktopToolSource(deps: DesktopToolDeps): ToolSource {
     const started = new Date();
     let handedBack = false;
     const acted: DesktopAction[] = [];
+    // The desktop's capture is the screen as it is (its elements aren't drawn on it): each one a picture.
+    const recorder = options.record
+      ? createScreenRecorder({
+          held: screenHeld(ctx, "desktop", started),
+          grab: async () => Buffer.from((await linked.link.capture()).data, "base64"),
+        })
+      : null;
+    if (recorder) await recorder.frame();
+    const surface = desktopSurface({
+      link: linked.link,
+      signal: ctx.signal,
+      onLook: (o) => seen.remember(key, o),
+      onAct: (a) => acted.push(a),
+    });
     const report = await runPlan(
       {
         judge,
         orgId: ctx.orgId,
         agentId: ctx.agentId,
         runId: ctx.runId,
-        surface: desktopSurface({
-          link: linked.link,
-          signal: ctx.signal,
-          onLook: (o) => seen.remember(key, o),
-          onAct: (a) => acted.push(a),
-        }),
+        surface: recorder ? recordedSurface(surface, recorder) : surface,
         cache: targets,
         scope: key,
         signal: ctx.signal,
@@ -406,16 +418,24 @@ export function createDesktopToolSource(deps: DesktopToolDeps): ToolSource {
       timing: { ms: report.ms, steps: report.steps.map((s) => s.ms) },
     };
     const waiting = paused as ToolOutput | null;
-    if (waiting) {
-      return {
-        content: `${content}\n${waiting.content}`,
-        ...(waiting.isError ? { isError: true } : {}),
-        data: { ...data, ...(waiting.data ?? {}) },
-      };
-    }
     // A step that ran and only failed its check was done: not an error (it must not be done again).
     const nothingDone = report.steps.every((s) => s.status !== "done" && !s.ran);
-    return { content, ...(f.failed && nothingDone ? { isError: true } : {}), data };
+    const out: ToolOutput = waiting
+      ? {
+          content: `${content}\n${waiting.content}`,
+          ...(waiting.isError ? { isError: true } : {}),
+          data: { ...data, ...(waiting.data ?? {}) },
+        }
+      : { content, ...(f.failed && nothingDone ? { isError: true } : {}), data };
+    if (!recorder) return out;
+    return keepRecording(deps, ctx, {
+      machineId: linked.machineId,
+      recorder,
+      out,
+      write: async (path, bytes) => {
+        await linked.write(path, Buffer.from(bytes).toString("base64"));
+      },
+    });
   }
 
   /** A desktop tool: a person in control of the screen, or asked to take it, makes the agent wait first. */
@@ -444,7 +464,10 @@ export function createDesktopToolSource(deps: DesktopToolDeps): ToolSource {
       `${DESKTOP_TOOL_INFO.desktop_do.description} For apps with no API or web version (native apps, file and system dialogs, a terminal window); web pages go to browser_do, and commands to run_code. Write the whole task as \`steps\` in one call, from the \`open\` (an app by its name, or a file) to the last click, the way you'd do it by hand: name each target in words (\`the File menu\`, \`Save\`) or by its number, and it is found on the screen as it is at that step. Give \`expect\` on steps whose result matters: it's checked, and the plan stops at the first step that fails or doesn't show it, saying why and what's on the screen then. A dialog in the way is never closed for you: the plan stops and names it, and you decide. ${changes}`,
       {
         type: "object",
-        properties: { steps: { type: "array", minItems: 1, maxItems: MAX_PLAN_STEPS, items: STEP_SCHEMA } },
+        properties: {
+          steps: { type: "array", minItems: 1, maxItems: MAX_PLAN_STEPS, items: STEP_SCHEMA },
+          record: RECORD_INPUT,
+        },
         required: ["steps"],
         additionalProperties: false,
       },
@@ -460,7 +483,7 @@ export function createDesktopToolSource(deps: DesktopToolDeps): ToolSource {
           const stale = await requirePageRead(ctx.db, ctx, "desktop");
           if (stale) return stale;
         }
-        return plan(ctx, valid);
+        return plan(ctx, valid, { record: input.record === true });
       },
     ),
     tool(

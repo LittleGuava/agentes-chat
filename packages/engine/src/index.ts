@@ -300,6 +300,7 @@ export * from "./schedule";
 export * from "./schedule-reader";
 export * from "./schedule-tools";
 export * from "./screen";
+export * from "./screen-recordings";
 export * from "./search";
 export * from "./secrets";
 export * from "./server-update";

@@ -16,6 +16,7 @@ import {
   MachineOfflineError,
   MachineRequestError,
   type MachineStatus,
+  pngChunks,
   type RunAuthority,
   SANDBOX_SCOPE,
   startTakeover,
@@ -30,7 +31,7 @@ import { APPS, fakeHub, lookOf } from "./desktop-fixtures";
 import { type Fixture, setup } from "./fixtures";
 import { pairMachine, pushFromFolder } from "./machine-fixtures";
 import { runContext } from "./mail-fixtures";
-import { THUNAR } from "./screen-fixtures";
+import { jpegOf, THUNAR } from "./screen-fixtures";
 
 let f: Fixture;
 afterEach(async () => {
@@ -443,4 +444,76 @@ test("routines that only read can't use the desktop, a run nobody is behind can;
   const prompt = describeCapabilities(TOOLS.map((name) => ({ name, description: "", scope: DESKTOP_SCOPE })));
   expect(prompt).toContain("- Desktop: `desktop_do`, `desktop_read`, `desktop_screenshot`");
   expect(prompt).toContain("Web pages go to your browser (`browser_do`)");
+});
+
+test("desktop_do with record: the screen before and after each step, one animated PNG in the folder and the conversation", async () => {
+  const d = await desktopSetup();
+  await d.grant(DESKTOP_SCOPE, SANDBOX_SCOPE);
+  const folder = new Map<string, Uint8Array>();
+  const colors: [number, number, number][] = [
+    [200, 30, 30],
+    [30, 200, 30],
+    [30, 30, 200],
+  ];
+  let shots = 0;
+  d.s.respond = (r) => {
+    if (r.op === "write") folder.set(r.path, new Uint8Array(Buffer.from(r.base64, "base64")));
+    if (r.op === "push") return pushFromFolder(f, d.machineId, folder, r);
+    if (r.op === "desktop.capture") {
+      return jpegOf(colors[shots++ % colors.length] as [number, number, number], 1280, 800).then((bytes) => ({
+        data: Buffer.from(bytes).toString("base64"),
+        width: 1280,
+        height: 800,
+        screen: { width: 1280, height: 800 },
+        region: null,
+        marks: [],
+      }));
+    }
+    return undefined;
+  };
+  const out = await d.call("desktop_do", {
+    steps: [
+      { do: "click", target: "e25" },
+      { do: "press", key: "ctrl+s" },
+    ],
+    record: true,
+  });
+  expect(out.isError).toBeUndefined();
+  const path = String(out.data?.recording);
+  expect(path).toMatch(/^recordings\/.+\.png$/);
+  expect(out.content).toContain(`Recorded 3 pictures of the screen in ${path} (1280×800, `);
+  const [a] = await f.db.select().from(schema.artifacts);
+  expect(out.content).toContain(`It is shown in this conversation: its card goes with your reply ("${a?.title}"`);
+  expect(out.data?.desktopTrail).toBeDefined();
+  // Captured before the plan and after each step, written once into the folder.
+  expect(d.calls.filter((c) => c.op === "desktop.capture")).toHaveLength(3);
+  expect(d.calls.filter((c) => c.op === "write").map((c) => c.path)).toEqual([path]);
+  const actl = pngChunks(folder.get(path) as Uint8Array).find((c) => c.type === "acTL")?.data as Uint8Array;
+  expect(new DataView(actl.buffer, actl.byteOffset).getUint32(0)).toBe(3);
+});
+
+test("desktop_do with record, without Write files: the recording stays in the folder and the answer says how to ask", async () => {
+  const d = await desktopSetup();
+  await d.grant(DESKTOP_SCOPE, SANDBOX_SCOPE);
+  await f.db
+    .delete(schema.agentScopes)
+    .where(and(eq(schema.agentScopes.agentId, f.agent.id), eq(schema.agentScopes.scope, "drive:write")));
+  d.s.respond = (r) =>
+    r.op === "desktop.capture"
+      ? jpegOf([30, 30, 200], 640, 400).then((bytes) => ({
+          data: Buffer.from(bytes).toString("base64"),
+          width: 640,
+          height: 400,
+          screen: { width: 640, height: 400 },
+          region: null,
+          marks: [],
+        }))
+      : undefined;
+  const out = await d.call("desktop_do", { steps: [{ do: "press", key: "ctrl+s" }], record: true });
+  expect(out.isError).toBeUndefined();
+  // The same screen twice: one picture.
+  expect(out.content).toContain("Recorded 1 picture of the screen in recordings/");
+  expect(out.content).toContain(`It isn't shown in this conversation: that needs "Write files" (drive:write)`);
+  expect(d.calls.filter((c) => c.op === "write")).toHaveLength(1);
+  expect(d.calls.filter((c) => c.op === "push")).toEqual([]);
 });

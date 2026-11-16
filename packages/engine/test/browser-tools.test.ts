@@ -31,6 +31,8 @@ import {
   MachineRequestError,
   type MachineStatus,
   normalizeRef,
+  pngChunks,
+  screenHeld,
   setAgentBrowserDomains,
   startTakeover,
   type ToolSideEffects,
@@ -43,6 +45,7 @@ import { actionCommands } from "../src/browser/surface";
 import { addMember, type Fixture, setup } from "./fixtures";
 import { pairMachine, pushFromFolder } from "./machine-fixtures";
 import { runContext } from "./mail-fixtures";
+import { jpegOf } from "./screen-fixtures";
 
 let f: Fixture;
 afterEach(async () => {
@@ -1199,4 +1202,112 @@ test("browser_open's viewport sizes the page before it loads, on a computer that
   expect(old).toMatchObject({ isError: true });
   expect(old.content).toContain("The computer MacBook needs an update to change the page size.");
   expect(since()).toEqual([]);
+});
+
+/** The agent's folder on its computer: what the browser writes there, read, written and pushed by the server. */
+function folderOn(b: Awaited<ReturnType<typeof browserSetup>>, page: (r: Act) => Reply) {
+  const folder = new Map<string, Uint8Array>();
+  const colors: [number, number, number][] = [
+    [200, 30, 30],
+    [30, 200, 30],
+    [30, 30, 200],
+    [200, 200, 30],
+  ];
+  let shots = 0;
+  const pending: Promise<void>[] = [];
+  b.s.respond = (r) => {
+    if (r.op === "push") return pushFromFolder(f, b.machineId, folder, r);
+    if (r.op === "read") {
+      const bytes = folder.get(r.path);
+      return { base64: bytes ? Buffer.from(bytes).toString("base64") : null };
+    }
+    if (r.op === "write") {
+      folder.set(r.path, new Uint8Array(Buffer.from(r.base64, "base64")));
+      return {};
+    }
+    const a = r as Act;
+    if (a.op === "browser.act" && a.command === "screenshot") {
+      const color = colors[shots++ % colors.length] as [number, number, number];
+      const path = String(a.args[0]);
+      return jpegOf(color).then((bytes) => {
+        folder.set(path, bytes);
+        return ok({ path });
+      });
+    }
+    return page(a);
+  };
+  return { folder, pending };
+}
+
+test("browser_do with record: a plain picture after each step, one animated PNG in the folder and the conversation", async () => {
+  const b = await browserSetup();
+  await grantScopes(f.db, f.org.id, f.agent.id, [{ connectionId: null, scope: "browser:use" }]);
+  let at = "login";
+  const { folder } = folderOn(b, (a) => {
+    if (a.command === "click") at = "home";
+    return at === "login"
+      ? page('- textbox "Email" [ref=e3]\n- button "Sign in" [ref=e7]', "https://app.acme.example/login")
+      : page('- heading "Dashboard" [level=1]', "https://app.acme.example/home");
+  });
+  const out = await b.call("browser_do", {
+    steps: [
+      { do: "open", url: "https://app.acme.example/login" },
+      { do: "fill", target: "e3", text: "ana@acme.example" },
+      { do: "click", target: "e7" },
+    ],
+    record: true,
+  });
+  expect(out.isError).toBeUndefined();
+  const path = String(out.data?.recording);
+  expect(path).toMatch(/^recordings\/.+\.png$/);
+  const [a] = await f.db.select().from(schema.artifacts);
+  expect(a).toMatchObject({ kind: "file", channelId: f.general.id });
+  expect(out.content).toContain("Now at https://app.acme.example/home");
+  expect(out.content).toContain(`Recorded 3 pictures of the screen in ${path} (400×300, `);
+  expect(out.content).toContain(`It is shown in this conversation: its card goes with your reply ("${a?.title}"`);
+  expect(out.data?.artifact).toMatchObject({ id: a?.id, version: 1 });
+  // The trail of the plan is as without a recording.
+  expect(out.data?.browserTrail).toEqual([
+    { tool: "browser_open", detail: "app.acme.example/login" },
+    { tool: "browser_fill" },
+    { tool: "browser_click" },
+  ]);
+  // The pictures are plain screenshots (no numbered elements), all in one hidden file, one after each step.
+  const shots = b.calls.filter((c): c is Act => c.op === "browser.act" && c.command === "screenshot");
+  expect(shots.map((c) => c.args)).toEqual(
+    Array(3).fill(["recordings/.frame.jpg", "--screenshot-format", "jpeg", "--screenshot-quality", "70"]),
+  );
+  // The animation: three frames, as saved in the folder and pushed from there.
+  const apng = folder.get(path) as Uint8Array;
+  const actl = pngChunks(apng).find((c) => c.type === "acTL")?.data as Uint8Array;
+  expect(new DataView(actl.buffer, actl.byteOffset).getUint32(0)).toBe(3);
+  expect(b.calls.filter((c) => c.op === "push").map((c) => c.path)).toEqual([path]);
+});
+
+test("browser_do with record never fails its plan: no picture, no file, and the plan's answer stands", async () => {
+  const b = await browserSetup();
+  await grantScopes(f.db, f.org.id, f.agent.id, [{ connectionId: null, scope: "browser:use" }]);
+  b.s.respond = (r) => {
+    const a = r as Act;
+    if (a.op === "browser.act" && a.command === "screenshot") return { success: false, data: null, error: "no room" };
+    return page('- button "Save" [ref=e1]');
+  };
+  const recorded = await b.call("browser_do", { steps: [{ do: "click", target: "e1" }], record: true });
+  expect(recorded.isError).toBeUndefined();
+  expect(recorded.content).toStartWith("Clicked element e1.");
+  expect(recorded.content).toContain("Now at https://shop.example/");
+  expect(recorded.content).toEndWith("\nNothing was recorded: no picture of the screen could be taken.");
+  expect(b.calls.filter((c) => c.op === "write" || c.op === "push")).toEqual([]);
+  expect(await f.db.select().from(schema.artifacts)).toEqual([]);
+});
+
+test("a recording takes no picture while a person has the agent's browser", async () => {
+  const b = await browserSetup();
+  await grantScopes(f.db, f.org.id, f.agent.id, [{ connectionId: null, scope: "browser:use" }]);
+  const since = new Date();
+  const held = screenHeld(b.ctx, "browser", since);
+  expect(await held()).toBe(false);
+  await startTakeover({ db: f.db, pubsub: f.pubsub }, f.owner.id, f.org.id, f.agent.id, b.ctx.runId);
+  expect(await held()).toBe(true);
+  expect(await screenHeld(b.ctx, "desktop", since)()).toBe(false);
 });

@@ -1945,6 +1945,22 @@ test.if(posix)("the first screenshot works: its folder is made before", async ()
   expect(existsSync(path.join(await t.folder(), "downloads"))).toBe(true);
 });
 
+test.if(posix)("a recording's picture (ADR 0054 addendum 2026-11-15): a plain JPEG in the agent's folder", async () => {
+  const t = setup();
+  await t.act("open", ["https://shop.example.com"]);
+  const args = ["recordings/.frame.jpg", "--screenshot-format", "jpeg", "--screenshot-quality", "70"];
+  expect(await t.act("screenshot", args)).toMatchObject({ success: true });
+  const frame = path.join(await t.folder(), "recordings", ".frame.jpg");
+  expect(existsSync(frame)).toBe(true);
+  // Into the folder, as asked, and without the numbered elements a judge's capture has.
+  const call = t
+    .logged()
+    .filter((c) => c.args.includes("screenshot"))
+    .at(-1);
+  expect(call?.args).toContain(frame);
+  expect(call?.args).not.toContain("--annotate");
+});
+
 test.if(posix)("the allowlist stops navigations before they go and pages that wander off after an action", async () => {
   const t = setup();
   const allowedDomains = ["shop.example.com"];
