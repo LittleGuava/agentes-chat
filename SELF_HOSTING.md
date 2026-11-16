@@ -1355,6 +1355,16 @@ Commands run as the user that runs the runner, so give it a dedicated user or a 
 `agentes-runner tools disable commands` (or `claude`, `codex`, `cursor`, `opencode`, `grok`, `antigravity` or `copilot`) turns a capability off on that
 computer, and `agentes-runner folders allow <path>` shares a folder besides the agents' own.
 
+**Any other ACP agent.** A coding agent that speaks the Agent Client Protocol on its standard input and
+output (agentclientprotocol.com) can think for agents too, once you declare it in the runner's
+`config.json` (`~/.agentes-runner/config.json`) and restart the runner:
+`"acpEngines": [{ "id": "vibe", "name": "Mistral Vibe", "command": "/home/me/.local/bin/vibe-acp", "args": [], "env": {} }]`
+(`id` lowercase letters, digits and `-`, up to 32; at most 8 agents). Sign it in yourself in a terminal as the
+runner's user. The runner announces each one with the models it offers, never its command, and only you
+can add or change one: the server can't. It is on while commands are (`agentes-runner tools disable commands`
+turns it off), answers its own permission requests yes, with no sandbox of ours (as OpenCode's), and isn't
+available to a runner in system mode yet (ADR 0216).
+
 On a Linux server, the installer's `--system` option (below) installs Google Chrome from Google's apt
 repository (its signing key checked against its fingerprint) when the computer has none, with a
 systemd timer (`agentes-chrome-update.timer`) that upgrades it, and nothing else, every 6 hours. With the command

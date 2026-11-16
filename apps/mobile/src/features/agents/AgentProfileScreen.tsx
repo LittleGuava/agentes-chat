@@ -244,12 +244,14 @@ function Profile({ id }: { id: string }) {
   const effortView = useAgentBrain(orgId, id, decides && thinks !== null).data;
   const brainKind = agent?.brain?.kind;
   const thinksPlan =
-    brainKind && brainKind !== "model"
-      ? planLabel(t, planOfAccount({ kind: brainKind, provider: agent?.brain?.provider ?? null }))
-      : null;
+    brainKind === "acp"
+      ? agent?.brain?.engine || t("brain.acp.name")
+      : brainKind && brainKind !== "model"
+        ? planLabel(t, planOfAccount({ kind: brainKind, provider: agent?.brain?.provider ?? null }))
+        : null;
   const thinksModel = isAuto(agent?.brain?.model) ? t("brain.auto.label") : (agent?.brain?.model ?? null);
   const thinksEffort =
-    effortView && effortView.brain !== "model" && !isAuto(effortView.effectiveModel)
+    effortView && effortView.brain !== "model" && effortView.brain !== "acp" && !isAuto(effortView.effectiveModel)
       ? t("agentPage.work.cell.effort", {
           level: t(`agentPage.work.brain.effortsLower.${effortLevel(effortView.effort)}`),
         })

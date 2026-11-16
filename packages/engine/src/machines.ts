@@ -863,7 +863,7 @@ export async function detachMachine(tx: Executor, machine: Pick<MachineRow, "id"
   const rows = await tx
     .update(agents)
     // Its accounts (ADR 0041) stay with it: the agents leave them.
-    .set({ machineId: null, brainAccountId: null, updatedAt: now })
+    .set({ machineId: null, brainAccountId: null, brainEngine: null, updatedAt: now })
     .where(and(eq(agents.orgId, machine.orgId), eq(agents.machineId, machine.id)))
     .returning({ id: agents.id });
   const ids = rows.map((r) => r.id);
@@ -993,7 +993,7 @@ export async function setAgentComputerTarget(
     .set({
       machineId: machine?.id ?? null,
       // An account is a folder on one computer (ADR 0041): another computer starts on its own sign-in.
-      ...(moved ? { brainAccountId: null } : {}),
+      ...(moved ? { brainAccountId: null, brainEngine: null } : {}),
       updatedAt: new Date(),
     })
     .where(and(eq(agents.orgId, orgId), eq(agents.id, agentId)));

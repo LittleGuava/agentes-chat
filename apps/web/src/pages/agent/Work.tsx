@@ -13,6 +13,7 @@ import {
   useUpdateAgentBrowserSettings,
 } from "@agenteschat/client";
 import { saveLevels } from "@agenteschat/client/lib/access-levels";
+import { acpEngineOf, acpModelRows } from "@agenteschat/client/lib/acp";
 import type { BrainScreen } from "@agenteschat/client/lib/agent-edit";
 import { ownSignInName } from "@agenteschat/client/lib/ai-accounts";
 import { effortOf } from "@agenteschat/client/lib/brain-advanced";
@@ -26,12 +27,12 @@ import {
   toolOnCommand,
 } from "@agenteschat/client/lib/machines";
 import {
-  type AiChoice,
   aiChoiceOf,
   aiStateOf,
   planLabel,
   planMark,
   planOfAccount,
+  type ThinkChoice,
 } from "@agenteschat/client/lib/no-ai";
 import { can as canDo } from "@agenteschat/client/lib/permissions";
 import { brainModelChoice, brainModelChoices, isPlanId, planOf } from "@agenteschat/client/lib/plans";
@@ -174,12 +175,17 @@ export function WorkCard({
   const held = usePlanHold() !== null;
   const view = work.brain.data;
   const kind: BrainKind = view?.brain ?? agent.brain?.kind ?? "model";
-  // What pays: the API key, or the plan of the account it thinks with (the agent list's until its view loads).
-  const ai: AiChoice = view
+  // What pays: the API key, or the plan of the account it thinks with (the agent list's until its view loads); an ACP
+  // agent of its computer (ADR 0216) by the name its computer gave it, never as Claude.
+  const ai: ThinkChoice = view
     ? aiChoiceOf(view)
     : kind === "model"
       ? "key"
-      : planOfAccount({ kind, provider: agent.brain?.provider ?? null });
+      : kind === "acp"
+        ? "acp"
+        : planOfAccount({ kind, provider: agent.brain?.provider ?? null });
+  const acpName = (view ? acpEngineOf(view)?.name : agent.brain?.engine) || t("brain.acp.name");
+  const acpModel = view ? acpModelRows(t, view).find((m) => m.checked)?.label : (agent.brain?.model ?? null);
   // The model's maker; on Automático, the maker the server says its models come from.
   const keyProvider = apiMarkOf(saved.model, models.data?.models ?? []) ?? agent.brain?.maker;
   const orgModel = isAuto(saved.model)
@@ -201,7 +207,11 @@ export function WorkCard({
   // own sign-in), else the plan's name.
   const planAccounts = view?.accountsSupported ? view.accounts.filter((a) => planOfAccount(a) === ai) : [];
   const accountWord =
-    ai === "key" || planAccounts.length + (isPlanId(ai) ? 0 : 1) < 2
+    ai === "key" ||
+    ai === "acp" ||
+    kind === "model" ||
+    kind === "acp" ||
+    planAccounts.length + (isPlanId(ai) ? 0 : 1) < 2
       ? null
       : view?.account
         ? (planAccounts.find((a) => a.id === view.account)?.label ?? null)
@@ -209,11 +219,11 @@ export function WorkCard({
             t,
             view?.ownSignIn === true && view.canUsePlans,
             computerNameOf(t, org.name, view?.computer?.name ?? "", isPersonal(org)),
-            kind === "model" ? undefined : kind,
+            kind,
           );
   // Near or at its plan's limit: said where the account is.
   const usage =
-    !view || kind === "model"
+    !view || kind === "model" || kind === "acp"
       ? null
       : view.account
         ? view.accounts.find((a) => a.id === view.account)?.usage
@@ -225,7 +235,8 @@ export function WorkCard({
       : [accountWord, planWord(t, i18n.language, usage)].filter(Boolean).join(" · ") || null;
   // Automático picks the effort with the model: only a fixed model says its effort. On a key, only one chosen (none
   // leaves it to the provider).
-  const level = view ? effortOf(kind, view.effort) : null;
+  // An ACP agent's effort is its own.
+  const level = view && kind !== "acp" ? effortOf(kind, view.effort) : null;
   const effort =
     level && !isAuto(kind !== "model" ? shownPlanModel : saved.model)
       ? t("agentPage.work.cell.effort", { level: t(`agentPage.work.brain.effortsLower.${level}`) })
@@ -280,7 +291,9 @@ export function WorkCard({
           <Cell
             row
             icon={
-              ai !== "key" ? (
+              ai === "acp" ? (
+                <Icon name="plug" size={16} />
+              ) : ai !== "key" ? (
                 <ProviderLogo id={planMark(ai)} size="sm" />
               ) : keyProvider ? (
                 <ProviderLogo id={keyProvider} size="sm" />
@@ -291,9 +304,15 @@ export function WorkCard({
             label={
               ai === "key"
                 ? t("agentPage.work.cell.brain")
-                : t("agentPage.work.cell.brainWith", { plan: planLabel(t, ai) })
+                : t("agentPage.work.cell.brainWith", { plan: ai === "acp" ? acpName : planLabel(t, ai) })
             }
-            value={ai === "key" ? orgModel : planModel}
+            value={
+              ai === "acp"
+                ? acpModel || t("brain.acp.defaultModel", { engine: acpName })
+                : ai === "key"
+                  ? orgModel
+                  : planModel
+            }
             more={ai === "key" ? effort : [effort, speed].filter(Boolean).join(" · ")}
             sub={sub}
             open={open === "brain"}

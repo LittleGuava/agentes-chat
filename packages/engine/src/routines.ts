@@ -829,6 +829,7 @@ const BRAINS: readonly BrainKind[] = [
   "grok",
   "antigravity",
   "copilot",
+  "acp",
 ];
 const brainKindOf = (v: unknown): BrainKind => (BRAINS.includes(v as BrainKind) ? (v as BrainKind) : "model");
 

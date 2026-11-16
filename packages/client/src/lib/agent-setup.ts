@@ -26,7 +26,8 @@ import { isAuto } from "./providers";
 
 /** The setup an agent's saved "Quem pensa" and Autonomia say, for a computer brain (the phone's "Pensa com"). */
 export function setupOfBrain(view: AgentBrain): AgentSetup | null {
-  if (view.brain === "model" || !view.computer) return null;
+  // An ACP agent (ADR 0216) is one computer's own: there is nothing to copy to other agents.
+  if (view.brain === "model" || view.brain === "acp" || !view.computer) return null;
   return {
     brain: view.brain,
     machineId: view.computer.machineId,
@@ -184,7 +185,7 @@ export function newAgentStart(
     const key = o.keys.some((k) => k.id === s.key) ? s.key : null;
     return { brain: "model", model: s.model, key, contextTokens: s.contextTokens, ...autonomy };
   }
-  if (!o.ownerIsMe || !s.computer) return null;
+  if (s.brain === "acp" || !o.ownerIsMe || !s.computer) return null;
   if (s.account ? !(s.account.mine && s.account.free) : !s.ownSignIn) return null;
   return {
     brain: s.brain,

@@ -4,11 +4,13 @@ import type {
   AgentBrain,
   AgentBrainInput,
   AiAccounts,
+  BrainKind,
   BrainMachine,
   MachineAccountKind,
   Model,
   PlanUsage,
 } from "../api/types";
+import { acpModelInput, acpModelRows } from "./acp";
 import { accountChoices, accountTitle, ownSignInReady } from "./ai-accounts";
 import { thinksWith } from "./brain";
 import { isClaudeAlias } from "./brain-advanced";
@@ -442,9 +444,12 @@ export interface ModelRow {
  */
 export function modelRows(
   t: TFunction,
-  view: Pick<AgentBrain, "brain" | "effectiveModel" | "options"> & Partial<Pick<AgentBrain, "account" | "accounts">>,
+  view: Pick<AgentBrain, "brain" | "effectiveModel" | "options"> &
+    Partial<Pick<AgentBrain, "account" | "accounts" | "engine" | "acp">>,
   plan: CodingPlan | undefined,
 ): ModelRow[] {
+  // An ACP agent (ADR 0216): its own default, then the models it offered; no Automático.
+  if (view.brain === "acp") return acpModelRows(t, view);
   const option = view.options.find((o) => o.kind === view.brain);
   const chosen = brainModelChoice(view.brain, plan, view.effectiveModel ?? option?.defaultModel ?? "");
   const provider = view.accounts?.find((a) => a.id === view.account)?.provider;
@@ -474,6 +479,7 @@ export function modelInput(
   value: string,
   view: Pick<AgentBrain, "effort" | "options" | "brain">,
 ): Pick<AgentBrainInput, "model" | "effort"> {
+  if (view.brain === "acp") return acpModelInput(value);
   if (isAuto(value)) return { model: AUTO, effort: AUTO };
   const defaultModel = view.options.find((o) => o.kind === view.brain)?.defaultModel;
   return { model: value === defaultModel ? null : value, ...(isAuto(view.effort) ? { effort: "medium" } : {}) };
@@ -595,7 +601,7 @@ export function modelPickerTiles(
   apiModel: string | null,
   models: readonly Model[],
 ): PickerTile[] {
-  const runs = (k: MachineAccountKind) => view.options.some((o) => o.kind === k && (o.available || view.brain === k));
+  const runs = (k: BrainKind) => view.options.some((o) => o.kind === k && (o.available || view.brain === k));
   const byChoice = new Map<PlanChoice, PickerAccount[]>();
   const add = (choice: PlanChoice, a: PickerAccount) => byChoice.set(choice, [...(byChoice.get(choice) ?? []), a]);
   for (const a of view.accounts) {
@@ -604,7 +610,7 @@ export function modelPickerTiles(
     add(planOfAccount(a), { id: a.id, label: accountTitle(a), usage: a.usage, provider: a.provider });
   }
   for (const o of view.options) {
-    if (o.kind === "model" || !runs(o.kind)) continue;
+    if (o.kind === "model" || o.kind === "acp" || !runs(o.kind)) continue;
     const k = o.kind as MachineAccountKind;
     const own = view.brain === k && view.account === null;
     if (own || (view.ownSignIn && o.available))

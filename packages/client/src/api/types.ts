@@ -1081,6 +1081,8 @@ export interface AgentBrainLine {
   /** A computer brain's model ("Sonnet 5.5"); null for the model brain. */
   model: string | null;
   computer?: string;
+  /** `acp` (ADR 0216): the ACP agent it thinks with, by the name its computer declares. */
+  engine?: string;
   /** A plan account's provider (`zai`, `kimi`…), whose mark replaces the brain's; absent for the CLI's own sign-in. */
   provider?: string | null;
   /** On a plan: the account it thinks with ("Claude Team 2"; a computer's own sign-in by its plan, "Claude Max"). */
@@ -5196,7 +5198,15 @@ export interface DesktopRelease {
 }
 
 /** A computer brain that runs on a connected machine. */
-export type ComputerBrain = "claude_code" | "codex" | "cursor" | "opencode" | "grok" | "antigravity" | "copilot";
+export type ComputerBrain =
+  | "claude_code"
+  | "codex"
+  | "cursor"
+  | "opencode"
+  | "grok"
+  | "antigravity"
+  | "copilot"
+  | "acp";
 
 /** An agent waiting for an offline computer, and what it has waiting. */
 export interface OutageAgent {
@@ -6173,7 +6183,17 @@ export interface MissionSettings {
 }
 
 /** "Quem pensa" (ADR 0032): the API, or Claude Code / Codex on the agent's computer with a person's plan. */
-export type BrainKind = "model" | "claude_code" | "codex" | "cursor" | "opencode" | "grok" | "antigravity" | "copilot";
+export type BrainKind =
+  | "model"
+  | "claude_code"
+  | "codex"
+  | "cursor"
+  | "opencode"
+  | "grok"
+  | "antigravity"
+  | "copilot"
+  /** An ACP agent its computer declares (ADR 0216): `AgentBrain.acp` lists them, `engine` names the one. */
+  | "acp";
 
 /** Why a computer brain can't be chosen now. */
 export type BrainUnavailable =
@@ -6227,6 +6247,19 @@ export interface BrainOption {
   codexVersion?: CodexVersionRequirement;
   models: BrainModelOption[];
   defaultModel: string | null;
+}
+
+/** An ACP agent a computer declares (ADR 0216), by the name its owner gave it, with the models it offered. */
+export interface AcpEngine {
+  id: string;
+  name: string;
+  models: { value: string; label: string }[];
+}
+
+/** The ACP agents the agent's computer declares, apart from `options` (ADR 0216). */
+export interface AcpBrainOption extends BrainOption {
+  kind: "acp";
+  engines: AcpEngine[];
 }
 
 /** A computer the caller may give an agent, with what it offers. */
@@ -6289,6 +6322,10 @@ export interface AgentBrain {
   extraUsage: boolean;
   computer: { machineId: string; name: string; online: boolean } | null;
   options: BrainOption[];
+  /** The ACP agents its computer declares (ADR 0216); absent for the team's right hand and from older servers. */
+  acp?: AcpBrainOption;
+  /** `acp`: the id of the one it thinks with. */
+  engine?: string;
   /** Every computer the caller may give the agent, with what each offers ("Vai para o Mac mini"). */
   machines: BrainMachine[];
   canEdit: boolean;
@@ -6460,6 +6497,8 @@ export interface AgentBrainInput {
   /** The team's right hand: the viewer's own AI (`mine`, the server's default) or the workspace's (admins). */
   scope?: BrainScope;
   brain?: BrainKind;
+  /** `acp` (ADR 0216): the id of an ACP agent the agent's computer declares. */
+  engine?: string;
   model?: string | null;
   fallback?: boolean;
   /** Off: long work pauses at 95% of the plan even with its paid extra usage on. */

@@ -316,10 +316,11 @@ export async function rightHandAwayRun(db: Executor, run: { orgId: string; agent
 }
 
 /**
- * Brains it can't think with (ADR 0189): the Copilot CLI has no way to lock its tools to ours, so the runner refuses
- * its `chat` turns (`tools_not_locked`). They aren't offered to it, and a save that names one is refused.
+ * Brains it can't think with: the Copilot CLI has no way to lock its tools to ours, so the runner refuses its `chat`
+ * turns (`tools_not_locked`, ADR 0189), and an ACP agent the computer declares runs only work turns (`acp_profile`,
+ * ADR 0216). They aren't offered to it, and a save that names one is refused.
  */
-export const RIGHT_HAND_NO_BRAINS: ReadonlySet<string> = new Set(["copilot"]);
+export const RIGHT_HAND_NO_BRAINS: ReadonlySet<string> = new Set(["copilot", "acp"]);
 
 /** Its computer turns' permission profile: the runner's locked-down `chat` (`LOCKED_BRAIN_PROTOCOL`). */
 export const RIGHT_HAND_TURN = { mode: "chat" } as const;

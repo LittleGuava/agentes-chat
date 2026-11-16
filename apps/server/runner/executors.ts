@@ -9,6 +9,7 @@ import {
   type CliName,
   type CursorModelInfo,
   parseExecutors,
+  type RunnerAcpEngineInfo,
   type RunnerExecutorInfo,
   type RunnerInfo,
 } from "@agenteschat/adapters/machine-protocol";
@@ -665,6 +666,8 @@ export function cachedExecutors(
     /** Before each look (Windows: the PATH read again, so a CLI installed since is found). */
     before?: () => void;
     gitMissing?: () => boolean;
+    /** ADR 0216: the ACP agents the computer declares, each looked at for its models (`acpLookAll`). */
+    acp?: () => Promise<RunnerAcpEngineInfo[]>;
   } = {},
 ): ExecutorsCache {
   const now = opts.now ?? Date.now;
@@ -680,8 +683,14 @@ export function cachedExecutors(
     (running ??= Promise.resolve()
       .then(() => opts.before?.())
       .catch(() => undefined)
-      .then(() => detectExecutors(opts.run, value, strikes, opts.gitMissing))
-      .then(({ found, unsure }) => {
+      .then(() =>
+        Promise.all([
+          detectExecutors(opts.run, value, strikes, opts.gitMissing),
+          opts.acp ? opts.acp().catch(() => value.acp ?? []) : [],
+        ]),
+      )
+      .then(([{ found, unsure }, acp]) => {
+        if (acp.length) found.acp = acp;
         at = now();
         retry = unsure ? Math.min(retry ? retry * 2 : EXECUTORS_RETRY_MS, EXECUTORS_TTL_MS) : 0;
         wait = retry || EXECUTORS_TTL_MS;

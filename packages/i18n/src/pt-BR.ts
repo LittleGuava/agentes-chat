@@ -12247,6 +12247,8 @@ export const ptBR = {
       geminiAutoOf: "Plano do Gemini de {{owner}}",
       zenAutoOf: "OpenCode de {{owner}}",
       codingAutoOf: "{{plan}} de {{owner}}",
+      /** An ACP agent its computer declares (ADR 0216): the model by that agent, as its computer's owner named it. */
+      acp: "{{model}} pelo {{engine}}",
       on: "{{line}} no {{computer}}",
     },
     model: "Modelo (API)",
@@ -12261,6 +12263,17 @@ export const ptBR = {
       grok: "Grok Build",
       copilot: "Copilot CLI",
       antigravity: "Antigravity CLI",
+      acp: "Agente ACP",
+    },
+    /** ACP agents a computer declares (ADR 0216): any agent its owner set up there, by the name they gave it. */
+    acp: {
+      name: "Agente ACP",
+      group: "Agentes ACP",
+      defaultModel: "Padrão do {{engine}}",
+      defaultModelHint: "O modelo que ele usa quando ninguém escolhe",
+      models_one: "{{count}} modelo",
+      models_other: "{{count}} modelos",
+      ownDefault: "Usa o modelo padrão dele",
     },
     foot: {
       api: "Pela API",

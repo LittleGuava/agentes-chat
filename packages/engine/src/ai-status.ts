@@ -134,7 +134,7 @@ export const noAiReasonOf = (code: string): NoAiReason =>
 
 /** `not_logged_in` with no account of the agent's: the computer's own sign-in of that CLI isn't there (`own`). */
 export const ownNotSignedIn = (code: string, kind: BrainKind, account: unknown): Pick<AgentAi, "own"> =>
-  code === "not_logged_in" && !account && isComputerBrain(kind) ? { own: kind } : {};
+  code === "not_logged_in" && !account && isComputerBrain(kind) && kind !== "acp" ? { own: kind } : {};
 
 /**
  * One agent (for one run, when given: right after its row is read, before any judge or model call). `viewer`: with no

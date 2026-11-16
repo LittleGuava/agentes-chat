@@ -57,6 +57,8 @@ export interface MachineExecutors {
   antigravity?: { version: string; models?: { id: string; label?: string }[] };
   /** GitHub's Copilot CLI (protocol 68, ADR 0189). */
   copilot?: { version: string; models?: { id: string; label?: string }[] };
+  /** ACP agents the computer's owner declared (protocol 71, ADR 0216), with the models each offered; never a command. */
+  acp?: { id: string; name: string; models?: { id: string; label?: string }[] }[];
   /** A CLI that is there and can't start (`--version` keeps failing), with its own error line; `git_missing`: see `CLI_GIT_MISSING`. */
   broken?: Partial<Record<"claude" | "codex" | "cursor" | "opencode" | "grok" | "antigravity" | "copilot", string>>;
   /** `hello.browser` (ADR 0040): whether the agent browser can run there; absent = not reported. */

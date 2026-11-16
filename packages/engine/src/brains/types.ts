@@ -10,7 +10,16 @@ import type { ToolImage } from "@agenteschat/providers";
 import { planOf } from "@agenteschat/providers/plans";
 import type { CodeSetup } from "../git/machine";
 
-export type BrainKind = "model" | "claude_code" | "codex" | "cursor" | "opencode" | "grok" | "antigravity" | "copilot";
+export type BrainKind =
+  | "model"
+  | "claude_code"
+  | "codex"
+  | "cursor"
+  | "opencode"
+  | "grok"
+  | "antigravity"
+  | "copilot"
+  | "acp";
 
 /** A brain that runs on the agent's computer with a person's plan (ADR 0114 adds Cursor). */
 export type ComputerBrainKind = Exclude<BrainKind, "model">;
@@ -24,6 +33,7 @@ export const BRAIN_NAMES: Readonly<Record<ComputerBrainKind, string>> = {
   grok: "Grok Build",
   antigravity: "Antigravity CLI",
   copilot: "Copilot CLI",
+  acp: "ACP agent",
 };
 
 /**
@@ -47,6 +57,8 @@ export const BRAIN_PLAN_NAMES: Readonly<Record<ComputerBrainKind, string>> = {
   grok: "Grok",
   antigravity: "Gemini",
   copilot: "GitHub Copilot",
+  // ADR 0216: an ACP agent the computer declares thinks with its own sign-in there.
+  acp: "ACP agent",
 };
 
 /**
@@ -70,7 +82,8 @@ export const isComputerBrain = (v: unknown): v is ComputerBrainKind =>
   v === "opencode" ||
   v === "grok" ||
   v === "antigravity" ||
-  v === "copilot";
+  v === "copilot" ||
+  v === "acp";
 
 /**
  * Brains whose shell runs in a sandbox of the CLI's own (ADR 0053 §3, 0114, 0142, 0143), the limit of what their turns

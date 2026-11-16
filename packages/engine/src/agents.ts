@@ -203,11 +203,13 @@ export const NEW_AGENT_DEFAULTS = { model: AUTO_MODEL } as const;
  * An agent's "Quem pensa" and its Autonomia as new agents take them (ADR 0094). Who it answers stays out: a new agent
  * on a plan answers only its owner (ADR 0059 §5).
  */
-export function setupOfAgent(a: Agent): schema.AgentSetup {
+export function setupOfAgent(a: Agent): schema.AgentSetup | null {
   const autonomy = a.missionCommandApproval;
   if (!isComputerBrain(a.brain)) {
     return { brain: "model", model: a.model, key: a.credentialId, contextTokens: a.contextTokens, autonomy };
   }
+  // An ACP agent is one its computer declares (ADR 0216): no setup a new agent could start from.
+  if (a.brain === "acp") return null;
   return {
     brain: a.brain,
     model: a.brainModel,
@@ -243,7 +245,8 @@ export async function workspaceHomeId(db: Executor, orgId: string): Promise<stri
  * Only whoever creates agents sets it (they start from it), and one on the API only an admin: only admins change an
  * agent's API model and key.
  */
-export async function rememberAgentSetup(db: Executor, membership: Membership, setup: schema.AgentSetup) {
+export async function rememberAgentSetup(db: Executor, membership: Membership, setup: schema.AgentSetup | null) {
+  if (!setup) return;
   if (!can(membership, "create_agents") || (setup.brain === "model" && !can(membership, "manage_agents"))) return;
   await db
     .insert(schema.organizationSettings)
@@ -574,7 +577,7 @@ export async function updateAgent(
         ? answersOthers(audienceOf(before), owner)
           ? { audienceMode: "owner" as const }
           : {}
-        : { brain: "model", brainAccountId: null }
+        : { brain: "model", brainAccountId: null, brainEngine: null }
       : {};
   // The handle it leaves joins the ones it had, so what names it there still reaches it; taking one back takes it out.
   const previous =

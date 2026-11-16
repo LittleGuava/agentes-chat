@@ -2059,6 +2059,10 @@ export function agentRoutes(deps: AppDeps) {
               description:
                 "The most context it reads, any brain (Claude Code and Codex compact there, the API brain drops old tool results); null = its model's window; omitted = keep.",
             }),
+            engine: z.string().max(32).optional().openapi({
+              description:
+                "`acp` (ADR 0216): the id of an ACP agent the agent's computer declares (`BrainOption.engines`); required when switching to `acp`, omitted = keep (`brain.invalid_engine`). An ACP agent takes no `account`.",
+            }),
           }),
         ),
       },

@@ -11,6 +11,7 @@ import {
 import { type Config, connectorOAuthApps, githubAppConfig, mcpCallerIdentity } from "@agenteschat/config";
 import type { Database } from "@agenteschat/db";
 import {
+  AcpBrain,
   AntigravityBrain,
   APP_FAULT_HINT,
   type ArtifactDeps,
@@ -771,6 +772,16 @@ export function buildEngine(o: EngineOptions) {
     copilot: (_agent, _run, setup) =>
       new CopilotBrain({
         link: brainLink,
+        mcp: async () => ({ token: setup.mcpToken() }),
+        agent: agentScope,
+        permissions: turnPermissions,
+        prepare: prepareCode,
+      }),
+    // ADR 0216: an ACP agent the computer's owner declared, the one the agent chose; one process per turn.
+    acp: (agent, _run, setup) =>
+      new AcpBrain({
+        link: brainLink,
+        engine: agent.brainEngine,
         mcp: async () => ({ token: setup.mcpToken() }),
         agent: agentScope,
         permissions: turnPermissions,

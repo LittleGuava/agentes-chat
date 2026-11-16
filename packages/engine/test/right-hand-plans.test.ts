@@ -598,6 +598,25 @@ test("the Copilot CLI is never offered to Lodi, and a save naming it is refused 
   expect(view.options.find((o) => o.kind === "copilot")).toMatchObject({ available: true });
 });
 
+test("an ACP agent its computer declares is never offered to Lodi, and a save naming it is refused (ADR 0216)", async () => {
+  const { fx, deps, machineId, lodi } = await world();
+  const id = (await lodi()).id;
+  await fx.db
+    .update(schema.machines)
+    .set({
+      protocol: MACHINE_PROTOCOL_VERSION,
+      executors: { acp: [{ id: "vibe", name: "Mistral Vibe" }], detectedAt: new Date().toISOString() },
+    })
+    .where(eq(schema.machines.id, machineId));
+  const view = await getAgentBrain(deps, fx.owner.id, fx.org.id, id);
+  expect(view.acp).toBeUndefined();
+  expect(view.options.map((o) => o.kind)).not.toContain("acp");
+  expect(await codeOf(setAgentBrain(deps, fx.owner.id, fx.org.id, id, { brain: "acp", engine: "vibe" }))).toBe(
+    "brain.invalid",
+  );
+  expect(await lodi()).toMatchObject({ brain: "model", brainEngine: null });
+});
+
 test("its DM's line: a runner to update and a CLI with tools of its own each say so, never that it has no AI", () => {
   expect(rightHandNoAiReason("runner_outdated")).toBe("runner_outdated");
   expect(rightHandNoAiReason("tools_not_locked")).toBe("plan_tools");

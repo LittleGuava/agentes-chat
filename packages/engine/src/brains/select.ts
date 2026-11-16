@@ -1,4 +1,5 @@
 import {
+  ACP_ENGINE_PROTOCOL,
   ANTIGRAVITY_PROTOCOL,
   BRAIN_PROTOCOL,
   type BrainEffort,
@@ -53,6 +54,7 @@ const KINDS: readonly BrainKind[] = [
   "grok",
   "antigravity",
   "copilot",
+  "acp",
 ];
 const kindOf = (v: unknown): BrainKind => (KINDS.includes(v as BrainKind) ? (v as BrainKind) : "model");
 
@@ -398,7 +400,8 @@ export async function storedPlanUsage(
   kind: BrainKind,
   accountId?: string,
 ): Promise<PlanUsage | null> {
-  if (kind === "model") return null;
+  // An ACP agent (ADR 0216) reports no plan.
+  if (kind === "model" || kind === "acp") return null;
   const { machineAccounts, machines } = schema;
   if (accountId) {
     const [row] = await db
@@ -504,6 +507,28 @@ export function computerBrainUnavailable(
       ...pausedUntil,
     };
   }
+  // ADR 0216: an ACP agent the computer declares, by its commands switch; which one the agent chose is the turn's.
+  if (kind === "acp") {
+    if (status.access?.tools && status.access.tools.commands !== true) {
+      return {
+        code: "tool_off",
+        message: `Commands are turned off on ${status.name} (its owner can turn them on in the agentes app).`,
+      };
+    }
+    if (status.protocol < ACP_ENGINE_PROTOCOL) {
+      return {
+        code: "runner_outdated",
+        message: `The runner on ${status.name} is too old for ACP agents. ${runnerUpdateWay(status)}`,
+      };
+    }
+    if (status.executors?.detectedAt && !status.executors.acp?.length) {
+      return {
+        code: "acp_engine_missing",
+        message: `${status.name} declares no ACP agent (its owner lists them in the runner's config.json).`,
+      };
+    }
+    return null;
+  }
   if (kind === "cursor" || kind === "opencode" || kind === "grok" || kind === "antigravity" || kind === "copilot") {
     const off = toolOff(status, kind);
     if (off) return off;
@@ -576,6 +601,7 @@ export const UNAVAILABLE_CODES: ReadonlySet<string> = new Set([
   "grok_missing",
   "antigravity_missing",
   "copilot_missing",
+  "acp_engine_missing",
   "plan_limit",
   "plan_not_owner",
   "plan_not_shared",
@@ -603,6 +629,7 @@ export const NO_AI_CODES: ReadonlySet<string> = new Set([
   "grok_missing",
   "antigravity_missing",
   "copilot_missing",
+  "acp_engine_missing",
 ]);
 
 /** What the engine runs a turn with. */

@@ -341,6 +341,8 @@ export const aiStateOf = (status: AiStatus | undefined, agentId: string): AiStat
 export type PlanChoice = "claude" | "chatgpt" | "cursor" | "zen" | "grok" | "gemini" | "copilot" | PlanId;
 /** What the picker offers: a plan, or the workspace's API key. */
 export type AiChoice = PlanChoice | "key";
+/** What an agent thinks with: a plan, the API key, or an ACP agent its computer declares (ADR 0216), never connected here. */
+export type ThinkChoice = AiChoice | "acp";
 /** Every picker's order, the most used first: Claude (chosen first), ChatGPT, Gemini, Grok, Copilot, Cursor, OpenCode, then the coding plans. */
 export const PLAN_CHOICES: readonly PlanChoice[] = [
   "claude",
@@ -371,10 +373,15 @@ export const planOfAccount = (a: Pick<MachineAccount, "kind" | "provider">): Pla
  * What an agent's brain view thinks with, as the picker's choice: the API key on the model brain, else the plan of the
  * account it thinks with (the computer's own sign-in: Claude's or ChatGPT's).
  */
-export const aiChoiceOf = (view: Pick<AgentBrain, "brain" | "account" | "accounts">): AiChoice =>
+export const aiChoiceOf = (view: Pick<AgentBrain, "brain" | "account" | "accounts">): ThinkChoice =>
   view.brain === "model"
     ? "key"
-    : planOfAccount({ kind: view.brain, provider: view.accounts.find((a) => a.id === view.account)?.provider ?? null });
+    : view.brain === "acp"
+      ? "acp"
+      : planOfAccount({
+          kind: view.brain,
+          provider: view.accounts.find((a) => a.id === view.account)?.provider ?? null,
+        });
 /**
  * The sign-in a row of what the person already has asks for (`existingAi`), in its plan's panel: one more login of
  * that account for the agent (`email`, Claude's hint), or a free login of it signed back in (`again`). `from`: the

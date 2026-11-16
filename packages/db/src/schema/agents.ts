@@ -231,6 +231,11 @@ export const agents = pgTable(
      * the plan stays lent if that person leaves.
      */
     brainAccountLentBy: text(),
+    /**
+     * The `acp` brain (ADR 0216): the id of the ACP agent its computer declares (`machines.executors.acp`); null for
+     * every other brain. Cleared when the agent changes computer or brain kind.
+     */
+    brainEngine: text(),
     /** How hard its computer brain thinks (`low`…`max`, ADR 0041); null = the CLI's default. */
     brainEffort: text(),
     /**
