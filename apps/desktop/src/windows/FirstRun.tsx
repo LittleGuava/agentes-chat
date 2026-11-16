@@ -4,7 +4,8 @@
  * network, and the one-command setup for a server that has none yet) or to running agentes.chat on this
  * computer. A connect link (`agenteschat://connect`) opens here
  * too: the server in large type, nothing changes before Connect. Choosing a server opens the main window there
- * and closes this one. A pair link (`agenteschat://pair`) asks to connect this computer instead (`PairLinkSheet`).
+ * and closes this one. A pair link (`agenteschat://pair`) asks to connect this computer instead (`PairLinkSheet`). A
+ * link to a conversation on a server the app doesn't open only names that server here (deep_link.rs `open_chat`).
  */
 import {
   CLOUD_SERVER,
@@ -47,6 +48,7 @@ import {
   linkView,
   ownAddresses,
   PROBLEM_TEXT,
+  parseChatElsewhere,
   terminalStartCommand,
   typedServer,
 } from "../control/first-run";
@@ -157,9 +159,10 @@ export function FirstRun() {
         setScreen("pair");
         return;
       }
-      const parsed = parseConnectLink(raw, { allowHttp: "loopback" });
+      const elsewhere = parseChatElsewhere(raw);
+      const parsed = elsewhere ? null : parseConnectLink(raw, { allowHttp: "loopback" });
       const list = await host.servers();
-      setLink({ raw, parsed, view: linkView(parsed, "checking", list.current) });
+      setLink({ raw, parsed, view: elsewhere ?? linkView(parsed, "checking", list.current) });
       // Cancel comes back to where the person was.
       const from = screenRef.current;
       if (from !== "link") setTrail((t) => [...t, from]);
@@ -1192,8 +1195,16 @@ function LinkSheet({
   const name = server ? (mine ? t("desktop.link.thisServer") : serverName(server)) : "";
   let body: ReactNode;
   let acts: ReactNode;
-  if (view.kind === "notALink") {
-    body = <p className="dk-fr__question">{t("desktop.link.notALink")}</p>;
+  if (view.kind === "notALink" || view.kind === "elsewhere") {
+    body =
+      view.kind === "notALink" ? (
+        <p className="dk-fr__question">{t("desktop.link.notALink")}</p>
+      ) : (
+        <>
+          <p className="dk-fr__question">{t("desktop.link.elsewhere")}</p>
+          <p className="dk-help">{t("desktop.link.elsewhereHelp")}</p>
+        </>
+      );
     acts = (
       <Button variant="primary" autoFocus onClick={onCancel}>
         {t("desktop.common.close")}

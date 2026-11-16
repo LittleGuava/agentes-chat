@@ -292,6 +292,8 @@
     "continue": "Lanjut",
     "checking": "Memeriksa server…",
     "notALink": "Tautan ini bukan dari server agentes.chat.",
+    "elsewhere": "Tautan ini membuka percakapan di server yang tidak dibuka aplikasi ini.",
+    "elsewhereHelp": "Tambahkan di Server › Tambah server…, lalu buka tautannya lagi.",
     "chipTailnet": "Tailscale",
     "chipHere": "{{device}} ini",
     "thisServer": "agentes.chat di {{device}} ini",

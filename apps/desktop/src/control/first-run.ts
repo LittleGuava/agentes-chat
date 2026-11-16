@@ -160,6 +160,7 @@ export const ownerPath = (claim: string) => `/owner#claim=${claim}`;
  */
 export type LinkView =
   | { kind: "notALink" }
+  | { kind: "elsewhere"; server: string }
   | { kind: "checking"; server: string }
   | { kind: "problem"; server: string; problem: ConnectProblem }
   | { kind: "front"; server: string }
@@ -171,6 +172,19 @@ export type LinkView =
       page?: string;
       leave: string | null;
     };
+
+const CHAT_ELSEWHERE = /^agenteschat:\/\/chat\/?\?(.*)$/;
+
+/**
+ * A link to a conversation on a server this app doesn't open, as Rust hands it over (deep_link.rs `elsewhere_link`):
+ * the sheet names that server and opens nothing (ADR 0138, addendum of 2026-11-15).
+ */
+export function parseChatElsewhere(raw: string): Extract<LinkView, { kind: "elsewhere" }> | null {
+  const query = CHAT_ELSEWHERE.exec(raw.trim())?.[1];
+  if (query === undefined) return null;
+  const server = appServer(new URLSearchParams(query).get("server") ?? "");
+  return server ? { kind: "elsewhere", server } : null;
+}
 
 export function linkView(link: ConnectLink | null, check: ServerCheck | "checking", current: string | null): LinkView {
   if (!link) return { kind: "notALink" };

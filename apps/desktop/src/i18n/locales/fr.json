@@ -298,6 +298,8 @@
     "continue": "Continuer",
     "checking": "Vérification du serveur…",
     "notALink": "Ce lien ne vient pas d'un serveur agentes.chat.",
+    "elsewhere": "Ce lien ouvre une conversation sur un serveur que cette app n'ouvre pas.",
+    "elsewhereHelp": "Ajoutez-le dans Serveurs › Ajouter un serveur…, puis rouvrez le lien.",
     "chipTailnet": "Tailscale",
     "chipHere": "Ce {{device}}",
     "thisServer": "agentes.chat sur ce {{device}}",

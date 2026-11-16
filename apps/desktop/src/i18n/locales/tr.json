@@ -295,6 +295,8 @@
     "continue": "Devam et",
     "checking": "Sunucu kontrol ediliyor…",
     "notALink": "Bu bağlantı bir agentes.chat sunucusuna ait değil.",
+    "elsewhere": "Bu bağlantı, bu uygulamanın açmadığı bir sunucudaki bir konuşmayı açar.",
+    "elsewhereHelp": "Sunucular › Sunucu ekle… bölümünden ekleyin, sonra bağlantıyı yeniden açın.",
     "chipTailnet": "Tailscale",
     "chipHere": "Bu {{device}}",
     "thisServer": "Bu {{device}} üzerindeki agentes.chat",
