@@ -16101,6 +16101,11 @@
         "token_revoked": "吊销了个人令牌 {{app}}",
         "message_sent": "通过 {{app}} 发送了一条消息"
       },
+      "agent_api": {
+        "key_created": "创建了 API 密钥 {{app}}",
+        "key_revoked": "撤销了 API 密钥 {{app}}",
+        "message_sent": "通过 API 密钥 {{app}} 发送了消息"
+      },
       "vault": {
         "item_created": "在 Vault 中保存了一个项目",
         "item_changed": "修改了一个 Vault 项目",

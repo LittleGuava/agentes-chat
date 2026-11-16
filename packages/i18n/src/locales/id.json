@@ -16092,6 +16092,11 @@
         "token_revoked": "Mencabut token pribadi {{app}}",
         "message_sent": "Mengirim pesan lewat {{app}}"
       },
+      "agent_api": {
+        "key_created": "Membuat kunci API {{app}}",
+        "key_revoked": "Mencabut kunci API {{app}}",
+        "message_sent": "Mengirim pesan lewat kunci API {{app}}"
+      },
       "vault": {
         "item_created": "Menyimpan item ke Vault",
         "item_changed": "Mengubah item Vault",

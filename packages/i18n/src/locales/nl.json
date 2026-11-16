@@ -16671,6 +16671,11 @@
         "token_revoked": "Persoonlijk token {{app}} ingetrokken",
         "message_sent": "Een bericht verstuurd via {{app}}"
       },
+      "agent_api": {
+        "key_created": "API-sleutel {{app}} gemaakt",
+        "key_revoked": "API-sleutel {{app}} ingetrokken",
+        "message_sent": "Bericht gestuurd via API-sleutel {{app}}"
+      },
       "vault": {
         "item_created": "Een item in de Vault opgeslagen",
         "item_changed": "Een Vault-item gewijzigd",

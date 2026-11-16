@@ -17138,6 +17138,11 @@
         "token_revoked": "A révoqué le jeton personnel {{app}}",
         "message_sent": "A envoyé un message via {{app}}"
       },
+      "agent_api": {
+        "key_created": "A créé la clé d'API {{app}}",
+        "key_revoked": "A révoqué la clé d'API {{app}}",
+        "message_sent": "A envoyé un message avec la clé d'API {{app}}"
+      },
       "vault": {
         "item_created": "A enregistré un élément dans le Vault",
         "item_changed": "A modifié un élément du Vault",

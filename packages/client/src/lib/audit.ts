@@ -106,6 +106,12 @@ export function auditPhrase(t: TFunction, row: AuditRow, locale?: string): strin
   if (area === "join_domain" && (rest === "added" || rest === "removed")) {
     return t(`audit.change.joinDomain.${rest}`, { domain: auditStr(row.details.domain) ?? "" });
   }
+  // An agent's API keys (ADR 0210): the key's name, as it was when it happened.
+  if (area === "agent_api") {
+    const what = (["key_created", "key_revoked", "message_sent"] as const).find((s) => s === rest);
+    const app = auditStr(row.details.app);
+    if (what && app) return t(`audit.change.agent_api.${what}`, { app });
+  }
   // The Vault (ADR 0144): its own sentences, since a value shown or copied and a password manager connected don't
   // read as "<verb> <area>".
   if (area === "vault") {

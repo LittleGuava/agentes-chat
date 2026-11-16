@@ -17682,6 +17682,11 @@
         "token_revoked": "Unieważniono token osobisty {{app}}",
         "message_sent": "Wysłano wiadomość przez {{app}}"
       },
+      "agent_api": {
+        "key_created": "Utworzono klucz API {{app}}",
+        "key_revoked": "Unieważniono klucz API {{app}}",
+        "message_sent": "Wysłano wiadomość przez klucz API {{app}}"
+      },
       "vault": {
         "item_created": "Zapisano element w Vault",
         "item_changed": "Zmieniono element w Vault",

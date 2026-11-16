@@ -16870,6 +16870,12 @@ export const ptBR = {
         token_revoked: "Revogou o token pessoal {{app}}",
         message_sent: "Mandou uma mensagem pelo {{app}}",
       },
+      /** As chaves de API de um agente (ADR 0210). `app`: o nome da chave. */
+      agent_api: {
+        key_created: "Criou a chave de API {{app}}",
+        key_revoked: "Revogou a chave de API {{app}}",
+        message_sent: "Mandou uma mensagem pela chave de API {{app}}",
+      },
       vault: {
         item_created: "Salvou um item no Cofre",
         item_changed: "Mudou um item do Cofre",

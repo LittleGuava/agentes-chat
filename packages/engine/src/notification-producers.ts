@@ -5,6 +5,7 @@ import { approvalCardThreads, approvalOriginOf, notifiedIds } from "./approvals"
 import { accountablePerson, runAuthorityById } from "./authority";
 import { autonomyNoteFor, proposalCardOf } from "./brakes";
 import { readableChannelIds } from "./channels";
+import { isAgentKeyRoom } from "./dms";
 import { threadFollowChoices } from "./follows";
 import { type Assignee, assigneesOfIssue } from "./issue-assignees";
 import { type TaskEnd, taskEndLine } from "./machine-task-text";
@@ -152,10 +153,13 @@ export async function notifyMessage(deps: NotificationDeps, orgId: string, messa
   // A long work's progress line (ADR 0121) never pushes: it counts as unread only for who follows its thread.
   if (meta.workUpdate) return;
   const [channel] = await db
-    .select({ kind: channels.kind, name: channels.name, visibility: channels.visibility })
+    .select({ kind: channels.kind, name: channels.name, visibility: channels.visibility, dmKey: channels.dmKey })
     .from(channels)
     .where(and(eq(channels.id, message.channelId), eq(channels.orgId, orgId)));
   if (!channel) return;
+  // An agent API key's room (ADR 0210): the caller reads the agent's words through the API, so they ring nobody; its
+  // cards (questions, approvals) still ring the key's creator through their own flows.
+  if (isAgentKeyRoom(channel.dmKey) && message.authorType === "agent") return;
   // A task's conversation (ADR 0145): whoever sees the task, as its comments did.
   if (channel.kind === "task") return notifyTaskMessage(deps, message);
   const actor = message.authorType === "person" ? person(message.authorUserId) : agent(message.authorAgentId);

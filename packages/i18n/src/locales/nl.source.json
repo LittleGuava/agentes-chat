@@ -40855,6 +40855,15 @@
   "audit.change.apps.message_sent": {
     "value": "Sent a message through {{app}}"
   },
+  "audit.change.agent_api.key_created": {
+    "value": "Created the API key {{app}}"
+  },
+  "audit.change.agent_api.key_revoked": {
+    "value": "Revoked the API key {{app}}"
+  },
+  "audit.change.agent_api.message_sent": {
+    "value": "Sent a message through the API key {{app}}"
+  },
   "audit.change.vault.item_created": {
     "value": "Saved an item to the Vault"
   },

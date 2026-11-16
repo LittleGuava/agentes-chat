@@ -16976,6 +16976,12 @@ export const en = {
         token_revoked: "Revoked the personal token {{app}}",
         message_sent: "Sent a message through {{app}}",
       },
+      /** An agent's API keys (ADR 0210). `app`: the key's name. */
+      agent_api: {
+        key_created: "Created the API key {{app}}",
+        key_revoked: "Revoked the API key {{app}}",
+        message_sent: "Sent a message through the API key {{app}}",
+      },
       vault: {
         item_created: "Saved an item to the Vault",
         item_changed: "Changed a Vault item",

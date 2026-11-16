@@ -186,8 +186,14 @@ export async function openDm(
  * isn't checked: the agent may write to anyone in the organization; the person's replies only get an
  * answer when they may talk to it.
  */
-export async function openPersonAgentDm(db: Executor, orgId: string, userId: string, agentId: string) {
-  const dmKey = personAgentDmKey(userId, agentId);
+export const openPersonAgentDm = (db: Executor, orgId: string, userId: string, agentId: string) =>
+  openPersonAgentRoom(db, orgId, userId, agentId, personAgentDmKey(userId, agentId));
+
+/** An agent API key's room (ADR 0210), opened the same way the first time a message is sent with the key. */
+export const openAgentKeyRoom = (db: Executor, orgId: string, userId: string, agentId: string, keyId: string) =>
+  openPersonAgentRoom(db, orgId, userId, agentId, agentKeyRoomKey(agentId, keyId, userId));
+
+async function openPersonAgentRoom(db: Executor, orgId: string, userId: string, agentId: string, dmKey: string) {
   const existing = async () =>
     (
       await db
@@ -226,6 +232,15 @@ export async function openPersonAgentDm(db: Executor, orgId: string, userId: str
 
 /** The DM key of a conversation between a person and an agent. */
 export const personAgentDmKey = (userId: string, agentId: string) => keyOf([`u:${userId}`, `a:${agentId}`]);
+
+/**
+ * The room of an agent API key (ADR 0210): its agent and the person who made the key, apart from that person's own DM
+ * with the agent. The person is a member (the cards the run posts there are theirs to answer), so `u:` is in it.
+ */
+export const agentKeyRoomKey = (agentId: string, keyId: string, userId: string) =>
+  `apikey|a:${agentId}|k:${keyId}|u:${userId}`;
+
+export const isAgentKeyRoom = (dmKey: string | null | undefined) => Boolean(dmKey?.startsWith("apikey|"));
 
 /** The DM key of a conversation between two agents (`ask_agent`, ADR 0034): no person in it. */
 export const agentDmKey = (a: string, b: string) => keyOf([`a:${a}`, `a:${b}`]);
@@ -314,6 +329,8 @@ export async function listDms(db: Database, actorId: string, orgId: string, only
         eq(channels.orgId, orgId),
         eq(channels.kind, "dm"),
         isNull(channels.archivedAt),
+        // An agent API key's room (ADR 0210) is the caller's conversation, opened from its cards, never a DM to list.
+        sql`coalesce(${channels.dmKey}, '') not like 'apikey|%'`,
         only ? eq(channels.id, only) : undefined,
       ),
     );

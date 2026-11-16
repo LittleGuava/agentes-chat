@@ -15,9 +15,11 @@ import { errorPages } from "./http/error-page";
 import { apiError, domainErrorResponse, routeOf, validationHook } from "./http/errors";
 import { createLogger, type Logger, loggedPath } from "./logger";
 import { directPushSenders, relayServeSender } from "./push-senders";
+import { registerAgentApi } from "./routes/agent-api";
 import { accessRoutes } from "./routes/app/access";
 import { accountRoutes } from "./routes/app/account";
 import { actionRoutes } from "./routes/app/actions";
+import { agentApiKeyRoutes } from "./routes/app/agent-api-keys";
 import { agentImportRoutes } from "./routes/app/agent-imports";
 import { agentRoutes } from "./routes/app/agents";
 import { approvalRoutes } from "./routes/app/approvals";
@@ -129,6 +131,7 @@ export interface AppOptions {
  * - `/api/waitlist`       public: join the waiting list and confirm the email (the landing page, only with LANDING_URL)
  * - `/api/partners/waitlist` public: join the partner program's waiting list (the landing page, only with LANDING_URL)
  * - `/api/oauth/*`        public: the OAuth 2.1 authorization server for AI apps (ADR 0119)
+ * - `/api/agents/v1/*`    an agent's own REST API, its API keys only (ADR 0210)
  * - `/api/push-relay/v1/*` other installations' phone pushes, server to server (only with PUSH_RELAY_SERVE, ADR 0152)
  * - `/mcp`                AI apps' MCP endpoint, bearer tokens only (ADR 0119); `/.well-known/oauth-*` its discovery
  * - `/api/ws`             WebSocket (real-time)
@@ -189,6 +192,7 @@ export function createApp(options: AppOptions) {
     api.route("/app", channelRoutes(deps));
     api.route("/app", approvalRoutes(deps));
     api.route("/app", appRoutes(deps));
+    api.route("/app", agentApiKeyRoutes(deps));
     api.route("/app", auditRoutes(deps));
     api.route("/app", customConnectorRoutes(deps));
     api.route("/app", connectorRoutes(deps));
@@ -243,6 +247,7 @@ export function createApp(options: AppOptions) {
     api.route("/app", webhookAdminRoutes(deps));
     api.route("/app", githubAppRoutes(deps));
     registerOauthRoutes(api, deps, { version, fetchDocument: options.appsFetchDocument });
+    registerAgentApi(api, deps);
     registerWebhookReceiver(api, deps);
     registerRoutineHooks(api, deps);
     registerGitHubAppWebhook(api, deps);

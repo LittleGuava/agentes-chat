@@ -16029,6 +16029,11 @@
         "token_revoked": "개인 토큰 {{app}}을(를) 해지했어요",
         "message_sent": "{{app}}을(를) 통해 메시지를 보냈어요"
       },
+      "agent_api": {
+        "key_created": "API 키 {{app}}을(를) 만들었어요",
+        "key_revoked": "API 키 {{app}}을(를) 해지했어요",
+        "message_sent": "API 키 {{app}}을(를) 통해 메시지를 보냈어요"
+      },
       "vault": {
         "item_created": "Vault에 항목을 저장했어요",
         "item_changed": "Vault 항목을 변경했어요",

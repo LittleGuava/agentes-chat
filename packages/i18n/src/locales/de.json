@@ -16607,6 +16607,11 @@
         "token_revoked": "Hat den persönlichen Token {{app}} widerrufen",
         "message_sent": "Hat eine Nachricht über {{app}} gesendet"
       },
+      "agent_api": {
+        "key_created": "Hat den API-Schlüssel {{app}} erstellt",
+        "key_revoked": "Hat den API-Schlüssel {{app}} widerrufen",
+        "message_sent": "Hat eine Nachricht über den API-Schlüssel {{app}} gesendet"
+      },
       "vault": {
         "item_created": "Hat einen Eintrag im Vault gespeichert",
         "item_changed": "Hat einen Vault-Eintrag geändert",

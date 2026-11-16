@@ -17151,6 +17151,11 @@
         "token_revoked": "Ha revocato il token personale {{app}}",
         "message_sent": "Ha inviato un messaggio tramite {{app}}"
       },
+      "agent_api": {
+        "key_created": "Ha creato la chiave API {{app}}",
+        "key_revoked": "Ha revocato la chiave API {{app}}",
+        "message_sent": "Ha inviato un messaggio con la chiave API {{app}}"
+      },
       "vault": {
         "item_created": "Ha salvato un elemento nel Vault",
         "item_changed": "Ha modificato un elemento del Vault",

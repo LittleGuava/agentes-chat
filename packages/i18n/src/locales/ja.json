@@ -16037,6 +16037,11 @@
         "token_revoked": "個人トークン{{app}}を無効化",
         "message_sent": "{{app}}経由でメッセージを送信"
       },
+      "agent_api": {
+        "key_created": "APIキー{{app}}を作成",
+        "key_revoked": "APIキー{{app}}を無効化",
+        "message_sent": "APIキー{{app}}経由でメッセージを送信"
+      },
       "vault": {
         "item_created": "Vaultに項目を保存",
         "item_changed": "Vaultの項目を変更",

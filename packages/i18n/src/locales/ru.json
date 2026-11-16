@@ -17631,6 +17631,11 @@
         "token_revoked": "Отозван личный токен {{app}}",
         "message_sent": "Отправлено сообщение через {{app}}"
       },
+      "agent_api": {
+        "key_created": "Создан API-ключ {{app}}",
+        "key_revoked": "Отозван API-ключ {{app}}",
+        "message_sent": "Отправлено сообщение через API-ключ {{app}}"
+      },
       "vault": {
         "item_created": "Сохранён элемент в Vault",
         "item_changed": "Изменён элемент Vault",

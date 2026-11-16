@@ -16543,6 +16543,11 @@
         "token_revoked": "{{app}} kişisel tokenını iptal etti",
         "message_sent": "{{app}} üzerinden mesaj gönderdi"
       },
+      "agent_api": {
+        "key_created": "{{app}} API anahtarını oluşturdu",
+        "key_revoked": "{{app}} API anahtarını iptal etti",
+        "message_sent": "{{app}} API anahtarıyla mesaj gönderdi"
+      },
       "vault": {
         "item_created": "Vault'a bir öğe kaydetti",
         "item_changed": "Bir Vault öğesini değiştirdi",
