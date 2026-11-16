@@ -10992,6 +10992,7 @@
     "pcText": "exécuter sur le PC de {{name}}",
     "pcText_female": "exécuter sur le PC de {{name}}",
     "pcInsert": "exécutez ceci sur votre PC : ",
+    "skillInsert": "utilisez la compétence {{name}} : ",
     "format": {
       "toolbar": "Mise en forme",
       "bold": "Gras",

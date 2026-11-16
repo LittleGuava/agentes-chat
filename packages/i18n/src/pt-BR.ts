@@ -10982,6 +10982,7 @@ export const ptBR = {
     pcText: "rodar no PC do {{name}}",
     pcText_female: "rodar no PC da {{name}}",
     pcInsert: "rode no seu PC: ",
+    skillInsert: "use a skill {{name}}: ",
     format: {
       toolbar: "Formatação",
       bold: "Negrito",

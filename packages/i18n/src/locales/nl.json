@@ -10644,6 +10644,7 @@
     "pcText": "uitvoeren op de pc van {{name}}",
     "pcText_female": "uitvoeren op de pc van {{name}}",
     "pcInsert": "voer dit uit op je pc:",
+    "skillInsert": "gebruik de skill {{name}}: ",
     "format": {
       "toolbar": "Opmaak",
       "bold": "Vet",

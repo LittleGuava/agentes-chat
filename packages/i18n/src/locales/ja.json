@@ -10154,6 +10154,7 @@
     "pc": "/pc",
     "pcText": "{{name}}のPCで実行",
     "pcInsert": "これをあなたのPCで実行して:",
+    "skillInsert": "スキル「{{name}}」を使って: ",
     "format": {
       "toolbar": "書式",
       "bold": "太字",

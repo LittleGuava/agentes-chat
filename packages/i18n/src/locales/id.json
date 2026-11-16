@@ -10206,6 +10206,7 @@
     "pcText": "jalankan di PC {{name}}",
     "pcText_female": "jalankan di PC {{name}}",
     "pcInsert": "jalankan ini di PC-mu: ",
+    "skillInsert": "gunakan skill {{name}}: ",
     "format": {
       "toolbar": "Format",
       "bold": "Tebal",

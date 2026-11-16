@@ -10962,6 +10962,8 @@ export const en = {
     pc: "/pc",
     pcText: "run on {{name}}'s PC",
     pcInsert: "run this on your PC: ",
+    /** A skill picked in the "/" menu: the request that asks the agent to use it, its name as the skill has it. */
+    skillInsert: "use the skill {{name}}: ",
     format: {
       toolbar: "Formatting",
       bold: "Bold",

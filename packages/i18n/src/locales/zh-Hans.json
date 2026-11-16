@@ -10220,6 +10220,7 @@
     "pcText": "在 {{name}} 的电脑上运行",
     "pcText_female": "在 {{name}} 的电脑上运行",
     "pcInsert": "在你的电脑上运行：",
+    "skillInsert": "使用技能 {{name}}：",
     "format": {
       "toolbar": "格式",
       "bold": "粗体",

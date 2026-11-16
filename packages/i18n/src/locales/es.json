@@ -10923,6 +10923,7 @@
     "pcText": "ejecutar en la PC de {{name}}",
     "pcText_female": "ejecutar en la PC de {{name}}",
     "pcInsert": "ejecuta esto en tu PC: ",
+    "skillInsert": "usa la habilidad {{name}}: ",
     "format": {
       "toolbar": "Formato",
       "bold": "Negrita",

@@ -91,6 +91,8 @@ export interface ComposerCommand {
   /** Text that replaces the box (e.g. "/relatório "). Defaults to `${label} `. */
   insert?: string;
   onPick?: () => void;
+  /** Consecutive commands with the same group get a heading ("Skills"). */
+  group?: string;
 }
 
 export interface ComposerCommands {
@@ -668,6 +670,7 @@ export function Composer({
             label: c.label,
             description: c.description,
             leading: c.leading,
+            group: c.group,
           })) ?? [])
       : [];
   const mentionItems = mentions && token && token.start !== dismissed ? mentions.search(token.query) : [];

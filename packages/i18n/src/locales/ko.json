@@ -10148,6 +10148,7 @@
     "pc": "/pc",
     "pcText": "{{name}}의 PC에서 실행",
     "pcInsert": "PC에서 실행: ",
+    "skillInsert": "{{name}} 스킬 사용: ",
     "format": {
       "toolbar": "서식",
       "bold": "굵게",

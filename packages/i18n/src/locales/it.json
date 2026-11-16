@@ -11010,6 +11010,7 @@
     "pcText": "esegui sul PC di {{name}}",
     "pcText_female": "esegui sul PC di {{name}}",
     "pcInsert": "esegui questo sul tuo PC: ",
+    "skillInsert": "usa la skill {{name}}: ",
     "format": {
       "toolbar": "Formattazione",
       "bold": "Grassetto",

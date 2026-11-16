@@ -11366,6 +11366,7 @@
     "pc": "/pc",
     "pcText": "uruchom na PC agenta {{name}}",
     "pcInsert": "uruchom to na swoim PC: ",
+    "skillInsert": "użyj umiejętności {{name}}: ",
     "format": {
       "toolbar": "Formatowanie",
       "bold": "Pogrubienie",

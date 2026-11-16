@@ -10578,6 +10578,7 @@
     "pc": "/pc",
     "pcText": "auf dem PC von {{name}} ausführen",
     "pcInsert": "führ das auf deinem PC aus: ",
+    "skillInsert": "nutz den Skill {{name}}: ",
     "format": {
       "toolbar": "Formatierung",
       "bold": "Fett",

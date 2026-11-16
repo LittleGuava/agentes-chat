@@ -41,6 +41,7 @@ import {
   sendHelpers,
   typingIn,
   useAddChannelMember,
+  useAgentSkills,
   useAgentStatuses,
   useAiStatus,
   useApproval,
@@ -172,6 +173,7 @@ import { isReminderMessage, reminderBody, routineReplyOf } from "@agenteschat/cl
 import { picksForMe, replyAloneKey } from "@agenteschat/client/lib/routing";
 import { ConversationSeat } from "@agenteschat/client/lib/seat-context";
 import { seenMessageId } from "@agenteschat/client/lib/seen";
+import { skillMenuLine, slashSkills } from "@agenteschat/client/lib/skills";
 import { hiddenCount, tasksOf, todayStart } from "@agenteschat/client/lib/task-manager";
 import { contextMarks, hiddenByThreads, rangeCandidates, threadStartOf } from "@agenteschat/client/lib/threads";
 import { buildTimeline, lastPostedId, mergeTimeline, type TimelineItem } from "@agenteschat/client/lib/timeline";
@@ -1911,6 +1913,21 @@ function ChannelView({
           leading: <Icon name={c.icon} size={16} />,
           ...(c.key === "stop" ? { insert: "/stop" } : { insert: "", onPick: run(`/${c.key}`) }),
         })),
+    );
+  }
+  // Last, the agent's skills a message of mine lets its run use: picking one asks it to use that skill, which it loads
+  // with `load_skill` from the list its prompt already has.
+  const agentSkills = useAgentSkills(org.id, commandAgent?.id ?? "", Boolean(commandAgent) && isMember);
+  if (commandAgent) {
+    commands.push(
+      ...slashSkills(agentSkills.data ?? [], me.user.id).map((s) => ({
+        key: `skill:${s.id}`,
+        label: s.name,
+        description: skillMenuLine(s.description),
+        leading: <Icon name="bulb" size={16} />,
+        insert: `${commandPrefix}${t("composer.skillInsert", { name: s.name })}`,
+        group: t("skills.title"),
+      })),
     );
   }
   const createMission = useCreateMission(org.id);
