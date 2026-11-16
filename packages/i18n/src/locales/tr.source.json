@@ -4811,6 +4811,9 @@
   "shell.customizeSidebar": {
     "value": "Customize sidebar"
   },
+  "shell.opensInNewTab": {
+    "value": "opens in a new tab"
+  },
   "shell.sidebarMenu.title": {
     "value": "Sidebar"
   },
@@ -4873,6 +4876,27 @@
   },
   "shell.sidebarSetup.moveTool": {
     "value": "Drag to move {{name}}"
+  },
+  "shell.sidebarSetup.links": {
+    "value": "Links"
+  },
+  "shell.sidebarSetup.linksHint": {
+    "value": "Pages you keep at hand, under the tools. They open in a new tab."
+  },
+  "shell.sidebarSetup.linkTitle": {
+    "value": "Name"
+  },
+  "shell.sidebarSetup.linkUrl": {
+    "value": "Address"
+  },
+  "shell.sidebarSetup.linkUrlExample": {
+    "value": "e.g. https://crm.example.com"
+  },
+  "shell.sidebarSetup.addLink": {
+    "value": "Add link"
+  },
+  "shell.sidebarSetup.removeLink": {
+    "value": "Remove {{name}}"
   },
   "shell.inviteHint": {
     "value": "By email or link"
@@ -8047,11 +8071,11 @@
   "connectAi.plan.grok.title": {
     "value": "Your Grok plan"
   },
-  "connectAi.plan.copilot.title": {
-    "value": "Your GitHub Copilot plan"
-  },
   "connectAi.plan.grok.tiers": {
     "value": "SuperGrok, SuperGrok Heavy or X Premium+"
+  },
+  "connectAi.plan.copilot.title": {
+    "value": "Your GitHub Copilot plan"
   },
   "connectAi.plan.copilot.tiers": {
     "value": "Copilot Pro, Pro+, Business or Enterprise"
@@ -35842,6 +35866,15 @@
   },
   "errors.tooLargeMax": {
     "value": "This is bigger than the server takes: up to {{max}} MB."
+  },
+  "errors.sidebarLink.url": {
+    "value": "Use an https address, like https://crm.example.com."
+  },
+  "errors.sidebarLink.title": {
+    "value": "Give the link a name of up to {{max}} characters."
+  },
+  "errors.sidebarLink.full": {
+    "value": "You have {{max}} links. Remove one to add another."
   },
   "errors.passwordLink.email": {
     "value": "This server sends email: they ask for their own link in Forgot password."

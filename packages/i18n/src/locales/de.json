@@ -1960,6 +1960,7 @@
       "homePersonal": "Dein Tag: was auf dich wartet und was deine Agenten gerade tun"
     },
     "customizeSidebar": "Seitenleiste anpassen",
+    "opensInNewTab": "öffnet sich in einem neuen Tab",
     "sidebarMenu": {
       "title": "Seitenleiste",
       "newChannel": "Neuer Kanal",
@@ -1983,7 +1984,14 @@
       "order": "Reihenfolge der Bereiche",
       "orderHint": "Zieh oder nutze die Pfeile. Zum Beispiel Agenten zuerst.",
       "moveSection": "Ziehen, um den Bereich {{name}} zu verschieben, oder klicken für Optionen",
-      "moveTool": "Ziehen, um {{name}} zu verschieben"
+      "moveTool": "Ziehen, um {{name}} zu verschieben",
+      "links": "Links",
+      "linksHint": "Seiten, die du griffbereit haben willst, unter den Werkzeugen. Sie öffnen sich in einem neuen Tab.",
+      "linkTitle": "Name",
+      "linkUrl": "Adresse",
+      "linkUrlExample": "z. B. https://crm.example.com",
+      "addLink": "Link hinzufügen",
+      "removeLink": "{{name}} entfernen"
     },
     "inviteHint": "Per E-Mail oder Link",
     "profileHint": "Name, Foto und @",
@@ -3087,8 +3095,8 @@
       "cursor": "Cursor ist auf diesem Computer nicht angemeldet. Verbinde ein Cursor-Konto auf der Seite von {{name}}.",
       "cursor_female": "Cursor ist auf diesem Computer nicht angemeldet. Verbinde ein Cursor-Konto auf der Seite von {{name}}.",
       "grok": "Grok ist auf diesem Computer nicht angemeldet. Verbinde ein Grok-Konto auf der Seite von {{name}}.",
-      "copilot": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "grok_female": "Grok ist auf diesem Computer nicht angemeldet. Verbinde ein Grok-Konto auf der Seite von {{name}}.",
+      "copilot": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "copilot_female": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "antigravity": "Gemini ist auf diesem Computer nicht angemeldet. Verbinde ein Gemini-Konto auf der Seite von {{name}}.",
       "antigravity_female": "Gemini ist auf diesem Computer nicht angemeldet. Verbinde ein Gemini-Konto auf der Seite von {{name}}.",
@@ -14590,6 +14598,11 @@
   "errors": {
     "tooLarge": "Das ist größer, als der Server annimmt.",
     "tooLargeMax": "Das ist größer, als der Server annimmt: bis zu {{max}} MB.",
+    "sidebarLink": {
+      "url": "Nutze eine https-Adresse, etwa https://crm.example.com.",
+      "title": "Gib dem Link einen Namen mit höchstens {{max}} Zeichen.",
+      "full": "Du hast schon {{max}} Links. Entferne einen, um einen weiteren hinzuzufügen."
+    },
     "passwordLink": {
       "email": "Dieser Server verschickt E-Mails: Die Person fordert ihren eigenen Link unter Passwort vergessen an.",
       "serverOwner": "Wer diesen Server installiert hat, meldet sich auf dem Computer an, auf dem er läuft, ohne Link.",

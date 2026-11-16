@@ -1,6 +1,7 @@
 {
   "app": {
     "pt-BR": [
+      "shell.sidebarSetup.links",
       "usageViews.logins",
       "chat.wait.said",
       "access.area.skills",
@@ -997,6 +998,8 @@
       "storage.connect.awsRegion.eu-north-1"
     ],
     "de": [
+      "shell.sidebarSetup.links",
+      "shell.sidebarSetup.linkTitle",
       "devices.iphone.steps.account",
       "devices.workspace",
       "devices.cpus",
@@ -1834,6 +1837,7 @@
       "storage.connect.provider.b2"
     ],
     "nl": [
+      "shell.sidebarSetup.links",
       "calendar.moreRuns",
       "devices.iphone.steps.account",
       "devices.filter.computers",

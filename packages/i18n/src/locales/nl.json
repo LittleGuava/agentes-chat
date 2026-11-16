@@ -1960,6 +1960,7 @@
       "homePersonal": "Je dag: wat op je wacht en wat je agents nu doen"
     },
     "customizeSidebar": "Zijbalk aanpassen",
+    "opensInNewTab": "opent in een nieuw tabblad",
     "sidebarMenu": {
       "title": "Zijbalk",
       "newChannel": "Nieuw kanaal",
@@ -1983,7 +1984,14 @@
       "order": "Volgorde van de onderdelen",
       "orderHint": "Sleep of gebruik de pijlen. Bijvoorbeeld agents eerst.",
       "moveSection": "Sleep om de sectie {{name}} te verplaatsen of klik voor opties",
-      "moveTool": "Sleep om {{name}} te verplaatsen"
+      "moveTool": "Sleep om {{name}} te verplaatsen",
+      "links": "Links",
+      "linksHint": "Pagina's die je bij de hand wilt hebben, onder de tools. Ze openen in een nieuw tabblad.",
+      "linkTitle": "Naam",
+      "linkUrl": "Adres",
+      "linkUrlExample": "bijv. https://crm.example.com",
+      "addLink": "Link toevoegen",
+      "removeLink": "{{name}} verwijderen"
     },
     "inviteHint": "Via e-mail of link",
     "profileHint": "Naam, foto en @",
@@ -3086,8 +3094,8 @@
       "cursor": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "cursor_female": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "grok": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
-      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "grok_female": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
+      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "copilot_female": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "antigravity": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",
       "antigravity_female": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",
@@ -14654,6 +14662,11 @@
   "errors": {
     "tooLarge": "Dit is groter dan de server aanneemt.",
     "tooLargeMax": "Dit is groter dan de server aanneemt: tot {{max}} MB.",
+    "sidebarLink": {
+      "url": "Gebruik een https-adres, zoals https://crm.example.com.",
+      "title": "Geef de link een naam van hoogstens {{max}} tekens.",
+      "full": "Je hebt al {{max}} links. Verwijder er een om een andere toe te voegen."
+    },
     "passwordLink": {
       "email": "Deze server verstuurt e-mail: de persoon vraagt zelf een link aan bij Wachtwoord vergeten.",
       "serverOwner": "Wie deze server installeerde, meldt zich aan op de computer waarop hij draait, zonder link.",
