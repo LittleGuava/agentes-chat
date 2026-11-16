@@ -583,3 +583,16 @@ export function loginRead(status: { isError: boolean; error: unknown; errorUpdat
   if (!(status.error instanceof LoginReadError)) return "failed";
   return status.errorUpdatedAt - status.error.since < LOGIN_RECONNECT_MS ? "reconnecting" : "noAnswer";
 }
+
+/**
+ * ADR 0202: until when the person who connected `machine` lent `agentId` their own Chrome (ISO), or null when they
+ * didn't or it ended. The server already leaves out what ended or can't be used; `now` keeps an open page honest.
+ */
+export function lentChromeUntil(
+  machine: Pick<Machine, "myChrome"> | null | undefined,
+  agentId: string,
+  now: number,
+): string | null {
+  const lent = machine?.myChrome?.find((l) => l.agentId === agentId);
+  return lent && Date.parse(lent.expiresAt) > now ? lent.expiresAt : null;
+}

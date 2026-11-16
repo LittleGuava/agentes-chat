@@ -15089,6 +15089,8 @@
       "desktop_read": "Przeczytaj ekran",
       "desktop_screenshot": "Zrób zrzut ekranu",
       "desktop_ask_person": "Poproś o przejęcie komputera",
+      "my_chrome_open": "Otwórz stronę w Chrome tej osoby",
+      "my_chrome_read": "Przeczytaj stronę w Chrome tej osoby",
       "computer_use": "Użyj komputera",
       "computer_status": "Sprawdź komputer",
       "left_click": "Kliknij",
@@ -19906,6 +19908,14 @@
     "desktop_screenshot": {
       "label": "Zrób zrzut ekranu pulpitu",
       "description": "Zapisuje obraz pulpitu agenta w jego folderze."
+    },
+    "my_chrome_open": {
+      "label": "Otwórz stronę w Chrome tej osoby",
+      "description": "Otwiera stronę we własnej karcie agenta w Chrome, który pożyczyła mu osoba, zalogowanym jako ta osoba."
+    },
+    "my_chrome_read": {
+      "label": "Przeczytaj stronę w Chrome tej osoby",
+      "description": "Czyta stronę we własnej karcie agenta w Chrome, który pożyczyła mu osoba."
     }
   },
   "browser": {
@@ -20851,6 +20861,10 @@
     "closeAsk": "{{name}} czeka 2 min na twój powrót.",
     "closeAsk_female": "{{name}} czeka 2 min na twój powrót.",
     "openAccess": "Otwórz Narzędzia i dostęp",
+    "myChrome": {
+      "title": "Pożyczona przeglądarka",
+      "line": "Przeglądarka użytkownika {{name}}, z kontami tej osoby, do {{time}}"
+    },
     "kept": {
       "title": "Utrzymywane w działaniu",
       "meta": "{{name}} · od {{since}} · {{until}}",

@@ -13598,6 +13598,8 @@
       "desktop_read": "画面を読み取り",
       "desktop_screenshot": "スクリーンショットを撮影",
       "desktop_ask_person": "コンピューターの操作を依頼",
+      "my_chrome_open": "相手の Chrome でページを開く",
+      "my_chrome_read": "相手の Chrome のページを読む",
       "computer_use": "コンピューターを操作",
       "computer_status": "コンピューターを確認",
       "left_click": "クリック",
@@ -18156,6 +18158,14 @@
     "desktop_screenshot": {
       "label": "デスクトップのスクリーンショットを撮る",
       "description": "エージェントのデスクトップの画像を自分のフォルダに保存します。"
+    },
+    "my_chrome_open": {
+      "label": "相手の Chrome でページを開く",
+      "description": "人が貸した Chrome の中の、エージェント専用のタブでページを開きます。その人としてログインした状態です。"
+    },
+    "my_chrome_read": {
+      "label": "相手の Chrome のページを読む",
+      "description": "人が貸した Chrome の中の、エージェント専用のタブのページを読みます。"
     }
   },
   "browser": {
@@ -19004,6 +19014,10 @@
     },
     "closeAsk": "{{name}}はあなたが戻るのを2分間待ちます。",
     "openAccess": "「ツールとアクセス」を開く",
+    "myChrome": {
+      "title": "借りているブラウザ",
+      "line": "{{name}} さんのブラウザ（{{name}} さんのアカウントでログイン中）、{{time}}まで"
+    },
     "kept": {
       "title": "実行を維持中",
       "meta": "{{name}} · {{since}}から · {{until}}",

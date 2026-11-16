@@ -544,6 +544,23 @@
     "screenName": "Ekranınız",
     "screenDesc": "Ajanlar, onlara verdiğiniz bir görevde bu {{device}} ekranını görmek ve kullanmak için izin isteyebilir. Her seferinde buradan izin verirsiniz. Fareyi veya klavyeyi oynatmak onları duraklatır, Durdur ise bitirir."
   },
+  "myChrome": {
+    "title": "Chrome'unuz",
+    "lendName": "Chrome'unuzu bir ajana ödünç verin",
+    "lendAbout": "Chrome'u bir bağlantı noktasında uzaktan hata ayıklama ile, ajanın ihtiyaç duyduğu sitelerde oturum açılmış kendi profil klasörünüzle başlatın. Ajan sayfaları kendi sekmesinde, sizin adınıza açar ve diğer sekmelerinizi asla görmez. Chrome bu şekilde çalıştığı sürece bu {{device}} üzerindeki her program ona ulaşabilir.",
+    "blocked": "Önce Komutları ve kodlama programlarını kapatın. Bunlardan biri açıkken bir ajan Chrome'unuzun tamamına ulaşabilir.",
+    "agent": "Ajan",
+    "port": "Bağlantı noktası",
+    "minutes": "Dakika",
+    "lend": "Ödünç ver",
+    "lent": "{{agent}}, Chrome'unuzu {{time}} saatine kadar kullanabilir",
+    "until": "{{time}} saatine kadar · bağlantı noktası {{port}}",
+    "disconnect": "Bağlantıyı kes",
+    "disconnectOf": "{{agent}} bağlantısını kes",
+    "badPort": "Chrome'un dinlediği bağlantı noktasını 1 ile 65535 arasında girin.",
+    "badMinutes": "1 ile {{max}} dakika arasında ödünç verin.",
+    "noAnswer": "Chrome {{port}} bağlantı noktasında yanıt vermedi. O bağlantı noktasında uzaktan hata ayıklama ile başlatıp yeniden deneyin."
+  },
   "notch": {
     "label": "Çentikteki ajanlar",
     "here": "Bu {{device}} üzerinde",

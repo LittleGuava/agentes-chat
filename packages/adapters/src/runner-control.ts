@@ -392,6 +392,8 @@ export type ControlErrorCode =
   | "not_found"
   /** A folder that doesn't exist, isn't a directory, or is a system folder we refuse (`/`, the home itself). */
   | "invalid_path"
+  /** The runner refuses it as things stand (ADR 0202: a Chrome can't be lent while agents here may run programs). */
+  | "not_allowed"
   | "internal";
 
 /** Something happened; the app updates its view. */

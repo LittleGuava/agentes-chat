@@ -76,6 +76,7 @@ import {
 } from "./human-input";
 import { GOOGLE_CHROME_LINUX, SYSTEM_BROWSER_DIR } from "./install-script";
 import { readJson, readSmallJson, writeJson } from "./json-file";
+import { reachesLentChrome } from "./lent-chrome-port";
 import { bootId } from "./lock";
 import { CRASH_WORDS, pageLocale } from "./page-words";
 import { agentFolderName, isInside, ownedSafely } from "./paths";
@@ -1645,6 +1646,11 @@ export interface StreamSocket {
 }
 
 export interface BrowserManagerOptions {
+  /**
+   * The debugging ports of a person's lent Chromes (ADR 0202): no agent's own browser opens them, before a navigation
+   * or after an action that moved the page there.
+   */
+  lentPorts?: () => ReadonlySet<number>;
   /** The runner's home: `bin/` for the downloaded binary, `browser/` for our config. */
   home: string;
   log: (line: string) => void;
@@ -2641,7 +2647,7 @@ export class BrowserManager {
         throw new RunnerError("bad_request", "The browser isn't open: open a page first");
       }
       // Like every read: a page that moved off the allowed sites by itself isn't looked at.
-      if (allowed.length > 0) {
+      if (this.checksSites(allowed)) {
         const left = await this.leftAllowedSites(session, allowed, signal);
         if (left) throw new RunnerError("not_allowed", left);
       }
@@ -2809,7 +2815,7 @@ export class BrowserManager {
         return { success: false, data: null, error: "The browser isn't open: open a page first" };
       }
       // A page can move off the allowed sites by itself (a script redirect): checked before it is read.
-      if (allowed.length > 0) {
+      if (this.checksSites(allowed)) {
         const left = await this.leftAllowedSites(session, allowed, signal);
         if (left) return { success: false, data: null, error: left };
       }
@@ -2851,7 +2857,7 @@ export class BrowserManager {
     session.aliveAt = answer.success ? this.now() : null;
     this.noteAct(session, command, args, answer, link);
     // After anything that may move the page (a click, a tab switch, a new tab…): still on an allowed site?
-    if (allowed.length > 0 && !READS.has(command)) {
+    if (this.checksSites(allowed) && !READS.has(command)) {
       const left = await this.leftAllowedSites(session, allowed, signal);
       if (left) return { success: false, data: null, error: left };
     }
@@ -3085,6 +3091,17 @@ export class BrowserManager {
     return null;
   }
 
+  /** Whether pages are checked after each action: the agent has a site list, or a person's Chrome is lent (ADR 0202). */
+  private checksSites(allowed: readonly string[]): boolean {
+    return allowed.length > 0 || (this.opts.lentPorts?.().size ?? 0) > 0;
+  }
+
+  /** On the agent's sites, and never a lent Chrome's debugging endpoint (ADR 0202). */
+  private siteAllowed(url: string, allowed: readonly string[]): boolean {
+    const lent = this.opts.lentPorts?.();
+    return domainAllowed(url, allowed) && !(lent && reachesLentChrome(url, lent));
+  }
+
   /** Paths stay in the agent's folder; URLs go only to allowed sites. Returns the args to run. */
   private checkArgs(command: string, args: string[], folder: string, allowed: string[]): string[] {
     const positional = args.filter((a) => !a.startsWith("-"));
@@ -3092,7 +3109,7 @@ export class BrowserManager {
       const url = asUrl(positional[0]);
       if (!isWebPage(url))
         throw new RunnerError("not_allowed", "The agent browser only opens web pages (http or https)");
-      if (!domainAllowed(url, allowed)) {
+      if (!this.siteAllowed(url, allowed)) {
         throw new RunnerError("not_allowed", `${hostOf(url)} is outside the sites this agent may use`);
       }
     }
@@ -3100,7 +3117,7 @@ export class BrowserManager {
       const url = asUrl(positional[1]);
       if (!isWebPage(url))
         throw new RunnerError("not_allowed", "The agent browser only opens web pages (http or https)");
-      if (!domainAllowed(url, allowed)) {
+      if (!this.siteAllowed(url, allowed)) {
         throw new RunnerError("not_allowed", `${hostOf(url)} is outside the sites this agent may use`);
       }
     }
@@ -4170,10 +4187,10 @@ export class BrowserManager {
    */
   private async leftAllowedSites(session: Session, allowed: string[], signal?: AbortSignal): Promise<string | null> {
     const url = await this.pageUrl(session, signal);
-    if (!url || domainAllowed(url, allowed)) return null;
+    if (!url || this.siteAllowed(url, allowed)) return null;
     await this.run(session, ["back"], { timeoutMs: QUICK_TIMEOUT_MS });
     const after = await this.pageUrl(session);
-    if (after && domainAllowed(after, allowed)) {
+    if (after && this.siteAllowed(after, allowed)) {
       return `The page went to ${hostOf(url)}, outside the sites this agent may use; it went back`;
     }
     await this.run(session, ["open", "about:blank"], { timeoutMs: QUICK_TIMEOUT_MS });

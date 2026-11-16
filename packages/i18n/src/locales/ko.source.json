@@ -34711,6 +34711,12 @@
   "toolNames.label.desktop_ask_person": {
     "value": "Ask someone to take over the computer"
   },
+  "toolNames.label.my_chrome_open": {
+    "value": "Open a page in the person's Chrome"
+  },
+  "toolNames.label.my_chrome_read": {
+    "value": "Read the page in the person's Chrome"
+  },
   "toolNames.label.computer_use": {
     "value": "Use the computer"
   },
@@ -45987,6 +45993,18 @@
   "builtinTools.desktop_screenshot.description": {
     "value": "Saves an image of the agent's desktop in its folder."
   },
+  "builtinTools.my_chrome_open.label": {
+    "value": "Open a page in the person's Chrome"
+  },
+  "builtinTools.my_chrome_open.description": {
+    "value": "Opens a page in the agent's own tab of the Chrome a person lent it, signed in as them."
+  },
+  "builtinTools.my_chrome_read.label": {
+    "value": "Read the page in the person's Chrome"
+  },
+  "builtinTools.my_chrome_read.description": {
+    "value": "Reads the page in the agent's own tab of the Chrome a person lent it."
+  },
   "browser.title": {
     "value": "Browser"
   },
@@ -48079,6 +48097,12 @@
   },
   "agentComputer.openAccess": {
     "value": "Open Tools and access"
+  },
+  "agentComputer.myChrome.title": {
+    "value": "Lent browser"
+  },
+  "agentComputer.myChrome.line": {
+    "value": "{{name}}'s own browser, signed in as them, until {{time}}"
   },
   "agentComputer.kept.title": {
     "value": "Kept running"

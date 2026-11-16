@@ -433,6 +433,17 @@ export interface DaemonOptions {
 const taskWhat = (job: Pick<ControlJob, "summary" | "said">): Record<string, string> =>
   job.said?.executor ? { executor: job.said.executor } : { what: job.summary };
 
+/** ADR 0202: the switches that let an agent run programs as the person; any of them on, no Chrome is lent. */
+const MY_CHROME_BLOCKERS = [
+  "commands",
+  "claude",
+  "codex",
+  "cursor",
+  "opencode",
+  "grok",
+  "antigravity",
+  "copilot",
+] as const;
 export class RunnerDaemon implements RequestObserver {
   private stored: StoredConfig | null = null;
   private config: RunnerConfig | null = null;
@@ -645,6 +656,9 @@ export class RunnerDaemon implements RequestObserver {
       record: (agent, line) => this.record({ agent: this.agentRef(agent), kind: "access", summary: line }),
       log: opts.log,
       now: this.now,
+      guard: () => this.myChromeGuard(),
+      // Who holds a lent Chrome reaches the server at once: its tools and its apps follow it (ADR 0202).
+      onChange: (lent) => void this.send({ type: "mychrome.changed", lent }),
     });
     const daemon = this;
     this.desktops = new DesktopSessions({
@@ -1046,6 +1060,8 @@ export class RunnerDaemon implements RequestObserver {
       for (const { summary, said } of this.describeAccessChange(prevAccess, nextAccess)) {
         this.record({ kind: "access", summary, said, result: "ok" });
       }
+      // Commands or a coding CLI went on: a person's lent Chrome is given back at once (ADR 0202).
+      if (this.myChromeGuard()) this.myChromes.disconnect(undefined, "given back: an agent here may run programs now");
       this.resolveSatisfied(nextAccess);
       // The browser (or desktop) switch went off: the agents' browsers (or desktops) close now, not when next used.
       if (prevAccess.tools.browser === true && nextAccess.tools.browser !== true) {
@@ -1338,6 +1354,8 @@ export class RunnerDaemon implements RequestObserver {
       }),
       locale: (agent) => this.agents.find((a) => a.id === agent.id)?.locale,
       relayPac: async (agentId) => relayEntrance?.pacFor(agentId) ?? null,
+      // No agent's own browser reaches a person's lent Chrome's debugging port (ADR 0202).
+      lentPorts: () => this.myChromes.lentPorts(),
     });
     // Browsers a previous run of this runner left open (a crash, a kill) close now.
     void browser.closeAll();
@@ -1685,6 +1703,8 @@ export class RunnerDaemon implements RequestObserver {
           // Who may control a desktop or open a terminal follows it (ADR 0058 §4).
           ...(agentUser ? { mode: "system" as const } : {}),
           ...(this.holds ? { holds: this.holds.report() } : {}),
+          // Always said, so a server never keeps a lending this runner no longer has (a restart ends them all).
+          myChrome: this.myChromes.lent(),
         };
       },
       executors: () => this.helloExecutors(),
@@ -2290,6 +2310,18 @@ export class RunnerDaemon implements RequestObserver {
   }
 
   // ── State ──────────────────────────────────────────────────────────────────
+
+  /**
+   * ADR 0202: why a person's Chrome can't be lent now, or null. Outside system mode every agent's commands and coding
+   * CLIs run as the person, and any of them reaches a debugging port directly, with no tab of its own: lending waits
+   * until none of them is on. The CLIs' switches are the whole computer's, so they count for every organization here.
+   */
+  myChromeGuard(): string | null {
+    const { tools } = this.access();
+    const on = MY_CHROME_BLOCKERS.filter((tool) => tools[tool] === true);
+    if (on.length === 0) return null;
+    return `Your Chrome can't be lent while agents here may run programs of their own (${on.join(", ")}): any of them could reach your whole Chrome. Turn those off first.`;
+  }
 
   access(): RunnerAccess {
     return withShared(effectiveAccess(this.stored), this.shared);

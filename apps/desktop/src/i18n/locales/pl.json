@@ -552,6 +552,23 @@
     "screenName": "Twój ekran",
     "screenDesc": "Agenci mogą poprosić o podgląd i użycie ekranu tego urządzenia ({{device}}) w zadaniu, które im dałeś. Za każdym razem zezwalasz tutaj. Ruch myszą lub klawiaturą ich wstrzymuje, a Zatrzymaj kończy."
   },
+  "myChrome": {
+    "title": "Twój Chrome",
+    "lendName": "Pożycz swój Chrome agentowi",
+    "lendAbout": "Uruchom Chrome z debugowaniem zdalnym na porcie, z własnym folderem profilu zalogowanym do stron, których potrzebuje agent. Agent otwiera strony we własnej karcie, jako ty, i nigdy nie widzi twoich innych kart. Dopóki Chrome tak działa, każdy program na tym urządzeniu ({{device}}) może się do niego dostać.",
+    "blocked": "Najpierw wyłącz Polecenia i programy do kodowania. Gdy którykolwiek jest włączony, agent mógłby dostać się do całego twojego Chrome.",
+    "agent": "Agent",
+    "port": "Port",
+    "minutes": "Minuty",
+    "lend": "Pożycz",
+    "lent": "{{agent}} może używać twojego Chrome do {{time}}",
+    "until": "Do {{time}} · port {{port}}",
+    "disconnect": "Rozłącz",
+    "disconnectOf": "Rozłącz: {{agent}}",
+    "badPort": "Podaj port, na którym nasłuchuje Chrome, od 1 do 65535.",
+    "badMinutes": "Pożycz na 1 do {{max}} minut.",
+    "noAnswer": "Chrome nie odpowiedział na porcie {{port}}. Uruchom go z debugowaniem zdalnym na tym porcie i spróbuj ponownie."
+  },
   "notch": {
     "label": "Agenci w notchu",
     "here": "Na tym urządzeniu ({{device}})",

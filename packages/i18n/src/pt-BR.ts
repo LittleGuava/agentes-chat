@@ -14388,6 +14388,8 @@ export const ptBR = {
       desktop_read: "Ler a tela",
       desktop_screenshot: "Tirar uma captura de tela",
       desktop_ask_person: "Pedir para alguém assumir o computador",
+      my_chrome_open: "Abrir uma página no Chrome da pessoa",
+      my_chrome_read: "Ler a página no Chrome da pessoa",
       computer_use: "Usar o computador",
       computer_status: "Ver como está o computador",
       left_click: "Clicar",
@@ -19178,6 +19180,14 @@ export const ptBR = {
       label: "Tirar um print da tela",
       description: "Salva uma imagem da tela do agente na pasta dele.",
     },
+    my_chrome_open: {
+      label: "Abrir uma página no Chrome da pessoa",
+      description: "Abre uma página na aba própria do agente no Chrome que uma pessoa emprestou, conectado como ela.",
+    },
+    my_chrome_read: {
+      label: "Ler a página no Chrome da pessoa",
+      description: "Lê a página na aba própria do agente no Chrome que uma pessoa emprestou.",
+    },
   },
   /** The agent browser (ADR 0040): the agent's page, the computer's page, the chat card, the live view. */
   browser: {
@@ -20228,6 +20238,10 @@ export const ptBR = {
     closeAsk: "O {{name}} espera 2 min você voltar.",
     closeAsk_female: "A {{name}} espera 2 min você voltar.",
     openAccess: "Abrir Ferramentas e acesso",
+    myChrome: {
+      title: "Navegador emprestado",
+      line: "O navegador de {{name}}, com as contas dessa pessoa, até {{time}}",
+    },
     kept: {
       title: "Mantido rodando",
       meta: "{{name}} · desde {{since}} · {{until}}",

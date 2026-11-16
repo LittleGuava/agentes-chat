@@ -13653,6 +13653,8 @@
       "desktop_read": "Baca layar",
       "desktop_screenshot": "Ambil tangkapan layar",
       "desktop_ask_person": "Minta seseorang mengambil alih komputer",
+      "my_chrome_open": "Buka halaman di Chrome orang itu",
+      "my_chrome_read": "Baca halaman di Chrome orang itu",
       "computer_use": "Gunakan komputer",
       "computer_status": "Periksa komputer",
       "left_click": "Klik",
@@ -18211,6 +18213,14 @@
     "desktop_screenshot": {
       "label": "Ambil tangkapan layar desktop",
       "description": "Menyimpan gambar desktop agen di foldernya."
+    },
+    "my_chrome_open": {
+      "label": "Buka halaman di Chrome orang itu",
+      "description": "Membuka halaman di tab milik agen sendiri di Chrome yang dipinjamkan seseorang, masuk sebagai orang itu."
+    },
+    "my_chrome_read": {
+      "label": "Baca halaman di Chrome orang itu",
+      "description": "Membaca halaman di tab milik agen sendiri di Chrome yang dipinjamkan seseorang."
     }
   },
   "browser": {
@@ -19107,6 +19117,10 @@
     },
     "closeAsk": "{{name}} menunggu 2 menit sampai kamu kembali.",
     "openAccess": "Buka Alat dan akses",
+    "myChrome": {
+      "title": "Browser pinjaman",
+      "line": "Browser milik {{name}}, dengan akun orang itu, sampai {{time}}"
+    },
     "kept": {
       "title": "Tetap berjalan",
       "meta": "{{name}} · sejak {{since}} · {{until}}",

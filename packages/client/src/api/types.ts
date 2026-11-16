@@ -5054,6 +5054,8 @@ export interface Machine {
    * user); `reason`, in the runner's words, says what is missing. Null or absent when its runner doesn't say.
    */
   desktopUse?: { available: boolean; reason: string | null; code?: string | null } | null;
+  /** ADR 0202: the agents the person who connected it lent their own Chrome to, and until when (ISO). */
+  myChrome?: { agentId: string; expiresAt: string }[];
   /**
    * ADR 0115: its workspace disk (free GB, share in use) and the shared folder's size (GB, measured hourly), as its
    * runner last said; null or absent for people who don't manage it, or when its runner doesn't say.

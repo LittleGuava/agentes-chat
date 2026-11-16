@@ -544,6 +544,23 @@
     "screenName": "Dein Bildschirm",
     "screenDesc": "Agenten können darum bitten, den Bildschirm dieses {{device}} in einer Aufgabe zu sehen und zu bedienen, die du ihnen gegeben hast. Du erlaubst es jedes Mal hier. Wenn du Maus oder Tastatur bewegst, pausieren sie, und Stoppen beendet es."
   },
+  "myChrome": {
+    "title": "Dein Chrome",
+    "lendName": "Deinen Chrome einem Agenten leihen",
+    "lendAbout": "Starte Chrome mit Remote-Debugging auf einem Port und einem eigenen Profilordner, der bei den Seiten angemeldet ist, die der Agent braucht. Der Agent öffnet Seiten in einem eigenen Tab, als du, und sieht deine anderen Tabs nie. Solange Chrome so läuft, kann jedes Programm auf diesem {{device}} darauf zugreifen.",
+    "blocked": "Schalte zuerst Befehle und die Programmierprogramme aus. Solange eines davon an ist, könnte ein Agent auf deinen ganzen Chrome zugreifen.",
+    "agent": "Agent",
+    "port": "Port",
+    "minutes": "Minuten",
+    "lend": "Leihen",
+    "lent": "{{agent}} kann deinen Chrome bis {{time}} nutzen",
+    "until": "Bis {{time}} · Port {{port}}",
+    "disconnect": "Trennen",
+    "disconnectOf": "{{agent}} trennen",
+    "badPort": "Gib den Port an, auf dem Chrome lauscht, von 1 bis 65535.",
+    "badMinutes": "Leih ihn für 1 bis {{max}} Minuten.",
+    "noAnswer": "Chrome hat auf Port {{port}} nicht geantwortet. Starte ihn mit Remote-Debugging auf diesem Port und versuch es noch einmal."
+  },
   "notch": {
     "label": "Agenten in der Notch",
     "here": "Auf diesem {{device}}",

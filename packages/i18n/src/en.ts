@@ -14438,6 +14438,8 @@ export const en = {
       desktop_read: "Read the screen",
       desktop_screenshot: "Take a screenshot",
       desktop_ask_person: "Ask someone to take over the computer",
+      my_chrome_open: "Open a page in the person's Chrome",
+      my_chrome_read: "Read the page in the person's Chrome",
       computer_use: "Use the computer",
       computer_status: "Check the computer",
       left_click: "Click",
@@ -19334,6 +19336,14 @@ export const en = {
       label: "Take a screenshot of the desktop",
       description: "Saves an image of the agent's desktop in its folder.",
     },
+    my_chrome_open: {
+      label: "Open a page in the person's Chrome",
+      description: "Opens a page in the agent's own tab of the Chrome a person lent it, signed in as them.",
+    },
+    my_chrome_read: {
+      label: "Read the page in the person's Chrome",
+      description: "Reads the page in the agent's own tab of the Chrome a person lent it.",
+    },
   },
   browser: {
     title: "Browser",
@@ -20279,6 +20289,11 @@ export const en = {
     },
     closeAsk: "{{name}} waits 2 min for you to come back.",
     openAccess: "Open Tools and access",
+    /** A person lent the agent their own Chrome from the desktop app (ADR 0202): a row of the agent's fact sheet. */
+    myChrome: {
+      title: "Lent browser",
+      line: "{{name}}'s own browser, signed in as them, until {{time}}",
+    },
     /**
      * What the agent keeps running on its computer (`keep_running`, ADR 0176): each line what is kept, then which
      * agent kept it, since when and until when. Never "awake", "sleep" or "pause": people see what runs for them.
