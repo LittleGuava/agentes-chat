@@ -419,7 +419,7 @@ export function useBrainState(view: AgentBrain, opts: { added: readonly MachineA
   const keyModels = apiModelOptions(
     t,
     i18n.language,
-    modelChoices(all, credentials.data ?? [], platform.data ?? false),
+    modelChoices(all, credentials.data ?? [], platform.data ?? false, settings.data?.allowedBrains),
   );
   const modelNow = kind === "model" ? saved.model : view.effectiveModel;
   const modelName = isAuto(modelNow)

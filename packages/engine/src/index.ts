@@ -38,6 +38,7 @@ export * from "./best-of";
 export * from "./billing-link";
 export * from "./block-state";
 export * from "./blocks";
+export * from "./brain-policy";
 export * from "./brain-settings";
 export * from "./brains/claude-code";
 export * from "./brains/codex";

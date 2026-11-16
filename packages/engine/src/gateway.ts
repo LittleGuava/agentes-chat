@@ -36,6 +36,7 @@ import {
   type ToolSpec,
 } from "@agenteschat/providers";
 import { type Agent, getAgent } from "./agents";
+import { brainPolicyRefusal, orgBrainPolicy } from "./brain-policy";
 import { caches } from "./cache";
 import { decryptCredential, usableCredentialRow } from "./credentials";
 import { loadEndpointModels } from "./endpoints";
@@ -726,6 +727,9 @@ export function createModelGateway(deps: ModelGatewayDeps) {
           ? call.agent
           : await getAgent(db, call.orgId, call.agentId);
       if (!row || row.archivedAt) throw new NotFoundError("Agent not found");
+      // The workspace's rule (ADR 0191) before any key is read or anything reserved: whatever path asked, nothing billed.
+      const ruled = brainPolicyRefusal(await orgBrainPolicy(db, row.orgId), "model", row.model);
+      if (ruled) throw ruled;
       // Every agent has a budget: its own, else the organization's default.
       const agent = await withEffectiveBudget(db, row);
       const providerId = modelProvider(agent.model);

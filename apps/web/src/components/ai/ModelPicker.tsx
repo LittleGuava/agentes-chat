@@ -4,6 +4,7 @@ import {
   useAgentBrain,
   useAiAccounts,
   useApi,
+  useBrainPolicy,
   useCredentials,
   useModels,
   usePlatformKey,
@@ -196,7 +197,8 @@ function PickerBody({ agent, view, onClose }: { agent: Agent; view: AgentBrain; 
   const credentials = useCredentials(org.id, can(org, "manage_credentials"));
   const platform = usePlatformKey(org.id);
   const all = models.data?.models ?? [];
-  const choices = modelChoices(all, credentials.data ?? view.keys ?? [], platform.data ?? false);
+  const policy = useBrainPolicy(org.id);
+  const choices = modelChoices(all, credentials.data ?? view.keys ?? [], platform.data ?? false, policy);
   const tiles = modelPickerTiles(t, view, agent.ownerUserId, choices, agent.model, all);
   const [tileKey, setTileKey] = useState(() => (tiles.find((x) => x.current) ?? tiles[0])?.key);
   const tile = tiles.find((x) => x.key === tileKey) ?? tiles[0];

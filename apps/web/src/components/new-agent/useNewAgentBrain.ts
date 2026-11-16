@@ -1,6 +1,7 @@
 import {
   useAiAccounts,
   useBrainMachines,
+  useBrainPolicy,
   useCredentials,
   useModels,
   useNewAgentSetup,
@@ -35,13 +36,14 @@ export function useNewAgentBrain(accountId?: string) {
   const models = useModels();
   const credentials = useCredentials(org.id);
   const platform = usePlatformKey(org.id);
+  const policy = useBrainPolicy(org.id);
   const brainMachines = useBrainMachines(org.id);
   const aiAccounts = useAiAccounts(org.id);
   const lastSetup = useNewAgentSetup(org.id);
   const held = usePlanHold() !== null;
   const choices = useMemo(
-    () => modelChoices(models.data?.models ?? [], credentials.data ?? [], platform.data ?? false),
-    [models.data, credentials.data, platform.data],
+    () => modelChoices(models.data?.models ?? [], credentials.data ?? [], platform.data ?? false, policy),
+    [models.data, credentials.data, platform.data, policy],
   );
   const usable = useMemo(() => usableModels(choices), [choices]);
   const start = newAgentStart(lastSetup.data, {

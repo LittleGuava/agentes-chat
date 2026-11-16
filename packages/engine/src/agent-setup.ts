@@ -11,6 +11,7 @@ import {
   validateAgentFields,
 } from "./agents";
 import { answersOthers, audienceOf } from "./audience";
+import { brainPolicyRefusal, orgBrainPolicy } from "./brain-policy";
 import {
   type AgentBrainInput,
   type BrainEffortSetting,
@@ -538,6 +539,9 @@ export async function getNewAgentSetup(
     .where(eq(schema.organizationSettings.orgId, orgId));
   const s = row?.setup;
   if (!s || !isBrainKind(s.brain)) return null;
+  // What the workspace's rule leaves out (ADR 0191) is no default: a new agent starts on Automático instead.
+  if (brainPolicyRefusal(await orgBrainPolicy(deps.db, orgId), s.brain, s.brain === "model" ? s.model : null))
+    return null;
   const contextTokens = isContextLimit(s.contextTokens) ? s.contextTokens : null;
   const autonomy = isCommandApproval(s.autonomy) && s.autonomy !== DEFAULT_MISSION_COMMAND_APPROVAL ? s.autonomy : null;
   if (s.brain === "model") {

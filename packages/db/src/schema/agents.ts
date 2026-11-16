@@ -403,6 +403,11 @@ export const organizationSettings = pgTable("organization_settings", {
   teamWatch: boolean().notNull().default(true),
   /** "Dar boas-vindas a quem entra": the right hand greets each person who joins, once. On without a row too. */
   welcomePeople: boolean().notNull().default(true),
+  /**
+   * What agents may think with (ADR 0191): `{ brains, providers, models }`, each a list or null for all. Null: nothing
+   * restricted. Validated and read through `packages/engine/src/brain-policy.ts`.
+   */
+  allowedBrains: jsonb().$type<Record<string, unknown>>(),
   updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
 
