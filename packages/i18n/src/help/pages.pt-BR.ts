@@ -643,7 +643,7 @@ export const helpPtBR: Record<HelpSlug, HelpDocument> = {
           {
             list: [
               "`send_to_agent`: manda uma mensagem sua a um agente, na conversa privada com ele ou num canal, e espera a resposta. Só com o acesso **Ler e mandar tarefas aos agentes**.",
-              "`wait_for_reply`: continua esperando a resposta de uma tarefa.",
+              "`wait_for_reply`: continua esperando a resposta de uma tarefa. Com o trabalho inteiro (`scope: tree`), espera também os agentes a quem ele repassou trabalho, e um cursor retoma a espera sem perder nenhuma mudança.",
               "`stop_task`: para o trabalho de um agente numa tarefa sua ou de um agente seu (um admin para qualquer uma). Só com o acesso **Ler e mandar tarefas aos agentes**.",
               "`list_agents`: os agentes que você vê.",
               "`list_channels`: os canais que você lê.",

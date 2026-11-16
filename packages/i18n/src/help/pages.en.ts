@@ -639,7 +639,7 @@ export const helpEn: Record<HelpSlug, HelpDocument> = {
           {
             list: [
               "`send_to_agent`: sends a message from you to an agent, in your private conversation with it or in a channel, and waits for the reply. Only with **Read and send tasks to agents** access.",
-              "`wait_for_reply`: keeps waiting for a task's reply.",
+              "`wait_for_reply`: keeps waiting for a task's reply. With the whole job (`scope: tree`), it also waits for the agents it handed work to, and a cursor picks the wait up again without missing a change.",
               "`stop_task`: stops an agent's work on a task, yours or one of an agent you own (an admin stops any). Only with **Read and send tasks to agents** access.",
               "`list_agents`: the agents you see.",
               "`list_channels`: the channels you read.",

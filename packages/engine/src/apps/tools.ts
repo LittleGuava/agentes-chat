@@ -36,6 +36,7 @@ import type { Talker } from "../talker";
 import { listWorkingRuns } from "../working";
 import type { AppPrincipal } from "./grants";
 import { type APP_MANAGE_TOOL_NAMES, registerManageTools } from "./manage-tools";
+import { readTaskTree, readTreeCursor, treeChanges, treeCursor, treeVerdict } from "./task-tree";
 import { type AppScope, appsUrls } from "./urls";
 
 const { agentRuns, appSends, approvals, messages, users, agents, channels } = schema;
@@ -276,6 +277,23 @@ function attachmentsOf(deps: AppsToolDeps, orgId: string, m: Pick<Message, "meta
   }));
 }
 
+/**
+ * Where a run's approval card is: the card's own conversation (a run answering another agent puts it where the
+ * person behind the chain asked, never in the agents' DM), else the task's message.
+ */
+async function approvalUrl(deps: AppsToolDeps, p: AppPrincipal, run: RunRow, message: Message) {
+  const [card] = await deps.db
+    .select({ messageId: approvals.messageId, channelId: messages.channelId })
+    .from(approvals)
+    .innerJoin(messages, and(eq(messages.orgId, approvals.orgId), eq(messages.id, approvals.messageId)))
+    .where(and(eq(approvals.orgId, p.orgId), eq(approvals.runId, run.id)))
+    .orderBy(desc(approvals.createdAt))
+    .limit(1);
+  return card
+    ? linkTo(deps, p.orgId, card.channelId, card.messageId)
+    : linkTo(deps, p.orgId, message.channelId, message.id);
+}
+
 /** Where a run stands, as the app reads it. An unknown status is `failed`, never a reason to keep polling. */
 async function taskState(deps: AppsToolDeps, p: AppPrincipal, message: Message, run: RunRow | null) {
   if (!run) {
@@ -314,20 +332,13 @@ async function taskState(deps: AppsToolDeps, p: AppPrincipal, message: Message, 
         ...(question ? { reply: replyOf(deps, p.orgId, question) } : {}),
       };
     }
-    case "waiting_approval": {
-      const [card] = await deps.db
-        .select({ messageId: approvals.messageId })
-        .from(approvals)
-        .where(and(eq(approvals.orgId, p.orgId), eq(approvals.runId, run.id)))
-        .orderBy(desc(approvals.createdAt))
-        .limit(1);
+    case "waiting_approval":
       return {
         status: "waiting_approval" as TaskStatus,
         run,
-        approval_url: linkTo(deps, p.orgId, run.channelId, card?.messageId ?? message.id),
+        approval_url: await approvalUrl(deps, p, run, message),
         detail: "A person decides this approval inside agentes.chat.",
       };
-    }
     case "canceled":
       return { status: "canceled" as TaskStatus, run };
     default:
@@ -346,45 +357,56 @@ let waitsTotal = 0;
 /** Test hook: how many waits are open now. */
 export const openWaits = () => waitsTotal;
 
+/** Events in a conversation that may move a wait along. */
+const WAKES = new Set(["run.finished", "message.created", "agent.consulted"]);
+
 /**
- * Waits for the run of a message to reach a state the app can act on, up to `seconds` (45 at most): subscribed
- * to the channel before reading, so no change is missed, with a check every 3 s in case an event is. Three waits
- * per person, 20 per workspace and 200 per server: past that, `still_running` at once.
+ * Reads `look` until it is ready, up to `seconds` (45 at most): subscribed to `channelIds` before the first read, and
+ * to each conversation a read names, with a check every 3 s in case an event is missed. Three waits per person, 20
+ * per workspace and 200 per server: past that, one read at once (`full`).
  */
-async function waitForTask(
+async function waitUntil<T>(
   deps: AppsToolDeps,
   p: AppPrincipal,
-  message: Message,
-  agentId: string | null,
   seconds: number,
   signal: AbortSignal | undefined,
-) {
+  channelIds: string[],
+  look: () => Promise<{ value: T; ready: boolean; channelIds?: string[] }>,
+): Promise<{ value: T; ready: boolean; full?: true }> {
   const deadline = Date.now() + Math.min(seconds, WAIT_MAX_S) * 1000;
   const slots = [
     [`person:${p.userId}`, WAITS_PER_PERSON],
     [`org:${p.orgId}`, WAITS_PER_ORG],
   ] as const;
   if (seconds > 0 && (slots.some(([key, max]) => (waits.get(key) ?? 0) >= max) || waitsTotal >= WAITS_PER_PROCESS)) {
-    const state = await taskState(deps, p, message, await runFor(deps.db, message, agentId));
-    return state.status === "still_running" ? { ...state, retry_after_seconds: 5 } : state;
+    const { value, ready } = await look();
+    return { value, ready, full: true };
   }
   if (seconds > 0) {
     for (const [key] of slots) waits.set(key, (waits.get(key) ?? 0) + 1);
     waitsTotal++;
   }
   let wake: () => void = () => {};
-  const unsubscribe = deps.pubsub.subscribe(channelTopic(message.channelId), (event) => {
-    if (event.type === "run.finished" || event.type === "message.created") wake();
-  });
+  const subscriptions = new Map<string, () => void>();
+  const listen = (ids: string[]) => {
+    for (const id of ids)
+      if (!subscriptions.has(id))
+        subscriptions.set(
+          id,
+          deps.pubsub.subscribe(channelTopic(id), (event) => {
+            if (WAKES.has(event.type)) wake();
+          }),
+        );
+  };
+  listen(channelIds);
   const onAbort = () => wake();
   signal?.addEventListener("abort", onAbort);
   try {
     for (;;) {
-      const state = await taskState(deps, p, message, await runFor(deps.db, message, agentId));
+      const { value, ready, channelIds: more } = await look();
+      listen(more ?? []);
       const left = deadline - Date.now();
-      if (state.status !== "still_running" || left <= 0 || signal?.aborted) {
-        return state.status === "still_running" ? { ...state, poll_after_seconds: 5, activity: null } : state;
-      }
+      if (ready || left <= 0 || signal?.aborted) return { value, ready };
       await new Promise<void>((resolve) => {
         const timer = setTimeout(resolve, Math.min(RECHECK_MS, left));
         wake = () => {
@@ -394,7 +416,7 @@ async function waitForTask(
       });
     }
   } finally {
-    unsubscribe();
+    for (const unsubscribe of subscriptions.values()) unsubscribe();
     signal?.removeEventListener("abort", onAbort);
     if (seconds > 0) {
       for (const [key] of slots) {
@@ -407,12 +429,128 @@ async function waitForTask(
   }
 }
 
+/** What a wait still running at its end says: when to ask again (`full`: no wait slot was free). */
+const stillRunning = (full: boolean | undefined) =>
+  full ? { retry_after_seconds: 5 } : { poll_after_seconds: 5, activity: null };
+
+/** Waits for the run of a message to reach a state the app can act on (`waitUntil`). */
+async function waitForTask(
+  deps: AppsToolDeps,
+  p: AppPrincipal,
+  message: Message,
+  agentId: string | null,
+  seconds: number,
+  signal: AbortSignal | undefined,
+) {
+  const { value: state, full } = await waitUntil(deps, p, seconds, signal, [message.channelId], async () => {
+    const value = await taskState(deps, p, message, await runFor(deps.db, message, agentId));
+    return { value, ready: value.status !== "still_running" };
+  });
+  return state.status === "still_running" ? { ...state, ...stillRunning(full) } : state;
+}
+
+/** The runs a task started (every agent it woke), or the one it joined. */
+async function rootRuns(db: Database, message: Message, agentId: string | null) {
+  const started = await db
+    .select()
+    .from(agentRuns)
+    .where(and(eq(agentRuns.orgId, message.orgId), eq(agentRuns.triggerMessageId, message.id)))
+    .orderBy(agentRuns.createdAt, agentRuns.id);
+  if (started.length > 0) return started;
+  const joined = await runFor(db, message, agentId);
+  return joined ? [joined] : [];
+}
+
+/** The job's final reply: the newest message the runs in the task's conversation wrote, newest run first. */
+async function treeReply(deps: AppsToolDeps, p: AppPrincipal, runs: RunRow[]) {
+  for (const run of runs) {
+    if (run.status !== "done") continue;
+    const reply = await agentMessage(deps.db, p.orgId, run);
+    if (reply) return replyOf(deps, p.orgId, reply);
+  }
+  return undefined;
+}
+
+/**
+ * Waits for a task's whole job (ADR 0119 addendum 2026-11-15): until nothing in its tree is still on, or a run in it
+ * waits on a person. With `cursor`, until the tree differs from it, or at once when the job is settled.
+ */
+async function waitForTree(
+  deps: AppsToolDeps,
+  p: AppPrincipal,
+  message: Message,
+  agentId: string | null,
+  seconds: number,
+  signal: AbortSignal | undefined,
+  cursor: string | undefined,
+) {
+  const before = cursor === undefined ? null : readTreeCursor(cursor, message.id);
+  const { value, full } = await waitUntil(deps, p, seconds, signal, [message.channelId], async () => {
+    const roots = await rootRuns(deps.db, message, agentId);
+    const tree = await readTaskTree(deps.db, message, roots);
+    const verdict = treeVerdict(tree, message.channelId);
+    // No run yet: the turn's own answer (still starting, or none will).
+    const none = roots.length === 0 ? await taskState(deps, p, message, null) : null;
+    const settled = verdict.kind === "settled" || none?.status === "no_run";
+    const changes = before ? treeChanges(before, tree.nodes) : [];
+    const ready = before ? changes.length > 0 || settled : settled || verdict.kind === "person";
+    return { value: { tree, verdict, none, changes }, ready, channelIds: tree.channelIds };
+  });
+  const { tree, verdict, none, changes } = value;
+  const names = new Map(
+    (tree.nodes.length > 0
+      ? await deps.db
+          .select({ id: agents.id, name: agents.name, handle: agents.handle })
+          .from(agents)
+          .where(and(eq(agents.orgId, p.orgId), inArray(agents.id, [...new Set(tree.nodes.map((n) => n.agentId))])))
+      : []
+    ).map((a) => [a.id, a]),
+  );
+  const shape = {
+    tree: tree.nodes.map((n) => ({
+      id: n.id,
+      parent_id: n.parentId,
+      via: n.via,
+      agent: names.get(n.agentId) ?? { id: n.agentId, name: null, handle: null },
+      state: n.state,
+    })),
+    ...(tree.truncated ? { tree_truncated: true } : {}),
+    ...(before ? { changes } : {}),
+    cursor: treeCursor(message.id, tree.nodes),
+  };
+  if (none) return { ...none, ...(none.status === "still_running" ? stillRunning(full) : {}), ...shape };
+  if (verdict.kind === "settled") {
+    const state = await taskState(deps, p, message, verdict.last);
+    if (state.status !== "done") return { ...state, ...shape };
+    const reply = await treeReply(deps, p, verdict.runs);
+    return { ...state, ...(reply ? { reply } : {}), ...shape };
+  }
+  if (verdict.kind === "person") {
+    const { run } = verdict.node;
+    const question = verdict.status === "waiting_input" ? await agentMessage(deps.db, p.orgId, run) : null;
+    return {
+      status: verdict.status,
+      waiting_on: verdict.node.id,
+      ...(verdict.status === "waiting_approval"
+        ? {
+            approval_url: await approvalUrl(deps, p, run, message),
+            detail: "A person decides this approval inside agentes.chat.",
+          }
+        : {}),
+      // A question asked where the person reads (never the agents' private conversation).
+      ...(question && question.channelId === message.channelId ? { reply: replyOf(deps, p.orgId, question) } : {}),
+      ...shape,
+    };
+  }
+  return { status: "still_running" as TaskStatus, ...stillRunning(full), ...shape };
+}
+
 async function taskOutput(
   deps: AppsToolDeps,
   p: AppPrincipal,
   message: Message,
   agent: Pick<Agent, "id" | "name" | "handle"> | null,
-  state: Awaited<ReturnType<typeof waitForTask>>,
+  state: Awaited<ReturnType<typeof waitForTask>> | Awaited<ReturnType<typeof waitForTree>>,
 ) {
   const [channel] = await deps.db
     .select({ id: channels.id, name: channels.name, kind: channels.kind })
@@ -541,6 +679,20 @@ const waitInput = z
       .max(WAIT_MAX_S)
       .optional()
       .describe("Seconds to wait, 1 to 45 (default 40)"),
+    scope: z
+      .enum(["turn", "tree"])
+      .optional()
+      .describe(
+        "turn (default): the agent's own run. tree: also every question and note it handed to other agents, their work in turn, and the runs their results started, until all of it is done",
+      ),
+    cursor: z
+      .string()
+      .min(1)
+      .max(4096)
+      .optional()
+      .describe(
+        "cursor of an earlier tree result (implies scope tree): the wait returns once the tree differs from it",
+      ),
   })
   .strict();
 const stopInput = z
@@ -737,7 +889,7 @@ export function buildAppsMcpServer(deps: AppsToolDeps, p: AppPrincipal, version:
       scope: "read",
       title: "Wait for an agent's reply",
       description:
-        "Waits up to timeout_seconds for the agent's reply to a task sent with send_to_agent and returns its status: done (with the reply), waiting_approval (a person decides in agentes.chat, approval_url links there), waiting_input (the agent asked a question, and send_to_agent with the same thread answers it), failed, canceled, no_run, or still_running. Repeating the call with the same task_id continues waiting.",
+        "Waits up to timeout_seconds for the agent's reply to a task sent with send_to_agent and returns its status: done (with the reply), waiting_approval (a person decides in agentes.chat, approval_url links there), waiting_input (the agent asked a question, and send_to_agent with the same thread answers it), failed, canceled, no_run, or still_running. Repeating the call with the same task_id continues waiting. With scope tree the wait covers the whole job: the agents it handed work to, theirs in turn, and the agent's runs that read what came back; the result lists that work in tree (each part's agent and state, nothing of the agents' private conversations), and done means all of it ended, with the last reply in the task's conversation. A tree result carries a cursor; passed back, the call returns as soon as any part changed (listed in changes), or at once when the job is done.",
       input: waitInput,
       readOnly: true,
       destructive: false,
@@ -747,7 +899,11 @@ export function buildAppsMcpServer(deps: AppsToolDeps, p: AppPrincipal, version:
     async (args, signal) => {
       const message = await readableTask(deps, p, args.task_id);
       const agent = await agentOfTask(deps, p, message);
-      const state = await waitForTask(deps, p, message, agent?.id ?? null, args.timeout_seconds ?? 40, signal);
+      const seconds = args.timeout_seconds ?? 40;
+      const state =
+        args.scope === "tree" || args.cursor !== undefined
+          ? await waitForTree(deps, p, message, agent?.id ?? null, seconds, signal, args.cursor)
+          : await waitForTask(deps, p, message, agent?.id ?? null, seconds, signal);
       return taskOutput(deps, p, message, agent, state);
     },
   );

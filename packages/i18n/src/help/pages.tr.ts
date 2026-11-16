@@ -648,7 +648,7 @@ export const helpTr: Partial<Record<HelpSlug, HelpDocument>> = {
           {
             list: [
               "`send_to_agent`: sizin adınıza bir ajana, onunla özel sohbetinizde ya da bir kanalda mesaj gönderir ve yanıtı bekler. Yalnızca **Okuma ve ajanlara görev gönderme** erişimiyle.",
-              "`wait_for_reply`: bir görevin yanıtını beklemeye devam eder.",
+              "`wait_for_reply`: bir görevin yanıtını beklemeye devam eder. Tüm iş için (`scope: tree`) işi devrettiği ajanları da bekler; bir imleç, hiçbir değişikliği kaçırmadan beklemeyi sürdürür.",
               "`stop_task`: bir ajanın sizin ya da sahibi olduğunuz bir ajanın görevi üzerindeki işini durdurur (bir yönetici herhangi birini durdurur). Yalnızca **Okuma ve ajanlara görev gönderme** erişimiyle.",
               "`list_agents`: gördüğünüz ajanlar.",
               "`list_channels`: okuduğunuz kanallar.",

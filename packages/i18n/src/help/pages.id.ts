@@ -646,7 +646,7 @@ export const helpId: Partial<Record<HelpSlug, HelpDocument>> = {
           {
             list: [
               "`send_to_agent`: mengirim pesan darimu ke agen, di percakapan pribadimu dengannya atau di kanal, lalu menunggu balasannya. Hanya dengan akses **Membaca dan mengirim tugas ke agen**.",
-              "`wait_for_reply`: terus menunggu balasan sebuah tugas.",
+              "`wait_for_reply`: terus menunggu balasan sebuah tugas. Dengan seluruh pekerjaan (`scope: tree`), ia juga menunggu agen yang menerima bagian pekerjaannya, dan sebuah kursor melanjutkan penantian tanpa melewatkan perubahan.",
               "`stop_task`: menghentikan pekerjaan agen pada sebuah tugas, milikmu atau milik agen yang kamu miliki (admin bisa menghentikan yang mana pun). Hanya dengan akses **Membaca dan mengirim tugas ke agen**.",
               "`list_agents`: agen yang bisa kamu lihat.",
               "`list_channels`: kanal yang bisa kamu baca.",

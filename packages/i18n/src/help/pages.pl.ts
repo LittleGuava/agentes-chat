@@ -642,7 +642,7 @@ export const helpPl: Partial<Record<HelpSlug, HelpDocument>> = {
           {
             list: [
               "`send_to_agent`: wysyła wiadomość od ciebie do agenta, w twojej prywatnej rozmowie z nim albo na kanale, i czeka na odpowiedź. Tylko z dostępem **Czytanie i wysyłanie zadań agentom**.",
-              "`wait_for_reply`: dalej czeka na odpowiedź na zadanie.",
+              "`wait_for_reply`: dalej czeka na odpowiedź na zadanie. Dla całej pracy (`scope: tree`) czeka też na agentów, którym przekazano jej część, a kursor wznawia czekanie bez utraty żadnej zmiany.",
               "`stop_task`: zatrzymuje pracę agenta nad zadaniem, twoim albo agenta, którego jesteś właścicielem (admin zatrzymuje każde). Tylko z dostępem **Czytanie i wysyłanie zadań agentom**.",
               "`list_agents`: agenci, których widzisz.",
               "`list_channels`: kanały, które czytasz.",
