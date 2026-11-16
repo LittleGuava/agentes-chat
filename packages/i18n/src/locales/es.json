@@ -2520,6 +2520,17 @@
     "replyingTo": "Respondiendo a {{name}}",
     "cancelReply": "Cancelar respuesta",
     "jumpMissing": "No se pudo llegar a ese mensaje aquí. Puede que se haya borrado o esté demasiado atrás.",
+    "find": {
+      "label": "Buscar en esta conversación",
+      "searching": "Buscando…",
+      "none": "Sin resultados",
+      "failed": "No se pudo buscar",
+      "position": "{{at}} de {{total}}",
+      "positionMore": "{{at}} de {{total}}+",
+      "older": "Resultado más antiguo",
+      "newer": "Resultado más reciente",
+      "close": "Cerrar búsqueda"
+    },
     "emoji": "Emoji",
     "uploading": "subiendo…",
     "uploadFailed": "no se subió",

@@ -2443,6 +2443,17 @@
     "replyingTo": "{{name}} yanıtlanıyor",
     "cancelReply": "Yanıtı iptal et",
     "jumpMissing": "Bu mesaja buradan ulaşılamadı. Silinmiş veya çok eski olabilir.",
+    "find": {
+      "label": "Bu konuşmada ara",
+      "searching": "Aranıyor…",
+      "none": "Sonuç yok",
+      "failed": "Arama yapılamadı",
+      "position": "{{at}} / {{total}}",
+      "positionMore": "{{at}} / {{total}}+",
+      "older": "Daha eski sonuç",
+      "newer": "Daha yeni sonuç",
+      "close": "Aramayı kapat"
+    },
     "emoji": "Emoji",
     "uploading": "yükleniyor…",
     "uploadFailed": "yüklenmedi",

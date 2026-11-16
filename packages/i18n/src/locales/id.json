@@ -2367,6 +2367,17 @@
     "replyingTo": "Membalas {{name}}",
     "cancelReply": "Batalkan balasan",
     "jumpMissing": "Pesan itu tidak bisa dijangkau di sini. Mungkin sudah dihapus atau terlalu jauh ke belakang.",
+    "find": {
+      "label": "Cari di percakapan ini",
+      "searching": "Mencari…",
+      "none": "Tidak ada hasil",
+      "failed": "Tidak dapat mencari",
+      "position": "{{at}} dari {{total}}",
+      "positionMore": "{{at}} dari {{total}}+",
+      "older": "Hasil lebih lama",
+      "newer": "Hasil lebih baru",
+      "close": "Tutup pencarian"
+    },
     "emoji": "Emoji",
     "uploading": "mengunggah…",
     "uploadFailed": "tidak terunggah",

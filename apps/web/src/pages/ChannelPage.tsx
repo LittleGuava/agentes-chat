@@ -120,6 +120,7 @@ import { choiceReplyLine } from "@agenteschat/client/lib/choices";
 import { draftKeyOf } from "@agenteschat/client/lib/composer-drafts";
 import { type ConsultPairItem, consultsForLine } from "@agenteschat/client/lib/consult-group";
 import { consultationsOf } from "@agenteschat/client/lib/consultations";
+import { isFindShortcut } from "@agenteschat/client/lib/conversation-find";
 import { deviceWaitOf } from "@agenteschat/client/lib/devices";
 import { clearDraft, peekDraft } from "@agenteschat/client/lib/drafts";
 import { ErrorBoundary } from "@agenteschat/client/lib/error-boundary";
@@ -380,6 +381,7 @@ import { ReturnLine } from "@/components/ReturnLine";
 import { SidePanel } from "@/components/SidePanel";
 import { ActivitySky, ChannelWelcome, colorOf } from "@/components/Sky";
 import { isStoppable, StopButton, useContinueRun, useStopRun, useWasContinued } from "@/components/StopRun";
+import { FindBar } from "@/components/search/FindBar";
 import { SearchResultsPanel } from "@/components/search/SearchResultsPanel";
 import { TeamChecks } from "@/components/TeamChecks";
 import { ReplyChips } from "@/components/TeamPlan";
@@ -1084,6 +1086,26 @@ function ChannelView({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [chrome?.panel]);
+  // Ctrl/⌘F: find in this conversation (`FindBar`, ADR 0123 addendum 2026-11-15): the one the key landed in, as for
+  // typing above; from elsewhere on the page (the sidebar, nothing focused), the page's own. From the bar itself, from
+  // another field outside a conversation or over a dialog it stays the browser's find.
+  const [find, setFind] = useState({ open: false, focus: 0 });
+  useEffect(() => {
+    if (!readable) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || !isFindShortcut(e)) return;
+      const from = e.target instanceof Element ? e.target : null;
+      if (from?.closest(".find-bar") || document.querySelector('[aria-modal="true"], dialog[open]')) return;
+      const at = from?.closest(".shell__main--chat") ?? null;
+      if (at ? at !== root.current : chrome?.panel || typingInField(e.target)) return;
+      const side = at && from?.closest(".thread-panel");
+      if (side && at.contains(side)) return;
+      e.preventDefault();
+      setFind((f) => ({ open: true, focus: f.focus + 1 }));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [readable, chrome?.panel]);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const membersColumn = useMembersColumn();
   const dmSidebar = useDmSidebar();
@@ -2560,6 +2582,19 @@ function ChannelView({
                 {/* Under the header: the conversation, and the members beside it (the header spans both, as Discord's). */}
                 <div className="channel__body">
                   <div className="channel__col">
+                    {readable && find.open && (
+                      <FindBar
+                        channelId={channel.id}
+                        threadId={thread?.id}
+                        focus={find.focus}
+                        jumping={focusDone ? undefined : focusTarget}
+                        onJump={jumpTo}
+                        onClose={() => {
+                          setFind((f) => ({ ...f, open: false }));
+                          composer.current?.focus();
+                        }}
+                      />
+                    )}
                     {isMember && (
                       <ChannelPinnedBar
                         channelId={channel.id}
