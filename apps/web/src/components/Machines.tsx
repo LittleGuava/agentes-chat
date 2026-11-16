@@ -58,6 +58,7 @@ import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { AgentAvatar } from "@/components/AgentAvatar";
 import { useOpenComputer } from "@/components/computer/open";
+import { LocalSetupCard } from "@/components/devices/LocalSetupCard";
 import { MachineToolButton, useToolOneClick } from "@/components/devices/ToolOneClick";
 import { HelpLink } from "@/components/HelpLink";
 import { ErrorState, LoadingList } from "@/components/Loading";
@@ -826,6 +827,7 @@ export function MachineAccessCards({ machine: m }: { machine: Machine }) {
       <MachineBrowserCard machine={m} onTurnOff={() => setReduce({ kind: "tool", tool: "browser" })} />
       {profilesApply(m) && <BrowserProfilesCard machine={m} />}
       <MachineDesktopUseCard machine={m} />
+      <LocalSetupCard machine={m} />
       <GrantCard machine={m} />
       <ReduceDialog machine={m} reduce={reduce} onClose={() => setReduce(null)} />
     </>

@@ -149,7 +149,12 @@ const SHOWN = 6;
 /** How often the MCP step reads the agents again while it waits. */
 export const WATCH_POLL_MS = 5_000;
 
-type ReadInput = { files: PickedFile[] | Promise<PickedFile[]> } | { url: string } | { text: string };
+/** `bundle`: one already in our format (a computer's own skills, `machines.localConfig`): only planned here. */
+type ReadInput =
+  | { files: PickedFile[] | Promise<PickedFile[]> }
+  | { url: string }
+  | { text: string }
+  | { bundle: MigrationBundle };
 type Focus = "preview" | "report" | "drop" | null;
 
 /**
@@ -256,11 +261,13 @@ export function useImportFlow(orgId: string | null) {
     setFailure(null);
     setBusy("reading");
     try {
-      let files: ImportFile[];
+      let files: ImportFile[] = [];
       let root: string | null = null;
       let junk: string[] = [];
       let skipped: string[] = [];
-      if ("url" in input) {
+      if ("bundle" in input) {
+        // Already a bundle: nothing to read or parse.
+      } else if ("url" in input) {
         if (!isGithubLink(input.url)) throw NOT_GITHUB;
         const res = await api.agents.importFromGithub(orgId, input.url);
         files = res.files.map((f) => ({ name: f.path, text: f.text }));
@@ -272,10 +279,14 @@ export function useImportFlow(orgId: string | null) {
         ({ files, root, junk } = await readImportFiles(await input.files));
       }
       if (!current()) return;
-      step = "plan";
-      const list = await qc.fetchQuery({ queryKey: keys.models, queryFn: () => api.agents.models() });
-      step = "parse";
-      const parsed = parsePackage(files, { models: list.models.map((m) => m.id), root, junk });
+      let parsed: { bundle: MigrationBundle; files: AgentFile[] };
+      if ("bundle" in input) parsed = { bundle: input.bundle, files: [] };
+      else {
+        step = "plan";
+        const list = await qc.fetchQuery({ queryKey: keys.models, queryFn: () => api.agents.models() });
+        step = "parse";
+        parsed = parsePackage(files, { models: list.models.map((m) => m.id), root, junk });
+      }
       const { bundle } = parsed;
       if (!current()) return;
       step = "plan";
@@ -285,7 +296,8 @@ export function useImportFlow(orgId: string | null) {
       done.current = new Map();
       agentIds.current = new Map();
       sent.current = new Set();
-      focus.current = "preview";
+      // A page that brought its own bundle keeps focus where the person is (above the preview).
+      focus.current = "bundle" in input ? null : "preview";
       setPlanned({ bundle, items: plan.items, skipped, files: parsed.files, junk: junk.length });
       setPick(defaultPicks(plan.items));
       setReport(null);
@@ -1029,11 +1041,14 @@ export function Preview({
   orgId,
   standalone,
   level,
+  fixed = false,
 }: {
   flow: ImportFlowState;
   orgId: string;
   standalone: boolean;
   level: 2 | 3;
+  /** A bundle the page itself brought (a computer's skills): no Trocar, there is nothing else to pick. */
+  fixed?: boolean;
 }) {
   const { t } = useTranslation();
   const heading = useFocusOn<HTMLHeadingElement>(flow, "preview");
@@ -1062,11 +1077,13 @@ export function Preview({
             {bundle.source.name}
           </Heading>
         </div>
-        <span className="ac-mediarow__end">
-          <Button variant="ghost" size="sm" onClick={flow.reset} disabled={applying}>
-            {t("onboarding.import.change")}
-          </Button>
-        </span>
+        {!fixed && (
+          <span className="ac-mediarow__end">
+            <Button variant="ghost" size="sm" onClick={flow.reset} disabled={applying}>
+              {t("onboarding.import.change")}
+            </Button>
+          </span>
+        )}
         <div className="ac-mediarow__body">
           <p className="imp-head__sub">
             {[origin.app ? t("onboarding.import.from", { app: origin.app }) : t("onboarding.import.fromOther"), summary]

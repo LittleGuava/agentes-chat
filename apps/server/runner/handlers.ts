@@ -252,6 +252,8 @@ export const OP_ROUTES: Readonly<Record<MachineOp, "machine" | "agent">> = {
   "mychrome.act": "machine",
   "mychrome.list": "machine",
   "mychrome.disconnect": "machine",
+  // The person's own settings are in the runner's user's home: root's isn't theirs, so it answers unsupported.
+  "local.config": "machine",
 };
 
 type AccessRequestOp = Extract<MachineRequest, { op: "access.request" }>;
@@ -386,6 +388,8 @@ export interface HandlerContext {
   xcodeFix?: (req: Extract<MachineRequest, { op: "xcode.fix" }>) => MachineReplies["xcode.fix"];
   /** `CLI_INSTALL_PROTOCOL`: the coding CLIs looked up now, and installed from the apps. */
   clisCheck?: () => Promise<MachineReplies["clis.check"]>;
+  /** `LOCAL_CONFIG_PROTOCOL`: the MCP servers and skills of the person's coding tools (`local-config.ts`). */
+  localConfig?: () => MachineReplies["local.config"];
   cliInstall?: (req: Extract<MachineRequest, { op: "cli.install" }>) => MachineReplies["cli.install"];
   /** `IPHONE_DEV_MODE_PROTOCOL`: opening Xcode on this Mac; without it the op answers `opened: false`. */
   xcodeOpen?: () => Promise<MachineReplies["xcode.open"]>;
@@ -851,6 +855,10 @@ async function routeRequest(ctx: HandlerContext, req: MachineRequest, scope: Req
   if (req.op === "clis.check") {
     if (!ctx.clisCheck) throw new RunnerError("bad_request", "This runner doesn't look up its programs on request");
     return ctx.clisCheck();
+  }
+  if (req.op === "local.config") {
+    const unsupported = { files: [], servers: [], skills: [], skipped: [], unsupported: true as const };
+    return (ctx.systemMode?.() ? undefined : ctx.localConfig?.()) ?? unsupported;
   }
   if (req.op === "cli.install") {
     return (

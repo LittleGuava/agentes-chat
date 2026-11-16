@@ -194,6 +194,7 @@ export * from "./machine-clis";
 export * from "./machine-device";
 export * from "./machine-holds";
 export * from "./machine-hub";
+export * from "./machine-local-config";
 export * from "./machine-outages";
 export * from "./machine-pause";
 export * from "./machine-provider";

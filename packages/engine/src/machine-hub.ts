@@ -409,6 +409,8 @@ export function isNewWork(request: MachineRequest) {
     // Its owner looking for, or installing, a coding CLI there.
     case "clis.check":
     case "cli.install":
+    // Its owner reading their own tools' settings to bring them here.
+    case "local.config":
       return false;
     case "secret":
       return request.action !== "discard" && request.action !== "remove" && request.action !== "activate";

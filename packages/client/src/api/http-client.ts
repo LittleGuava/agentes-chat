@@ -156,6 +156,7 @@ import type {
   JoinDomain,
   JoinRequest,
   LearnedSkill,
+  LocalSetup,
   Machine,
   MachineAccess,
   MachineAccount,
@@ -1461,6 +1462,8 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
           ...(action === "cancel" ? { method: "DELETE" } : {}),
         });
       },
+      localConfig: (orgId, machineId) =>
+        request<LocalSetup>(`${org(orgId)}/machines/${enc(machineId)}/local-config`, { json: {} }),
       askCliInstall: async (orgId, machineId, tool) => {
         await request<unknown>(`${org(orgId)}/machines/${enc(machineId)}/cli-install/ask`, { json: { tool } });
       },

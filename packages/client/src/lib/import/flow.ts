@@ -111,6 +111,12 @@ export const agentsSince = <A extends { id: string; ownerUserId: string | null }
   userId: string,
 ) => list.filter((a) => !seen.has(a.id) && a.ownerUserId === userId);
 
+/**
+ * The app of the skills read from a person's own computer (`machines.localConfig`, ADR 0055 addendum 2026-11-15):
+ * Claude Code's skills folder. No parser reads it, so it has no card of its own.
+ */
+export const LOCAL_SKILLS_APP = "claude-code";
+
 /** An app's own card, else any other app's. */
 const cardOf = (app: string): ImportCard => IMPORT_CARDS.find((c) => c === app) ?? "other";
 
@@ -123,6 +129,7 @@ export function bundleOrigin(bundle: { source: Pick<MigrationBundle["source"], "
   card: ImportCard;
   app: string | null;
 } {
+  if (bundle.source.app === LOCAL_SKILLS_APP) return { card: "other", app: "Claude Code" };
   const source = IMPORT_SOURCES.find((s) => s === bundle.source.app);
   if (!source) return { card: "other", app: null };
   if (source !== "agenteschat" || bundle.source.ref.startsWith("agenteschat:")) {
