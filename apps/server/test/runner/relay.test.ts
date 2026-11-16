@@ -10,7 +10,7 @@ import {
   removeRelaySite,
   widens,
 } from "../../runner/access";
-import { chromeLaunchArgs } from "../../runner/browser";
+import { chromeLaunchArgs, RELAY_SETTLE_MS, relayRestartDue } from "../../runner/browser";
 import { type HandlerContext, handleRequest, type RequestScope } from "../../runner/handlers";
 import { RelayEntrance, RelayExits, type RelayLink, serveRelayExit } from "../../runner/relay";
 import { DataSockets } from "../../runner/streams";
@@ -199,6 +199,52 @@ describe("the exit on the person's computer", () => {
     expect(x.dialed).toEqual([]);
   });
 
+  test("a site the person stops lending closes its open tunnels at once; the others go on", async () => {
+    const site = await fakeSite();
+    const exits = new RelayExits({
+      resolve: async () => ["127.0.0.1"],
+      isPublic: () => true,
+      dial: (ip) => {
+        expect(ip).toBe("127.0.0.1");
+        return connect({ host: "127.0.0.1", port: site.port });
+      },
+    });
+    let sites = ["example.com", "jobs.org"];
+    const open = (host: string) => {
+      const [near, far] = linkPair();
+      exits.serve(far, () => sites);
+      let got = "";
+      let closed = false;
+      near.listen({
+        bytes: (b) => {
+          got += Buffer.from(b).toString("latin1");
+        },
+        closed: () => {
+          closed = true;
+        },
+      });
+      near.send(new TextEncoder().encode(CONNECT(host)));
+      return { got: () => got, closed: () => closed };
+    };
+    const lent = open("www.example.com");
+    const other = open("jobs.org");
+    const established = async (t: { got: () => string }) => {
+      for (let i = 0; i < 300 && !t.got().includes(" 200 "); i++) await Bun.sleep(10);
+      expect(t.got()).toContain("HTTP/1.1 200 Connection Established");
+    };
+    await established(lent);
+    await established(other);
+    expect(exits.serving).toBe(2);
+
+    sites = ["jobs.org"];
+    exits.recheck();
+    for (let i = 0; i < 300 && !lent.closed(); i++) await Bun.sleep(10);
+    expect(lent.closed()).toBe(true);
+    expect(other.closed()).toBe(false);
+    for (let i = 0; i < 300 && exits.serving !== 1; i++) await Bun.sleep(10);
+    expect(exits.serving).toBe(1);
+  });
+
   test("a head that never ends is cut", async () => {
     const site = await fakeSite();
     const x = exit(site);
@@ -255,6 +301,36 @@ describe("the entrance on the agent's computer", () => {
     c.send(CONNECT("www.example.com"));
     await c.until("HTTP/1.1 502");
     await c.ended;
+  });
+
+  test("a site the agent is no longer lent closes its tunnels at the entrance too", async () => {
+    const site = await fakeSite();
+    let sites = ["example.com"];
+    const entrance = new RelayEntrance({
+      sitesOf: () => sites,
+      open: async () => {
+        const [near, far] = linkPair();
+        void serveRelayExit(far, {
+          sites: () => ["example.com"],
+          resolve: async () => ["127.0.0.1"],
+          isPublic: () => true,
+          dial: () => connect({ host: "127.0.0.1", port: site.port }),
+        });
+        return near;
+      },
+    });
+    closers.push(() => entrance.close());
+    const port = await entrance.port("agent-1");
+    const browser = talk(connect({ host: "127.0.0.1", port }));
+    browser.send(CONNECT("www.example.com"));
+    await browser.until("HTTP/1.1 200 Connection Established\r\n\r\n");
+    // A site still lent keeps its tunnel through a recheck.
+    entrance.recheck();
+    browser.send("still here");
+    await browser.until("still here");
+    sites = [];
+    entrance.recheck();
+    await browser.ended;
   });
 
   test("the whole way: browser → entrance → tunnel → exit → site, and back", async () => {
@@ -397,6 +473,25 @@ describe("relay.open on the person's computer", () => {
     expect(t.s.ready()).toBe(false);
     expect(sys.s.ready()).toBe(false);
   });
+});
+
+test("an agent's Chrome restarts on its new list of sites only once the list held still and nobody uses it", () => {
+  const at = 1_000_000;
+  const settled = at - RELAY_SETTLE_MS;
+  const pac = "data:application/x-ns-proxy-autoconfig;base64,QQ==";
+  const other = "data:application/x-ns-proxy-autoconfig;base64,Qg==";
+  const idle = { changedAt: settled, lastUsed: settled, busy: false };
+  // Its script changed, a site added (none before) or the last one gone: a restart.
+  expect(relayRestartDue({ ...idle, started: pac, now: other }, at)).toBe(true);
+  expect(relayRestartDue({ ...idle, started: null, now: pac }, at)).toBe(true);
+  expect(relayRestartDue({ ...idle, started: pac, now: null }, at)).toBe(true);
+  // The same script (a lender away and back meanwhile): nothing to do.
+  expect(relayRestartDue({ ...idle, started: pac, now: pac }, at)).toBe(false);
+  expect(relayRestartDue({ ...idle, started: null, now: null }, at)).toBe(false);
+  // Not yet: the list just changed (a laptop waking up), the agent used it a moment ago, or someone holds it.
+  expect(relayRestartDue({ ...idle, changedAt: at - 1000, started: pac, now: other }, at)).toBe(false);
+  expect(relayRestartDue({ ...idle, lastUsed: at - 1000, started: pac, now: other }, at)).toBe(false);
+  expect(relayRestartDue({ ...idle, busy: true, started: pac, now: other }, at)).toBe(false);
 });
 
 test("the agent's Chrome takes the proxy script before the page it opens, and none without one", () => {

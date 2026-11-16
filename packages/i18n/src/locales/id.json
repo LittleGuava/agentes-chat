@@ -2971,8 +2971,8 @@
       "cursor": "Cursor belum masuk di komputer ini. Hubungkan akun Cursor di halaman {{name}}.",
       "cursor_female": "Cursor belum masuk di komputer ini. Hubungkan akun Cursor di halaman {{name}}.",
       "grok": "Grok belum masuk di komputer ini. Hubungkan akun Grok di halaman {{name}}.",
-      "copilot": "Copilot belum masuk di komputer ini. Hubungkan akun Copilot di halaman {{name}}.",
       "grok_female": "Grok belum masuk di komputer ini. Hubungkan akun Grok di halaman {{name}}.",
+      "copilot": "Copilot belum masuk di komputer ini. Hubungkan akun Copilot di halaman {{name}}.",
       "copilot_female": "Copilot belum masuk di komputer ini. Hubungkan akun Copilot di halaman {{name}}.",
       "antigravity": "Gemini belum masuk di komputer ini. Hubungkan akun Gemini di halaman {{name}}.",
       "antigravity_female": "Gemini belum masuk di komputer ini. Hubungkan akun Gemini di halaman {{name}}.",
@@ -5892,7 +5892,12 @@
       "foldersMore_female": "Selain foldernya sendiri, dia memakai yang ini:",
       "foldersUnknown": "{{machine}} belum melaporkan folder yang diizinkan.",
       "foldersHidden": "Hanya admin dan orang yang menghubungkan {{machine}} yang melihat folder yang diizinkan.",
-      "foldersHint": "Mengizinkan folder lain dilakukan di komputer itu sendiri, oleh orang yang menghubungkannya."
+      "foldersHint": "Mengizinkan folder lain dilakukan di komputer itu sendiri, oleh orang yang menghubungkannya.",
+      "sites": "Situs lewat komputer seseorang",
+      "sitesHint": "Situs yang memblokir server terbuka lewat koneksi komputer seseorang. Orang itu meminjamkannya di agentes.chat pada komputer tersebut, di Preferensi, Situs.",
+      "siteVia": "lewat {{machine}}, dihubungkan oleh {{name}}",
+      "siteViaMachine": "lewat {{machine}}",
+      "siteAway": "sedang offline, terbuka dari komputer agen ini sampai komputer itu kembali"
     },
     "settings": {
       "sections": "Bagian pengaturan",
@@ -14689,6 +14694,12 @@
       "remove": "Hapus",
       "removed": "{{folder}} dihapus.",
       "removedAgent": "{{name}} tidak lagi memakai {{folder}}.",
+      "sites": "Situs lewat komputer ini",
+      "sitesHint": "Agen dari komputer lain membuka situs ini lewat koneksi komputer ini. Hanya orang yang menghubungkannya yang meminjamkan situs, di agentes.chat pada komputer ini, di Preferensi, Situs.",
+      "noSites": "Tidak ada situs. Agen membuka semua situs dari komputer tempat mereka bekerja.",
+      "everyAgent": "Semua agen",
+      "siteUsedBy": "Siapa yang membuka {{site}} lewat komputer ini",
+      "formerAgent": "Agen yang sudah tidak ada",
       "tools": "Alat",
       "tool": {
         "claude": "Claude Code",

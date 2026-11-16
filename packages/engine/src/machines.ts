@@ -924,6 +924,8 @@ export async function announceRemovedMachine(
       event: { type: "agent.computer", agentId, target: { kind: "none" } },
     });
   }
+  // ADR 0203: the sites it lent, and its agents as others may lend to them, leave the other computers' lists.
+  await publishMachineAgentsChanged(deps.pubsub, orgId);
 }
 
 /** Which computer an agent uses (`GET …/computer` `target`). */

@@ -148,6 +148,14 @@ export interface RelayExitOptions {
   headTimeoutMs?: number;
   idleMs?: number;
   log?(line: string): void;
+  /** The tunnel is open to `host`: `close` ends it from outside (the site stopped being lent). */
+  opened?(tunnel: OpenTunnel): void;
+}
+
+/** A tunnel open now, as the side that keeps count sees it. */
+export interface OpenTunnel {
+  host: string;
+  close(): void;
 }
 
 const systemResolve = async (host: string) => (await lookup(host, { all: true, verbatim: true })).map((a) => a.address);
@@ -195,7 +203,15 @@ export async function serveRelayExit(link: RelayLink, opts: RelayExitOptions): P
   }
   link.send(text("HTTP/1.1 200 Connection Established\r\n\r\n"));
   // Bytes after the head (a client that didn't wait for the answer) go on to the site, then what came meanwhile.
-  await pipe(tunnel, wire, { idleMs: opts.idleMs ?? RELAY_LIMITS.idleMs, first: head.rest });
+  const done = pipe(tunnel, wire, { idleMs: opts.idleMs ?? RELAY_LIMITS.idleMs, first: head.rest });
+  opts.opened?.({
+    host: head.host,
+    close: () => {
+      link.close();
+      wire.destroy();
+    },
+  });
+  await done;
 }
 
 type Listener = Parameters<RelayLink["listen"]>[0];
@@ -263,6 +279,7 @@ export class RelayEntrance {
   private readonly listeners = new Map<string, Promise<{ server: Server; port: number }>>();
   private readonly bound = new Map<string, { host: string; port: number }>();
   private readonly sockets = new Set<Socket>();
+  private readonly live = new Set<OpenTunnel & { agentId: string }>();
 
   constructor(private readonly opts: RelayEntranceOptions) {}
 
@@ -296,6 +313,15 @@ export class RelayEntrance {
     const sites = this.opts.sitesOf(agentId);
     if (sites.length === 0) return null;
     return relayPac(sites, await this.port(agentId));
+  }
+
+  /** The agents' lists changed: a tunnel to a site its agent is no longer lent ends now. */
+  recheck() {
+    for (const t of [...this.live]) {
+      if (relayCovers(t.host, this.opts.sitesOf(t.agentId))) continue;
+      this.live.delete(t);
+      t.close();
+    }
   }
 
   async close() {
@@ -341,16 +367,27 @@ export class RelayEntrance {
     if (socket.destroyed) return link.close();
     link.send(concat(head.head, head.rest));
     const done = pipe(link, socket, { idleMs: this.opts.idleMs ?? RELAY_LIMITS.idleMs });
+    const tunnel = {
+      agentId,
+      host: head.host,
+      close: () => {
+        link.close();
+        socket.destroy();
+      },
+    };
+    this.live.add(tunnel);
     socket.resume();
     await done;
+    this.live.delete(tunnel);
   }
 }
 
 /** The tunnels this computer serves at once (at most `RELAY_LIMITS.tunnels`), each until it ends. */
 export class RelayExits {
   private open = 0;
+  private readonly live = new Set<OpenTunnel & { sites: () => string[] }>();
 
-  constructor(private readonly opts: Omit<RelayExitOptions, "sites"> = {}) {}
+  constructor(private readonly opts: Omit<RelayExitOptions, "sites" | "opened"> = {}) {}
 
   hasRoom(): boolean {
     return this.open < RELAY_LIMITS.tunnels;
@@ -360,14 +397,33 @@ export class RelayExits {
     return this.open;
   }
 
-  /** Serves one tunnel from `link`; `sites` is read when its head arrives. */
+  /** Serves one tunnel from `link`; `sites` is read when its head arrives, and again on every `recheck`. */
   serve(link: RelayLink, sites: () => string[]) {
     this.open++;
-    void serveRelayExit(link, { ...this.opts, sites })
+    let entry: (OpenTunnel & { sites: () => string[] }) | null = null;
+    void serveRelayExit(link, {
+      ...this.opts,
+      sites,
+      opened: (t) => {
+        entry = { ...t, sites };
+        this.live.add(entry);
+      },
+    })
       .catch((err: unknown) => this.opts.log?.(`a tunnel failed: ${err instanceof Error ? err.message : String(err)}`))
       .finally(() => {
         this.open--;
+        if (entry) this.live.delete(entry);
       });
+  }
+
+  /** What this computer lends changed: a tunnel to a site it no longer lends that agent ends now. */
+  recheck() {
+    for (const t of [...this.live]) {
+      if (relayCovers(t.host, t.sites())) continue;
+      this.live.delete(t);
+      this.opts.log?.(`a tunnel to ${t.host} closed: this computer stopped lending it`);
+      t.close();
+    }
   }
 }
 

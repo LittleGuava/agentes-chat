@@ -1,16 +1,18 @@
 import { randomBytes } from "node:crypto";
 import {
   type MachineAgent,
+  RELAY_LENDABLE_MAX,
   RELAY_LIMITS,
   RELAY_PROTOCOL,
+  type RelayAgent,
   type RelayRefusal,
   type RunnerAccess,
   relayCovers,
   relaySitesFor,
   type ServerFrame,
 } from "@agenteschat/adapters";
-import { and, type Database, eq, isNull, schema } from "@agenteschat/db";
-import { type MachineHub, MachineRequestError } from "./machine-hub";
+import { and, asc, type Database, eq, isNotNull, isNull, ne, schema } from "@agenteschat/db";
+import { type MachineHub, type MachineRelayHooks, MachineRequestError } from "./machine-hub";
 import { machineOnline, machinePause } from "./machines";
 import type { ClaimedStream, StreamSocket } from "./streams";
 
@@ -22,6 +24,9 @@ import type { ClaimedStream, StreamSocket } from "./streams";
 /** A computer of the workspace as the relay reads it. */
 export interface RelayMachine {
   id: string;
+  /** Its name, and who paired it (the agent's page says through whose computer). */
+  name?: string;
+  pairedBy?: { id: string; name: string } | null;
   kind: string;
   online: boolean;
   protocol: number;
@@ -35,10 +40,16 @@ export interface RelayMachine {
 const lenders = (machines: readonly RelayMachine[], fromMachineId: string) =>
   machines.filter((m) => m.id !== fromMachineId && m.kind === "connected" && !m.systemMode);
 
-/** The sites the other computers of the workspace lend `agentId` (its `agents` frame's `relay`). */
+/** A lender there to dial its end now: online, not paused, on a protocol that knows `relay.open`. */
+const ready = (m: RelayMachine) => m.online && !m.paused && m.protocol >= RELAY_PROTOCOL;
+
+/**
+ * The sites the other computers of the workspace lend `agentId` now (its `agents` frame's `relay`): a site whose
+ * every lender is away, paused or too old leaves the list, so the agent's browser opens it straight meanwhile.
+ */
 export function relaySitesOf(machines: readonly RelayMachine[], fromMachineId: string, agentId: string): string[] {
   const out: string[] = [];
-  for (const m of lenders(machines, fromMachineId)) {
+  for (const m of lenders(machines, fromMachineId).filter(ready)) {
     for (const site of relaySitesFor(m.access, agentId)) if (!out.includes(site)) out.push(site);
   }
   return out.slice(0, RELAY_LIMITS.sites);
@@ -53,8 +64,8 @@ export function pickRelay(
     relayCovers(want.host, relaySitesFor(m.access, want.agentId)),
   );
   if (lending.length === 0) return { refused: "relay_none" };
-  const ready = lending.find((m) => m.online && !m.paused && m.protocol >= RELAY_PROTOCOL);
-  return ready ? { machineId: ready.id } : { refused: "relay_offline" };
+  const there = lending.find(ready);
+  return there ? { machineId: there.id } : { refused: "relay_offline" };
 }
 
 /** The workspace's computers, as `pickRelay` reads them. */
@@ -62,6 +73,9 @@ export async function relayMachines(db: Database, orgId: string, now = new Date(
   const rows = await db
     .select({
       id: schema.machines.id,
+      name: schema.machines.name,
+      pairedById: schema.machines.pairedByUserId,
+      pairedByName: schema.users.name,
       kind: schema.machines.kind,
       online: schema.machines.online,
       lastSeenAt: schema.machines.lastSeenAt,
@@ -73,9 +87,12 @@ export async function relayMachines(db: Database, orgId: string, now = new Date(
       access: schema.machines.access,
     })
     .from(schema.machines)
+    .leftJoin(schema.users, eq(schema.users.id, schema.machines.pairedByUserId))
     .where(and(eq(schema.machines.orgId, orgId), isNull(schema.machines.deletedAt)));
   return rows.map((r) => ({
     id: r.id,
+    name: r.name,
+    pairedBy: r.pairedById ? { id: r.pairedById, name: r.pairedByName ?? "" } : null,
     kind: r.kind,
     online: machineOnline(r, now),
     protocol: r.protocol,
@@ -97,6 +114,72 @@ export async function withRelaySites(
     const relay = relaySitesOf(machines, machineId, a.id);
     return relay.length > 0 ? { ...a, relay } : a;
   });
+}
+
+/**
+ * Whom a person's computer may lend a site to, by name (its `agents` frame's `lendable`): the workspace's agents that
+ * work on another computer, each with that computer's name. Only to a person's own computer, where lending applies;
+ * empty for the others.
+ */
+export async function relayLendable(db: Database, orgId: string, machineId: string): Promise<RelayAgent[]> {
+  const [me] = await db
+    .select({ kind: schema.machines.kind, executors: schema.machines.executors })
+    .from(schema.machines)
+    .where(and(eq(schema.machines.id, machineId), eq(schema.machines.orgId, orgId)));
+  if (me?.kind !== "connected" || me.executors?.mode === "system") return [];
+  const rows = await db
+    .select({
+      id: schema.agents.id,
+      handle: schema.agents.handle,
+      name: schema.agents.name,
+      appearance: schema.agents.appearance,
+      machine: schema.machines.name,
+    })
+    .from(schema.agents)
+    .innerJoin(schema.machines, and(eq(schema.machines.id, schema.agents.machineId), isNull(schema.machines.deletedAt)))
+    .where(
+      and(
+        eq(schema.agents.orgId, orgId),
+        isNull(schema.agents.archivedAt),
+        isNotNull(schema.agents.machineId),
+        ne(schema.agents.machineId, machineId),
+      ),
+    )
+    .orderBy(asc(schema.agents.name), asc(schema.agents.createdAt))
+    .limit(RELAY_LENDABLE_MAX);
+  return rows.map((a) => ({
+    id: a.id,
+    handle: a.handle,
+    name: a.name,
+    ...(a.appearance
+      ? { look: { color: a.appearance.color, eyes: a.appearance.eyes, accessory: a.appearance.accessory } }
+      : {}),
+    machine: a.machine,
+  }));
+}
+
+/** A site lent to an agent, as its page shows it: through which computer, whose, and whether it is there now. */
+export interface AgentRelaySite {
+  site: string;
+  machine: { id: string; name: string };
+  by: { id: string; name: string } | null;
+  online: boolean;
+}
+
+/** Every site another computer lends `agentId`, one line per computer that lends it (its page, ADR 0203 §4). */
+export async function agentRelaySites(db: Database, orgId: string, agentId: string): Promise<AgentRelaySite[]> {
+  const [agent] = await db
+    .select({ machineId: schema.agents.machineId })
+    .from(schema.agents)
+    .where(and(eq(schema.agents.orgId, orgId), eq(schema.agents.id, agentId)));
+  if (!agent?.machineId) return [];
+  const out: AgentRelaySite[] = [];
+  for (const m of lenders(await relayMachines(db, orgId), agent.machineId)) {
+    for (const site of relaySitesFor(m.access, agentId)) {
+      out.push({ site, machine: { id: m.id, name: m.name ?? "" }, by: m.pairedBy ?? null, online: ready(m) });
+    }
+  }
+  return out.sort((a, b) => a.site.localeCompare(b.site) || a.machine.name.localeCompare(b.machine.name));
 }
 
 type RelayReady = Extract<ServerFrame, { type: "relay.ready" }>;
@@ -268,6 +351,15 @@ export function createSiteRelay(deps: SiteRelayDeps) {
 }
 
 export type SiteRelay = ReturnType<typeof createSiteRelay>;
+
+/** The hub's relay hooks as the server sets them: tunnels, each agent's sites, and whom a computer may lend to. */
+export function siteRelayHooks(db: Database, relay: Pick<SiteRelay, "want">): MachineRelayHooks {
+  return {
+    want: (machine, frame) => relay.want(machine, frame),
+    agents: (orgId, machineId, agents) => withRelaySites(db, orgId, machineId, agents),
+    lendable: (orgId, machineId) => relayLendable(db, orgId, machineId),
+  };
+}
 
 /** `SiteRelayDeps` read from the database. */
 export function siteRelayFromDb(db: Database): Pick<SiteRelayDeps, "machines" | "agentOn"> {

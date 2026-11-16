@@ -3086,8 +3086,8 @@
       "cursor": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "cursor_female": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "grok": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
-      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "grok_female": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
+      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "copilot_female": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "antigravity": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",
       "antigravity_female": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",
@@ -6133,7 +6133,12 @@
       "foldersMore_female": "Naast haar eigen map gebruikt zij deze:",
       "foldersUnknown": "{{machine}} heeft de toegestane mappen nog niet doorgegeven.",
       "foldersHidden": "Alleen beheerders en wie {{machine}} koppelde, zien de toegestane mappen.",
-      "foldersHint": "Een andere map toestaan doe je op de computer zelf, door wie hem koppelde."
+      "foldersHint": "Een andere map toestaan doe je op de computer zelf, door wie hem koppelde.",
+      "sites": "Websites via de computer van iemand",
+      "sitesHint": "Websites die servers blokkeren, openen via de verbinding van de computer van een persoon. Die persoon leent ze uit in agentes.chat op die computer, onder Voorkeuren, Websites.",
+      "siteVia": "via {{machine}}, verbonden door {{name}}",
+      "siteViaMachine": "via {{machine}}",
+      "siteAway": "nu offline, opent vanaf de computer van deze agent tot hij terug is"
     },
     "settings": {
       "sections": "Onderdelen van de instellingen",
@@ -15236,6 +15241,12 @@
       "remove": "Verwijderen",
       "removed": "{{folder}} is verwijderd.",
       "removedAgent": "{{name}} gebruikt {{folder}} niet meer.",
+      "sites": "Websites via deze computer",
+      "sitesHint": "Agents van andere computers openen deze websites via de verbinding van deze. Alleen wie hem verbond, leent een website uit, in agentes.chat erop, onder Voorkeuren, Websites.",
+      "noSites": "Geen website. Agents openen elke website vanaf de computer waarop ze werken.",
+      "everyAgent": "Alle agents",
+      "siteUsedBy": "Wie {{site}} erlangs opent",
+      "formerAgent": "Een agent die er niet meer is",
       "tools": "Tools",
       "tool": {
         "claude": "Claude Code",

@@ -4687,6 +4687,19 @@ export type SandboxSettingsInput = Partial<Pick<SandboxSettings, "enabled" | "ex
 /** `GET …/agents/{id}/computer`: which computer the agent uses (ADR 0025). */
 export interface AgentComputer {
   target: ComputerTarget;
+  /**
+   * The sites a person's computer lends it (ADR 0203), one line per computer that lends each: whose it is, and
+   * whether it is there now (online, not paused). Absent from an older server.
+   */
+  relay?: AgentRelaySite[];
+}
+
+/** A site an agent's browser opens through a person's computer (ADR 0203). */
+export interface AgentRelaySite {
+  site: string;
+  machine: { id: string; name: string };
+  by: { id: string; name: string } | null;
+  online: boolean;
 }
 
 // ── Connected computers (ADR 0025; apps/server/src/routes/machines.ts) ──────

@@ -226,6 +226,26 @@ const VERSION_CHECK_MS = 5 * 60_000;
  * (`BROWSER_IDLE_MS`) comes later.
  */
 const UPDATE_IDLE_MS = 10 * 60_000;
+
+/**
+ * How long an agent's list of sites through a person's computer (ADR 0203) holds still, and its browser goes unused,
+ * before its Chrome restarts on the new list: a lender's laptop asleep and awake again in a moment restarts nothing.
+ */
+export const RELAY_SETTLE_MS = 30_000;
+
+/**
+ * Whether an agent's Chrome restarts on its new proxy script (ADR 0203): Chrome reads `--proxy-pac-url` once, at its
+ * start, so a new list of sites takes a restart. Only once the script differs from the one it started with (a site
+ * added or gone, the first or the last one), the list held still and the agent left it alone for `RELAY_SETTLE_MS`,
+ * and nobody uses it now (a command, its live view, a person's turn).
+ */
+export function relayRestartDue(
+  s: { started: string | null; now: string | null; changedAt: number; lastUsed: number; busy: boolean },
+  at: number,
+): boolean {
+  if (s.started === s.now || s.busy) return false;
+  return at - Math.max(s.changedAt, s.lastUsed) >= RELAY_SETTLE_MS;
+}
 /**
  * A browser its agent holds (`keep_running`) waits this long at most for a newer Chrome, from when a sweep first found
  * it on disk, then restarts on it as any other does: a hold can be renewed for good, and the updates carry Chrome's
@@ -1576,6 +1596,10 @@ interface Session {
   version?: string;
   /** The newer version on disk it restarts on, or restarted on: once per version. */
   updatedTo?: string;
+  /** The proxy script its running Chrome started with (ADR 0203); null: none. */
+  relayPac?: string | null;
+  /** When its list of sites through a person's computer last changed, until its Chrome takes it (`relayRestartDue`). */
+  relayChangedAt?: number;
   /** When a sweep first found a newer Chrome on disk than the one it runs (`updateDue`). */
   outdatedAt?: number;
   /** When a sweep last found someone watching it or a person's turn open on it. */
@@ -2698,6 +2722,8 @@ export class BrowserManager {
           : prepareStartPage(this.startDir(agent, session.folder, exe), agent, this.opts.startPageData?.(agent));
         await forgetTabs(profile);
         const relayPac = (await this.opts.relayPac?.(agent.id).catch(() => null)) ?? null;
+        session.relayPac = relayPac;
+        session.relayChangedAt = undefined;
         const args = chromeLaunchArgs(
           version,
           profile,
@@ -3022,8 +3048,41 @@ export class BrowserManager {
       if (disk && this.updateDue(s, disk)) {
         s.updatedTo = disk;
         void this.enqueue(s, () => this.restartOnUpdate(s, disk)).catch(() => undefined);
+      } else if (s.chrome && s.relayChangedAt !== undefined) {
+        await this.restartOnRelay(s).catch(() => undefined);
       }
     }
+  }
+
+  /** The agents' sites through a person's computer changed (ADR 0203): each running Chrome takes its list once due. */
+  relayChanged() {
+    const at = this.now();
+    for (const s of this.sessions.values()) if (s.chrome || s.chromeStarting) s.relayChangedAt = at;
+  }
+
+  /**
+   * Its Chrome restarts on its new proxy script where it was, on the page it showed (`relayRestartDue`); a list back
+   * to the one it started with leaves it be. Not a use: its idle time keeps counting from the last one.
+   */
+  private async restartOnRelay(s: Session) {
+    const now = (await this.opts.relayPac?.(s.agent.id).catch(() => null)) ?? null;
+    const started = s.relayPac ?? null;
+    if (started === now) {
+      s.relayChangedAt = undefined;
+      return;
+    }
+    const busy = !!s.queued || !!s.chromeStarting || this.watched(s);
+    const due = relayRestartDue(
+      { started, now, changedAt: s.relayChangedAt ?? this.now(), lastUsed: s.lastUsed, busy },
+      this.now(),
+    );
+    if (!due || this.closed) return;
+    s.relayChangedAt = undefined;
+    this.opts.log(`the browser of ${s.name} restarts on its new list of sites through a person's computer`);
+    await this.enqueue(s, async () => {
+      if (!s.chrome) return;
+      await this.ensureOwnChrome(s.agent, s, s.chrome.display !== undefined, s.allowed ?? [], false, undefined, true);
+    });
   }
 
   /** The browser `reclaimIdle` would close: a running Chrome nobody holds, no command under way, unused for a while. */

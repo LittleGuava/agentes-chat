@@ -3087,8 +3087,8 @@
       "cursor": "Cursor ist auf diesem Computer nicht angemeldet. Verbinde ein Cursor-Konto auf der Seite von {{name}}.",
       "cursor_female": "Cursor ist auf diesem Computer nicht angemeldet. Verbinde ein Cursor-Konto auf der Seite von {{name}}.",
       "grok": "Grok ist auf diesem Computer nicht angemeldet. Verbinde ein Grok-Konto auf der Seite von {{name}}.",
-      "copilot": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "grok_female": "Grok ist auf diesem Computer nicht angemeldet. Verbinde ein Grok-Konto auf der Seite von {{name}}.",
+      "copilot": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "copilot_female": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "antigravity": "Gemini ist auf diesem Computer nicht angemeldet. Verbinde ein Gemini-Konto auf der Seite von {{name}}.",
       "antigravity_female": "Gemini ist auf diesem Computer nicht angemeldet. Verbinde ein Gemini-Konto auf der Seite von {{name}}.",
@@ -6098,7 +6098,12 @@
       "foldersMore_female": "Neben ihrem eigenen Ordner nutzt sie diese:",
       "foldersUnknown": "{{machine}} hat seine erlaubten Ordner noch nicht gemeldet.",
       "foldersHidden": "Nur Admins und wer {{machine}} verbunden hat, sehen die erlaubten Ordner.",
-      "foldersHint": "Einen weiteren Ordner erlaubt die Person, die den Computer verbunden hat, direkt auf dem Computer."
+      "foldersHint": "Einen weiteren Ordner erlaubt die Person, die den Computer verbunden hat, direkt auf dem Computer.",
+      "sites": "Websites über den Computer einer Person",
+      "sitesHint": "Websites, die Server blockieren, öffnen sich über die Verbindung des Computers einer Person. Sie verleiht sie in agentes.chat auf diesem Computer, unter Einstellungen, Websites.",
+      "siteVia": "über {{machine}}, verbunden von {{name}}",
+      "siteViaMachine": "über {{machine}}",
+      "siteAway": "gerade offline, öffnet sich vom Computer dieses Agenten, bis er zurück ist"
     },
     "settings": {
       "sections": "Bereiche der Einstellungen",
@@ -15172,6 +15177,12 @@
       "remove": "Entfernen",
       "removed": "{{folder}} wurde entfernt.",
       "removedAgent": "{{name}} nutzt {{folder}} nicht mehr.",
+      "sites": "Websites über diesen Computer",
+      "sitesHint": "Agenten anderer Computer öffnen diese Websites über die Verbindung dieses Computers. Nur wer ihn verbunden hat, verleiht eine Website, in agentes.chat auf ihm, unter Einstellungen, Websites.",
+      "noSites": "Keine Website. Agenten öffnen jede Website vom Computer, auf dem sie arbeiten.",
+      "everyAgent": "Alle Agenten",
+      "siteUsedBy": "Wer {{site}} darüber öffnet",
+      "formerAgent": "Ein Agent, der nicht mehr hier ist",
       "tools": "Tools",
       "tool": {
         "claude": "Claude Code",

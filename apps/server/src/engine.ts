@@ -127,6 +127,7 @@ import {
   setWorkOrgCap,
   shareSavedFile,
   siteRelayFromDb,
+  siteRelayHooks,
   smallModelFor,
   standingJudge,
   streamClosed,
@@ -136,7 +137,6 @@ import {
   warmAgentBrowser,
   withComposio,
   withJudgeFallback,
-  withRelaySites,
 } from "@agenteschat/engine";
 import { createOpenAIEmbeddings, createVoyageEmbeddings, type ModelProvider } from "@agenteschat/providers";
 import { type AppleTokenRevoker, appleTokenRevoker } from "./auth";
@@ -598,10 +598,7 @@ export function buildEngine(o: EngineOptions) {
   });
   // Sites that refuse data centers open through a person's own computer (ADR 0203): two runners' data sockets paired.
   const siteRelay = createSiteRelay({ hub: machineHub, ...siteRelayFromDb(db), log: o.log });
-  machineHub.setRelayHooks({
-    want: (machine, frame) => siteRelay.want(machine, frame),
-    agents: (orgId, machineId, agents) => withRelaySites(db, orgId, machineId, agents),
-  });
+  machineHub.setRelayHooks(siteRelayHooks(db, siteRelay));
   // agentes.chat Cloud reads the screen's text while a person is in control (ADR 0076); a self-hosted server never.
   const sessions = config.SESSION_SCREENING ? createSessionScreening({ db, hub: machineHub, log: o.log }) : null;
   // Agents' desktops and terminals (ADR 0058): each person's stream paired with the runner's data socket for it,

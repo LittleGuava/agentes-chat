@@ -24,6 +24,8 @@ import {
   type MachineReplies,
   type MachineRequest,
   OWN_USAGE_ID,
+  parseRelayAgents,
+  type RelayAgent,
   type RunnerAccess,
   type RunnerFrame,
   type RunnerInfo,
@@ -48,6 +50,7 @@ import {
   AccessRequests,
   addFolder,
   allowedFor,
+  allowRelaySite,
   ControlError,
   checkFolder,
   parseAgents,
@@ -55,7 +58,9 @@ import {
   realFoldersFor,
   reduceAccess,
   removeFolder,
+  removeRelaySite,
   setFolderAgents,
+  setRelayAgents,
   setTool,
   TOOL_NAMES,
   writeAgents,
@@ -338,6 +343,8 @@ interface Session {
   streams: DataSockets;
   /** Sites through a person's computer (ADR 0203): the agents' entrances on loopback; null in system mode. */
   relayEntrance: RelayEntrance | null;
+  /** The tunnels this computer lends its connection to (ADR 0203); null in system mode. */
+  relayExits: RelayExits | null;
   /** The agents' use of their desktops (ADR 0062): its helpers end with the session, the desktops don't. */
   desktopUse: DesktopManager;
   connection: RunnerConnection;
@@ -425,6 +432,8 @@ export class RunnerDaemon implements RequestObserver {
   private connState: ControlStatus["connection"] = "unpaired";
   private refused: { token: string; reason: ConnectionOutcome["reason"] } | null = null;
   private agents: MachineAgent[] = [];
+  /** The workspace's agents on other computers this one may lend a site to (ADR 0203), as the server last said. */
+  private lendable: RelayAgent[] | undefined;
   private egress = new EgressObservation();
   private probingEgress = false;
   private observeEgress = false;
@@ -983,6 +992,10 @@ export class RunnerDaemon implements RequestObserver {
         this.record({ kind: "access", summary, said, result: "ok" });
       }
       this.resolveSatisfied(nextAccess);
+      // ADR 0203: a site this computer stopped lending (or an agent it stopped lending to) closes its tunnels now.
+      if (JSON.stringify(prevAccess.relay ?? []) !== JSON.stringify(nextAccess.relay ?? [])) {
+        this.session?.relayExits?.recheck();
+      }
       // The browser (or desktop) switch went off: the agents' browsers (or desktops) close now, not when next used.
       if (prevAccess.tools.browser === true && nextAccess.tools.browser !== true) {
         void this.session?.browser.closeAll();
@@ -1601,7 +1614,10 @@ export class RunnerDaemon implements RequestObserver {
       ...(supervisor ? { tasks: supervisor, mcp: supervisor.mcp } : { mcp }),
       log,
       observer: this,
-      onAgents: (raw, deleted) => this.setAgents(raw, deleted),
+      onAgents: (raw, deleted, lendable) => {
+        this.setLendable(lendable);
+        this.setAgents(raw, deleted);
+      },
       onBrowserHandoff: (frame) =>
         supervisor ? supervisor.handoff(frame) : browser.setHandoff(frame.agentId, frame.handoff),
       onRelayReady: (frame) => relayWants.ready(frame),
@@ -1664,6 +1680,7 @@ export class RunnerDaemon implements RequestObserver {
       browser,
       streams,
       relayEntrance,
+      relayExits,
       desktopUse,
       connection,
       supervisor,
@@ -2078,6 +2095,17 @@ export class RunnerDaemon implements RequestObserver {
     return { logo: this.config ? logoDataUrl(this.logo) : null };
   }
 
+  /**
+   * The workspace's agents on other computers (ADR 0203), whom the person may lend a site to from the app; an `agents`
+   * frame without them (an older server) leaves what was heard.
+   */
+  private setLendable(raw: unknown) {
+    const lendable = parseRelayAgents(raw);
+    if (!lendable || JSON.stringify(lendable) === JSON.stringify(this.lendable)) return;
+    this.lendable = lendable;
+    this.queueStatus();
+  }
+
   private setAgents(raw: unknown, deletedIds?: unknown) {
     const list = parseAgents(raw);
     // System mode: an account folder stays with an agent's user only while that agent thinks with it.
@@ -2142,7 +2170,14 @@ export class RunnerDaemon implements RequestObserver {
     void this.desktops.serve(list).catch(() => undefined);
     if (JSON.stringify(list) === JSON.stringify(this.agents)) return;
     const routeChanged = this.agents[0]?.id !== list[0]?.id;
+    const relayOf = (agents: MachineAgent[]) => JSON.stringify(agents.map((a) => [a.id, a.relay ?? []]));
+    const relayChanged = relayOf(list) !== relayOf(this.agents);
     this.agents = list;
+    // ADR 0203: the sites each agent is lent changed: tunnels of a site gone close, and its Chrome takes the new list.
+    if (relayChanged) {
+      this.session?.relayEntrance?.recheck();
+      this.session?.browser.relayChanged();
+    }
     if (routeChanged) {
       this.egressGeneration++;
       this.egress.clear();
@@ -2229,6 +2264,7 @@ export class RunnerDaemon implements RequestObserver {
       ...(c ? { workspace: this.session?.workspaceReal ?? c.workspace } : {}),
       agents: this.agents.map((a) => ({ ...a })),
       access: this.access(),
+      ...(this.lendable ? { lendable: this.lendable.map((a) => ({ ...a })) } : {}),
       browsers,
       ...(this.phones ? { phones: this.phones.list() } : {}),
       // In system mode each agent runs as a user of its own, not as the runner's.
@@ -2576,6 +2612,24 @@ export class RunnerDaemon implements RequestObserver {
   foldersSetAgents(folder: string, agents: string[]): RunnerAccess {
     this.requirePaired();
     this.writeAccess(setFolderAgents(this.access(), this.findFolder(folder), this.agentIds(agents)));
+    return this.access();
+  }
+
+  relayAdd(site: string, agents: string[]): RunnerAccess {
+    this.requirePaired();
+    this.writeAccess(allowRelaySite(this.access(), site, this.agentIds(agents)));
+    return this.access();
+  }
+
+  relayRemove(site: string, agentId?: string): RunnerAccess {
+    this.requirePaired();
+    this.writeAccess(removeRelaySite(this.access(), site, agentId || undefined));
+    return this.access();
+  }
+
+  relaySetAgents(site: string, agents: string[]): RunnerAccess {
+    this.requirePaired();
+    this.writeAccess(setRelayAgents(this.access(), site, this.agentIds(agents)));
     return this.access();
   }
 
