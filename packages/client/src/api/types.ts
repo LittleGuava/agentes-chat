@@ -8643,6 +8643,39 @@ export interface DeviceJoinRequest {
   expiresAt: string;
 }
 
+/** What the phone's own apps a person lets their agents use here (ADR 0205): `contacts` for now. */
+export type PhoneTool = "contacts";
+
+/** The person's switches in one workspace, as the phone app reads them back. */
+export interface PhoneTools {
+  tools: PhoneTool[];
+  deviceName: string | null;
+  updatedAt: string | null;
+}
+
+/** One request from an agent's run the phone has to answer (ADR 0205). */
+export interface PhoneJob {
+  id: string;
+  kind: "find_contact";
+  input: { query: string };
+  agent: { id: string; name: string };
+  createdAt: string;
+  expiresAt: string;
+}
+
+/** One contact as it leaves the phone: these fields only. */
+export interface PhoneContact {
+  name: string;
+  phones: string[];
+  emails: string[];
+}
+
+/** The phone's answer to a job: what it found, the person's no, or why it couldn't. */
+export type PhoneJobAnswer =
+  | { outcome: "done"; contacts: PhoneContact[] }
+  | { outcome: "declined" }
+  | { outcome: "failed"; error: string };
+
 export interface DevicesList {
   devices: ComputerDevice[];
   requests: DeviceJoinRequest[];

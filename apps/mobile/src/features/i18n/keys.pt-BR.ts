@@ -2949,4 +2949,13 @@ export const featureKeysPtBR = {
       text: "Quando um agente fizer algo fora da conversa, aparece aqui.",
     },
   },
+  phoneTools: {
+    /** Contatos do celular (ADR 0205): Você's page, its row and its toasts. */
+    title: "Contatos do celular",
+    contacts: "Agentes podem buscar nos meus contatos",
+    help: "Só neste workspace e só neste celular. Quando um agente com quem você fala precisa dos dados de alguém, ele busca o nome nos seus contatos: vão para o agente até 5 resultados, cada um só com nome, telefones e e-mails.",
+    deniedTitle: "O acesso aos contatos está desligado",
+    deniedSub: "Permita para o agentes.chat nos Ajustes do celular.",
+    failed: "Não deu para salvar. Tente de novo.",
+  },
 } satisfies LocaleStrings;

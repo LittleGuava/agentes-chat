@@ -1,6 +1,6 @@
 # 0205. The phone's own apps as an agent's tools, starting with the contacts
 
-- Status: Accepted (2026-11-15; built: the server side, the first tool `phone_find_contact` and the phone app's API, tested with a fake phone. Not built yet: the phone app's side, in Later)
+- Status: Accepted (2026-11-15; built: the server side, the first tool `phone_find_contact` and the phone app's API, tested with a fake phone. 2026-11-16: the phone app's side, addendum below; it reaches phones with the next native build)
 - Date: 2026-11-15
 - Extends: ADR 0035 (the phone app), ADR 0053 (who is behind a run), ADR 0117 (outside text reaches models only framed)
 
@@ -46,7 +46,7 @@ What must hold:
 
 ## Later
 
-- **The phone app's side** (`apps/mobile`): `expo-contacts` with its OS permission strings (iOS `NSContactsUsageDescription`, Android `READ_CONTACTS`), the switch under Você › a workspace, listing jobs on `phone.job` and on opening, running the search on the phone and answering. It needs a new native build of the app (a native module and new permissions), which this change doesn't make: an app built before it must keep working, so the app turns the switch on only where the module exists.
+- **Several phones** also settles a race kept for now: two phones of one person with the app open both answer, and one without the system's permission answers `failed` and may come first.
 - **Waking the phone**: a push (`push.ts`) when a job starts and no socket of the person's is open, so a phone in a pocket can answer in time; until then the app must be open.
 - **More tools**: the calendar (`expo-calendar`) to read the day and propose events, texts and calls with the confirmation in §6, each its own switch in `PHONE_TOOLS`.
 - **Several phones**: a phone id in the grant, a lease on a job (`POST …/jobs/{id}/lease`), and the person choosing which phone answers.
@@ -57,5 +57,14 @@ What must hold:
 ## Consequences
 
 - A new pair of tables (migration `0301_phone_tools`), with `org_id` like every tenant table and cascades from the workspace, the person and the agent.
-- Until the phone app ships its side, no grant can be made and the tool is never listed: the server side is dormant, not half-working.
+- Until a phone runs a build with `expo-contacts`, no grant can be made and the tool is never listed: the server side is dormant, not half-working.
 - A run may wait up to a minute on a phone that never answers; the tool says so, and the agent asks the person in the chat instead.
+
+## Addendum (2026-11-16): the phone app's side
+
+- **Where.** Você › Preferências has a row, "Contatos do celular", for the workspace open in the app (as "Respostas dos agentes"), pushing a page with one switch and a footer saying what leaves the phone: only in this workspace and on this phone, up to 5 matches, each a name, numbers and emails (`apps/mobile/src/features/phone-tools/PhoneToolsPage.tsx`, route `app/(app)/me/phone-tools.tsx`). The row shows only where the build has the native module and the server answers `GET …/phone/tools`; an older server (404) or build hides it.
+- **The system's permission, only when the person turns it on.** Turning the switch on reads the permission: granted saves at once, askable shows the system's prompt, refused for good says so with a way to the phone's Settings (`consentStep`). Nothing is saved without the permission. Turning it off saves an empty list (the server deletes the row); the system's permission stays as the person left it. The switch shows on only while the server has the yes and this phone the permission (`switchOn`, read again when the app comes back to the front): after a reinstall, on another phone or with the permission taken back in Settings it shows off, and turning it on asks the system again.
+- **Answering.** `usePhoneJobs`, mounted once with the app's stack, runs only while contacts are on here: it lists the jobs on mounting, on each `phone.job` event and when the app comes back to the front, one pass at a time, and answers each job once (`answerPhoneJobs`). A job is answered with `contactsAnswer`, a pure function over the phone's address book: every word of the search in the name, in any order, accents and case aside; the first 5 matches; per contact at most 5 numbers and 5 emails, trimmed, without repeats, a value longer than the server takes left out whole. A permission taken back in the phone's Settings answers `failed` saying so; an address book that can't be read answers `failed` with its error. An answer the server refused (`phone.job_closed`, `phone.job_not_found`: the job ended, or another phone answered first) is dropped; one lost on the way (no connection, the server down) goes again on a pass 5 s later.
+- **The book is read whole, on the phone.** `Contact.getAllDetails` with only the name, phones and emails fields and no name filter: the systems' own filters disagree (Android's is one `LIKE '%…%'` on the display name, so accents count and words must come in order; iOS's `predicateForContacts(matchingName:)` is another rule), and the same search must find the same people on every phone. The book never leaves the phone; only `contactsAnswer`'s matches do.
+- **Native access behind an interface.** `ContactsAccess` (`contacts-access.ts`) is the permission, the prompt and the search; the real one (`contacts.ts`) loads `expo-contacts` only where its native module (`ExpoContactsNext`) exists, so an app built before it keeps working, and tests hand in a fake.
+- **The build.** `expo-contacts` is a native module: phones get this with a new native build. Its plugin sets iOS's `NSContactsUsageDescription` to our words; on Android it asks `READ_CONTACTS` and `WRITE_CONTACTS`, and `android.blockedPermissions` drops the second, since the app only reads.

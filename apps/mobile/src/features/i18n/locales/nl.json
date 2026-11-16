@@ -2885,5 +2885,13 @@
       "title": "Niets te controleren",
       "text": "Als een agent iets buiten het gesprek doet, verschijnt het hier."
     }
+  },
+  "phoneTools": {
+    "title": "Contacten op je telefoon",
+    "contacts": "Agents mogen mijn contacten doorzoeken",
+    "help": "Alleen in deze werkruimte en alleen op deze telefoon. Als een agent met wie je praat iemands gegevens nodig heeft, zoekt hij op naam in je contacten: maximaal 5 resultaten gaan naar de agent, elk met alleen een naam, telefoonnummers en e-mailadressen.",
+    "deniedTitle": "Toegang tot contacten staat uit",
+    "deniedSub": "Sta het toe voor agentes.chat in de Instellingen van je telefoon.",
+    "failed": "Opslaan lukte niet. Probeer het opnieuw."
   }
 }

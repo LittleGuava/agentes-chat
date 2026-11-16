@@ -2994,5 +2994,13 @@
       "title": "Nada que revisar",
       "text": "Cuando un agente haga algo fuera de la conversación, aparecerá aquí."
     }
+  },
+  "phoneTools": {
+    "title": "Contactos del teléfono",
+    "contacts": "Los agentes pueden buscar en mis contactos",
+    "help": "Solo en este espacio de trabajo y solo en este teléfono. Cuando un agente con el que hablas necesita los datos de alguien, busca el nombre en tus contactos: al agente le llegan hasta 5 resultados, cada uno solo con nombre, teléfonos y correos.",
+    "deniedTitle": "El acceso a los contactos está desactivado",
+    "deniedSub": "Permítelo para agentes.chat en los Ajustes del teléfono.",
+    "failed": "No se pudo guardar. Inténtalo de nuevo."
   }
 }

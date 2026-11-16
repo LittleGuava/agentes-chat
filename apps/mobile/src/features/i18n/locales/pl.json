@@ -3129,5 +3129,13 @@
       "title": "Nic do sprawdzenia",
       "text": "Gdy agent zrobi coś poza rozmową, pojawi się to tutaj."
     }
+  },
+  "phoneTools": {
+    "title": "Kontakty w telefonie",
+    "contacts": "Agenci mogą przeszukiwać moje kontakty",
+    "help": "Tylko w tej przestrzeni roboczej i tylko na tym telefonie. Gdy agent, z którym rozmawiasz, potrzebuje czyichś danych, szuka nazwy w twoich kontaktach: do agenta trafia maksymalnie 5 wyników, każdy tylko z nazwą, numerami telefonów i e-mailami.",
+    "deniedTitle": "Dostęp do kontaktów jest wyłączony",
+    "deniedSub": "Zezwól na niego dla agentes.chat w Ustawieniach telefonu.",
+    "failed": "Nie udało się zapisać. Spróbuj ponownie."
   }
 }

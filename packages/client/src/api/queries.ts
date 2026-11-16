@@ -164,6 +164,8 @@ import type {
   Person,
   PersonalTokenInput,
   PersonLimits,
+  PhoneTool,
+  PhoneTools,
   Proposal,
   ReactionCount,
   ReminderInput,
@@ -6105,6 +6107,25 @@ export const useNoticePrefs = (orgId: string) => {
   const api = useApi();
   return useQuery({ queryKey: keys.noticePrefs(orgId), queryFn: () => api.notifications.prefs(orgId) });
 };
+
+/**
+ * What this person lets their agents use on this phone here (ADR 0205). A server from before it answers 404: the
+ * query fails once (no retry) and the phone app hides the row.
+ */
+export const usePhoneTools = (orgId: string, enabled = true) => {
+  const api = useApi();
+  return useQuery({ queryKey: keys.phoneTools(orgId), queryFn: () => api.phone.tools(orgId), enabled, retry: false });
+};
+
+/** Turns the phone's apps on or off for this person's agents here, with the phone's name. */
+export function useSetPhoneTools(orgId: string) {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { tools: PhoneTool[]; deviceName: string }) => api.phone.setTools(orgId, input),
+    onSuccess: (tools: PhoneTools) => qc.setQueryData(keys.phoneTools(orgId), tools),
+  });
+}
 
 /** One category on or off: the switch moves at once, and goes back if the server refuses. */
 export function useSetNoticePref(orgId: string) {
