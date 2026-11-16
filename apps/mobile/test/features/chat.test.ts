@@ -934,6 +934,37 @@ describe("an agent's question (ask_user)", () => {
     expect(questionOf(undefined)).toBeNull();
   });
 
+  test("a card of several questions keeps each question and each answer; malformed ones are dropped", () => {
+    const several = questionOf({
+      question: {
+        ...question,
+        text: "Qual ambiente?\nQuais serviços?",
+        choices: null,
+        items: [
+          { question: "Qual ambiente?", choices: ["staging", "production"] },
+          { question: "Quais serviços?", choices: ["api", "web", 4], multiSelect: true },
+          { choices: ["sem pergunta"] },
+        ],
+        status: "answered",
+        answer: "Qual ambiente? production\nQuais serviços? api, web",
+        answers: [
+          { choices: ["production"], text: null },
+          { choices: ["api", "web"], text: "sem o cron" },
+        ],
+      },
+    });
+    expect(several?.items).toEqual([
+      { question: "Qual ambiente?", choices: ["staging", "production"] },
+      { question: "Quais serviços?", choices: ["api", "web"], multiSelect: true },
+    ]);
+    expect(several?.answers).toEqual([
+      { choices: ["production"], text: null },
+      { choices: ["api", "web"], text: "sem o cron" },
+    ]);
+    // A card from before: no items, no answers.
+    expect(questionOf({ question })?.items).toBeUndefined();
+  });
+
   test("the question stands alone and its text is not repeated above the card", () => {
     const asked = message({
       id: "m1",

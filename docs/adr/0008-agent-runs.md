@@ -101,3 +101,33 @@ on the way jumped to minutes, as if it had been thinking all along.
   listens to a conversation only while it is open). A row made from the read counts from `workingMs`; a server from
   before it gives only the first start, as before.
 - `startedAt` on a live row still places it in the timeline, and a read of the server still corrects it.
+
+## Addendum (2026-11-15): several questions on one card, and more than one pick
+
+An agent stopped mid-work often needs two or three answers at once ("which environment, which window, and may I
+restart the workers?"). It asked them one card at a time, each a round trip of a day at worst, or packed them into one
+sentence the person answered in prose. `ask_user` now takes them together.
+
+- **The tool.** `ask_user` keeps `question` + `choices` (2 to 4) and adds `multiSelect` (the person may pick more than
+  one). Or, instead of `question`, `questions`: 1 to 6 of `{ question, choices?, multiSelect? }`, each held to the same
+  rules as a single question (300 characters, `NOT_A_QUESTION`). Both, or neither, is refused in words. The judge's
+  hold (`holdAsk`) reads the questions together.
+- **Stored beside the old columns.** `agent_questions.items` and `.answers` (jsonb, migration 0284), set only on a card
+  the old shape can't say: several questions, or `multiSelect`. A single question with one pick stays exactly as
+  before. `text` is the questions one a line (the message body, previews, notifications, `repeatedAsk`) and `choices`
+  is the one question's choices, or null for several, so an app from before this reads the card as a question
+  answered in words.
+- **One answer for the card.** `POST …/questions/{id}/answer` takes `answers` (one per question, in order: the choices
+  picked and what was written), checked against the card: every question answered, each pick one of its choices, one
+  pick where `multiSelect` is off. `choice`/`text` still answer a single question; a reply in the thread still answers
+  the whole card in words.
+- **Back to the agent as data.** The tool result of an answered card of `items` is JSON, one entry per question in
+  order (`question`, `picked`, `wrote`). A card without them reads as before ("The person answered: …").
+- **The apps.** Web and phone show the questions stacked on the request card, each with its choices as toggles and
+  "Outra resposta" for words, and one "Enviar respostas" once every question has an answer. The draft is pure
+  (`packages/client/src/lib/agent-questions.ts`), shared by both. Answered, the card lists each question with what was
+  said.
+
+`ask_choices` (ADR 0124) stays the card for options offered at the end of a reply, which doesn't pause the run; this
+is the pause, where the run can't go on without the answers. Its "Extend `ask_user`" alternative was about that
+offer, not about this.
