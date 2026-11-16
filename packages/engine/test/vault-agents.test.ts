@@ -9,6 +9,7 @@ import {
   getVaultItem,
   listUsableVault,
   recordVaultUse,
+  releaseVaultCode,
   releaseVaultKeys,
   releaseVaultLogin,
   saveVaultItemByAgent,
@@ -327,6 +328,110 @@ describe("releasing a login", () => {
     expect(missing).toMatchObject({ code: "missing" });
     expect((await listUsableVault(v.deps, run)).some((i) => i.id === row.id)).toBe(false);
     expect(failed).not.toBeInstanceOf(VaultSourceError);
+  });
+});
+
+describe("releasing a login's one-time code (ADR 0144, addendum of 2026-11-15)", () => {
+  const CODE = "482913";
+  const refusal = (work: Promise<unknown>) => work.then(() => null).catch((e: unknown) => e as VaultRefusal);
+
+  /** A team login of the fake password manager, open to everyone and every agent, with or without a code there. */
+  async function externalLogin(withCode: boolean) {
+    v = await vaultSetup();
+    v.source.items = [
+      {
+        ref: "item-1",
+        kind: "login",
+        title: "Registry",
+        websites: [{ url: "https://registry.example.com", match: "site" }],
+      },
+    ];
+    v.source.values.set("item-1", SOURCE_PASSWORD);
+    if (withCode) v.source.codes.set("item-1", CODE);
+    const connection = await connectVaultSource(v.deps, v.carla.id, v.f.org.id, {
+      kind: "fakepass",
+      scope: "team",
+      input: { token: SOURCE_TOKEN },
+      access: access({ everyone: true, allAgents: true }),
+    });
+    const [row] = await v.f.db
+      .select()
+      .from(schema.vaultItems)
+      .where(eq(schema.vaultItems.connectionId, connection.id));
+    if (!row) throw new Error("no item");
+    return row;
+  }
+
+  test("the code the password manager gives now, for the login's sites only, kept nowhere", async () => {
+    const row = await externalLogin(true);
+    const run = await runAskedBy(v, v.dev.id, v.dora.id);
+    const released = await releaseVaultCode(v.deps, run, row.id, "https://pkg.registry.example.com");
+    expect(released).toMatchObject({ code: CODE, rule: { kind: "site", domain: "example.com" } });
+    expect(released.item).toMatchObject({ id: row.id });
+    expect(v.source.calls.filter((c) => c.op === "code")).toHaveLength(1);
+    expect(v.source.calls.filter((c) => c.op === "reveal")).toHaveLength(0);
+
+    const wrong = await refusal(releaseVaultCode(v.deps, run, row.id, "https://registry.evil.example"));
+    expect(wrong?.code).toBe("wrong_site");
+    // The wrong page is refused before the password manager is asked.
+    expect(v.source.calls.filter((c) => c.op === "code")).toHaveLength(1);
+    expect(await everythingStored(v)).not.toContain(CODE);
+  });
+
+  test("a login whose password manager keeps no code: the agent asks the person for it", async () => {
+    const row = await externalLogin(false);
+    const run = await runAskedBy(v, v.dev.id, v.dora.id);
+    const none = await refusal(releaseVaultCode(v.deps, run, row.id, null));
+    expect(none?.code).toBe("no_value");
+    expect(none?.message).toContain("keeps no one-time code in FakePass");
+    expect(none?.message).toContain("request_secret");
+  });
+
+  test("a login kept in the Vault has no code: the Vault keeps no authenticator seed", async () => {
+    v = await vaultSetup();
+    const builtIn = await createVaultItem(v.deps, v.ana.id, v.f.org.id, {
+      kind: "login",
+      scope: "personal",
+      title: "GitHub",
+      website: "https://github.com",
+      secret: PASSWORD,
+      access: access({ allAgents: true }),
+    });
+    const run = await runAskedBy(v, v.dev.id, v.ana.id);
+    const refused = await refusal(releaseVaultCode(v.deps, run, builtIn.id, null));
+    expect(refused?.code).toBe("no_value");
+    expect(refused?.message).toContain("keeps no authenticator seed");
+    expect(refused?.message).toContain("request_secret");
+    expect(refused?.message).not.toContain(PASSWORD);
+  });
+
+  test("the same gates as the password: shared with the agent, a login, a source that can give codes", async () => {
+    const row = await externalLogin(true);
+    const run = await runAskedBy(v, v.dev.id, v.dora.id);
+    await updateVaultItem(v.deps, v.carla.id, v.f.org.id, row.id, { access: access({ everyone: true }) });
+    expect((await refusal(releaseVaultCode(v.deps, run, row.id, null)))?.code).toBe("not_shared");
+    expect((await refusal(releaseVaultCode(v.deps, run, crypto.randomUUID(), null)))?.code).toBe("not_found");
+
+    await updateVaultItem(v.deps, v.carla.id, v.f.org.id, row.id, {
+      access: access({ everyone: true, allAgents: true }),
+    });
+    const key = await createVaultItem(v.deps, v.ana.id, v.f.org.id, {
+      kind: "key",
+      scope: "personal",
+      title: "npm",
+      keyName: "NPM_TOKEN",
+      secret: "npm-token-value-1234",
+      access: access({ allAgents: true }),
+    });
+    expect((await refusal(releaseVaultCode(v.deps, await runAskedBy(v, v.dev.id, v.ana.id), key.id, null)))?.code).toBe(
+      "not_allowed",
+    );
+
+    // A password manager whose source can't give codes says so.
+    v.source.currentCode = undefined;
+    const cannot = await refusal(releaseVaultCode(v.deps, run, row.id, null));
+    expect(cannot?.code).toBe("no_value");
+    expect(cannot?.message).toContain("FakePass doesn't give one-time codes");
   });
 });
 

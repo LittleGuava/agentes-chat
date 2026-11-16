@@ -4648,6 +4648,60 @@ test.if(posix)("in a profile's session a login opens for the agent whose turn it
   expect(shot.url).toContain("[secret:VAULT_PASSWORD]");
 });
 
+/** A login's one-time code sealed as the server does: to a one-use key of the agent, for codes on one rule. */
+async function sealCode(agentId: string, rule: string, code: string) {
+  const { keyId, publicKey } = await runnerVault.issueKey(agentId);
+  const box = await sealSecret(publicKey, code, vaultAad({ keyId, agentId, use: { kind: "code", rule } }));
+  return JSON.stringify({ keyId, box });
+}
+
+test.if(posix)("a login's one-time code is typed on its site into code fields only, whole or one per box", async () => {
+  const t = setup();
+  const code = "482913";
+  const act = (command: string, args: string[]) => t.act(command, args, { agent: keeper });
+  await act("open", ["https://shop.example.com/verify"]);
+  t.page({ attrs: { "@e4": { type: "text", autocomplete: "one-time-code" } } });
+  const typed = await act("agentes:type_vault_code", ["e4", SHOP_RULE, await sealCode(keeper.id, SHOP_RULE, code)]);
+  expect(typed).toEqual({
+    success: true,
+    data: { typed: "vault_code", into: "@e4", fields: ["@e4"], origin: "https://shop.example.com" },
+  });
+  const commands = JSON.parse(batchesOf(t).at(-1)?.stdin ?? "[]") as string[][];
+  expect(commands.map((c) => c[0])).toEqual(["focus", "eval", "fill", "eval"]);
+  expect(commands[2]?.[2]).toBe(code);
+  expect(t.logged().some((c) => c.args.join(" ").includes(code))).toBe(false);
+  // Split in one box per character: each box checked and filled with its own.
+  const refs = ["@e1", "@e2", "@e3", "@e4", "@e5", "@e6"];
+  t.page({ attrs: Object.fromEntries(refs.map((r) => [r, { type: "tel" }])) });
+  const boxes = await act("agentes:type_vault_code", [
+    "e1",
+    SHOP_RULE,
+    await sealCode(keeper.id, SHOP_RULE, code),
+    ...refs.slice(1),
+  ]);
+  expect(boxes).toMatchObject({ success: true, data: { fields: refs } });
+  const fills = (JSON.parse(batchesOf(t).at(-1)?.stdin ?? "[]") as string[][]).filter((c) => c[0] === "fill");
+  expect(fills.map((c) => c[2])).toEqual(Array.from(code));
+  // Not as many boxes as characters: nothing typed.
+  expect(
+    await act("agentes:type_vault_code", ["e1", SHOP_RULE, await sealCode(keeper.id, SHOP_RULE, code), "e2"]),
+  ).toMatchObject({ success: false, error: expect.stringContaining("one character for each") });
+  // Never into a password field, nor off the login's site.
+  t.page({ attrs: { "@e4": { type: "password" } } });
+  expect(
+    await act("agentes:type_vault_code", ["e4", SHOP_RULE, await sealCode(keeper.id, SHOP_RULE, code)]),
+  ).toMatchObject({ success: false, code: "not_code_field" });
+  await act("open", ["https://evil.test/verify"]);
+  expect(
+    await act("agentes:type_vault_code", ["e4", SHOP_RULE, await sealCode(keeper.id, SHOP_RULE, code)]),
+  ).toMatchObject({ success: false, code: "wrong_site" });
+  // A password's box doesn't open as a code.
+  await act("open", ["https://shop.example.com/verify"]);
+  t.page({ attrs: { "@e4": { type: "text", autocomplete: "one-time-code" } } });
+  const password = await sealLogin(keeper.id, SHOP_RULE, code);
+  expect(await errorCode(() => act("agentes:type_vault_code", ["e4", SHOP_RULE, password]))).toBe("bad_request");
+});
+
 test.if(posix)("a code goes one character per field, each field checked where it is typed", async () => {
   const code = "482913";
   const t = setup({

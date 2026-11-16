@@ -23,6 +23,7 @@ import {
   PASSWORD_LENGTH,
   type PubSub,
   sealSecret,
+  VAULT_CODE_PROTOCOL,
   VAULT_PROTOCOL,
   VAULT_TYPE_REFUSALS,
   vaultAad,
@@ -88,6 +89,7 @@ import {
   checkVaultLogin,
   deleteVaultItemByAgent,
   recordVaultUse,
+  releaseVaultCode,
   releaseVaultLogin,
   restoreMadePassword,
   saveMadePassword,
@@ -484,6 +486,10 @@ function pageOrigin(url: string | null): string | null {
 }
 
 /** A login id the run can't use: the same words whether it exists or not (ADR 0144). */
+/** `type_secret`'s `code`, as the agent reads it (ADR 0144, addendum of 2026-11-15). */
+const CODE_DESCRIPTION =
+  "With `login`: type the login's current one-time code (an authenticator's code) instead of its password, when the site asks for one. Only a login kept in a connected password manager that keeps its authenticator has one; you never see it. A code split in one box per character: give `targets`.";
+
 const NO_SUCH_LOGIN =
   "No Vault login like that is shared with you for this request. Look with vault_list, or ask the person for the password with request_secret.";
 
@@ -495,13 +501,16 @@ const vaultErrorText = (error: unknown) =>
  * The runner's refusals of `agentes:type_vault` (ADR 0144), as the agent reads them; any other failure (a stale
  * number, a covered field) as the browser said it, so the plan finds the field again as for any step.
  */
-export function vaultTypingRefusal(text: string, site: string): string {
-  const code = /\b(wrong_site|in_frame|not_password_field|get_form|key_expired)\b/.exec(text)?.[1];
+export function vaultTypingRefusal(text: string, site: string, what: "login" | "code" = "login"): string {
+  const code = /\b(wrong_site|in_frame|not_password_field|not_code_field|get_form|key_expired)\b/.exec(text)?.[1];
+  const it = what === "code" ? "the login's one-time code" : "the login";
   switch (code) {
     case "wrong_site":
-      return `The field isn't on ${site} (the page, or the frame that holds the field, is on another site), so the login wasn't typed. Open the sign-in page of ${site} and try again.`;
+      return `The field isn't on ${site} (the page, or the frame that holds the field, is on another site), so ${it} wasn't typed. Open the sign-in page of ${site} and try again.`;
     case "in_frame":
-      return `That field is inside an embedded frame, where a Vault login can't be typed, so it wasn't typed. Ask the person to sign in to ${site} themselves with ${ASK_PERSON_TOOL}.`;
+      return `That field is inside an embedded frame, where a Vault ${what === "code" ? "login's code" : "login"} can't be typed, so it wasn't typed. Ask the person to sign in to ${site} themselves with ${ASK_PERSON_TOOL}.`;
+    case "not_code_field":
+      return "That field isn't a text, number or one-time-code field, so the code wasn't typed. Give the code's field as `target` (its number from the page), or every box in order as `targets`.";
     case "not_password_field":
       return "That field isn't a password field, so the login wasn't typed. Give the password field as `target` (its number from the page); type the username yourself with a `fill` step.";
     case "get_form":
@@ -705,6 +714,10 @@ const STEP_SCHEMA: JsonSchema = {
       description:
         "`type_secret`: a Vault login's id (from vault_list) instead of `secret`: its password, typed only on its site. Type its username yourself with a `fill` step.",
       maxLength: 64,
+    },
+    code: {
+      type: "boolean",
+      description: CODE_DESCRIPTION,
     },
     targets: {
       type: "array",
@@ -1179,6 +1192,7 @@ export function createBrowserToolSource(
     id: string,
     field: string,
     url: string | null,
+    code?: { more: string[] },
   ): Promise<VaultTyping | string> {
     const vault = deps.vault;
     if (!vault || !hub) return "The Vault isn't available on this server.";
@@ -1187,14 +1201,21 @@ export function createBrowserToolSource(
     let sealed: { box: unknown; keyId: string; rule: string; site: string };
     try {
       // The profile's grants are read again here: one given meanwhile counts before the value is read.
-      const released = await releaseVaultLogin(vault, run, id, origin, await vaultProfile(ctx, profile));
+      const browserProfile = await vaultProfile(ctx, profile);
+      // A one-time code is asked of its password manager only now, at the step that types it (ADR 0144 addendum).
+      const released = code
+        ? await releaseVaultCode(vault, run, id, origin, browserProfile).then((r) => ({ rule: r.rule, value: r.code }))
+        : await releaseVaultLogin(vault, run, id, origin, browserProfile).then((r) => ({
+            rule: r.rule,
+            value: r.password,
+          }));
       const rule = formatVaultRule(released.rule);
       const agent = await machineScope(hub, ctx, status.machineId);
       const key = await requestVaultKey(hub, status.machineId, agent, "type Vault logins", ctx.signal);
       const box = await sealSecret(
         key.publicKey,
-        released.password,
-        vaultAad({ keyId: key.keyId, agentId: agent.id, use: { kind: "fill", rule } }),
+        released.value,
+        vaultAad({ keyId: key.keyId, agentId: agent.id, use: { kind: code ? "code" : "fill", rule } }),
       ).catch(() => {
         // Never the sealing's own words (they could name the value's size), nor the login's title (ADR 0144 §4).
         throw new Error(`The Vault login ${id} couldn't be prepared for your computer.`);
@@ -1203,16 +1224,19 @@ export function createBrowserToolSource(
     } catch (error) {
       return vaultErrorText(error);
     }
+    const boxJson = JSON.stringify({ keyId: sealed.keyId, box: sealed.box });
     return {
-      command: {
-        command: "agentes:type_vault",
-        args: [field, sealed.rule, JSON.stringify({ keyId: sealed.keyId, box: sealed.box })],
-        timeoutSeconds: COMMAND_SECONDS,
-      },
+      command: code
+        ? {
+            command: "agentes:type_vault_code",
+            args: [field, sealed.rule, boxJson, ...code.more],
+            timeoutSeconds: COMMAND_SECONDS,
+          }
+        : { command: "agentes:type_vault", args: [field, sealed.rule, boxJson], timeoutSeconds: COMMAND_SECONDS },
       // The site of its rule, which the engine read from the saved address: never its title (ADR 0144 §4).
       label: sealed.site,
       typed: () => recordVaultUse(vault, run, id, { action: "fill", ...(origin ? { origin } : {}) }),
-      refused: (text) => vaultTypingRefusal(text, sealed.site),
+      refused: (text) => vaultTypingRefusal(text, sealed.site, code ? "code" : "login"),
     };
   }
 
@@ -1252,6 +1276,15 @@ export function createBrowserToolSource(
         };
       }
       const login = s.login?.trim();
+      if (login && s.code && linked.status.protocol < VAULT_CODE_PROTOCOL) {
+        return {
+          content: vaultUpdateText(
+            { name: linked.status.machineName, kind: linked.status.kind },
+            "type a login's one-time code",
+          ),
+          isError: true,
+        };
+      }
       if (login) {
         if (logins.has(login)) continue;
         const refused = await loginRefusal(ctx, login, linked.status, linked.profile, options.made === true);
@@ -1284,7 +1317,7 @@ export function createBrowserToolSource(
     const surface = browserSurface({
       link: linked.link,
       secretSite: (name) => sites.get(name) ?? null,
-      vaultLogin: (login, field, url) => vaultLogin(ctx, linked.status, linked.profile, login, field, url),
+      vaultLogin: (login, field, url, code) => vaultLogin(ctx, linked.status, linked.profile, login, field, url, code),
       onLook: (o) => seen.remember(key, o),
     });
     const report = await runPlan(
@@ -1908,6 +1941,7 @@ export function createBrowserToolSource(
             description: "A Vault login's id (from vault_list), instead of `secret`.",
             maxLength: 64,
           },
+          code: { type: "boolean", description: CODE_DESCRIPTION },
         },
         additionalProperties: false,
       },
@@ -1926,7 +1960,7 @@ export function createBrowserToolSource(
           do: "type_secret",
           ...(target ? { target } : {}),
           ...(targets.length > 0 ? { targets } : {}),
-          ...(login ? { login } : { secret }),
+          ...(login ? { login, ...(input.code === true ? { code: true } : {}) } : { secret }),
         };
       },
       {

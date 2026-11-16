@@ -70,6 +70,11 @@ export interface ScreenStep {
   secret?: string;
   /** `type_secret`: a Vault login's id (ADR 0144), typed instead of a named `secret`. */
   login?: string;
+  /**
+   * `type_secret` with `login`: its current one-time code, from the password manager that keeps the login's
+   * authenticator seed, instead of its password (ADR 0144, addendum of 2026-11-15).
+   */
+  code?: boolean;
   /** `type_secret` of a code split in one box per character (ADR 0144): every box in order, instead of `target`. */
   targets?: string[];
   direction?: "up" | "down" | "left" | "right";
@@ -124,6 +129,7 @@ export function screenStepOf(v: unknown, verbs: readonly ScreenVerb[]): ScreenSt
     const boxes = s.targets.filter((t): t is string => typeof t === "string");
     if (boxes.length > 0) out.targets = boxes;
   }
+  if (s.code === true) out.code = true;
   if (typeof s.pixels === "number") out.pixels = s.pixels;
   if (typeof s.seconds === "number") out.seconds = s.seconds;
   return out;
@@ -160,8 +166,18 @@ export type ScreenAction =
   | { kind: "select"; at: ActTarget; value: string }
   /** A named secret; `more`: the other boxes of a code split in one box per character, in order (ADR 0144). */
   | { kind: "type_secret"; at: { ref: string }; secret: string; more?: { ref: string }[] }
-  /** A Vault login (ADR 0144): `url` is the page the field was found on, where the login is checked first. */
-  | { kind: "type_secret"; at: { ref: string }; login: string; url: string | null }
+  /**
+   * A Vault login (ADR 0144): `url` is the page the field was found on, where the login is checked first. `code`:
+   * its one-time code instead of its password, `more` the other boxes of a code split in one box per character.
+   */
+  | {
+      kind: "type_secret";
+      at: { ref: string };
+      login: string;
+      url: string | null;
+      code?: true;
+      more?: { ref: string }[];
+    }
   | { kind: "press"; key: string }
   | Scroll
   | (Scroll & { at: ActTarget })
@@ -615,7 +631,8 @@ export async function runPlan(deps: PlanDeps, steps: ScreenStep[]): Promise<Plan
       const secret = step.secret?.trim();
       if (!login && !secret) throw new Stop("say which secret (`secret`) or Vault login (`login`)");
       if (login && secret) throw new Stop("give either `secret` or `login`, not both");
-      if (login && boxes.length > 1) {
+      if (step.code && !login) throw new Stop("`code` types a Vault login's one-time code: give its `login`");
+      if (login && !step.code && boxes.length > 1) {
         throw new Stop("a Vault login goes into one password field: give its `target`, not `targets`");
       }
       if (boxes.length > MAX_CODE_BOXES) throw new Stop(`a code goes into at most ${MAX_CODE_BOXES} boxes`);
@@ -645,7 +662,16 @@ export async function runPlan(deps: PlanDeps, steps: ScreenStep[]): Promise<Plan
             });
             const [first, ...more] = refs as [{ ref: string }, ...{ ref: string }[]];
             // The page the field was found on: the Vault checks the login's site against it before the value goes out.
-            if (login) return { kind: "type_secret", at: first, login, url: screen?.url ?? null };
+            if (login) {
+              return {
+                kind: "type_secret",
+                at: first,
+                login,
+                url: screen?.url ?? null,
+                ...(step.code ? { code: true as const } : {}),
+                ...(more.length > 0 ? { more } : {}),
+              };
+            }
             return {
               kind: "type_secret",
               at: first,

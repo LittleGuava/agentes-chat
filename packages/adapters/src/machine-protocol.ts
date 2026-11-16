@@ -7,7 +7,7 @@ import type { MergeDone } from "./command-policy";
  */
 
 /** Bumped on breaking changes; the server refuses runners older than `MIN_RUNNER_PROTOCOL`. */
-export const MACHINE_PROTOCOL_VERSION = 83;
+export const MACHINE_PROTOCOL_VERSION = 86;
 export const MIN_RUNNER_PROTOCOL = 1;
 /** From this protocol on, requests carry `agent` and each agent works in its own folder. */
 export const AGENT_FOLDERS_PROTOCOL = 2;
@@ -1017,6 +1017,16 @@ export function parseLocalConfig(raw: unknown): LocalConfig {
   }
   return { files, servers, skills, skipped, ...(r.unsupported === true ? { unsupported: true as const } : {}) };
 }
+
+/**
+ * From this protocol on (ADR 0144, addendum of 2026-11-15): a login's one-time code from a connected password
+ * manager. `agentes:type_vault_code [ref, rule, boxJson, ...moreRefs]` types the code, sealed to one of the
+ * agent's `vault.key` keys for codes on that rule (`vaultAad` use `code`, so neither a password's box nor a
+ * code's opens as the other), only into text, number or one-time-code fields of frames the rule allows: the whole
+ * code into one field, or one character per field. Refusals answer a `code` (`VAULT_TYPE_REFUSALS`). The server
+ * never sends it to an older runner.
+ */
+export const VAULT_CODE_PROTOCOL = 86;
 
 export type PhonePlatform = "android" | "ios";
 export type PhoneKind = "device" | "emulator" | "simulator";

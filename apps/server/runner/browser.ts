@@ -92,6 +92,7 @@ import {
   newFillMark,
   parseSecretRefs,
   parseTypeVault,
+  parseTypeVaultCode,
   type RunnerVault,
   runnerVault,
   UNGUARDED,
@@ -415,6 +416,8 @@ const FILL_STEPS = 4;
 const FILL_AT = 2;
 /** How a typed login's password shows where redacted (`[secret:VAULT_PASSWORD]`). */
 const VAULT_PASSWORD = "VAULT_PASSWORD";
+/** How a typed login's one-time code shows where redacted (`[secret:VAULT_CODE]`). */
+const VAULT_CODE = "VAULT_CODE";
 
 /** For the runner's log: `worker 1.2 s, install 28.1 s, launch 1.4 s`. */
 export function browserSetupText(setup: BrowserSetup): string {
@@ -1902,6 +1905,7 @@ const DOING: Record<string, ControlBrowserDoing> = {
   press: "typing",
   "agentes:type_secret": "typing",
   "agentes:type_vault": "typing",
+  "agentes:type_vault_code": "typing",
   select: "choosing",
   check: "choosing",
   uncheck: "choosing",
@@ -2718,6 +2722,10 @@ export class BrowserManager {
       parseTypeVault(args);
       return { command, args, timeoutMs };
     }
+    if (command === "agentes:type_vault_code") {
+      parseTypeVaultCode(args);
+      return { command, args, timeoutMs };
+    }
     if (!COMMANDS.has(command)) throw new RunnerError("bad_request", `The browser doesn't take ${command}`);
     for (const a of args) {
       const flag = a.split("=")[0] as string;
@@ -2755,10 +2763,13 @@ export class BrowserManager {
       this.noteAct(session, command, [], answer, link);
       return answer;
     }
-    if (command === "agentes:type_vault") {
+    if (command === "agentes:type_vault" || command === "agentes:type_vault_code") {
       const opening = vault?.opening ?? this.vaultOpening(actor, session);
       try {
-        const answer = await this.typeVault(actor, session, args, timeoutMs, opening, stops);
+        const answer =
+          command === "agentes:type_vault"
+            ? await this.typeVault(actor, session, args, timeoutMs, opening, stops)
+            : await this.typeVaultCode(actor, session, args, timeoutMs, opening, stops);
         this.noteAct(session, command, [], answer, link);
         return answer;
       } finally {
@@ -4400,6 +4411,88 @@ export class BrowserManager {
     }
     this.typed(session, actor, VAULT_PASSWORD, value);
     return { success: true, data: { typed: "vault", into: ref, origin: top } };
+  }
+
+  /**
+   * `agentes:type_vault_code [ref, rule, boxJson, ...moreRefs]` (protocol 86, ADR 0144 addendum of 2026-11-15): a
+   * login's one-time code, as its password manager gave it now, sealed to one of `actor`'s one-use keys for codes on
+   * this rule. The page's own address must match the rule; each field is checked where it is typed (a text, number or
+   * one-time-code input, in a frame on the rule's sites) and gets the whole code, or one character each when the code
+   * is split in boxes. A code isn't guarded from addresses (it is short, and over in seconds), only redacted.
+   */
+  private async typeVaultCode(
+    actor: AgentScope,
+    session: Session,
+    args: string[],
+    timeoutMs: number,
+    opening: VaultOpening,
+    signal?: AbortSignal,
+  ): Promise<BrowserAnswer> {
+    const { refs, rule, ruleText, keyId, box } = parseTypeVaultCode(args);
+    const agentId = String(actor.id ?? "");
+    if (!agentId || isProfileKey(agentId)) {
+      throw new RunnerError("bad_request", "agentes:type_vault_code needs the agent whose turn it is");
+    }
+    const label = vaultRuleLabel(rule);
+    if (!(await this.browserOpen(session, signal))) {
+      return { success: false, data: null, error: "The browser isn't open: open a page first" };
+    }
+    const at = await this.pageUrl(session, signal);
+    const top = at ? originOf(at) : null;
+    if (!top || !vaultRuleMatches(rule, top)) {
+      return refused(
+        "wrong_site",
+        `This login's code is for ${label}, and the page is on ${at ? hostOf(at) : "no site"}. It wasn't typed.`,
+      );
+    }
+    let value: string;
+    try {
+      value = await opening.open(keyId, box, { kind: "code", rule: ruleText }, VAULT_CODE);
+    } catch (err) {
+      if (err instanceof VaultRefusal) return refused(err.code, err.message);
+      throw err;
+    }
+    const chars = Array.from(value);
+    if (refs.length > 1 && chars.length !== refs.length) {
+      return {
+        success: false,
+        data: null,
+        error: `The code doesn't have one character for each of the ${refs.length} fields given, so it wasn't typed. Give the one field it goes in, or every box of it in order`,
+      };
+    }
+    // Redacted from what the browser answers from before it is typed.
+    this.typed(session, actor, VAULT_CODE, value);
+    const fields =
+      refs.length > 1
+        ? refs.map((ref, i) => ({ ref, text: chars[i] as string }))
+        : [{ ref: refs[0] as string, text: value }];
+    const result = await this.fillChecked(session, fields, fieldWant(rule, top, "code"), timeoutMs, signal);
+    if (!result.ok) {
+      const where = result.ref ?? refs[0];
+      switch (result.verdict) {
+        case "wrong_site":
+          return refused(
+            "wrong_site",
+            `This login's code is for ${label}, and ${where} is in a frame on another site. It wasn't typed.`,
+          );
+        case "in_frame":
+          return refused(
+            "in_frame",
+            `${where} is inside an embedded frame, where a code isn't typed. It wasn't typed.`,
+          );
+        case "not_code_field":
+        case "not_password_field":
+        case "get_form":
+          return refused(
+            "not_code_field",
+            `${where} isn't a text, number or one-time-code field; a code is only typed into those`,
+          );
+        default:
+          // Its own words could hold a character of the code: only where it stopped.
+          return { success: false, data: null, error: `Couldn't type the code into ${where}` };
+      }
+    }
+    return { success: true, data: { typed: "vault_code", into: refs[0], fields: refs, origin: top } };
   }
 
   /**
