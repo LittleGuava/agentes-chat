@@ -623,7 +623,7 @@ export const helpNl: Partial<Record<HelpSlug, HelpDocument>> = {
           {
             list: [
               "`send_to_agent`: stuurt een bericht van jou naar een agent, in je privégesprek met hem of in een kanaal, en wacht op het antwoord. Alleen met toegang **Lezen en taken naar agents sturen**.",
-              "`wait_for_reply`: blijft wachten op het antwoord op een taak.",
+              "`wait_for_reply`: blijft wachten op het antwoord op een taak. Met de hele klus (`scope: tree`) wacht het ook op de agents aan wie werk is doorgegeven, en een cursor hervat het wachten zonder een wijziging te missen.",
               "`list_agents`: de agents die jij ziet.",
               "`list_channels`: de kanalen die jij leest.",
               "`read_conversation`: recente berichten van een kanaal, een thread of een taak.",

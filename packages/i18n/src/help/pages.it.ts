@@ -625,7 +625,7 @@ export const helpIt: Partial<Record<HelpSlug, HelpDocument>> = {
           {
             list: [
               "`send_to_agent`: manda un tuo messaggio a un agente, nella tua conversazione privata con lui o in un canale, e aspetta la risposta. Solo con l’accesso **Leggere e mandare attività agli agenti**.",
-              "`wait_for_reply`: continua ad aspettare la risposta a un’attività.",
+              "`wait_for_reply`: continua ad aspettare la risposta a un’attività. Con tutto il lavoro (`scope: tree`), aspetta anche gli agenti a cui ha passato del lavoro, e un cursore riprende l’attesa senza perdere nessun cambiamento.",
               "`list_agents`: gli agenti che vedi.",
               "`list_channels`: i canali che leggi.",
               "`read_conversation`: i messaggi recenti di un canale, di un thread o di un’attività.",

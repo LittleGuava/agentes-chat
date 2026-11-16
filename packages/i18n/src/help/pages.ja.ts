@@ -623,7 +623,7 @@ export const helpJa: Partial<Record<HelpSlug, HelpDocument>> = {
           {
             list: [
               "`send_to_agent`: あなたからエージェントへ、エージェントとの非公開の会話かチャンネルでメッセージを送り、返信を待ちます。**エージェントへのタスクの閲覧と送信** のアクセスがある場合のみ使えます。",
-              "`wait_for_reply`: タスクの返信を待ち続けます。",
+              "`wait_for_reply`: タスクの返信を待ち続けます。仕事全体（`scope: tree`）では、仕事を渡した先のエージェントも待ち、カーソルで変更を逃さずに待機を再開できます。",
               "`list_agents`: あなたに見えるエージェント。",
               "`list_channels`: あなたが読めるチャンネル。",
               "`read_conversation`: チャンネル、スレッド、タスクの最近のメッセージ。",

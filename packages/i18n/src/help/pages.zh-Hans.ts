@@ -607,7 +607,7 @@ export const helpZhHans: Partial<Record<HelpSlug, HelpDocument>> = {
           {
             list: [
               "`send_to_agent`：以你的身份给智能体发送消息，可以在你和它的私信中，也可以在频道中，并等待回复。需要 **查看任务并发送给智能体** 权限。",
-              "`wait_for_reply`：继续等待某个任务的回复。",
+              "`wait_for_reply`：继续等待某个任务的回复。整项工作（`scope: tree`）时，也会等待接手部分工作的智能体，游标可以继续等待而不漏掉任何变化。",
               "`list_agents`：你能看到的智能体。",
               "`list_channels`：你能阅读的频道。",
               "`read_conversation`：频道、话题或任务中的最近消息。",
