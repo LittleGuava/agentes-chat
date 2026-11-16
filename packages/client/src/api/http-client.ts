@@ -1290,6 +1290,10 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       markRead: (orgId, channelId) => request<void>(`${org(orgId)}/channels/${enc(channelId)}/read`, { json: {} }),
       reads: async (orgId, channelId) =>
         (await request<{ reads: DmRead[] }>(`${org(orgId)}/channels/${enc(channelId)}/reads`)).reads,
+      share: (orgId, channelId, input) =>
+        request<{ channelId: string; message: Message }>(`${org(orgId)}/dms/${enc(channelId)}/share`, {
+          json: { ...input, confirm: true },
+        }),
     },
     sandbox: {
       settings: (orgId) => request<SandboxSettings>(`${org(orgId)}/sandbox-settings`),

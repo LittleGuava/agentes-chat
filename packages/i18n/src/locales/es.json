@@ -3763,6 +3763,40 @@
     "opening": "Abriendo la conversación…",
     "title": "Mensaje directo con {{name}}"
   },
+  "dmShare": {
+    "action": "Compartir conversación",
+    "title": "Compartir tu conversación con {{name}}",
+    "description": "Una copia de solo lectura de la conversación tal como está ahora. La conversación sigue siendo tuya.",
+    "where": "Dónde",
+    "wherePlaceholder": "Elige un canal o una persona",
+    "search": "Buscar canales y personas",
+    "noResults": "No se encontró nada",
+    "channels": "Canales",
+    "people": "Personas",
+    "note": "Mensaje",
+    "noteDefault": "Mi conversación con {{name}}",
+    "readersChannel": "Todos en #{{name}} pueden leerla.",
+    "readersPrivate": "Los miembros de #{{name}} y los administradores pueden leerla.",
+    "readersPerson": "Solo {{name}} y tú pueden leerla.",
+    "submit": "Compartir",
+    "sharedIn": "Compartida en #{{name}}",
+    "sharedWith": "Compartida con {{name}}",
+    "card": "Conversación con {{name}}",
+    "open": "Leer",
+    "lines_one": "{{count}} mensaje",
+    "lines_many": "{{count}} mensajes",
+    "lines_other": "{{count}} mensajes",
+    "omitted_one": "{{count}} mensaje anterior no está en la copia.",
+    "omitted_many": "{{count}} mensajes anteriores no están en la copia.",
+    "omitted_other": "{{count}} mensajes anteriores no están en la copia.",
+    "copyNote": "Una copia, tal como estaba al compartirla.",
+    "inThread": "en un hilo",
+    "errors": {
+      "notAgentDm": "Solo se puede compartir una conversación con un agente.",
+      "target": "Compártela en un canal en el que estés o con una persona.",
+      "empty": "Esta conversación aún no tiene nada que compartir."
+    }
+  },
   "memoryCard": {
     "remembered": "{{name}} recordó",
     "forgot": "{{name}} olvidó",
@@ -16886,6 +16920,7 @@
     "removed": "Eliminado",
     "change": {
       "mergedWithoutAsking": "Hizo merge en {{repo}} sin preguntar",
+      "dmShared": "Compartió una copia de su conversación con un agente",
       "pattern": "{{verb}} {{area}}",
       "approval": {
         "approved": "Aprobó una solicitud",

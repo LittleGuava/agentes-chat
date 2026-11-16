@@ -3641,6 +3641,38 @@
     "opening": "Unterhaltung wird geöffnet…",
     "title": "Direktnachricht mit {{name}}"
   },
+  "dmShare": {
+    "action": "Unterhaltung teilen",
+    "title": "Deine Unterhaltung mit {{name}} teilen",
+    "description": "Eine schreibgeschützte Kopie der Unterhaltung, wie sie jetzt ist. Die Unterhaltung selbst bleibt deine.",
+    "where": "Wo",
+    "wherePlaceholder": "Wähle einen Kanal oder eine Person",
+    "search": "Kanäle und Personen suchen",
+    "noResults": "Nichts gefunden",
+    "channels": "Kanäle",
+    "people": "Personen",
+    "note": "Nachricht",
+    "noteDefault": "Meine Unterhaltung mit {{name}}",
+    "readersChannel": "Alle in #{{name}} können sie lesen.",
+    "readersPrivate": "Die Mitglieder von #{{name}} und die Administratoren können sie lesen.",
+    "readersPerson": "Nur {{name}} und du können sie lesen.",
+    "submit": "Teilen",
+    "sharedIn": "In #{{name}} geteilt",
+    "sharedWith": "Mit {{name}} geteilt",
+    "card": "Unterhaltung mit {{name}}",
+    "open": "Lesen",
+    "lines_one": "{{count}} Nachricht",
+    "lines_other": "{{count}} Nachrichten",
+    "omitted_one": "{{count}} frühere Nachricht ist nicht in der Kopie.",
+    "omitted_other": "{{count}} frühere Nachrichten sind nicht in der Kopie.",
+    "copyNote": "Eine Kopie, so wie sie beim Teilen war.",
+    "inThread": "in einem Thread",
+    "errors": {
+      "notAgentDm": "Nur eine Unterhaltung mit einem Agenten kann geteilt werden.",
+      "target": "Teile sie in einem Kanal, in dem du bist, oder mit einer Person.",
+      "empty": "Diese Unterhaltung hat noch nichts zum Teilen."
+    }
+  },
   "memoryCard": {
     "remembered": "{{name}} hat sich etwas gemerkt",
     "forgot": "{{name}} hat etwas vergessen",
@@ -16433,6 +16465,7 @@
     "removed": "Entfernt",
     "change": {
       "mergedWithoutAsking": "In {{repo}} ohne Nachfrage gemergt",
+      "dmShared": "Hat eine Kopie der eigenen Unterhaltung mit einem Agenten geteilt",
       "pattern": "{{verb}}: {{area}}",
       "approval": {
         "approved": "Hat eine Anfrage freigegeben",

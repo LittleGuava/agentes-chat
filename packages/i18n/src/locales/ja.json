@@ -3506,6 +3506,36 @@
     "opening": "会話を開いています…",
     "title": "{{name}}とのダイレクトメッセージ"
   },
+  "dmShare": {
+    "action": "会話を共有",
+    "title": "{{name}}との会話を共有",
+    "description": "現在の会話の読み取り専用コピーです。会話そのものはあなただけのものです。",
+    "where": "共有先",
+    "wherePlaceholder": "チャンネルまたはメンバーを選択",
+    "search": "チャンネルとメンバーを検索",
+    "noResults": "見つかりません",
+    "channels": "チャンネル",
+    "people": "メンバー",
+    "note": "メッセージ",
+    "noteDefault": "{{name}}との会話",
+    "readersChannel": "#{{name}}の全員が読めます。",
+    "readersPrivate": "#{{name}}のメンバーと管理者が読めます。",
+    "readersPerson": "{{name}}とあなただけが読めます。",
+    "submit": "共有",
+    "sharedIn": "#{{name}}に共有しました",
+    "sharedWith": "{{name}}と共有しました",
+    "card": "{{name}}との会話",
+    "open": "読む",
+    "lines_other": "{{count}}件のメッセージ",
+    "omitted_other": "それ以前の{{count}}件のメッセージはコピーに含まれていません。",
+    "copyNote": "共有した時点のコピーです。",
+    "inThread": "スレッド内",
+    "errors": {
+      "notAgentDm": "共有できるのはエージェントとの会話だけです。",
+      "target": "参加しているチャンネルか、メンバーと共有してください。",
+      "empty": "この会話にはまだ共有できる内容がありません。"
+    }
+  },
   "memoryCard": {
     "remembered": "{{name}}が覚えました",
     "forgot": "{{name}}が忘れました",
@@ -15870,6 +15900,7 @@
     "removed": "削除済み",
     "change": {
       "mergedWithoutAsking": "{{repo}}で確認なしでマージしました",
+      "dmShared": "エージェントとの会話のコピーを共有しました",
       "pattern": "{{verb}}: {{area}}",
       "approval": {
         "approved": "リクエストを承認",

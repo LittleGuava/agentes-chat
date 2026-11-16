@@ -173,6 +173,7 @@ import { isReminderMessage, reminderBody, routineReplyOf } from "@agenteschat/cl
 import { picksForMe, replyAloneKey } from "@agenteschat/client/lib/routing";
 import { ConversationSeat } from "@agenteschat/client/lib/seat-context";
 import { seenMessageId } from "@agenteschat/client/lib/seen";
+import { sharedDmOf } from "@agenteschat/client/lib/shared-dm";
 import { skillMenuLine, slashSkills } from "@agenteschat/client/lib/skills";
 import { hiddenCount, tasksOf, todayStart } from "@agenteschat/client/lib/task-manager";
 import { contextMarks, hiddenByThreads, rangeCandidates, threadStartOf } from "@agenteschat/client/lib/threads";
@@ -381,6 +382,7 @@ import {
   WaitMark,
 } from "@/components/RequestCard";
 import { ReturnLine } from "@/components/ReturnLine";
+import { SharedDmCard } from "@/components/SharedDm";
 import { SidePanel } from "@/components/SidePanel";
 import { ActivitySky, ChannelWelcome, colorOf } from "@/components/Sky";
 import { isStoppable, StopButton, useContinueRun, useStopRun, useWasContinued } from "@/components/StopRun";
@@ -4637,6 +4639,7 @@ export const TimelineMessage = memo(function TimelineMessage({
   const joinedTip = joined ? t("chat.joined.tip", agentGrammar(name)) : null;
   // The root of an issue's work thread (the person asked the agent to implement it): the issue card, no text.
   const issueWork = issueWorkOf(meta);
+  const sharedDm = sharedDmOf(meta);
   // "O Claude Code não está disponível agora": its computer is offline; one card that waits, then says it's back.
   const brainNotice = m.author.type === "agent" ? brainUnavailableOf(meta) : null;
   const waitNotice = brainNotice && isOfflineNotice(brainNotice) ? brainNotice : null;
@@ -5018,6 +5021,7 @@ export const TimelineMessage = memo(function TimelineMessage({
             {issueWork && (
               <IssueWorkCard work={issueWork} authorId={m.author.type === "person" ? (m.author.id ?? null) : null} />
             )}
+            {sharedDm && <SharedDmCard shared={sharedDm} sharedAt={m.createdAt} />}
             {artifacts.length > 0 && (
               <ImageSet refs={artifacts}>
                 <div className="artifact-cards">

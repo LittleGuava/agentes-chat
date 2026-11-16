@@ -3509,6 +3509,36 @@
     "opening": "正在打开对话…",
     "title": "与 {{name}} 的私信"
   },
+  "dmShare": {
+    "action": "分享对话",
+    "title": "分享你与 {{name}} 的对话",
+    "description": "对话当前状态的只读副本。对话本身仍只属于你。",
+    "where": "分享到",
+    "wherePlaceholder": "选择频道或成员",
+    "search": "搜索频道和成员",
+    "noResults": "没有找到",
+    "channels": "频道",
+    "people": "成员",
+    "note": "消息",
+    "noteDefault": "我与 {{name}} 的对话",
+    "readersChannel": "#{{name}} 中的所有人都能阅读。",
+    "readersPrivate": "#{{name}} 的成员和管理员能阅读。",
+    "readersPerson": "只有 {{name}} 和你能阅读。",
+    "submit": "分享",
+    "sharedIn": "已分享到 #{{name}}",
+    "sharedWith": "已与 {{name}} 分享",
+    "card": "与 {{name}} 的对话",
+    "open": "阅读",
+    "lines_other": "{{count}} 条消息",
+    "omitted_other": "更早的 {{count}} 条消息不在副本中。",
+    "copyNote": "分享时的副本。",
+    "inThread": "在话题中",
+    "errors": {
+      "notAgentDm": "只能分享与智能体的对话。",
+      "target": "请在你加入的频道中分享，或分享给某个人。",
+      "empty": "这段对话还没有可分享的内容。"
+    }
+  },
   "memoryCard": {
     "remembered": "{{name}} 记住了",
     "forgot": "{{name}} 忘记了",
@@ -15934,6 +15964,7 @@
     "removed": "已移除",
     "change": {
       "mergedWithoutAsking": "未经询问在 {{repo}} 中合并",
+      "dmShared": "分享了自己与智能体对话的副本",
       "pattern": "{{verb}}{{area}}",
       "approval": {
         "approved": "批准了一个请求",

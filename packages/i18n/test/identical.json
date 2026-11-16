@@ -670,6 +670,8 @@
       "channelMembers.agents",
       "channelRefs.agents",
       "chat.consultPanel.messages",
+      "dmShare.lines",
+      "dmShare.note",
       "chat.work.seconds",
       "composer.pc",
       "composer.routine",

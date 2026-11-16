@@ -22,6 +22,7 @@ import { useOrg } from "@/components/org-context";
 import { ProfileTrigger } from "@/components/ProfileCard";
 import { LetMeTalkButton } from "@/components/ReachLines";
 import { RightHandIntro } from "@/components/RightHandIntro";
+import { ShareDmButton } from "@/components/SharedDm";
 import { HeaderSearch } from "@/components/search/HeaderSearch";
 import { AgentTasksPill } from "@/components/tasks/AgentTasksPanel";
 import { useDirectory } from "@/hooks/useDirectory";
@@ -128,6 +129,8 @@ export function DmPage({ target, focusMessageId }: { target: DmTarget; focusMess
               card gets the sidebar's head alone, so the way in stays for one who may still watch the computer. */}
           {agent && !rightHand && <ModelPickerButton agent={agent} className="channel__brain" />}
           {agent && !rightHand && <ComputerButton agent={agent} queueOnly={side?.docked && seesDetails(agent)} />}
+          {/* A read-only copy of this talk, for a channel or a colleague (ADR 0151, addendum 2026-11-15). */}
+          {agent && <ShareDmButton channelId={dm.data.channelId} agentName={agent.name} />}
           {/* The same field as a channel's, held to this DM. */}
           <HeaderSearch channelId={dm.data.channelId} onOpen={onSearch} searching={searching} dm />
           {side && (

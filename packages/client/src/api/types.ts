@@ -3466,6 +3466,29 @@ export interface MemoryUpdate {
 /** Who a direct message is with. */
 export type DmTarget = { agentId: string } | { userId: string };
 
+/** Where a shared DM's copy goes (`POST …/dms/{channelId}/share`): a channel I'm a member of, or a person. */
+export type ShareDmTarget = { channelId: string } | { userId: string };
+
+/** One line of a shared DM's copy, as it was said. */
+export interface SharedDmLine {
+  author: { type: "person" | "agent"; id: string; name: string };
+  at: string;
+  body: string;
+  /** A reply in one of the DM's threads. */
+  inThread?: true;
+  /** Longer than the copy keeps. */
+  cut?: true;
+}
+
+/** `meta.sharedDm`: a read-only copy of its author's DM with an agent (ADR 0151, addendum 2026-11-15). */
+export interface SharedDm {
+  agent: { id: string; name: string; handle: string };
+  count: number;
+  /** Earlier lines left out past the copy's limits. */
+  omitted: number;
+  lines: SharedDmLine[];
+}
+
 /** A direct conversation (`GET …/dms`). */
 /** Where another person of a DM stopped reading ("Visto"). */
 export interface DmRead {

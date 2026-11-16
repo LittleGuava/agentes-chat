@@ -3517,6 +3517,36 @@
     "opening": "Membuka percakapan…",
     "title": "Pesan langsung dengan {{name}}"
   },
+  "dmShare": {
+    "action": "Bagikan percakapan",
+    "title": "Bagikan percakapanmu dengan {{name}}",
+    "description": "Salinan hanya-baca dari percakapan seperti sekarang. Percakapannya sendiri tetap milikmu.",
+    "where": "Di mana",
+    "wherePlaceholder": "Pilih kanal atau orang",
+    "search": "Cari kanal dan orang",
+    "noResults": "Tidak ada yang ditemukan",
+    "channels": "Kanal",
+    "people": "Orang",
+    "note": "Pesan",
+    "noteDefault": "Percakapanku dengan {{name}}",
+    "readersChannel": "Semua orang di #{{name}} bisa membacanya.",
+    "readersPrivate": "Anggota #{{name}} dan administrator bisa membacanya.",
+    "readersPerson": "Hanya {{name}} dan kamu yang bisa membacanya.",
+    "submit": "Bagikan",
+    "sharedIn": "Dibagikan di #{{name}}",
+    "sharedWith": "Dibagikan dengan {{name}}",
+    "card": "Percakapan dengan {{name}}",
+    "open": "Baca",
+    "lines_other": "{{count}} pesan",
+    "omitted_other": "{{count}} pesan sebelumnya tidak ada di salinan.",
+    "copyNote": "Salinan, seperti saat dibagikan.",
+    "inThread": "di dalam utas",
+    "errors": {
+      "notAgentDm": "Hanya percakapan dengan agen yang bisa dibagikan.",
+      "target": "Bagikan di kanal tempat kamu bergabung atau dengan seseorang.",
+      "empty": "Percakapan ini belum punya apa pun untuk dibagikan."
+    }
+  },
   "memoryCard": {
     "remembered": "{{name}} mengingat",
     "forgot": "{{name}} melupakan",
@@ -15925,6 +15955,7 @@
     "removed": "Dihapus",
     "change": {
       "mergedWithoutAsking": "Merge di {{repo}} tanpa bertanya",
+      "dmShared": "Membagikan salinan percakapannya dengan agen",
       "pattern": "{{verb}} {{area}}",
       "approval": {
         "approved": "Menyetujui permintaan",

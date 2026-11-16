@@ -3796,6 +3796,23 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         });
         return { channelId, dm: dmRow(state.dms.at(-1) as (typeof state.dms)[number]) };
       },
+      share: async (orgId, channelId, input) => {
+        log("dms.share", orgId, channelId, input);
+        const to = "channelId" in input.to ? input.to.channelId : id("dm");
+        const message: Message = {
+          id: id("msg"),
+          channelId: to,
+          threadId: null,
+          author: { type: "person", id: state.me?.user.id ?? null },
+          body: input.note,
+          mentionedAgentIds: [],
+          agentRunId: null,
+          clientId: null,
+          createdAt: new Date().toISOString(),
+        };
+        state.messages.push(message);
+        return { channelId: to, message };
+      },
       markRead: async (orgId, channelId) => {
         log("dms.markRead", orgId, channelId);
         const dm = state.dms.find((d) => d.channelId === channelId);

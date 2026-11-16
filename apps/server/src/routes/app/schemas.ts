@@ -807,7 +807,7 @@ const MessageBase = z.object({
     .openapi({ description: "People's messages: agents that saw it, picked it up, and how their runs ended." }),
   meta: z.record(z.string(), z.unknown()).openapi({
     description:
-      'Attachments, e.g. `{ approvalId }` on an approval card (see /approvals). `media` (ADR 0091): a GIF `{ kind: "gif", provider, id, title, width, height }` (load it with `GET …/gifs/{id}/media`) or a sticker `{ kind: "sticker", agentId, mood }`, and the body may be empty then. `mediaAfter`: on the sticker or GIF an agent added after its own reply, that reply\'s id.',
+      'Attachments, e.g. `{ approvalId }` on an approval card (see /approvals). `media` (ADR 0091): a GIF `{ kind: "gif", provider, id, title, width, height }` (load it with `GET …/gifs/{id}/media`) or a sticker `{ kind: "sticker", agentId, mood }`, and the body may be empty then. `mediaAfter`: on the sticker or GIF an agent added after its own reply, that reply\'s id. `sharedDm`: a read-only copy of the author\'s DM with an agent (`POST …/dms/{channelId}/share`): `{ agent: { id, name, handle }, count, omitted, lines: [{ author: { type, id, name }, at, body, inThread?, cut? }] }`.',
   }),
   usage: MessageUsage.optional(),
   reactions: z

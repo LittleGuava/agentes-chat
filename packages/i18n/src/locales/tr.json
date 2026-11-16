@@ -3629,6 +3629,38 @@
     "opening": "Konuşma açılıyor…",
     "title": "{{name}} ile doğrudan mesaj"
   },
+  "dmShare": {
+    "action": "Sohbeti paylaş",
+    "title": "{{name}} ile sohbetini paylaş",
+    "description": "Sohbetin şu anki hâliyle salt okunur bir kopyası. Sohbetin kendisi yalnızca senin kalır.",
+    "where": "Nereye",
+    "wherePlaceholder": "Bir kanal ya da kişi seç",
+    "search": "Kanal ve kişi ara",
+    "noResults": "Hiçbir şey bulunamadı",
+    "channels": "Kanallar",
+    "people": "Kişiler",
+    "note": "Mesaj",
+    "noteDefault": "{{name}} ile sohbetim",
+    "readersChannel": "#{{name}} kanalındaki herkes okuyabilir.",
+    "readersPrivate": "#{{name}} üyeleri ve yöneticiler okuyabilir.",
+    "readersPerson": "Yalnızca {{name}} ve sen okuyabilirsiniz.",
+    "submit": "Paylaş",
+    "sharedIn": "#{{name}} kanalında paylaşıldı",
+    "sharedWith": "{{name}} ile paylaşıldı",
+    "card": "{{name}} ile sohbet",
+    "open": "Oku",
+    "lines_one": "{{count}} mesaj",
+    "lines_other": "{{count}} mesaj",
+    "omitted_one": "Önceki {{count}} mesaj kopyada yok.",
+    "omitted_other": "Önceki {{count}} mesaj kopyada yok.",
+    "copyNote": "Paylaşıldığı andaki hâliyle bir kopya.",
+    "inThread": "bir başlıkta",
+    "errors": {
+      "notAgentDm": "Yalnızca bir ajanla yapılan sohbet paylaşılabilir.",
+      "target": "Bulunduğun bir kanalda ya da bir kişiyle paylaş.",
+      "empty": "Bu sohbette henüz paylaşılacak bir şey yok."
+    }
+  },
   "memoryCard": {
     "remembered": "{{name}} hatırladı",
     "forgot": "{{name}} unuttu",
@@ -16369,6 +16401,7 @@
     "removed": "Kaldırıldı",
     "change": {
       "mergedWithoutAsking": "{{repo}} içinde sormadan birleştirdi",
+      "dmShared": "Bir ajanla yaptığı sohbetin kopyasını paylaştı",
       "pattern": "{{verb}}: {{area}}",
       "approval": {
         "approved": "Bir isteği onayladı",

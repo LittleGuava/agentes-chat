@@ -119,6 +119,7 @@ export * from "./device-waits";
 export * from "./device-wifi";
 export * from "./devices";
 export * from "./dispatch";
+export * from "./dm-share";
 export * from "./dms";
 export * from "./docx";
 export * from "./early-access";

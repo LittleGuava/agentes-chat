@@ -8927,6 +8927,90 @@
   "dm.title": {
     "value": "Direct message with {{name}}"
   },
+  "dmShare.action": {
+    "value": "Share conversation"
+  },
+  "dmShare.title": {
+    "value": "Share your conversation with {{name}}"
+  },
+  "dmShare.description": {
+    "value": "A read-only copy of the conversation as it is now. The conversation itself stays yours."
+  },
+  "dmShare.where": {
+    "value": "Where"
+  },
+  "dmShare.wherePlaceholder": {
+    "value": "Pick a channel or a person"
+  },
+  "dmShare.search": {
+    "value": "Search channels and people"
+  },
+  "dmShare.noResults": {
+    "value": "Nothing found"
+  },
+  "dmShare.channels": {
+    "value": "Channels"
+  },
+  "dmShare.people": {
+    "value": "People"
+  },
+  "dmShare.note": {
+    "value": "Message"
+  },
+  "dmShare.noteDefault": {
+    "value": "My conversation with {{name}}"
+  },
+  "dmShare.readersChannel": {
+    "value": "Everyone in #{{name}} can read it."
+  },
+  "dmShare.readersPrivate": {
+    "value": "The members of #{{name}} and the administrators can read it."
+  },
+  "dmShare.readersPerson": {
+    "value": "Only {{name}} and you can read it."
+  },
+  "dmShare.submit": {
+    "value": "Share"
+  },
+  "dmShare.sharedIn": {
+    "value": "Shared in #{{name}}"
+  },
+  "dmShare.sharedWith": {
+    "value": "Shared with {{name}}"
+  },
+  "dmShare.card": {
+    "value": "Conversation with {{name}}"
+  },
+  "dmShare.open": {
+    "value": "Read"
+  },
+  "dmShare.lines": {
+    "value": {
+      "one": "{{count}} message",
+      "other": "{{count}} messages"
+    }
+  },
+  "dmShare.omitted": {
+    "value": {
+      "one": "{{count}} earlier message isn't in the copy.",
+      "other": "{{count}} earlier messages aren't in the copy."
+    }
+  },
+  "dmShare.copyNote": {
+    "value": "A copy, as it was when shared."
+  },
+  "dmShare.inThread": {
+    "value": "in a thread"
+  },
+  "dmShare.errors.notAgentDm": {
+    "value": "Only a conversation with an agent can be shared."
+  },
+  "dmShare.errors.target": {
+    "value": "Share it in a channel you're in or with a person."
+  },
+  "dmShare.errors.empty": {
+    "value": "This conversation has nothing to share yet."
+  },
   "memoryCard.remembered": {
     "value": "{{name}} remembered"
   },
@@ -40422,6 +40506,9 @@
   },
   "audit.change.mergedWithoutAsking": {
     "value": "Merged in {{repo}} without asking"
+  },
+  "audit.change.dmShared": {
+    "value": "Shared a copy of their conversation with an agent"
   },
   "audit.change.pattern": {
     "value": "{{verb}} {{area}}"

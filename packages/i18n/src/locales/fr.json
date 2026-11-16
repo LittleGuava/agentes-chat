@@ -3768,6 +3768,40 @@
     "opening": "Ouverture de la conversation…",
     "title": "Message direct avec {{name}}"
   },
+  "dmShare": {
+    "action": "Partager la conversation",
+    "title": "Partager votre conversation avec {{name}}",
+    "description": "Une copie en lecture seule de la conversation telle qu'elle est maintenant. La conversation elle-même reste la vôtre.",
+    "where": "Où",
+    "wherePlaceholder": "Choisissez un canal ou une personne",
+    "search": "Rechercher des canaux et des personnes",
+    "noResults": "Aucun résultat",
+    "channels": "Canaux",
+    "people": "Personnes",
+    "note": "Message",
+    "noteDefault": "Ma conversation avec {{name}}",
+    "readersChannel": "Tout le monde dans #{{name}} peut la lire.",
+    "readersPrivate": "Les membres de #{{name}} et les administrateurs peuvent la lire.",
+    "readersPerson": "Seuls {{name}} et vous pouvez la lire.",
+    "submit": "Partager",
+    "sharedIn": "Partagée dans #{{name}}",
+    "sharedWith": "Partagée avec {{name}}",
+    "card": "Conversation avec {{name}}",
+    "open": "Lire",
+    "lines_one": "{{count}} message",
+    "lines_many": "{{count}} messages",
+    "lines_other": "{{count}} messages",
+    "omitted_one": "{{count}} message plus ancien n'est pas dans la copie.",
+    "omitted_many": "{{count}} messages plus anciens ne sont pas dans la copie.",
+    "omitted_other": "{{count}} messages plus anciens ne sont pas dans la copie.",
+    "copyNote": "Une copie, telle qu'elle était au moment du partage.",
+    "inThread": "dans un fil",
+    "errors": {
+      "notAgentDm": "Seule une conversation avec un agent peut être partagée.",
+      "target": "Partagez-la dans un canal dont vous êtes membre ou avec une personne.",
+      "empty": "Cette conversation n'a encore rien à partager."
+    }
+  },
   "memoryCard": {
     "remembered": "{{name}} a retenu",
     "forgot": "{{name}} a oublié",
@@ -16957,6 +16991,7 @@
     "removed": "Retiré",
     "change": {
       "mergedWithoutAsking": "A mergé dans {{repo}} sans demander",
+      "dmShared": "A partagé une copie de sa conversation avec un agent",
       "pattern": "{{verb}} {{area}}",
       "approval": {
         "approved": "A approuvé une demande",

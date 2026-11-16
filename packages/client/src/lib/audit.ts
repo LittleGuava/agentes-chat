@@ -74,6 +74,8 @@ export function auditPhrase(t: TFunction, row: AuditRow, locale?: string): strin
         : guessed;
     return stepLabel(t, { ...activity, tool: row.target.id ?? "" }, locale);
   }
+  // A DM with an agent shared as a copy (ADR 0151, addendum 2026-11-15): the row names no words of it.
+  if (row.action === "dm.shared") return t("audit.change.dmShared");
   if (row.action === "agent.merged_without_asking") {
     return t("audit.change.mergedWithoutAsking", { repo: row.target.id ?? "" });
   }

@@ -3892,6 +3892,42 @@
     "opening": "Otwieramy rozmowę…",
     "title": "Wiadomość bezpośrednia z: {{name}}"
   },
+  "dmShare": {
+    "action": "Udostępnij rozmowę",
+    "title": "Udostępnij swoją rozmowę z {{name}}",
+    "description": "Kopia rozmowy tylko do odczytu, taka jak teraz. Sama rozmowa pozostaje twoja.",
+    "where": "Gdzie",
+    "wherePlaceholder": "Wybierz kanał lub osobę",
+    "search": "Szukaj kanałów i osób",
+    "noResults": "Nic nie znaleziono",
+    "channels": "Kanały",
+    "people": "Osoby",
+    "note": "Wiadomość",
+    "noteDefault": "Moja rozmowa z {{name}}",
+    "readersChannel": "Każdy w #{{name}} może ją przeczytać.",
+    "readersPrivate": "Członkowie #{{name}} i administratorzy mogą ją przeczytać.",
+    "readersPerson": "Tylko {{name}} i ty możecie ją przeczytać.",
+    "submit": "Udostępnij",
+    "sharedIn": "Udostępniono w #{{name}}",
+    "sharedWith": "Udostępniono osobie {{name}}",
+    "card": "Rozmowa z {{name}}",
+    "open": "Czytaj",
+    "lines_one": "{{count}} wiadomość",
+    "lines_few": "{{count}} wiadomości",
+    "lines_many": "{{count}} wiadomości",
+    "lines_other": "{{count}} wiadomości",
+    "omitted_one": "{{count}} wcześniejszej wiadomości nie ma w kopii.",
+    "omitted_few": "{{count}} wcześniejszych wiadomości nie ma w kopii.",
+    "omitted_many": "{{count}} wcześniejszych wiadomości nie ma w kopii.",
+    "omitted_other": "{{count}} wcześniejszych wiadomości nie ma w kopii.",
+    "copyNote": "Kopia, taka jak w chwili udostępnienia.",
+    "inThread": "w wątku",
+    "errors": {
+      "notAgentDm": "Można udostępnić tylko rozmowę z agentem.",
+      "target": "Udostępnij ją na kanale, w którym jesteś, lub jednej osobie.",
+      "empty": "Ta rozmowa nie ma jeszcze nic do udostępnienia."
+    }
+  },
   "memoryCard": {
     "remembered": "{{name}} zapamiętuje",
     "forgot": "{{name}} zapomina",
@@ -17494,6 +17530,7 @@
     "removed": "Usunięte",
     "change": {
       "mergedWithoutAsking": "Scalono w {{repo}} bez pytania",
+      "dmShared": "Udostępnił(a) kopię swojej rozmowy z agentem",
       "pattern": "{{verb}} {{area}}",
       "approval": {
         "approved": "Zatwierdzono prośbę",
