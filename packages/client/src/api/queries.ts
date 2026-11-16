@@ -151,6 +151,7 @@ import type {
   NotificationCount,
   NotificationEvent,
   NotificationFilter,
+  OAuthAppInput,
   OrgRoles,
   PendingReturn,
   Person,
@@ -3764,6 +3765,7 @@ export function useCustomServerAction(orgId: string) {
         label?: string;
         returnTo: string;
         connectionId?: string;
+        oauthClient?: OAuthAppInput;
       }) => api.customConnectors.connect(orgId, input),
       // A new server is every agent's: their access trees change too.
       onSuccess: () => Promise.all([done(), qc.invalidateQueries({ queryKey: keys.access(orgId) })]),

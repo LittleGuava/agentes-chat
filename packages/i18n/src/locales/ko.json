@@ -13450,6 +13450,18 @@
     "needsKey": "이 서버는 OAuth를 지원하지 않아요. API 키로 연결하세요.",
     "notApproved": "{{name}}은(는) 승인한 앱만 로그인할 수 있는데, agentes.chat은 아직 승인되지 않았어요. API 키를 받을 수 있다면 그 키로 연결하면 돼요.",
     "serverSaid": "서버 응답: {{detail}}",
+    "ownApp": {
+      "title": "직접 등록한 앱으로 로그인",
+      "redirectUri": "리디렉션 URI",
+      "redirectUriHelp": "서버의 로그인에 등록한 앱에 이 주소를 추가하세요 (예: Microsoft Entra ID).",
+      "clientId": "클라이언트 ID",
+      "clientIdMissing": "앱의 클라이언트 ID를 입력하세요",
+      "clientSecret": "클라이언트 시크릿 (선택)",
+      "clientSecretHelp": "기밀 앱에만 필요해요. 암호화해 저장하고 다시는 보여 주지 않아요. 비워 두면 저장된 값이 유지돼요.",
+      "scopes": "범위 (선택)",
+      "scopesExample": "공백으로 구분, 예: api://my-server/.default. 비워 두면 서버의 범위.",
+      "signIn": "이 앱으로 로그인"
+    },
     "nothingYet": "3단계 전까지는 에이전트가 아무것도 사용할 수 없어요.",
     "allCanUse": "연결하면 모든 에이전트가 사용할 수 있어요. 나중에 조정할 수 있어요.",
     "replace": "현재 로그인을 대체해요. 사용하는 대상은 그대로예요.",

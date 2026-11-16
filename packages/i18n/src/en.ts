@@ -14200,6 +14200,21 @@ export const en = {
     notApproved:
       "{{name}} only lets apps it approved sign in, and agentes.chat isn't approved yet. If it gives you an API key, you can connect with that.",
     serverSaid: "The server answered: {{detail}}",
+    /** Signing in to a server that only lets approved apps in, with an OAuth app the admin registered with it. */
+    ownApp: {
+      title: "Sign in with an app you registered",
+      redirectUri: "Redirect URI",
+      redirectUriHelp:
+        "Add this address to the app you registered with the server's sign-in (in Microsoft Entra ID, for one).",
+      clientId: "Client ID",
+      clientIdMissing: "Type the app's client ID",
+      clientSecret: "Client secret (optional)",
+      clientSecretHelp:
+        "Only for a confidential app. It's stored encrypted and never shown again. Left blank, a saved one stays.",
+      scopes: "Scopes (optional)",
+      scopesExample: "Separated by spaces, e.g. api://my-server/.default. Blank: the server's.",
+      signIn: "Sign in with this app",
+    },
     nothingYet: "Nothing is available to agents until step 3.",
     allCanUse: "Once connected, every agent can use it. You can adjust that later.",
     replace: "Replaces the current sign-in. Who uses it stays the same.",
