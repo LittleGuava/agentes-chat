@@ -11375,6 +11375,7 @@
       "geminiAutoOf": "{{owner}}님의 Gemini 요금제",
       "zenAutoOf": "{{owner}}의 OpenCode",
       "codingAutoOf": "{{owner}}님의 {{plan}}",
+      "acp": "{{engine}}의 {{model}}",
       "on": "{{computer}}의 {{line}}"
     },
     "model": "모델(API)",
@@ -11387,7 +11388,16 @@
       "opencode": "OpenCode",
       "grok": "Grok Build",
       "copilot": "Copilot CLI",
-      "antigravity": "Antigravity CLI"
+      "antigravity": "Antigravity CLI",
+      "acp": "ACP 에이전트"
+    },
+    "acp": {
+      "name": "ACP 에이전트",
+      "group": "ACP 에이전트",
+      "defaultModel": "{{engine}}의 기본값",
+      "defaultModelHint": "아무도 고르지 않을 때 쓰는 모델이에요",
+      "models_other": "모델 {{count}}개",
+      "ownDefault": "자체 기본 모델을 써요"
     },
     "foot": {
       "api": "API 사용",

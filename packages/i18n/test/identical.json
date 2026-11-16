@@ -1868,6 +1868,7 @@
     ],
     "nl": [
       "usage.kinds.routines",
+      "brain.acp.models",
       "settings.import.agents",
       "settings.import.setorAgents",
       "settings.import.countSkills",
@@ -3315,6 +3316,7 @@
       "transcript.format"
     ],
     "tr": [
+      "brain.acp.models",
       "devices.cpus",
       "devices.memory",
       "devices.system.android",
@@ -3511,6 +3513,7 @@
       "storage.connect.provider.b2"
     ],
     "pl": [
+      "brain.acp.models",
       "settings.import.setorAgents",
       "devices.cpus",
       "devices.memory",

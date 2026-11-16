@@ -11435,6 +11435,7 @@
       "geminiAutoOf": "Paket Gemini milik {{owner}}",
       "zenAutoOf": "OpenCode milik {{owner}}",
       "codingAutoOf": "{{plan}} milik {{owner}}",
+      "acp": "{{model}} lewat {{engine}}",
       "on": "{{line}} di {{computer}}"
     },
     "model": "Model (API)",
@@ -11447,7 +11448,16 @@
       "opencode": "OpenCode",
       "grok": "Grok Build",
       "copilot": "Copilot CLI",
-      "antigravity": "Antigravity CLI"
+      "antigravity": "Antigravity CLI",
+      "acp": "Agen ACP"
+    },
+    "acp": {
+      "name": "Agen ACP",
+      "group": "Agen ACP",
+      "defaultModel": "Bawaan {{engine}}",
+      "defaultModelHint": "Model yang dipakainya saat tidak ada yang memilih",
+      "models_other": "{{count}} model",
+      "ownDefault": "Memakai model bawaannya sendiri"
     },
     "foot": {
       "api": "Lewat API",

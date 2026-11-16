@@ -11381,6 +11381,7 @@
       "geminiAutoOf": "{{owner}}のGeminiプラン",
       "zenAutoOf": "{{owner}}のOpenCode",
       "codingAutoOf": "{{owner}}の{{plan}}",
+      "acp": "{{engine}}の{{model}}",
       "on": "{{computer}}上の{{line}}"
     },
     "model": "モデル（API）",
@@ -11393,7 +11394,16 @@
       "opencode": "OpenCode",
       "grok": "Grok Build",
       "copilot": "Copilot CLI",
-      "antigravity": "Antigravity CLI"
+      "antigravity": "Antigravity CLI",
+      "acp": "ACPエージェント"
+    },
+    "acp": {
+      "name": "ACPエージェント",
+      "group": "ACPエージェント",
+      "defaultModel": "{{engine}}のデフォルト",
+      "defaultModelHint": "誰も選ばないときに使うモデルです",
+      "models_other": "{{count}}個のモデル",
+      "ownDefault": "独自のデフォルトモデルを使います"
     },
     "foot": {
       "api": "API経由",

@@ -12240,6 +12240,7 @@
       "geminiAutoOf": "Plan de Gemini de {{owner}}",
       "zenAutoOf": "OpenCode de {{owner}}",
       "codingAutoOf": "{{plan}} de {{owner}}",
+      "acp": "{{model}} con {{engine}}",
       "on": "{{line}} en {{computer}}"
     },
     "model": "Modelo (API)",
@@ -12252,7 +12253,18 @@
       "opencode": "OpenCode",
       "grok": "Grok Build",
       "copilot": "Copilot CLI",
-      "antigravity": "Antigravity CLI"
+      "antigravity": "Antigravity CLI",
+      "acp": "Agente ACP"
+    },
+    "acp": {
+      "name": "Agente ACP",
+      "group": "Agentes ACP",
+      "defaultModel": "Predeterminado de {{engine}}",
+      "defaultModelHint": "El modelo que usa cuando nadie elige uno",
+      "models_one": "{{count}} modelo",
+      "models_many": "{{count}} modelos",
+      "models_other": "{{count}} modelos",
+      "ownDefault": "Usa su propio modelo predeterminado"
     },
     "foot": {
       "api": "A través de la API",

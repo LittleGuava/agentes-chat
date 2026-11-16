@@ -11447,6 +11447,7 @@
       "geminiAutoOf": "{{owner}} 的 Gemini 套餐",
       "zenAutoOf": "{{owner}} 的 OpenCode",
       "codingAutoOf": "{{owner}} 的 {{plan}}",
+      "acp": "通过 {{engine}} 使用 {{model}}",
       "on": "{{computer}} 上的{{line}}"
     },
     "model": "模型（API）",
@@ -11460,7 +11461,16 @@
       "opencode": "OpenCode",
       "grok": "Grok Build",
       "copilot": "Copilot CLI",
-      "antigravity": "Antigravity CLI"
+      "antigravity": "Antigravity CLI",
+      "acp": "ACP 智能体"
+    },
+    "acp": {
+      "name": "ACP 智能体",
+      "group": "ACP 智能体",
+      "defaultModel": "{{engine}} 的默认模型",
+      "defaultModelHint": "没人选择时它使用的模型",
+      "models_other": "{{count}} 个模型",
+      "ownDefault": "使用它自己的默认模型"
     },
     "foot": {
       "api": "通过 API",

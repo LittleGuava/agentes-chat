@@ -29042,6 +29042,9 @@
   "brain.line.codingAutoOf": {
     "value": "{{owner}}'s {{plan}}"
   },
+  "brain.line.acp": {
+    "value": "{{model}} through {{engine}}"
+  },
   "brain.line.on": {
     "value": "{{line}} on {{computer}}"
   },
@@ -29074,6 +29077,30 @@
   },
   "brain.card.antigravity": {
     "value": "Antigravity CLI"
+  },
+  "brain.card.acp": {
+    "value": "ACP agent"
+  },
+  "brain.acp.name": {
+    "value": "ACP agent"
+  },
+  "brain.acp.group": {
+    "value": "ACP agents"
+  },
+  "brain.acp.defaultModel": {
+    "value": "{{engine}}'s default"
+  },
+  "brain.acp.defaultModelHint": {
+    "value": "The model it uses when nobody picks one"
+  },
+  "brain.acp.models": {
+    "value": {
+      "one": "{{count}} model",
+      "other": "{{count}} models"
+    }
+  },
+  "brain.acp.ownDefault": {
+    "value": "Uses its own default model"
   },
   "brain.foot.api": {
     "value": "Through the API"

@@ -12711,6 +12711,7 @@
       "geminiAutoOf": "Тариф Gemini пользователя {{owner}}",
       "zenAutoOf": "OpenCode пользователя {{owner}}",
       "codingAutoOf": "{{plan}} пользователя {{owner}}",
+      "acp": "{{model}} через {{engine}}",
       "on": "{{line}} на {{computer}}"
     },
     "model": "Модель (API)",
@@ -12723,7 +12724,19 @@
       "opencode": "OpenCode",
       "grok": "Grok Build",
       "copilot": "Copilot CLI",
-      "antigravity": "Antigravity CLI"
+      "antigravity": "Antigravity CLI",
+      "acp": "ACP-агент"
+    },
+    "acp": {
+      "name": "ACP-агент",
+      "group": "ACP-агенты",
+      "defaultModel": "По умолчанию в {{engine}}",
+      "defaultModelHint": "Модель, которую он использует, когда никто не выбрал другую",
+      "models_one": "{{count}} модель",
+      "models_few": "{{count}} модели",
+      "models_many": "{{count}} моделей",
+      "models_other": "{{count}} модели",
+      "ownDefault": "Использует собственную модель по умолчанию"
     },
     "foot": {
       "api": "Через API",

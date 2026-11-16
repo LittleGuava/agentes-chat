@@ -11802,6 +11802,7 @@
       "geminiAutoOf": "{{owner}} kişisinin Gemini planı",
       "zenAutoOf": "{{owner}} adlı kişinin OpenCode'u",
       "codingAutoOf": "{{owner}} kişisinin {{plan}} planı",
+      "acp": "{{engine}} ile {{model}}",
       "on": "{{computer}} üzerinde {{line}}"
     },
     "model": "Model (API)",
@@ -11814,7 +11815,17 @@
       "opencode": "OpenCode",
       "grok": "Grok Build",
       "copilot": "Copilot CLI",
-      "antigravity": "Antigravity CLI"
+      "antigravity": "Antigravity CLI",
+      "acp": "ACP ajanı"
+    },
+    "acp": {
+      "name": "ACP ajanı",
+      "group": "ACP ajanları",
+      "defaultModel": "{{engine}} varsayılanı",
+      "defaultModelHint": "Kimse seçmediğinde kullandığı model",
+      "models_one": "{{count}} model",
+      "models_other": "{{count}} model",
+      "ownDefault": "Kendi varsayılan modelini kullanır"
     },
     "foot": {
       "api": "API üzerinden",
