@@ -23,6 +23,7 @@ import { type AgentActionView, actionsFor } from "./agent-actions";
 import { currentHandles } from "./agents";
 import { withDeletedArtifacts } from "./artifacts";
 import { audienceSql, notifyBlocked } from "./audience";
+import { parseBurstCommand, postBurst } from "./best-of";
 import { postRefusal, requireChannelAccess } from "./channels";
 import { ConflictError, NotFoundError, ValidationError } from "./errors";
 import {
@@ -1264,6 +1265,22 @@ export async function postPersonMessage(
   // A resend found before the judge call (no cost again); a resend racing the first send is caught by the insert.
   const resent = clientId ? await sentWithClientId(deps.db, orgId, userId, clientId) : null;
   if (resent) return resendView(deps, orgId, resent);
+  // Best of N (ADR 0192): the message starts no run of its own; its attempts do, each in a room of its own.
+  const burst = parseBurstCommand(input.body);
+  if (burst) {
+    const posted = await postBurst(deps, {
+      userId,
+      orgId,
+      channel,
+      membership,
+      body: input.body,
+      threadId: input.threadId,
+      clientId,
+      command: burst,
+      withExtras: Boolean(input.replyTo || input.attachments?.length || input.media || input.openThread),
+    });
+    return posted.duplicate ? resendView(deps, orgId, posted.message) : messageView(posted.message);
+  }
   // Quote, files and media: checked and resolved here, so the run's context reads them from the meta (no query there).
   const [replyTo, files, media] = await Promise.all([
     input.replyTo ? replyRefFor(deps.db, orgId, channelId, input.replyTo, input.threadId) : null,
