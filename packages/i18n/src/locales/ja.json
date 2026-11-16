@@ -7818,7 +7818,12 @@
     "copyWebhook": "Webhook URLをコピー",
     "webhookCopied": "Webhook URLをコピーしました。",
     "meeting": {
-      "when": "各ミーティングの{{minutes}}分前"
+      "when": "各ミーティングの{{minutes}}分前",
+      "calendar": "カレンダー",
+      "lead": "何分前",
+      "leadExample": "5〜240。",
+      "every": "15分ごとにカレンダーを確認し、ほかの人との会議の前に1回ずつ実行します。",
+      "waiting": "次の会議を待っています"
     },
     "webhook": {
       "when": "Webhookが呼ばれたとき",
@@ -8268,7 +8273,8 @@
         "event": "イベント",
         "email": "メール",
         "webhook": "Webhook",
-        "connector": "MillionSend のメール"
+        "connector": "MillionSend のメール",
+        "meeting": "会議の前"
       },
       "frequency": "頻度",
       "frequencyPlaceholder": "例: 毎週月曜の9時",
@@ -14102,6 +14108,7 @@
       "createRefused": "今はワークスペースを作成できません。",
       "noAgentToRemind": "この会話には、リマインドできるエージェントがいません。",
       "agentCantRead": "先にエージェントのアクセス設定で、これを読めるようにしてください。",
+      "meetingLead": "5〜240分で選んでください。",
       "neverHappens": "このスケジュールは実行されません。",
       "soleOwner": "他のメンバーがいるワークスペースのオーナーはあなただけです。先に別の人をオーナーにするか、ワークスペースを削除してください。",
       "testFirst": "オンにする前に、この設定で接続をテストしてください。",

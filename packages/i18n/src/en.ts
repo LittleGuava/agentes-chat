@@ -8522,6 +8522,12 @@ export const en = {
     /** A routine that prepares each meeting of a connected calendar (ADR 0190): how long before it runs. */
     meeting: {
       when: "{{minutes}} min before each meeting",
+      /** The form: the Google Calendar connection it watches, and how many minutes before each meeting it runs. */
+      calendar: "Calendar",
+      lead: "Minutes before",
+      leadExample: "From 5 to 240.",
+      every: "Looks at the calendar every 15 minutes and runs once before each meeting with someone else.",
+      waiting: "Waiting for the next meeting",
     },
     webhook: {
       when: "When its webhook is called",
@@ -8973,7 +8979,14 @@ export const en = {
       whatPlaceholder: "E.g.: Summarize what happened this week in #eng and #product.",
       name: "Name (optional)",
       when: "When",
-      kind: { schedule: "Time", event: "Event", email: "Email", webhook: "Webhook", connector: "MillionSend email" },
+      kind: {
+        schedule: "Time",
+        event: "Event",
+        email: "Email",
+        webhook: "Webhook",
+        connector: "MillionSend email",
+        meeting: "Before a meeting",
+      },
       frequency: "Frequency",
       frequencyPlaceholder: "E.g.: every Monday at 9am",
       timezone: "Time zone",
@@ -14813,6 +14826,7 @@ export const en = {
       createRefused: "You can't create a workspace right now.",
       noAgentToRemind: "No agent in this conversation can remind you.",
       agentCantRead: "Let the agent read this first, in its access settings.",
+      meetingLead: "Pick from 5 to 240 minutes.",
       neverHappens: "This schedule never happens.",
       soleOwner:
         "You're the only owner of a workspace with other members. Make someone else an owner, or delete the workspace, first.",

@@ -8111,7 +8111,12 @@
     "copyWebhook": "Webhook-URL kopieren",
     "webhookCopied": "Webhook-URL kopiert.",
     "meeting": {
-      "when": "{{minutes}} Min. vor jedem Meeting"
+      "when": "{{minutes}} Min. vor jedem Meeting",
+      "calendar": "Kalender",
+      "lead": "Minuten vorher",
+      "leadExample": "Von 5 bis 240.",
+      "every": "Schaut alle 15 Minuten in den Kalender und läuft einmal vor jedem Meeting mit jemand anderem.",
+      "waiting": "Wartet auf das nächste Meeting"
     },
     "webhook": {
       "when": "Wenn ihr Webhook aufgerufen wird",
@@ -8566,7 +8571,8 @@
         "event": "Ereignis",
         "email": "E-Mail",
         "webhook": "Webhook",
-        "connector": "MillionSend-E-Mail"
+        "connector": "MillionSend-E-Mail",
+        "meeting": "Vor einem Meeting"
       },
       "frequency": "Häufigkeit",
       "frequencyPlaceholder": "Z. B.: jeden Montag um 9 Uhr",
@@ -14639,6 +14645,7 @@
       "createRefused": "Du kannst gerade keinen Workspace erstellen.",
       "noAgentToRemind": "Kein Agent in dieser Unterhaltung kann dich erinnern.",
       "agentCantRead": "Lass den Agenten das zuerst lesen, in seinen Zugriffen.",
+      "meetingLead": "Wähle 5 bis 240 Minuten.",
       "neverHappens": "Dieser Zeitplan tritt nie ein.",
       "soleOwner": "Du bist die einzige Person mit Inhaberrechten in einem Workspace mit weiteren Mitgliedern. Mach zuerst jemand anderen zum Inhaber oder lösch den Workspace.",
       "testFirst": "Teste die Verbindung mit diesen Einstellungen, bevor du sie einschaltest.",

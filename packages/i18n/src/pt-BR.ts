@@ -8509,6 +8509,11 @@ export const ptBR = {
     webhookCopied: "URL do webhook copiada.",
     meeting: {
       when: "{{minutes}} min antes de cada reunião",
+      calendar: "Calendário",
+      lead: "Minutos antes",
+      leadExample: "De 5 a 240.",
+      every: "Olha o calendário a cada 15 minutos e roda uma vez antes de cada reunião com outra pessoa.",
+      waiting: "Esperando a próxima reunião",
     },
     webhook: {
       when: "Quando o webhook for chamado",
@@ -8967,6 +8972,7 @@ export const ptBR = {
         email: "Email",
         webhook: "Webhook",
         connector: "Email no MillionSend",
+        meeting: "Antes de uma reunião",
       },
       frequency: "Frequência",
       frequencyPlaceholder: "Ex.: toda segunda às 9h",
@@ -14803,6 +14809,7 @@ export const ptBR = {
       createRefused: "Você não pode criar um workspace agora.",
       noAgentToRemind: "Nenhum agente desta conversa pode lembrar você.",
       agentCantRead: "Deixe o agente ler isto primeiro, nos acessos dele.",
+      meetingLead: "Escolha de 5 a 240 minutos.",
       neverHappens: "Este agendamento nunca acontece.",
       soleOwner:
         "Você é a única pessoa dona de um workspace com outros membros. Passe a posse a alguém, ou apague o workspace, antes.",

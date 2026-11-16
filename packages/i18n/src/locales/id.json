@@ -7856,7 +7856,12 @@
     "copyWebhook": "Salin URL webhook",
     "webhookCopied": "URL webhook disalin.",
     "meeting": {
-      "when": "{{minutes}} menit sebelum setiap rapat"
+      "when": "{{minutes}} menit sebelum setiap rapat",
+      "calendar": "Kalender",
+      "lead": "Menit sebelumnya",
+      "leadExample": "Dari 5 sampai 240.",
+      "every": "Memeriksa kalender setiap 15 menit dan berjalan sekali sebelum setiap rapat dengan orang lain.",
+      "waiting": "Menunggu rapat berikutnya"
     },
     "webhook": {
       "when": "Saat webhook-nya dipanggil",
@@ -8306,7 +8311,8 @@
         "event": "Peristiwa",
         "email": "Email",
         "webhook": "Webhook",
-        "connector": "Email MillionSend"
+        "connector": "Email MillionSend",
+        "meeting": "Sebelum rapat"
       },
       "frequency": "Frekuensi",
       "frequencyPlaceholder": "Misalnya: setiap Senin pukul 9 pagi",
@@ -14157,6 +14163,7 @@
       "createRefused": "Kamu tidak bisa membuat ruang kerja sekarang.",
       "noAgentToRemind": "Tidak ada agen di percakapan ini yang bisa mengingatkanmu.",
       "agentCantRead": "Izinkan agen membaca ini dulu, di akses agen.",
+      "meetingLead": "Pilih 5 sampai 240 menit.",
       "neverHappens": "Jadwal ini tidak pernah terjadi.",
       "soleOwner": "Kamu satu-satunya pemilik ruang kerja yang punya anggota lain. Jadikan orang lain pemilik, atau hapus ruang kerjanya, lebih dulu.",
       "testFirst": "Uji koneksi dengan pengaturan ini sebelum menyalakannya.",

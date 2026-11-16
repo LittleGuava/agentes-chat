@@ -8070,7 +8070,12 @@
     "copyWebhook": "Webhook URL'sini kopyala",
     "webhookCopied": "Webhook URL'si kopyalandı.",
     "meeting": {
-      "when": "Her toplantıdan {{minutes}} dk önce"
+      "when": "Her toplantıdan {{minutes}} dk önce",
+      "calendar": "Takvim",
+      "lead": "Kaç dakika önce",
+      "leadExample": "5 ile 240 arası.",
+      "every": "Takvime 15 dakikada bir bakar ve başka biriyle yapılan her toplantıdan önce bir kez çalışır.",
+      "waiting": "Sonraki toplantı bekleniyor"
     },
     "webhook": {
       "when": "Webhook'u çağrıldığında",
@@ -8522,7 +8527,8 @@
         "event": "Olay",
         "email": "E-posta",
         "webhook": "Webhook",
-        "connector": "MillionSend e-postası"
+        "connector": "MillionSend e-postası",
+        "meeting": "Bir toplantıdan önce"
       },
       "frequency": "Sıklık",
       "frequencyPlaceholder": "Örn.: her pazartesi saat 9'da",
@@ -14575,6 +14581,7 @@
       "createRefused": "Şu anda çalışma alanı oluşturamazsınız.",
       "noAgentToRemind": "Bu sohbette size hatırlatabilecek bir ajan yok.",
       "agentCantRead": "Önce ajanın erişim ayarlarından bunu okumasına izin verin.",
+      "meetingLead": "5 ile 240 dakika arasında seçin.",
       "neverHappens": "Bu zamanlama hiç gerçekleşmiyor.",
       "soleOwner": "Başka üyeleri olan bir çalışma alanının tek sahibi sizsiniz. Önce başka birini sahip yapın veya çalışma alanını silin.",
       "testFirst": "Açmadan önce bağlantıyı bu ayarlarla test edin.",

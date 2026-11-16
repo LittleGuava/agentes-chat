@@ -1,11 +1,20 @@
 import { describe, expect, test } from "bun:test";
+import type { Routine } from "../src/api/types";
 import type { Message } from "../src/index";
 import {
   connectionReader,
+  defaultReportFor,
+  formKindOf,
   hookCurl,
   isRefusedHookCall,
   isRoutineCall,
+  MEETING_LEAD,
   mailboxReader,
+  meetingCalendars,
+  meetingDraftOf,
+  meetingLeadOf,
+  meetingTriggerChanged,
+  meetingTriggerOf,
   platformZoneName,
   routineHookUrl,
   routineReplyOf,
@@ -156,5 +165,80 @@ describe("what a routine's email trigger offers for its agent", () => {
     expect([mail("a"), mail("b"), mail("c")]).toEqual([false, true, false]);
     const grants = connectionReader([{ connectionId: "c1", scope: "custom:c1:read" }]);
     expect([grants("c1"), grants("c2")]).toEqual([true, false]);
+  });
+
+  test("a connection is read whole (its Access switch), with every tool, or with its read scope; never by writing", () => {
+    const reads = connectionReader([
+      { connectionId: "whole", scope: "connector:*" },
+      { connectionId: "w", scope: "custom:w:write" },
+      { connectionId: "other", scope: "custom:x:read" },
+    ]);
+    expect([reads("whole"), reads("w"), reads("other"), reads("x")]).toEqual([true, false, false, false]);
+    const all = connectionReader([{ connectionId: null, scope: "*" }]);
+    expect([all("whole"), all("anything")]).toEqual([true, true]);
+  });
+});
+
+describe("a routine before each meeting (ADR 0190)", () => {
+  const CAL = "0193aaaa-0000-4000-8000-000000000001";
+  const meeting = (leadMinutes: number, connectionId = CAL): Pick<Routine, "trigger"> => ({
+    trigger: { type: "meeting", connectionId, leadMinutes, status: "active", lastError: null },
+  });
+  const scheduled: Pick<Routine, "trigger"> = {
+    trigger: { type: "schedule", cron: "0 9 * * 1", timezone: "UTC", description: "Mondays at 9" },
+  };
+
+  test("the form opens a routine as what starts it: a meeting one as a meeting, never as a schedule", () => {
+    expect(formKindOf(meeting(30))).toBe("meeting");
+    expect(formKindOf(scheduled)).toBe("schedule");
+    expect(
+      formKindOf({ trigger: { type: "once", at: "2026-11-20T12:00:00Z", timezone: "UTC", description: "" } }),
+    ).toBe("schedule");
+    expect(
+      formKindOf({ trigger: { type: "webhook", url: "https://x", methods: ["POST"] } as Routine["trigger"] }),
+    ).toBe("webhook");
+    expect(formKindOf(undefined)).toBe("schedule");
+  });
+
+  test("a meeting's draft is its calendar and minutes; a new one picks no calendar and 15 minutes", () => {
+    expect(meetingDraftOf(meeting(30))).toEqual({ connectionId: CAL, lead: "30" });
+    expect(meetingDraftOf(scheduled)).toEqual({ connectionId: "", lead: String(MEETING_LEAD.default) });
+    expect(MEETING_LEAD).toEqual({ min: 5, max: 240, default: 15 });
+  });
+
+  test("minutes are a whole number from 5 to 240; the trigger waits for a calendar and minutes it can keep", () => {
+    expect(["5", " 240 ", "15"].map(meetingLeadOf)).toEqual([5, 240, 15]);
+    expect(["4", "241", "", "1.5", "abc", "-10", "1e2"].map(meetingLeadOf)).toEqual([
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+    ]);
+    expect(meetingTriggerOf({ connectionId: CAL, lead: "45" })).toEqual({
+      type: "meeting",
+      connectionId: CAL,
+      leadMinutes: 45,
+    });
+    expect(meetingTriggerOf({ connectionId: "", lead: "45" })).toBeNull();
+    expect(meetingTriggerOf({ connectionId: CAL, lead: "2" })).toBeNull();
+  });
+
+  test("saving sends the meeting trigger only when it is new or its calendar or minutes changed", () => {
+    expect(meetingTriggerChanged(meeting(30), { connectionId: CAL, lead: "30" })).toBe(false);
+    expect(meetingTriggerChanged(meeting(30), { connectionId: CAL, lead: "030" })).toBe(false);
+    expect(meetingTriggerChanged(meeting(30), { connectionId: CAL, lead: "45" })).toBe(true);
+    expect(meetingTriggerChanged(meeting(30), { connectionId: "other", lead: "30" })).toBe(true);
+    expect(meetingTriggerChanged(scheduled, { connectionId: CAL, lead: "15" })).toBe(true);
+  });
+
+  test("only the calendars the server names are offered; a new meeting routine always posts", () => {
+    const servers = [{ id: "a", meetings: true }, { id: "b", meetings: false }, { id: "c" }];
+    expect(meetingCalendars(servers).map((s) => s.id)).toEqual(["a"]);
+    expect(defaultReportFor("meeting")).toBe("always");
+    expect(defaultReportFor("schedule")).toBe("when_new");
+    expect(defaultReportFor("email")).toBe("when_new");
   });
 });

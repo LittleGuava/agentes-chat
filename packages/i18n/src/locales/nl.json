@@ -8160,7 +8160,12 @@
     "copyWebhook": "Webhook-URL kopiëren",
     "webhookCopied": "Webhook-URL gekopieerd.",
     "meeting": {
-      "when": "{{minutes}} min vóór elke vergadering"
+      "when": "{{minutes}} min vóór elke vergadering",
+      "calendar": "Agenda",
+      "lead": "Minuten van tevoren",
+      "leadExample": "Van 5 tot 240.",
+      "every": "Kijkt elke 15 minuten in de agenda en draait één keer vóór elke vergadering met iemand anders.",
+      "waiting": "Wacht op de volgende vergadering"
     },
     "webhook": {
       "when": "Als de webhook wordt aangeroepen",
@@ -8612,7 +8617,8 @@
         "event": "Gebeurtenis",
         "email": "E-mail",
         "webhook": "Webhook",
-        "connector": "MillionSend-mail"
+        "connector": "MillionSend-mail",
+        "meeting": "Voor een vergadering"
       },
       "frequency": "Frequentie",
       "frequencyPlaceholder": "Bijv.: elke maandag om 9:00",
@@ -14703,6 +14709,7 @@
       "createRefused": "Je kunt nu geen werkruimte maken.",
       "noAgentToRemind": "Geen agent in dit gesprek kan je eraan herinneren.",
       "agentCantRead": "Laat de agent dit eerst lezen, bij de toegang van de agent.",
+      "meetingLead": "Kies 5 tot 240 minuten.",
       "neverHappens": "Deze planning komt nooit voor.",
       "soleOwner": "Je bent de enige eigenaar van een werkruimte met andere leden. Maak eerst iemand anders eigenaar of verwijder de werkruimte.",
       "testFirst": "Test de verbinding met deze gegevens voordat je hem aanzet.",

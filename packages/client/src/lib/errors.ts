@@ -546,6 +546,7 @@ const KNOWN = {
   "reminder.no_agent": "errors.said.noAgentToRemind",
   "routine.connector_agent_cannot_read": "errors.said.agentCantRead",
   "routine.mail_agent_cannot_read": "errors.said.agentCantRead",
+  "routine.meeting_lead_invalid": "errors.said.meetingLead",
   "schedule.never": "errors.said.neverHappens",
   sole_owner: "errors.said.soleOwner",
   "storage.test_first": "errors.said.testFirst",

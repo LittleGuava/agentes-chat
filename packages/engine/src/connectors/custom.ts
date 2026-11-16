@@ -3,7 +3,7 @@ import type { BlobStore } from "@agenteschat/adapters";
 import { and, asc, type Database, type Executor, eq, inArray, isNull, like, schema, sql } from "@agenteschat/db";
 import { recordAudit } from "../audit";
 import { caches } from "../cache";
-import { type ConnectorEventId, connectorEventsOf } from "../connector-triggers";
+import { type ConnectorEventId, connectorEventsOf, isMeetingCalendar } from "../connector-triggers";
 import { randomToken, sealSecret, sha256 } from "../crypto";
 import { ConflictError, isUniqueViolation, NotFoundError, ValidationError } from "../errors";
 import type { Judge } from "../judge";
@@ -183,6 +183,8 @@ export interface CustomServerView {
   tools: CustomToolView[];
   /** What routines can wait on from it (ADR 0130): MillionSend's received email. */
   events: ConnectorEventId[];
+  /** Whether a meeting routine can watch it (ADR 0190): a Google Calendar. */
+  meetings: boolean;
   reviewedAt: string | null;
   createdAt: string;
 }
@@ -265,6 +267,7 @@ function view(c: ConnectorConnection, tools: ToolRow[], whole = true): CustomSer
     toolsError: c.status === "needs_reconnect" ? null : c.lastError,
     tools: mine.map((t) => toolView(t, prefix)),
     events: connectorEventsOf(c.serverUrl),
+    meetings: isMeetingCalendar(c.serverUrl),
     reviewedAt: c.reviewedAt ? c.reviewedAt.toISOString() : null,
     createdAt: c.createdAt.toISOString(),
   };

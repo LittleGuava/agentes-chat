@@ -1,4 +1,11 @@
-import type { AgentMailbox, Routine, RoutineHookOutcome, ScopeGrant } from "../api/types";
+import type {
+  AgentMailbox,
+  Routine,
+  RoutineHookOutcome,
+  RoutineMeetingTriggerInput,
+  RoutineReport,
+  ScopeGrant,
+} from "../api/types";
 import { clockHour } from "./format";
 
 /** A plain reminder the agent posted (`meta.reminder`): shown as the agent's message with a "Reminder" label. */
@@ -286,6 +293,65 @@ export function triggerChoices<T extends { id: string }>(
 export const mailboxReader = (levels: AgentMailbox[]) => (accountId: string) =>
   levels.some((m) => m.accountId === accountId && m.level !== "none");
 
-/** Whether the agent reads a connection's tools, from its grants (a custom connection's `custom:<id>:read`). */
+/**
+ * Whether the agent reads a connection's tools, from its grants, as the server checks it: the connection's read scope,
+ * the whole connection (`connector:*`, what its Access switch grants) or every tool (`*`). Write alone reads nothing.
+ */
 export const connectionReader = (grants: ScopeGrant[]) => (connectionId: string) =>
-  grants.some((g) => g.connectionId === connectionId && g.scope === `custom:${connectionId}:read`);
+  grants.some((g) =>
+    g.connectionId === null
+      ? g.scope === "*"
+      : g.connectionId === connectionId && (g.scope === `custom:${connectionId}:read` || g.scope === "connector:*"),
+  );
+
+/** What starts a routine, as its form offers it: a one-off and a schedule are both "schedule" (its picker says which). */
+export type RoutineFormKind = "schedule" | "event" | "email" | "webhook" | "connector" | "meeting";
+
+/** The kind a routine opens as in its form: what starts it, so saving it unchanged never turns it into another kind. */
+export const formKindOf = (r: Pick<Routine, "trigger"> | undefined): RoutineFormKind =>
+  !r || r.trigger.type === "schedule" || r.trigger.type === "once" ? "schedule" : r.trigger.type;
+
+/** When a new routine of this kind posts, until the person picks: a meeting's prep always does (ADR 0190 §6). */
+export const defaultReportFor = (kind: RoutineFormKind): RoutineReport => (kind === "meeting" ? "always" : "when_new");
+
+/** "Antes de uma reunião" (ADR 0190): the minutes before each meeting a routine may run, as the server takes them. */
+export const MEETING_LEAD = { min: 5, max: 240, default: 15 } as const;
+
+/** What the form holds for a meeting trigger: the calendar (a connection's id) and the minutes as typed. */
+export interface MeetingDraft {
+  connectionId: string;
+  lead: string;
+}
+
+/** A routine's meeting trigger as its form starts (new, or another kind: no calendar picked yet, 15 minutes). */
+export const meetingDraftOf = (r: Pick<Routine, "trigger"> | undefined): MeetingDraft =>
+  r?.trigger.type === "meeting"
+    ? { connectionId: r.trigger.connectionId, lead: String(r.trigger.leadMinutes) }
+    : { connectionId: "", lead: String(MEETING_LEAD.default) };
+
+/** The minutes typed, or null when they aren't a whole number from 5 to 240. */
+export function meetingLeadOf(text: string): number | null {
+  const typed = text.trim();
+  if (!/^\d{1,3}$/.test(typed)) return null;
+  const minutes = Number(typed);
+  return minutes >= MEETING_LEAD.min && minutes <= MEETING_LEAD.max ? minutes : null;
+}
+
+/** The trigger as the API takes it; null while it lacks a calendar or minutes it can keep (the form doesn't save). */
+export function meetingTriggerOf(d: MeetingDraft): RoutineMeetingTriggerInput | null {
+  const leadMinutes = meetingLeadOf(d.lead);
+  return d.connectionId && leadMinutes !== null ? { type: "meeting", connectionId: d.connectionId, leadMinutes } : null;
+}
+
+/** Whether saving sends the meeting trigger: the routine had another kind, or another calendar or minutes. */
+export function meetingTriggerChanged(r: Pick<Routine, "trigger">, d: MeetingDraft): boolean {
+  return (
+    r.trigger.type !== "meeting" ||
+    r.trigger.connectionId !== d.connectionId ||
+    r.trigger.leadMinutes !== meetingLeadOf(d.lead)
+  );
+}
+
+/** The connections a meeting routine can watch: the server names them (`meetings`), never their address. */
+export const meetingCalendars = <T extends { meetings?: boolean }>(servers: T[]): T[] =>
+  servers.filter((s) => s.meetings === true);

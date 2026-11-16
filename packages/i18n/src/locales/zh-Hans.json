@@ -7866,7 +7866,12 @@
     "copyWebhook": "复制 Webhook URL",
     "webhookCopied": "Webhook URL 已复制。",
     "meeting": {
-      "when": "每次会议前 {{minutes}} 分钟"
+      "when": "每次会议前 {{minutes}} 分钟",
+      "calendar": "日历",
+      "lead": "提前分钟数",
+      "leadExample": "5 到 240。",
+      "every": "每 15 分钟查看一次日历，在每个有他人参加的会议前运行一次。",
+      "waiting": "等待下一场会议"
     },
     "webhook": {
       "when": "在 Webhook 被调用时",
@@ -8313,7 +8318,8 @@
         "event": "事件",
         "email": "邮件",
         "webhook": "Webhook",
-        "connector": "MillionSend 邮件"
+        "connector": "MillionSend 邮件",
+        "meeting": "会议之前"
       },
       "frequency": "频率",
       "frequencyPlaceholder": "例如：每周一上午 9 点",
@@ -14166,6 +14172,7 @@
       "createRefused": "你现在无法创建工作区。",
       "noAgentToRemind": "这个对话中没有能提醒你的智能体。",
       "agentCantRead": "请先在智能体的访问设置中允许它读取这项内容。",
+      "meetingLead": "请选择 5 到 240 分钟。",
       "neverHappens": "这个日程永远不会触发。",
       "soleOwner": "你是这个有其他成员的工作区的唯一所有者。请先将其他人设为所有者，或删除工作区。",
       "testFirst": "开启之前，请先用这些设置测试连接。",

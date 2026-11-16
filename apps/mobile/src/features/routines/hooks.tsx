@@ -106,6 +106,8 @@ export function useNextText() {
           return n.week > 0 ? t("routines.eventThisWeek", { count: n.week }) : t("routines.waitingEvent");
         case "webhook":
           return n.week > 0 ? t("routines.eventThisWeek", { count: n.week }) : t("routines.webhook.waiting");
+        case "meeting":
+          return n.week > 0 ? t("routines.eventThisWeek", { count: n.week }) : t("routines.meeting.waiting");
         case "none":
           return "";
         case "soon":

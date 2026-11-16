@@ -8409,7 +8409,12 @@
     "copyWebhook": "Copia URL del webhook",
     "webhookCopied": "URL del webhook copiato.",
     "meeting": {
-      "when": "{{minutes}} min prima di ogni riunione"
+      "when": "{{minutes}} min prima di ogni riunione",
+      "calendar": "Calendario",
+      "lead": "Minuti prima",
+      "leadExample": "Da 5 a 240.",
+      "every": "Controlla il calendario ogni 15 minuti e si avvia una volta prima di ogni riunione con qualcun altro.",
+      "waiting": "In attesa della prossima riunione"
     },
     "webhook": {
       "when": "Quando viene chiamato il suo webhook",
@@ -8866,7 +8871,8 @@
         "event": "Evento",
         "email": "Email",
         "webhook": "Webhook",
-        "connector": "Email di MillionSend"
+        "connector": "Email di MillionSend",
+        "meeting": "Prima di una riunione"
       },
       "frequency": "Frequenza",
       "frequencyPlaceholder": "Es.: ogni lunedì alle 9",
@@ -15152,6 +15158,7 @@
       "createRefused": "Ora non puoi creare uno spazio di lavoro.",
       "noAgentToRemind": "Nessun agente di questa conversazione può ricordartelo.",
       "agentCantRead": "Lascia prima che l'agente legga questo, nei suoi accessi.",
+      "meetingLead": "Scegli da 5 a 240 minuti.",
       "neverHappens": "Questa pianificazione non si verifica mai.",
       "soleOwner": "Sei l'unico proprietario di uno spazio di lavoro con altri membri. Prima nomina un altro proprietario o elimina lo spazio di lavoro.",
       "testFirst": "Prova la connessione con queste impostazioni prima di attivarla.",

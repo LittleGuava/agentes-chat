@@ -63,6 +63,9 @@ const CustomServer = z
     events: z.array(z.enum(CONNECTOR_EVENTS)).openapi({
       description: "What routines can wait on from it (ADR 0130): `millionsend.email.received`.",
     }),
+    meetings: z.boolean().openapi({
+      description: "Whether a meeting routine can watch it (ADR 0190): a Google Calendar connection.",
+    }),
     toolsError: z.string().nullable().openapi({
       description:
         "Why its tools couldn't be read the last time they were listed (short); null when they were. The apps say it with Tentar de novo (`…/refresh`).",

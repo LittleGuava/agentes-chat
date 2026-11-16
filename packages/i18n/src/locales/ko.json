@@ -7815,7 +7815,12 @@
     "copyWebhook": "웹훅 URL 복사",
     "webhookCopied": "웹훅 URL을 복사했어요.",
     "meeting": {
-      "when": "각 회의 {{minutes}}분 전"
+      "when": "각 회의 {{minutes}}분 전",
+      "calendar": "캘린더",
+      "lead": "몇 분 전",
+      "leadExample": "5~240.",
+      "every": "15분마다 캘린더를 확인하고 다른 사람과의 회의 전에 한 번씩 실행합니다.",
+      "waiting": "다음 회의를 기다리는 중"
     },
     "webhook": {
       "when": "웹훅이 호출될 때",
@@ -8265,7 +8270,8 @@
         "event": "이벤트",
         "email": "이메일",
         "webhook": "웹훅",
-        "connector": "MillionSend 이메일"
+        "connector": "MillionSend 이메일",
+        "meeting": "회의 전"
       },
       "frequency": "빈도",
       "frequencyPlaceholder": "예: 매주 월요일 오전 9시",
@@ -14096,6 +14102,7 @@
       "createRefused": "지금은 워크스페이스를 만들 수 없어요.",
       "noAgentToRemind": "이 대화에 알려 줄 수 있는 에이전트가 없어요.",
       "agentCantRead": "먼저 에이전트의 접근 설정에서 이것을 읽게 해 주세요.",
+      "meetingLead": "5~240분 중에서 고르세요.",
       "neverHappens": "이 일정은 실행되지 않아요.",
       "soleOwner": "다른 멤버가 있는 워크스페이스의 유일한 소유자예요. 먼저 다른 사람을 소유자로 지정하거나 워크스페이스를 삭제해 주세요.",
       "testFirst": "켜기 전에 이 설정으로 연결을 테스트해 주세요.",

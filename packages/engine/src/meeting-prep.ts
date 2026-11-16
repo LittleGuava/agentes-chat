@@ -1,12 +1,16 @@
 import { and, type Database, eq, inArray, isNull, lte, schema } from "@agenteschat/db";
-import { type ConnectorTriggerDeps, withConnectionSession } from "./connector-triggers";
-import { customScope } from "./connectors/custom";
-import { composioToolName, mcpPreset, presetForServer } from "./connectors/presets";
+import {
+  agentReadsConnection,
+  type ConnectorTriggerDeps,
+  isMeetingCalendar,
+  MEETING_CALENDAR_PRESET,
+  withConnectionSession,
+} from "./connector-triggers";
+import { composioToolName, mcpPreset } from "./connectors/presets";
 import { ValidationError } from "./errors";
 import { cutText } from "./format";
 import { queueEventRun } from "./routine-events";
 import { openOrg } from "./standing";
-import { ALL_TOOLS, CONNECTOR_ALL, grantedScopeKeys, grantKey } from "./tools/scopes";
 import { untrustedBlock } from "./untrusted";
 
 const { meetingWatches, routines, connectorConnections, organizations } = schema;
@@ -31,8 +35,7 @@ const LOOK_AHEAD_MS = 2 * MEETING_LOOK_MS;
 const MAX_DESCRIPTION = 1_500;
 const MAX_ATTENDEES = 30;
 
-/** The calendars a meeting routine can watch: their preset, and the action that lists their events. */
-const CALENDAR_PRESET = "google-calendar";
+/** The action that lists a calendar's events. */
 const EVENTS_LIST = "GOOGLECALENDAR_EVENTS_LIST";
 
 const NO_READ = "The agent can no longer read this calendar";
@@ -165,17 +168,6 @@ export function meetingEventText(event: Record<string, unknown>): string {
   ].join("\n");
 }
 
-/** Whether the agent may read a connection: its read or write scope, the whole connection, or every tool. */
-async function agentReads(db: Database, orgId: string, agentId: string, connectionId: string) {
-  const keys = await grantedScopeKeys(db, orgId, agentId);
-  return [
-    grantKey(connectionId, customScope(connectionId, "read")),
-    grantKey(connectionId, customScope(connectionId, "write")),
-    grantKey(connectionId, CONNECTOR_ALL),
-    grantKey(null, ALL_TOOLS),
-  ].some((k) => keys.has(k));
-}
-
 /**
  * The calendar a routine's agent may prepare meetings from (ADR 0190 §7): an active Google Calendar connection of
  * the workspace that the agent may read, so it never hears of meetings it couldn't read itself.
@@ -191,10 +183,10 @@ export async function checkMeetingConnection(db: Database, orgId: string, agentI
         isNull(connectorConnections.revokedAt),
       ),
     );
-  if (!connection || presetForServer(connection.serverUrl)?.id !== CALENDAR_PRESET) {
+  if (!connection || !isMeetingCalendar(connection.serverUrl)) {
     throw new ValidationError("Pick a connected calendar", "routine.connector_not_found");
   }
-  if (!(await agentReads(db, orgId, agentId, connection.id))) {
+  if (!(await agentReadsConnection(db, orgId, agentId, connection.id))) {
     throw new ValidationError(
       "Let the agent read this calendar before a routine can prepare its meetings",
       "routine.connector_agent_cannot_read",
@@ -335,7 +327,7 @@ export async function pollMeetingWatches(
 
 /** The meetings of a watch's calendar that haven't started, from now to its lead plus the look ahead. */
 async function lookAhead(connectors: ConnectorTriggerDeps, watch: MeetingWatchRow, now: Date) {
-  const way = mcpPreset(CALENDAR_PRESET)?.composio;
+  const way = mcpPreset(MEETING_CALENDAR_PRESET)?.composio;
   if (!way) throw new Error("Google Calendar is not in the catalog");
   const until = new Date(now.getTime() + watch.leadMinutes * 60_000 + LOOK_AHEAD_MS);
   const res = await withConnectionSession(connectors, watch.connectionId, (s) =>
