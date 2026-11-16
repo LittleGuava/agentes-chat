@@ -564,6 +564,8 @@ export function buildEngine(o: EngineOptions) {
     pubsub: adapters.pubsub,
     // One of our own tools broke: where the server takes feedback, the agent may offer a report (ADR 0160 §12).
     ...(feedbackDestination(config) ? { faultHint: APP_FAULT_HINT } : {}),
+    // A JSON answer too long for the model is kept for the run and read in parts (ADR 0015, addendum on long results).
+    keepLongResults: true,
   });
   // Mission tasks' tools and computer-brain runs' tools come through the hub's MCP bridge (ADR 0032).
   // Runs waiting for a device (bring your own devices) go on when its computer is back or its phones report it free.

@@ -350,6 +350,7 @@ export * from "./tool-loading";
 export * from "./tools/directory";
 export * from "./tools/gateway";
 export * from "./tools/json-schema";
+export * from "./tools/long-results";
 export * from "./tools/permission";
 export * from "./tools/run-policy";
 export * from "./tools/schema-compat";

@@ -66,6 +66,7 @@ import { checkToolCall } from "./checks";
 import { connectorFirst } from "./connector-first";
 import { type BlockedTool, compactSchema, presentTools, resolveCall } from "./directory";
 import { canonicalJson, validateJson } from "./json-schema";
+import { createQueryResultToolSource, keepLongResult } from "./long-results";
 import { missingPermissions, REQUEST_PERMISSION_TOOL } from "./permission";
 import {
   type ApprovalsLevel,
@@ -575,13 +576,21 @@ export function createToolGateway(deps: {
   faultHint?: string;
   /** Live events (the autonomy brakes' proposal card, ADR 0131). */
   pubsub?: PubSub;
+  /**
+   * A JSON answer past `MAX_RESULT_CHARS` is kept whole for the run and read in parts with `query_result`, which is
+   * then every agent's (ADR 0015, addendum on long results). Off: it is cut, like any other long text.
+   */
+  keepLongResults?: boolean;
 }) {
   const now = deps.now ?? (() => new Date());
+  const sources = deps.keepLongResults
+    ? [...deps.sources, createQueryResultToolSource({ now, maxChars: MAX_RESULT_CHARS })]
+    : deps.sources;
 
   async function allTools(ctx: ToolContext) {
     const byName = new Map<string, ToolDefinition>();
     const rightHand = isRightHand(await getAgentCached(ctx.db, ctx.orgId, ctx.agentId));
-    for (const source of deps.sources) {
+    for (const source of sources) {
       for (const tool of await source.tools(ctx)) {
         if (!TOOL_NAME.test(tool.name)) continue;
         if (rightHand && RIGHT_HAND_NOT_OFFERED.has(tool.name)) continue;
@@ -711,6 +720,12 @@ export function createToolGateway(deps: {
       }
       // A NUL or a lone surrogate (a binary printed by a command) would make every save of this result fail.
       const text = pgSafeText(output.content);
+      // Already framed when it came from outside: the id and how to read it stay out of the frame.
+      const kept =
+        deps.keepLongResults && text.length > MAX_RESULT_CHARS
+          ? await keepLongResult(ctx, tool, text, { now: now(), maxChars: MAX_RESULT_CHARS })
+          : null;
+      if (kept) return { ...output, content: kept };
       const capped = {
         ...output,
         content: text.length > MAX_RESULT_CHARS ? `${cutText(text, MAX_RESULT_CHARS)}\n[truncated]` : text,

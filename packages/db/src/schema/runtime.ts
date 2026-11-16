@@ -1283,3 +1283,32 @@ export const runToolTokens = pgTable(
   },
   (t) => [index().on(t.runId), index().on(t.taskId)],
 );
+
+/**
+ * A tool's JSON answer too long for the model (ADR 0015, addendum on long results): kept whole for a short while,
+ * for that run's agent only, which reads parts of it with `query_result`. Swept once past `expiresAt`.
+ */
+export const toolResults = pgTable(
+  "tool_results",
+  {
+    id: uuid()
+      .primaryKey()
+      .$defaultFn(() => Bun.randomUUIDv7()),
+    orgId: uuid()
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    runId: uuid()
+      .notNull()
+      .references(() => agentRuns.id, { onDelete: "cascade" }),
+    agentId: uuid().notNull(),
+    /** The tool that answered, as the model called it. */
+    tool: text().notNull(),
+    /** Its text came from outside the org (an `external` or `readsOutside` tool): what is read from it is too. */
+    outside: boolean().notNull().default(false),
+    /** The whole answer, as the tool gave it. */
+    content: text().notNull(),
+    expiresAt: timestamp({ withTimezone: true }).notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index().on(t.runId), index().on(t.expiresAt)],
+);

@@ -2031,6 +2031,13 @@
       "when": 1794844153954,
       "tag": "0293_mcp_oauth_preregistered_apps",
       "breakpoints": true
+    },
+    {
+      "idx": 292,
+      "version": "7",
+      "when": 1794844240674,
+      "tag": "0294_tool_results",
+      "breakpoints": true
     }
   ]
 }
