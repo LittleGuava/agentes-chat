@@ -2319,6 +2319,9 @@ export const en = {
     pin: "Pin to top",
     unpin: "Unpin",
     pinned: "Pinned",
+    /** A pinned row's own place among the pinned ones: each person's order, not the workspace's. */
+    moveUp: "Move up",
+    moveDown: "Move down",
     full: {
       agents: "You already pinned 5 agents. Unpin one to pin this one.",
       channels: "You already pinned 5 channels. Unpin one to pin this one.",

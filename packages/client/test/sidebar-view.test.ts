@@ -2,10 +2,12 @@ import { expect, test } from "bun:test";
 import {
   dayOnePins,
   pinsOf,
+  placePin,
   repinAgent,
   SIDEBAR_VIEW_DEFAULT,
   sortAgents,
   splitPinned,
+  stepPin,
   togglePin,
   unpinAgents,
 } from "../src/lib/sidebar-view";
@@ -85,4 +87,32 @@ test("an agent put in a group by hand leaves the pins (it lands where it was dro
   expect(repinAgent(view, "b", 0)).toBe(view);
   const full = { ...view, pins: { ...view.pins, agents: ["a", "c", "d", "e", "f"] } };
   expect(repinAgent(full, "b", 1)).toBe(full);
+});
+
+test("a pinned row moves one place up or down among the pinned rows shown with it; the other pins stay put", () => {
+  const pins = { agents: ["a", "x", "b", "y", "c"], channels: ["1", "2", "3"], people: [] };
+  expect(stepPin(pins, "channels", "2", -1)?.channels).toEqual(["2", "1", "3"]);
+  expect(stepPin(pins, "channels", "2", 1)?.channels).toEqual(["1", "3", "2"]);
+  // At either end, or not pinned: nowhere to go.
+  expect(stepPin(pins, "channels", "1", -1)).toBeNull();
+  expect(stepPin(pins, "channels", "3", 1)).toBeNull();
+  expect(stepPin(pins, "channels", "9", 1)).toBeNull();
+  // An agent moves among its own setor's pinned agents (a, b and c here), past the other setor's x and y.
+  const moved = stepPin(pins, "agents", "c", -1, ["a", "b", "c"]);
+  expect(moved?.agents).toEqual(["a", "x", "c", "y", "b"]);
+  expect(moved && splitPinned(["a", "b", "c"], moved.agents, (id) => id).top).toEqual(["a", "c", "b"]);
+  expect(moved?.channels).toEqual(pins.channels);
+});
+
+test("a dragged pinned row lands before another pinned row, or last; dropped where it was, nothing to save", () => {
+  const pins = { agents: [], channels: ["1", "2", "3", "4"], people: ["p", "q"] };
+  expect(placePin(pins, "channels", "4", "2")?.channels).toEqual(["1", "4", "2", "3"]);
+  expect(placePin(pins, "channels", "1", null)?.channels).toEqual(["2", "3", "4", "1"]);
+  expect(placePin(pins, "people", "q", "p")?.people).toEqual(["q", "p"]);
+  expect(placePin(pins, "channels", "2", "3")).toBeNull();
+  expect(placePin(pins, "channels", "2", "2")).toBeNull();
+  expect(placePin(pins, "channels", "4", null)).toBeNull();
+  // Not pinned, or before a row that isn't: nothing moves.
+  expect(placePin(pins, "channels", "9", "1")).toBeNull();
+  expect(placePin(pins, "channels", "1", "9")).toBeNull();
 });

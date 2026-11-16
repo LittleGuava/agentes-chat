@@ -411,6 +411,83 @@ describe("Fixar no topo", () => {
     expect(canais.querySelector(".sidebar__pins-end")).toBeNull();
   });
 
+  // ADR 0083, addendum of 2026-11-15: the pinned rows' order is the person's own, never the workspace's.
+  const pinnedChannels = (channels: string[]) => {
+    const state = seedState();
+    state.sidebarView = { agentSort: "workspace", showAllAgents: false, pins: { agents: [], channels, people: [] } };
+    return state;
+  };
+  const titles = (el: HTMLElement) =>
+    [...el.querySelectorAll("a.sidebar__item[data-kind='channel']")].map((a) => a.getAttribute("title"));
+
+  test("a pinned channel moves up or down among the pinned ones from its right click, in my order only", async () => {
+    const { state } = await go(pinnedChannels([GENERAL_ID, ENG_ID]));
+    const row = (name: string) => nav().querySelector(`a.sidebar__item[title="#${name}"]`) as HTMLElement;
+    expect(titles(section("Canais")).slice(0, 2)).toEqual(["#general", "#eng"]);
+    await rightClick(row("eng"));
+    expect(items()).toContain("Mover para cima");
+    expect(items()).not.toContain("Mover para baixo");
+    await pick("Mover para cima");
+    expect(titles(section("Canais")).slice(0, 2)).toEqual(["#eng", "#general"]);
+    expect(views(state).at(-1)).toMatchObject({ pins: { channels: [ENG_ID, GENERAL_ID] } });
+    await rightClick(row("eng"));
+    expect(items()).toContain("Mover para baixo");
+    expect(items()).not.toContain("Mover para cima");
+    // The workspace's order of the channels was never asked to change.
+    expect(state.calls.filter((c) => c.method === "chat.place")).toEqual([]);
+  });
+
+  test("a row that isn't pinned, or the only pinned one, has nowhere to move", async () => {
+    await go(pinnedChannels([GENERAL_ID]));
+    await rightClick(nav().querySelector(`a.sidebar__item[title="#general"]`) as HTMLElement);
+    expect(items()).not.toContain("Mover para cima");
+    expect(items()).not.toContain("Mover para baixo");
+    await act(async () => fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" }));
+    await settle(2);
+    await rightClick(nav().querySelector(`a.sidebar__item[title="#eng"]`) as HTMLElement);
+    expect(items()).not.toContain("Mover para cima");
+  });
+
+  test("a pinned channel dragged onto another pinned one lands before it, and never moves it in the workspace", async () => {
+    const { state } = await go(pinnedChannels([GENERAL_ID, ENG_ID]));
+    const eng = nav().querySelector(`a.sidebar__item[title="#eng"]`) as HTMLElement;
+    const general = nav().querySelector(`a.sidebar__item[title="#general"]`) as HTMLElement;
+    expect(eng.getAttribute("draggable")).toBe("true");
+    const dt = { setData: () => {}, getData: () => "", effectAllowed: "", dropEffect: "" };
+    await act(async () => fireEvent.dragStart(eng, { dataTransfer: dt }));
+    await act(async () => fireEvent.dragOver(general, { dataTransfer: dt, clientY: 0 }));
+    expect(general.dataset.drop).toBe("before");
+    await act(async () => fireEvent.drop(general, { dataTransfer: dt, clientY: 0 }));
+    await settle(6);
+    expect(titles(section("Canais")).slice(0, 2)).toEqual(["#eng", "#general"]);
+    expect(views(state).at(-1)).toMatchObject({ pins: { channels: [ENG_ID, GENERAL_ID] } });
+    expect(state.calls.filter((c) => c.method === "chat.place" || c.method === "chat.placeCategory")).toEqual([]);
+  });
+
+  test("a pinned agent moves among its own setor's pinned agents; the pins of the others keep their place", async () => {
+    const state = withGroups();
+    const caio = { ...(state.agents[0] as State["agents"][number]), id: "00000000-0000-4000-8000-0000000000a3" };
+    state.agents.push({ ...caio, name: "Caio", handle: "caio" });
+    state.agentGroups = [{ id: INTEGRATIONS, name: "Integrations", agentIds: [ATLAS_ID, caio.id] }];
+    state.sidebarView = {
+      agentSort: "workspace",
+      showAllAgents: false,
+      pins: { agents: [ATLAS_ID, ADA_ID, caio.id], channels: [], people: [] },
+    };
+    await go(state);
+    expect(rowsIn(section("Integrations"))).toEqual(["Atlas", "Caio"]);
+    // Ada is the only pinned agent in no setor: nowhere to move.
+    await rightClick(nav().querySelector(`[data-agent-row="${ADA_ID}"] a`) as HTMLElement);
+    expect(items()).not.toContain("Mover para cima");
+    expect(items()).not.toContain("Mover para baixo");
+    await act(async () => fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" }));
+    await settle(2);
+    await rightClick(nav().querySelector(`[data-agent-row="${caio.id}"] a`) as HTMLElement);
+    await pick("Mover para cima");
+    expect(rowsIn(section("Integrations"))).toEqual(["Caio", "Atlas"]);
+    expect(views(state).at(-1)).toMatchObject({ pins: { agents: [caio.id, ADA_ID, ATLAS_ID] } });
+  });
+
   test("a person pinned stays on top of Mensagens diretas even before a conversation", async () => {
     const state = seedState();
     state.sidebarView = {

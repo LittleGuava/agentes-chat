@@ -2231,6 +2231,8 @@
     "pin": "Épingler en haut",
     "unpin": "Désépingler",
     "pinned": "Épinglé en haut",
+    "moveUp": "Monter",
+    "moveDown": "Descendre",
     "full": {
       "agents": "Vous avez déjà épinglé 5 agents. Désépinglez-en un pour épingler celui-ci.",
       "channels": "Vous avez déjà épinglé 5 canaux. Désépinglez-en un pour épingler celui-ci.",

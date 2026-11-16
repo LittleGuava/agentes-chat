@@ -2105,6 +2105,8 @@
     "pin": "Sematkan di atas",
     "unpin": "Lepas sematan",
     "pinned": "Disematkan di atas",
+    "moveUp": "Pindah ke atas",
+    "moveDown": "Pindah ke bawah",
     "full": {
       "agents": "Kamu sudah menyematkan 5 agen. Lepaskan satu untuk menyematkan yang ini.",
       "channels": "Kamu sudah menyematkan 5 kanal. Lepaskan satu untuk menyematkan yang ini.",

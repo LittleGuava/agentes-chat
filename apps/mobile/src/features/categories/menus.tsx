@@ -15,17 +15,18 @@ const NO_CHANNELS: never[] = [];
 
 /** One of a row's long press actions: the app's sheet shows `icon`, iOS's own menu the SF Symbol `symbol`. */
 export interface RowAction {
-  key: "pin" | "move";
-  icon: "pin" | "list";
-  symbol: "pin" | "pin.slash" | "folder";
+  key: "pin" | "pin-up" | "pin-down" | "move";
+  icon: "pin" | "up" | "down" | "list";
+  symbol: "pin" | "pin.slash" | "arrow.up" | "arrow.down" | "folder";
   label: string;
   run: () => void;
 }
 
 /**
  * The home's long presses (ADR 0080), as short sheets: a row's "Fixar no topo" (a channel, an agent's or a person's
- * DM) and a channel's "Mover para…" (only where `movesChannel`), and a category header's Renomear, Categorias and
- * Nova categoria (admins; undefined otherwise, so the header has no long press at all).
+ * DM), a pinned row's Mover para cima and Mover para baixo among the pinned ones (ADR 0083, addendum of 2026-11-15)
+ * and a channel's "Mover para…" (only where `movesChannel`), and a category header's Renomear, Categorias and Nova
+ * categoria (admins; undefined otherwise, so the header has no long press at all).
  */
 export function useCategoryMenus() {
   const { t } = useTranslation();
@@ -64,6 +65,28 @@ export function useCategoryMenus() {
         label: pinned ? t("sidebarPins.unpin") : t("sidebarPins.pin"),
         run: () => pins.toggle(pin.kind, pin.id),
       },
+      ...(pins.canStep(pin.kind, pin.id, -1)
+        ? [
+            {
+              key: "pin-up" as const,
+              icon: "up" as const,
+              symbol: "arrow.up" as const,
+              label: t("sidebarPins.moveUp"),
+              run: () => pins.step(pin.kind, pin.id, -1),
+            },
+          ]
+        : []),
+      ...(pins.canStep(pin.kind, pin.id, 1)
+        ? [
+            {
+              key: "pin-down" as const,
+              icon: "down" as const,
+              symbol: "arrow.down" as const,
+              label: t("sidebarPins.moveDown"),
+              run: () => pins.step(pin.kind, pin.id, 1),
+            },
+          ]
+        : []),
       ...(channel && movesChannel(channel, meId, org)
         ? [
             {

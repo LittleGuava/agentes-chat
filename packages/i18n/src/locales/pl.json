@@ -2294,6 +2294,8 @@
     "pin": "Przypnij na górze",
     "unpin": "Odepnij",
     "pinned": "Przypięte na górze",
+    "moveUp": "Przenieś wyżej",
+    "moveDown": "Przenieś niżej",
     "full": {
       "agents": "Masz już 5 przypiętych agentów. Odepnij jednego, aby przypiąć tego.",
       "channels": "Masz już 5 przypiętych kanałów. Odepnij jeden, aby przypiąć ten.",

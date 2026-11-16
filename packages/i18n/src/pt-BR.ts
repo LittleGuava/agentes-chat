@@ -2218,6 +2218,9 @@ export const ptBR = {
     pin: "Fixar no topo",
     unpin: "Tirar do topo",
     pinned: "Fixado no topo",
+    /** A pinned row's own place among the pinned ones: each person's order, not the workspace's. */
+    moveUp: "Mover para cima",
+    moveDown: "Mover para baixo",
     full: {
       agents: "Você já fixou 5 agentes. Tire um do topo para fixar este.",
       channels: "Você já fixou 5 canais. Tire um do topo para fixar este.",

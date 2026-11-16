@@ -2231,6 +2231,8 @@
     "pin": "Fissa in alto",
     "unpin": "Togli dall’alto",
     "pinned": "Fissato in alto",
+    "moveUp": "Sposta su",
+    "moveDown": "Sposta giù",
     "full": {
       "agents": "Hai già fissato 5 agenti. Toglierne uno per fissare questo.",
       "channels": "Hai già fissato 5 canali. Toglierne uno per fissare questo.",
