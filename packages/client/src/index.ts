@@ -10,6 +10,7 @@ import { createHttpApi } from "./api/http-client";
 
 export * from "./api/client";
 export * from "./api/context";
+export * from "./api/conversation-model";
 export * from "./api/http";
 export * from "./api/http-client";
 export * from "./api/keys";

@@ -125,6 +125,8 @@ import type {
   ConnectOutcome,
   ConnectorCatalog,
   ConsultationConversation,
+  ConversationModel,
+  ConversationPlace,
   CostlyDecision,
   CreatedPersonalToken,
   Credential,
@@ -948,6 +950,13 @@ export interface ApiClient {
     /** "Quem pensa": the API, Claude Code or Codex on its computer (its owner or an admin). */
     brain(orgId: string, agentId: string, scope?: BrainScope): Promise<AgentBrain>;
     setBrain(orgId: string, agentId: string, input: AgentBrainInput): Promise<AgentBrain>;
+    /** The model it thinks with in one conversation alone (a thread, else its channel); null = the agent's own. */
+    conversationModel(orgId: string, agentId: string, place: ConversationPlace): Promise<ConversationModel>;
+    setConversationModel(
+      orgId: string,
+      agentId: string,
+      input: ConversationPlace & { model: string | null },
+    ): Promise<ConversationModel>;
     /** "Quem pensa" for an agent still being created: the workspace's computers and what each offers (admins). */
     brainMachines(orgId: string): Promise<BrainMachine[]>;
     /**

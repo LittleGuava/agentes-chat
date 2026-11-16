@@ -12175,7 +12175,17 @@
       "more": "Más opciones",
       "undo": "Deshacer",
       "saved": "{{agent}} ahora piensa con {{model}}.",
-      "readOnly": "Solo los administradores y el dueño del agente cambian su modelo."
+      "readOnly": "Solo los administradores y el dueño del agente cambian su modelo.",
+      "conversation": {
+        "title": "Solo en esta conversación",
+        "default": "Predeterminado del agente",
+        "line": "{{model}} en esta conversación",
+        "saved": "En esta conversación, {{agent}} piensa con {{model}}.",
+        "reset": "En esta conversación, {{agent}} vuelve a su modelo de siempre.",
+        "button": "Modelos en esta conversación",
+        "of": "Modelo de {{agent}} en esta conversación",
+        "inherited": "Como en el canal ({{model}})"
+      }
     },
     "title": "Quién piensa",
     "auto": {

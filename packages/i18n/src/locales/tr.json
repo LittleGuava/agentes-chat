@@ -11737,7 +11737,17 @@
       "more": "Diğer seçenekler",
       "undo": "Geri al",
       "saved": "{{agent}} artık {{model}} ile düşünüyor.",
-      "readOnly": "Modeli yalnızca yöneticiler ve ajanın sahibi değiştirebilir."
+      "readOnly": "Modeli yalnızca yöneticiler ve ajanın sahibi değiştirebilir.",
+      "conversation": {
+        "title": "Yalnızca bu konuşmada",
+        "default": "Ajanın varsayılanı",
+        "line": "Bu konuşmada {{model}}",
+        "saved": "Bu konuşmada {{agent}}, {{model}} ile düşünüyor.",
+        "reset": "Bu konuşmada {{agent}} her zamanki modeline döndü.",
+        "button": "Bu konuşmadaki modeller",
+        "of": "{{agent}} için bu konuşmadaki model",
+        "inherited": "Kanaldaki gibi ({{model}})"
+      }
     },
     "title": "Düşünen yapay zeka",
     "auto": {

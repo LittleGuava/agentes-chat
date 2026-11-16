@@ -95,6 +95,7 @@ import type {
   ConnectOutcome,
   ConnectorCatalog,
   ConsultationConversation,
+  ConversationModel,
   CostlyDecision,
   CreatedPersonalToken,
   Credential,
@@ -1022,6 +1023,15 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         request<AgentBrain>(`${org(orgId)}/agents/${enc(agentId)}/brain${scope ? `?scope=${scope}` : ""}`),
       setBrain: (orgId, agentId, input) =>
         request<AgentBrain>(`${org(orgId)}/agents/${enc(agentId)}/brain`, { method: "PUT", json: input }),
+      conversationModel: (orgId, agentId, { channelId, threadId }) =>
+        request<ConversationModel>(
+          `${org(orgId)}/agents/${enc(agentId)}/conversation-model?channelId=${enc(channelId)}${threadId ? `&threadId=${enc(threadId)}` : ""}`,
+        ),
+      setConversationModel: (orgId, agentId, input) =>
+        request<ConversationModel>(`${org(orgId)}/agents/${enc(agentId)}/conversation-model`, {
+          method: "PUT",
+          json: input,
+        }),
       brainMachines: async (orgId) =>
         (await request<{ machines: BrainMachine[] }>(`${org(orgId)}/brain-machines`)).machines,
       // ponytail: past 200 agents each call is its own transaction, so a preview's later calls don't see a one-agent

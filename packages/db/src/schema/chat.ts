@@ -397,3 +397,31 @@ export const messageClientIds = pgTable(
   },
   (t) => [primaryKey({ columns: [t.orgId, t.userId, t.clientId] }), index().on(t.createdAt)],
 );
+
+/**
+ * A model chosen for one agent in one conversation alone (ADR 0032, addendum 2026-11-15): `conversation_id` is a
+ * thread's root message, or the channel itself for the channel (a DM) as a whole; a thread with none of its own takes
+ * its channel's. `brain` is the brain it was chosen for: once the agent thinks with another, the row is ignored (never
+ * deleted, so going back brings it back). Budget and cost stay the agent's. No foreign key to the partitioned
+ * `messages`.
+ */
+export const conversationModels = pgTable(
+  "conversation_models",
+  {
+    orgId: uuid().notNull(),
+    agentId: uuid()
+      .notNull()
+      .references(() => agents.id, { onDelete: "cascade" }),
+    channelId: uuid().notNull(),
+    conversationId: uuid().notNull(),
+    brain: text().notNull(),
+    model: text().notNull(),
+    setByUserId: text().references(() => users.id, { onDelete: "set null" }),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.agentId, t.conversationId] }),
+    foreignKey({ columns: [t.orgId, t.channelId], foreignColumns: [channels.orgId, channels.id] }).onDelete("cascade"),
+    index().on(t.orgId, t.channelId),
+  ],
+);

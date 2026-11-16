@@ -28874,6 +28874,30 @@
   "brain.picker.readOnly": {
     "value": "Only admins and the agent's owner change its model."
   },
+  "brain.picker.conversation.title": {
+    "value": "Only in this conversation"
+  },
+  "brain.picker.conversation.default": {
+    "value": "Agent's default"
+  },
+  "brain.picker.conversation.line": {
+    "value": "{{model}} in this conversation"
+  },
+  "brain.picker.conversation.saved": {
+    "value": "In this conversation, {{agent}} thinks with {{model}}."
+  },
+  "brain.picker.conversation.reset": {
+    "value": "In this conversation, {{agent}} is back on its usual model."
+  },
+  "brain.picker.conversation.button": {
+    "value": "Models in this conversation"
+  },
+  "brain.picker.conversation.of": {
+    "value": "{{agent}}'s model in this conversation"
+  },
+  "brain.picker.conversation.inherited": {
+    "value": "As in the channel ({{model}})"
+  },
   "brain.title": {
     "value": "Who thinks"
   },

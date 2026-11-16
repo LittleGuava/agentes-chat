@@ -12261,7 +12261,17 @@
       "more": "Altre opzioni",
       "undo": "Annulla",
       "saved": "{{agent}} ora pensa con {{model}}.",
-      "readOnly": "Solo gli admin e il proprietario dell'agente ne cambiano il modello."
+      "readOnly": "Solo gli admin e il proprietario dell'agente ne cambiano il modello.",
+      "conversation": {
+        "title": "Solo in questa conversazione",
+        "default": "Predefinito dell'agente",
+        "line": "{{model}} in questa conversazione",
+        "saved": "In questa conversazione, {{agent}} pensa con {{model}}.",
+        "reset": "In questa conversazione, {{agent}} torna al suo modello abituale.",
+        "button": "Modelli in questa conversazione",
+        "of": "Modello di {{agent}} in questa conversazione",
+        "inherited": "Come nel canale ({{model}})"
+      }
     },
     "title": "Chi pensa",
     "auto": {

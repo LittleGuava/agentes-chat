@@ -11797,7 +11797,17 @@
       "more": "Weitere Optionen",
       "undo": "Rückgängig",
       "saved": "{{agent}} denkt jetzt mit {{model}}.",
-      "readOnly": "Nur Admins und der Eigentümer des Agenten ändern sein Modell."
+      "readOnly": "Nur Admins und der Eigentümer des Agenten ändern sein Modell.",
+      "conversation": {
+        "title": "Nur in diesem Gespräch",
+        "default": "Standard des Agenten",
+        "line": "{{model}} in diesem Gespräch",
+        "saved": "In diesem Gespräch denkt {{agent}} mit {{model}}.",
+        "reset": "In diesem Gespräch nutzt {{agent}} wieder sein übliches Modell.",
+        "button": "Modelle in diesem Gespräch",
+        "of": "Modell von {{agent}} in diesem Gespräch",
+        "inherited": "Wie im Kanal ({{model}})"
+      }
     },
     "title": "Wer denkt",
     "auto": {

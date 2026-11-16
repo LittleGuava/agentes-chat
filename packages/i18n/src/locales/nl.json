@@ -11862,7 +11862,17 @@
       "more": "Meer opties",
       "undo": "Ongedaan maken",
       "saved": "{{agent}} denkt nu met {{model}}.",
-      "readOnly": "Alleen beheerders en de eigenaar van de agent wijzigen het model."
+      "readOnly": "Alleen beheerders en de eigenaar van de agent wijzigen het model.",
+      "conversation": {
+        "title": "Alleen in dit gesprek",
+        "default": "Standaard van de agent",
+        "line": "{{model}} in dit gesprek",
+        "saved": "In dit gesprek denkt {{agent}} met {{model}}.",
+        "reset": "In dit gesprek gebruikt {{agent}} weer zijn gebruikelijke model.",
+        "button": "Modellen in dit gesprek",
+        "of": "Model van {{agent}} in dit gesprek",
+        "inherited": "Zoals in het kanaal ({{model}})"
+      }
     },
     "title": "Wie denkt",
     "auto": {

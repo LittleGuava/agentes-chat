@@ -272,6 +272,8 @@ export interface FakeState {
   approvalCovers?: ApprovalCovers;
   /** What the right hand approves for me (ADR 0139 §2); unset: off, as a new member has it. */
   rightHandApprovals?: RightHandApprovals;
+  /** Agents whose model in a conversation I may only read (not their owner nor an admin); unset: I may change all. */
+  conversationModelReadOnly?: string[];
   /** How many of the newest the unfiltered list returns (the server's window); all when unset. */
   approvalsWindow?: number;
   /** What each agent runs without asking ("Aprovar sempre"), by agent id; unset = none. */
@@ -1418,6 +1420,34 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
     rightHandId: state.agents.find((a) => a.builtin === "right_hand")?.id ?? null,
     me: meNow() ?? undefined,
   });
+  // A model for one conversation (ADR 0032, addendum 2026-11-15), by `${agentId}:${threadId ?? channelId}`.
+  const conversationModels = new Map<string, { brain: string; model: string }>();
+  const CONVERSATION_OPTIONS = [
+    { value: "claude-opus-5-5", label: "Claude Opus 5.5" },
+    { value: "claude-haiku-5-5", label: "Claude Haiku 5.5" },
+  ];
+  const conversationModelView = (agentId: string, channelId: string, threadId: string | null) => {
+    // As the server: a choice made for another brain than the agent's now is passed over.
+    const brain = brainOf(agentId).brain;
+    const of = (id: string) => {
+      const row = conversationModels.get(`${agentId}:${id}`);
+      return row?.brain === brain ? row.model : null;
+    };
+    const model = of(threadId ?? channelId);
+    const inherited = threadId ? of(channelId) : null;
+    const applies = model ?? inherited;
+    return {
+      agentId,
+      channelId,
+      threadId,
+      brain,
+      model,
+      inherited,
+      label: applies ? (CONVERSATION_OPTIONS.find((o) => o.value === applies)?.label ?? applies) : null,
+      options: CONVERSATION_OPTIONS,
+      canEdit: !(state.conversationModelReadOnly ?? []).includes(agentId),
+    };
+  };
   // "Quem pensa": every agent starts on the API, with a MacBook that has Claude Code and Codex.
   const brains = new Map<string, AgentBrain>();
   const brainOf = (agentId: string): AgentBrain => {
@@ -3037,6 +3067,15 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
                     : { mode: "everyone", userIds: [] };
         }
         return structuredClone(next);
+      },
+      conversationModel: async (_orgId, agentId, { channelId, threadId }) =>
+        conversationModelView(agentId, channelId, threadId ?? null),
+      setConversationModel: async (orgId, agentId, input) => {
+        log("agents.setConversationModel", orgId, agentId, input);
+        const key = `${agentId}:${input.threadId ?? input.channelId}`;
+        if (input.model === null) conversationModels.delete(key);
+        else conversationModels.set(key, { brain: brainOf(agentId).brain, model: input.model });
+        return conversationModelView(agentId, input.channelId, input.threadId ?? null);
       },
       runs: async (_orgId, filter = {}) =>
         state.runs

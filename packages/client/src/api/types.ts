@@ -6237,6 +6237,32 @@ export interface BrainMachine {
   options: BrainOption[];
 }
 
+/**
+ * `GET …/agents/{id}/conversation-model` (ADR 0032, addendum 2026-11-15): the model an agent thinks with in one
+ * conversation alone, a thread's own else its channel's. Whoever reads the conversation; `options` only to who may
+ * change it (an admin who manages agents, or the agent's owner).
+ */
+/** One conversation: a channel (a DM) as a whole, or a thread in it. */
+export interface ConversationPlace {
+  channelId: string;
+  threadId?: string | null;
+}
+
+export interface ConversationModel {
+  agentId: string;
+  channelId: string;
+  threadId: string | null;
+  brain: BrainKind;
+  /** This conversation's own model; null: none here. */
+  model: string | null;
+  /** A thread's channel's model, which applies while the thread has none of its own. */
+  inherited: string | null;
+  /** The name of the model that applies here; null: the agent's own. */
+  label: string | null;
+  options: { value: string; label: string }[];
+  canEdit: boolean;
+}
+
 /** `GET …/agents/{id}/brain` (its owner or an admin; the team's right hand's `mine`, anyone). */
 export interface AgentBrain {
   agentId: string;

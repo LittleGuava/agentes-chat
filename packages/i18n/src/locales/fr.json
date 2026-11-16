@@ -12244,7 +12244,17 @@
       "more": "Plus d'options",
       "undo": "Annuler",
       "saved": "{{agent}} pense maintenant avec {{model}}.",
-      "readOnly": "Seuls les admins et le propriétaire de l'agent changent son modèle."
+      "readOnly": "Seuls les admins et le propriétaire de l'agent changent son modèle.",
+      "conversation": {
+        "title": "Uniquement dans cette conversation",
+        "default": "Par défaut de l'agent",
+        "line": "{{model}} dans cette conversation",
+        "saved": "Dans cette conversation, {{agent}} réfléchit avec {{model}}.",
+        "reset": "Dans cette conversation, {{agent}} revient à son modèle habituel.",
+        "button": "Modèles dans cette conversation",
+        "of": "Modèle de {{agent}} dans cette conversation",
+        "inherited": "Comme dans le canal ({{model}})"
+      }
     },
     "title": "Qui réfléchit",
     "auto": {

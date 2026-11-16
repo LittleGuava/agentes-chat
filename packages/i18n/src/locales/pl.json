@@ -12695,7 +12695,17 @@
       "more": "Więcej opcji",
       "undo": "Cofnij",
       "saved": "{{agent}} myśli teraz z {{model}}.",
-      "readOnly": "Model agenta zmieniają tylko administratorzy i jego właściciel."
+      "readOnly": "Model agenta zmieniają tylko administratorzy i jego właściciel.",
+      "conversation": {
+        "title": "Tylko w tej rozmowie",
+        "default": "Domyślny agenta",
+        "line": "{{model}} w tej rozmowie",
+        "saved": "W tej rozmowie {{agent}} myśli z {{model}}.",
+        "reset": "W tej rozmowie {{agent}} wraca do swojego zwykłego modelu.",
+        "button": "Modele w tej rozmowie",
+        "of": "Model {{agent}} w tej rozmowie",
+        "inherited": "Jak na kanale ({{model}})"
+      }
     },
     "title": "Kto myśli",
     "auto": {

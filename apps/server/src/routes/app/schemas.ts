@@ -1285,6 +1285,29 @@ export const NewAgentSetup = z
     description: "What a new agent starts thinking with (ADR 0094): the last setup saved or used on other agents.",
   });
 
+export const ConversationModel = z
+  .object({
+    agentId: z.uuid(),
+    channelId: z.uuid(),
+    threadId: z.uuid().nullable(),
+    brain: BrainKind.openapi({ description: "The brain the choice is for: the agent's own." }),
+    model: z.string().nullable().openapi({ description: "This conversation's own model; null = none here." }),
+    inherited: z
+      .string()
+      .nullable()
+      .openapi({ description: "A thread's channel's model, which applies while the thread has none of its own." }),
+    label: z
+      .string()
+      .nullable()
+      .openapi({ description: "The name of the model that applies here; null = the agent's own." }),
+    options: z.array(z.object({ value: z.string(), label: z.string() })).openapi({
+      description:
+        "What may be chosen: models of the agent's own key, or its computer brain's. Empty to who can't edit.",
+    }),
+    canEdit: z.boolean().openapi({ description: "An admin who manages agents, or the agent's owner." }),
+  })
+  .openapi("ConversationModel");
+
 export const MissionBrain = z
   .object({
     missionId: z.uuid(),

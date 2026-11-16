@@ -82,6 +82,10 @@ export async function deleteAgent(deps: AgentDeletionDeps, actorId: string, orgI
   const now = new Date();
   const { released, dms } = await db.transaction(async (tx) => {
     const released = await releaseAgentLogin(tx, orgId, agentId);
+    // The models chosen for it in conversations go with its other settings (ADR 0032, addendum 2026-11-15).
+    await tx
+      .delete(schema.conversationModels)
+      .where(and(eq(schema.conversationModels.orgId, orgId), eq(schema.conversationModels.agentId, agentId)));
     // Only its name, role and look stay: every other setting goes back to its default.
     const [gone] = await tx
       .update(agents)

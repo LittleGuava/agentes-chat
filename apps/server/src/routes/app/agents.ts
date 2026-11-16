@@ -39,6 +39,7 @@ import {
   getAgent,
   getAgentBrain,
   getAgentProposal,
+  getConversationModel,
   getMembership,
   getNewAgentSetup,
   getTeam,
@@ -70,6 +71,7 @@ import {
   setAgentAppearance,
   setAgentAudience,
   setAgentBrain,
+  setConversationModel,
   setReportsTo,
   speakerOf,
   summaryModelReady,
@@ -115,6 +117,7 @@ import {
   BrainSpeed,
   CommandApproval,
   ContextLimit,
+  ConversationModel,
   Credential,
   EndpointCheck,
   EndpointModel,
@@ -2072,6 +2075,69 @@ export function agentRoutes(deps: AppDeps) {
       // the one an old plan was on may be none the view shows (the team's right hand, which is on no computer).
       await publishMachineAgentsChanged(adapters.pubsub, orgId);
       await publishAgentsChanged(adapters.pubsub, orgId);
+      return c.json(view, 200);
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/organizations/{orgId}/agents/{agentId}/conversation-model",
+      tags,
+      security,
+      summary:
+        "The model the agent thinks with in one conversation alone (ADR 0032, addendum 2026-11-15): a thread's, else its channel's. Whoever reads the conversation; the options only to who may change it.",
+      request: {
+        params: AgentParams,
+        query: z.object({ channelId: z.uuid(), threadId: z.uuid().optional() }),
+      },
+      responses: { 200: json(ConversationModel), ...errors },
+    }),
+    async (c) => {
+      const { orgId, agentId } = c.req.valid("param");
+      const { channelId, threadId } = c.req.valid("query");
+      return c.json(
+        await getConversationModel(db, c.get("user").id, orgId, agentId, { channelId, threadId: threadId ?? null }),
+        200,
+      );
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "put",
+      path: "/organizations/{orgId}/agents/{agentId}/conversation-model",
+      tags,
+      security,
+      summary:
+        "Give the agent another of its models in one conversation, or `model: null` back to its own (an admin or the agent's owner who reads the conversation; audited as `agent.conversation_model_changed`). Budget and cost stay the agent's.",
+      request: {
+        params: AgentParams,
+        body: body(
+          z.object({
+            channelId: z.uuid(),
+            threadId: z
+              .uuid()
+              .nullable()
+              .optional()
+              .openapi({ description: "Null or omitted: the channel as a whole." }),
+            model: z.string().max(200).nullable().openapi({
+              description:
+                "API brain: a model of the agent's own key's provider; a computer brain: one its own setting takes. Never `auto`. Null = the agent's own.",
+            }),
+          }),
+        ),
+      },
+      responses: { 200: json(ConversationModel), ...errors },
+    }),
+    async (c) => {
+      const { orgId, agentId } = c.req.valid("param");
+      const input = c.req.valid("json");
+      const view = await setConversationModel(db, c.get("user").id, orgId, agentId, {
+        channelId: input.channelId,
+        threadId: input.threadId ?? null,
+        model: input.model,
+      });
       return c.json(view, 200);
     },
   );

@@ -11370,7 +11370,17 @@
       "more": "Opsi lainnya",
       "undo": "Urungkan",
       "saved": "{{agent}} sekarang berpikir dengan {{model}}.",
-      "readOnly": "Hanya admin dan pemilik agen yang bisa mengganti modelnya."
+      "readOnly": "Hanya admin dan pemilik agen yang bisa mengganti modelnya.",
+      "conversation": {
+        "title": "Hanya di percakapan ini",
+        "default": "Bawaan agen",
+        "line": "{{model}} di percakapan ini",
+        "saved": "Di percakapan ini, {{agent}} berpikir dengan {{model}}.",
+        "reset": "Di percakapan ini, {{agent}} kembali ke model biasanya.",
+        "button": "Model di percakapan ini",
+        "of": "Model {{agent}} di percakapan ini",
+        "inherited": "Seperti di kanal ({{model}})"
+      }
     },
     "title": "Siapa yang berpikir",
     "auto": {

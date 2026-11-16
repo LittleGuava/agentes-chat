@@ -11381,7 +11381,17 @@
       "more": "更多选项",
       "undo": "撤销",
       "saved": "{{agent}} 现在使用 {{model}} 思考。",
-      "readOnly": "只有管理员和智能体的所有者可以更改其模型。"
+      "readOnly": "只有管理员和智能体的所有者可以更改其模型。",
+      "conversation": {
+        "title": "仅在此对话中",
+        "default": "智能体默认",
+        "line": "此对话中为 {{model}}",
+        "saved": "在此对话中，{{agent}} 使用 {{model}} 思考。",
+        "reset": "在此对话中，{{agent}} 恢复使用平常的模型。",
+        "button": "此对话中的模型",
+        "of": "{{agent}} 在此对话中的模型",
+        "inherited": "与频道相同（{{model}}）"
+      }
     },
     "title": "思考方式",
     "auto": {

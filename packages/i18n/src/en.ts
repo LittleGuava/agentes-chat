@@ -12189,6 +12189,20 @@ export const en = {
       undo: "Undo",
       saved: "{{agent}} now thinks with {{model}}.",
       readOnly: "Only admins and the agent's owner change its model.",
+      /** Another model for one conversation alone (a DM's header); budget and cost stay the agent's. */
+      conversation: {
+        title: "Only in this conversation",
+        default: "Agent's default",
+        line: "{{model}} in this conversation",
+        saved: "In this conversation, {{agent}} thinks with {{model}}.",
+        reset: "In this conversation, {{agent}} is back on its usual model.",
+        /** The channel and thread headers' button and its popover's title. */
+        button: "Models in this conversation",
+        /** Each agent's select there. */
+        of: "{{agent}}'s model in this conversation",
+        /** A thread's default while its channel chose a model for the agent. */
+        inherited: "As in the channel ({{model}})",
+      },
     },
     title: "Who thinks",
     auto: {

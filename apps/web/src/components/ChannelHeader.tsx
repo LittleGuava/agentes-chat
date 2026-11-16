@@ -1,6 +1,7 @@
 import type { Agent, Channel, Member } from "@agenteschat/client";
 import { Icon } from "@agenteschat/ui";
 import { useTranslation } from "react-i18next";
+import { ConversationModelsButton } from "@/components/ai/ConversationModels";
 import { ChannelPinsButton } from "@/components/ChannelPins";
 import { QueueButton } from "@/components/ComputerQueue";
 import { ConversationViewers } from "@/components/ConversationViewers";
@@ -68,6 +69,7 @@ export function ChannelHeader({
           <QueueButton machineId={queueMachine} />
           {isMember && <ChannelThreadsButton channelId={channel.id} channelName={channel.name} />}
           {isMember && <ChannelPinsButton channelId={channel.id} channelName={channel.name} />}
+          {isMember && <ConversationModelsButton channelId={channel.id} look="channel" />}
           <button
             type="button"
             className="ac-btn ac-btn--ghost ac-btn--icon channel__icon channel__cog"

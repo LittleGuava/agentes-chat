@@ -12194,6 +12194,17 @@ export const ptBR = {
       undo: "Desfazer",
       saved: "{{agent}} agora pensa com o {{model}}.",
       readOnly: "Só admins e quem é dono do agente mudam o modelo.",
+      /** Another model for one conversation alone (a DM's header); budget and cost stay the agent's. */
+      conversation: {
+        title: "Só nesta conversa",
+        default: "Padrão do agente",
+        line: "{{model}} nesta conversa",
+        saved: "Nesta conversa, {{agent}} pensa com {{model}}.",
+        reset: "Nesta conversa, {{agent}} volta ao modelo de sempre.",
+        button: "Modelos nesta conversa",
+        of: "Modelo de {{agent}} nesta conversa",
+        inherited: "Como no canal ({{model}})",
+      },
     },
     title: "Quem pensa",
     auto: {

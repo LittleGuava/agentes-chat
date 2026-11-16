@@ -606,7 +606,7 @@ interface BrainDeps {
  * Admins (`manage_agents`) and the agent's owner see and change it; anyone else gets a 403. The team's right hand's
  * `mine` (ADR 0137 §11) is every member's own: theirs to see and change.
  */
-async function agentBrainAccess(db: Database, userId: string, orgId: string, agentId: string, scope?: unknown) {
+export async function agentBrainAccess(db: Database, userId: string, orgId: string, agentId: string, scope?: unknown) {
   const membership = await requirePermission(db, userId, orgId, "read");
   const agent = await getAgent(db, orgId, agentId);
   if (!agent || agent.archivedAt) throw new NotFoundError("Agent not found");

@@ -11310,7 +11310,17 @@
       "more": "옵션 더 보기",
       "undo": "되돌리기",
       "saved": "{{agent}}이(가) 이제 {{model}}(으)로 생각해요.",
-      "readOnly": "관리자와 에이전트 소유자만 모델을 바꿀 수 있어요."
+      "readOnly": "관리자와 에이전트 소유자만 모델을 바꿀 수 있어요.",
+      "conversation": {
+        "title": "이 대화에서만",
+        "default": "에이전트 기본값",
+        "line": "이 대화에서는 {{model}}",
+        "saved": "이 대화에서 {{agent}}은(는) {{model}}(으)로 생각합니다.",
+        "reset": "이 대화에서 {{agent}}은(는) 평소 모델로 돌아갔습니다.",
+        "button": "이 대화의 모델",
+        "of": "이 대화에서 {{agent}}의 모델",
+        "inherited": "채널과 동일 ({{model}})"
+      }
     },
     "title": "생각하는 AI",
     "auto": {

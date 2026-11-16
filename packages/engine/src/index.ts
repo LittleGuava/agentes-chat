@@ -109,6 +109,7 @@ export * from "./context/tools";
 export * from "./context/validity";
 export * from "./continue-run";
 export * from "./conversation-export";
+export * from "./conversation-model";
 export * from "./credentials";
 export * from "./cron";
 export * from "./crypto";
