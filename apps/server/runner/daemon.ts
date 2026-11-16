@@ -63,6 +63,7 @@ import {
 import { AccountBrains } from "./account-brains";
 import { accountSelfCheck, SELF_CHECK_EVERY_MS, SELF_CHECK_RETRY_MS } from "./account-check";
 import { AccountManager, grokSandboxFails, lchownTree, SYSTEM_ACCOUNTS_ROOT } from "./accounts";
+import { acpLookAll } from "./acp-engines";
 import { ActivityLog } from "./activity";
 import {
   AccountUsers,
@@ -88,6 +89,7 @@ import { ensureBrowserBindPolicy, prepareAgents } from "./browser-bind-policy";
 import { BrowserViews } from "./browser-views";
 import { CliInstaller, type CliInstallerOptions, gitBashPath } from "./cli-install";
 import {
+  type AcpEngineConfig,
   accessToStore,
   configPath,
   connectUrl,
@@ -252,6 +254,7 @@ export function configFromGrant(
     ...(prev?.networkAuthRoute ? { networkAuthRoute: prev.networkAuthRoute } : {}),
     ...(prev?.claudeSharedLogin ? { claudeSharedLogin: prev.claudeSharedLogin } : {}),
     ...(prev?.agentTmpOnDisk ? { agentTmpOnDisk: prev.agentTmpOnDisk } : {}),
+    ...(prev?.acpEngines ? { acpEngines: prev.acpEngines } : {}),
     ...(prev?.maxConcurrentTasks ? { maxConcurrentTasks: prev.maxConcurrentTasks } : {}),
     ...(prev?.taskMaxSeconds ? { taskMaxSeconds: prev.taskMaxSeconds } : {}),
     ...(prev?.brainIdleMinutes ? { brainIdleMinutes: prev.brainIdleMinutes } : {}),
@@ -470,6 +473,8 @@ export class RunnerDaemon implements RequestObserver {
   private logoSync: Promise<void> | null = null;
   private readonly self: { command: string[]; compiled: boolean };
   private readonly executors: () => NonNullable<RunnerInfo["executors"]>;
+  /** ADR 0187: the ACP agents `config.json` declares, read once at start; none in system mode (§7). */
+  private readonly acpEngines: readonly AcpEngineConfig[];
   /** False until the first look on a new install: `hello` then leaves the CLIs out, so the server keeps "unknown". */
   private readonly executorsKnown: () => boolean;
   private readonly executorsFresh: () => Promise<unknown>;
@@ -522,10 +527,19 @@ export class RunnerDaemon implements RequestObserver {
     const proc = currentProcess();
     this.self = opts.self ?? { command: selfCommand(proc), compiled: isCompiled(proc) };
     this.refreshPath = opts.refreshPath ?? (process.platform === "win32" ? () => adoptLoginPath() : undefined);
+    let startConfig: StoredConfig | null = null;
+    try {
+      startConfig = readStoredConfig(opts.home);
+    } catch {
+      // an unreadable config starts unpaired
+    }
+    this.acpEngines = startConfig?.mode === "system" ? [] : (startConfig?.acpEngines ?? []);
+    const engines = this.acpEngines;
     const exec =
       opts.executors ??
       cachedExecutors({
         file: path.join(opts.home, "executors.json"),
+        ...(engines.length ? { acp: () => acpLookAll(engines) } : {}),
         ...(opts.executorRun ? { run: opts.executorRun } : {}),
         onChange: () => this.executorsChanged(),
         ...(process.platform === "win32"
@@ -1508,7 +1522,7 @@ export class RunnerDaemon implements RequestObserver {
       warmBrain: supervisor
         ? async (spare) => accountBrains?.warm(spare) || supervisor.warmBrain(spare)
         : async (spare) => brains.warm(spare),
-      codex: { runnerHome: home, mcp: mcpCommand, runs: codexRuns, app: codexApp },
+      codex: { runnerHome: home, mcp: mcpCommand, runs: codexRuns, app: codexApp, acpEngines: this.acpEngines },
       paused: () => this.stopping || this.pauseState().paused,
       setPause: (paused, until, by) => (paused ? this.pause(until, by) : this.resume()),
       // A config written later without the mode never turns a system session back into one that does agents' work.

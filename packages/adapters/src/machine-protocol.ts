@@ -7,7 +7,7 @@ import type { MergeDone } from "./command-policy";
  */
 
 /** Bumped on breaking changes; the server refuses runners older than `MIN_RUNNER_PROTOCOL`. */
-export const MACHINE_PROTOCOL_VERSION = 67;
+export const MACHINE_PROTOCOL_VERSION = 68;
 export const MIN_RUNNER_PROTOCOL = 1;
 /** From this protocol on, requests carry `agent` and each agent works in its own folder. */
 export const AGENT_FOLDERS_PROTOCOL = 2;
@@ -705,6 +705,27 @@ export interface CliInstall {
  * The server never sends any of these to an older runner.
  */
 export const COPILOT_PROTOCOL = 67;
+
+/**
+ * From this protocol on (ADR 0187): ACP agents the computer's owner declares in the runner's `config.json`
+ * (`acpEngines`). `hello.executors.acp` lists each one's id, name and the models it offered (never its command), and
+ * `brain.turn` takes `kind: "acp"` with the `engine` it runs. The server never sends one to an older runner.
+ */
+export const ACP_ENGINE_PROTOCOL = 68;
+
+/** What `hello.executors.acp` carries at most (ADR 0187 §2–§3). */
+export const ACP_ENGINE_LIMITS = { engines: 8, name: 60 } as const;
+
+/** An ACP engine's id as the computer declares it and `brain.turn` names it. */
+export const isAcpEngineId = (v: unknown): v is string => typeof v === "string" && /^[a-z0-9][a-z0-9-]{0,31}$/.test(v);
+
+/** An ACP agent the computer declares (ADR 0187), as `hello` reports it: never its command. */
+export interface RunnerAcpEngineInfo {
+  id: string;
+  name: string;
+  /** What the agent listed when a session opened (none: it didn't say, its own default model). */
+  models?: CursorModelInfo[];
+}
 
 export type PhonePlatform = "android" | "ios";
 export type PhoneKind = "device" | "emulator" | "simulator";
@@ -2105,9 +2126,12 @@ export interface BrainTurnRequest {
   runId: string;
   /**
    * `cursor`: protocol 36 (`CURSOR_PROTOCOL`); `opencode`: protocol 39 (`OPENCODE_PROTOCOL`); `grok`: 43
-   * (`GROK_PROTOCOL`); `antigravity`: 44 (`ANTIGRAVITY_PROTOCOL`); `copilot`: 67 (`COPILOT_PROTOCOL`).
+   * (`GROK_PROTOCOL`); `antigravity`: 44 (`ANTIGRAVITY_PROTOCOL`); `copilot`: 67 (`COPILOT_PROTOCOL`); `acp`: 68
+   * (`ACP_ENGINE_PROTOCOL`, with `engine`).
    */
-  kind: "claude_code" | "codex" | "cursor" | "opencode" | "grok" | "antigravity" | "copilot";
+  kind: "claude_code" | "codex" | "cursor" | "opencode" | "grok" | "antigravity" | "copilot" | "acp";
+  /** `acp`: the id of the ACP agent the computer declares (`hello.executors.acp`) that runs the turn. */
+  engine?: string;
   /** The executor's session (a UUID, stable per thread); `resume`: the server knows it ran before (a hint). */
   session: { id: string; resume: boolean };
   /** Relative to the agent's folder ("" = the folder). */
@@ -2410,6 +2434,8 @@ export interface RunnerInfo {
     grok?: RunnerExecutorInfo;
     antigravity?: RunnerExecutorInfo;
     copilot?: RunnerExecutorInfo;
+    /** Protocol 68 (ADR 0187): the ACP agents the computer's owner declared, with the models each offered. */
+    acp?: RunnerAcpEngineInfo[];
     /**
      * `CLI_INSTALL_PROTOCOL`: a CLI that is there and whose `--version` keeps failing, with its own last line of
      * error. It is not listed above: it can't run turns, and it isn't missing either.
@@ -3396,6 +3422,22 @@ export function parseExecutors(v: Record<string, unknown>): NonNullable<RunnerIn
       if (!out[name] && isString(said)) broken[name] = said.replace(/\s+/g, " ").trim().slice(0, CLI_ERROR_MAX);
     }
     if (Object.keys(broken).length) out.broken = broken;
+  }
+  const acp = parseAcpEngines(v.acp);
+  if (acp.length) out.acp = acp;
+  return out;
+}
+
+/** `hello.executors.acp` (protocol 68): ids checked and unique, names cut, at most `ACP_ENGINE_LIMITS.engines`. */
+export function parseAcpEngines(v: unknown): RunnerAcpEngineInfo[] {
+  if (!Array.isArray(v)) return [];
+  const out: RunnerAcpEngineInfo[] = [];
+  for (const e of v) {
+    if (!isObject(e) || !isAcpEngineId(e.id) || out.some((x) => x.id === e.id)) continue;
+    const name = isString(e.name) ? e.name.replace(/\s+/g, " ").trim().slice(0, ACP_ENGINE_LIMITS.name) : "";
+    const models = parseCursorModels(e.models);
+    out.push({ id: e.id, name: name || e.id, ...(models.length ? { models } : {}) });
+    if (out.length >= ACP_ENGINE_LIMITS.engines) break;
   }
   return out;
 }

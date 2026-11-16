@@ -514,12 +514,16 @@ export const Agent = z
     }),
     brain: z
       .object({
-        kind: z.enum(["model", "claude_code", "codex", "cursor", "opencode", "grok", "antigravity", "copilot"]),
+        kind: z.enum(["model", "claude_code", "codex", "cursor", "opencode", "grok", "antigravity", "copilot", "acp"]),
         model: z
           .string()
           .nullable()
           .openapi({ description: "A computer brain's model label (Sonnet); null = the agent's model." }),
         computer: z.string().optional().openapi({ description: "Its computer's name (admins and the agent's owner)." }),
+        engine: z.string().optional().openapi({
+          description:
+            "`acp` (ADR 0187): the ACP agent it thinks with, by the name its computer declares (its id once that computer no longer does).",
+        }),
         provider: z.string().optional().openapi({
           description: "A coding plan it thinks with through Claude Code (`zai`, `kimi`…): its maker's model.",
         }),
@@ -920,7 +924,7 @@ export const Model = z
 
 /** ADR 0032: who thinks for an agent. */
 export const BrainKind = z
-  .enum(["model", "claude_code", "codex", "cursor", "opencode", "grok", "antigravity", "copilot"])
+  .enum(["model", "claude_code", "codex", "cursor", "opencode", "grok", "antigravity", "copilot", "acp"])
   .openapi("BrainKind");
 
 export const BrainUnavailable = z.enum([
@@ -964,6 +968,18 @@ export const BrainOption = z
     defaultModel: z.string().nullable(),
   })
   .openapi("BrainOption");
+
+/** ADR 0187: the ACP agents a computer's owner declared, apart from `options` (whose readers take each kind for a plan's). */
+export const AcpBrainOption = BrainOption.extend({
+  kind: z.literal("acp"),
+  engines: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      models: z.array(z.object({ value: z.string(), label: z.string() })),
+    }),
+  ),
+}).openapi("AcpBrainOption");
 
 export const BrainEffort = z.enum(BRAIN_EFFORTS).openapi("BrainEffort", {
   description: "How hard a computer brain thinks (Claude Code `--effort`; Codex maps `xhigh` and `max` to `high`).",
@@ -1060,6 +1076,9 @@ export const AgentBrain = z
           "The team's right hand: the workspace's AI, `model` for an API key (`key`, by its provider and name; null with none), else the plan's brain and owner; `servesYou`, it thinks for the caller (a key, a plan whose owner lets it serve everyone, or theirs).",
       }),
     brain: BrainKind,
+    engine: z.string().optional().openapi({
+      description: "`acp` (ADR 0187): the id of the ACP agent its computer declares that it thinks with.",
+    }),
     model: z.string().nullable().openapi({ description: "As stored; null = the brain's default." }),
     effectiveModel: z.string().nullable(),
     fallback: z
@@ -1071,6 +1090,9 @@ export const AgentBrain = z
     }),
     computer: z.object({ machineId: z.uuid(), name: z.string(), online: z.boolean() }).nullable(),
     options: z.array(BrainOption),
+    acp: AcpBrainOption.optional().openapi({
+      description: "The ACP agents its computer declares (ADR 0187); not for the team's right hand.",
+    }),
     machines: z.array(BrainMachine).openapi({
       description:
         "Every computer the caller may give the agent (admins: all; its owner: the ones they connected), with what each offers.",
