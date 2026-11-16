@@ -44,6 +44,7 @@ export const strings: Partial<PushStrings> = {
   secretTitle: (a) => `${a} がシークレットの入力を求めています`,
   secretBody: "タップして安全に送信",
   widgetAlertTitle: (a, w) => (w ? `${a}: ${w}` : `${a} がウィジェットでアラートを出しました`),
+  mailImportantTitle: (m) => `${m} に重要なメール`,
   widgetFailedTitle: (w) => (w ? `「${w}」が更新されませんでした` : "ウィジェットが更新されませんでした"),
   widgetFailedReasons: {
     no_update: "前回の更新はデータなしで終わりました。",

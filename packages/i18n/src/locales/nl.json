@@ -14813,6 +14813,19 @@
       "later": "Je kunt dit later wijzigen bij Adressen.",
       "saved": "Adressen van {{address}} opgeslagen."
     },
+    "triage": {
+      "button": "Sortering",
+      "buttonName": "Sortering van {{name}}",
+      "title": "Sortering van {{address}}",
+      "label": "Nieuwe e-mail sorteren",
+      "help": "Een snelle controle leest alleen de afzender, het onderwerp en de voorvertoning van elke nieuwe e-mail: genegeerde e-mail wekt geen routine, en je hoort over belangrijke e-mail die geen routine oppakt.",
+      "scope": "Sorteert de e-mail in de mappen die de routines van deze mailbox volgen als belangrijk, antwoord nodig of negeren. Start nooit een beurt van een agent.",
+      "on": "Sortering aan",
+      "savedOn": "Sortering aangezet voor {{address}}.",
+      "savedOff": "Sortering uitgezet voor {{address}}.",
+      "failed": "De sortering van {{address}} kon niet worden gewijzigd.",
+      "notice": "Belangrijke e-mail in {{name}}"
+    },
     "agent": {
       "title": "Mail",
       "none": "{{org}} heeft nog geen mail gekoppeld.",

@@ -26,7 +26,7 @@ import {
 } from "./accounts";
 import { agentMailPolicy } from "./policies";
 import { formatAddress, matchesAddressRules, oneLine } from "./text";
-import { type MailTriageVerdict, triageMail } from "./triage";
+import { holdUnclaimedMail, type MailTriageVerdict, triageMail } from "./triage";
 import { type MailFilter, watchesFor } from "./watches";
 
 const { mailWatches, mailSeen, mailAccounts, routines, routineRuns } = schema;
@@ -111,6 +111,17 @@ export async function ingestMail(
       (policy.senders.length === 0 || (m.from && matchesAddressRules(policy.senders, m.from.address))) &&
       (policy.windowDays === null || Date.parse(m.date) >= now.getTime() - policy.windowDays * 86_400_000),
   );
+  // What this routine leaves out may still matter to the mailbox's owner (another routine may take it first).
+  if (account.triage && deps.judge)
+    await holdUnclaimedMail(
+      { db, judge: deps.judge, now: () => now },
+      {
+        orgId: routine.orgId,
+        agentId: routine.agentId,
+        account,
+        messages: messages.filter((m) => !wanted.includes(m)),
+      },
+    );
   if (wanted.length === 0) return { added: 0, fired: false };
   const fresh = await db
     .insert(mailSeen)

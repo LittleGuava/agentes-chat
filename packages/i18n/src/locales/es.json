@@ -15185,6 +15185,19 @@
       "later": "Puedes cambiar esto después en Direcciones.",
       "saved": "Direcciones de {{address}} guardadas."
     },
+    "triage": {
+      "button": "Clasificación",
+      "buttonName": "Clasificación de {{name}}",
+      "title": "Clasificación de {{address}}",
+      "label": "Clasificar correos nuevos",
+      "help": "Una revisión rápida lee solo el remitente, el asunto y el fragmento de cada correo nuevo: el ignorado no despierta ninguna rutina, y te avisamos del importante que ninguna rutina tome.",
+      "scope": "Clasifica los correos de las carpetas que vigilan las rutinas de este buzón en importante, necesita respuesta o ignorar. Nunca inicia un turno de un agente.",
+      "on": "Clasificación activada",
+      "savedOn": "Clasificación activada en {{address}}.",
+      "savedOff": "Clasificación desactivada en {{address}}.",
+      "failed": "No se pudo cambiar la clasificación de {{address}}.",
+      "notice": "Correo importante en {{name}}"
+    },
     "agent": {
       "title": "Correo",
       "none": "{{org}} aún no conectó ningún correo.",

@@ -15775,6 +15775,19 @@
       "later": "Możesz to później zmienić w sekcji Adresy.",
       "saved": "Zapisano adresy {{address}}."
     },
+    "triage": {
+      "button": "Segregacja",
+      "buttonName": "Segregacja dla {{name}}",
+      "title": "Segregacja dla {{address}}",
+      "label": "Sortuj nowe e-maile",
+      "help": "Szybkie sprawdzenie czyta tylko nadawcę, temat i podgląd każdego nowego e-maila: zignorowany nie budzi żadnej rutyny, a o ważnym, którego nie przejmie żadna rutyna, dostaniesz powiadomienie.",
+      "scope": "Sortuje e-maile z folderów obserwowanych przez rutyny tej skrzynki na ważne, wymagające odpowiedzi i do zignorowania. Nigdy nie uruchamia tury agenta.",
+      "on": "Segregacja włączona",
+      "savedOn": "Segregacja włączona dla {{address}}.",
+      "savedOff": "Segregacja wyłączona dla {{address}}.",
+      "failed": "Nie udało się zmienić segregacji dla {{address}}.",
+      "notice": "Ważny e-mail w {{name}}"
+    },
     "agent": {
       "title": "Poczta",
       "none": "{{org}} nie ma jeszcze podłączonej poczty.",

@@ -14976,6 +14976,21 @@ export const ptBR = {
       later: "Dá para mudar depois em Endereços.",
       saved: "Endereços de {{address}} salvos.",
     },
+    /** A triagem de uma caixa (ADR 0038, adendo 2026-11-15): uma checagem rápida por e-mail novo, nunca um turno de agente. */
+    triage: {
+      button: "Triagem",
+      buttonName: "Triagem de {{name}}",
+      title: "Triagem de {{address}}",
+      label: "Separar e-mails novos",
+      help: "Uma checagem rápida lê só o remetente, o assunto e o trecho de cada e-mail novo: o ignorado não acorda rotina, e você recebe aviso do importante que nenhuma rotina pegar.",
+      scope:
+        "Separa os e-mails das pastas que as rotinas desta caixa observam em importante, precisa de resposta ou ignorar. Nunca começa um turno de agente.",
+      on: "Triagem ligada",
+      savedOn: "Triagem ligada em {{address}}.",
+      savedOff: "Triagem desligada em {{address}}.",
+      failed: "Não deu para mudar a triagem de {{address}}.",
+      notice: "E-mail importante em {{name}}",
+    },
     agent: {
       title: "Email",
       none: "A {{org}} ainda não conectou nenhum email.",

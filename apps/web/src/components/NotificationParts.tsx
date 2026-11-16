@@ -107,6 +107,12 @@ export function SystemFace({ n, className = "nt-av24" }: { n: AppNotification; c
         <Icon name="send" size={16} />
       </span>
     );
+  if (n.kind === "mail_important")
+    return (
+      <span className={cx("nt-sys", className)} aria-hidden="true">
+        <Icon name="mail" size={16} />
+      </span>
+    );
   if (n.kind === "skill_update")
     return (
       <span className={cx("nt-sys", className)} aria-hidden="true">

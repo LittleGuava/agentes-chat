@@ -14749,6 +14749,19 @@
       "later": "Du kannst das später unter Adressen ändern.",
       "saved": "Adressen von {{address}} gespeichert."
     },
+    "triage": {
+      "button": "Sortierung",
+      "buttonName": "Sortierung für {{name}}",
+      "title": "Sortierung für {{address}}",
+      "label": "Neue E-Mails sortieren",
+      "help": "Eine schnelle Prüfung liest nur Absender, Betreff und Vorschau jeder neuen E-Mail: Ignorierte E-Mails wecken keine Routine, und du erfährst von wichtigen E-Mails, die keine Routine übernimmt.",
+      "scope": "Sortiert die E-Mails der Ordner, die die Routinen dieses Postfachs beobachten, in wichtig, braucht eine Antwort oder ignorieren. Sie startet nie einen Durchlauf eines Agenten.",
+      "on": "Sortierung an",
+      "savedOn": "Sortierung für {{address}} eingeschaltet.",
+      "savedOff": "Sortierung für {{address}} ausgeschaltet.",
+      "failed": "Die Sortierung von {{address}} ließ sich nicht ändern.",
+      "notice": "Wichtige E-Mail in {{name}}"
+    },
     "agent": {
       "title": "E-Mail",
       "none": "{{org}} hat noch keine E-Mail verbunden.",

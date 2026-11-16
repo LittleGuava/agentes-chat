@@ -7061,6 +7061,7 @@ export type NotificationKind =
   | "invitation_accepted"
   /** ADR 0107 §7: the workspace used its Composio calls for the month (connector admins). `latest.title`: the month. */
   | "composio_limit"
+  | "mail_important"
   /**
    * ADR 0110: an agent's owner asks for one more browser profile for it (the people who grant profiles). Waiting;
    * `source.agentId` and its name in `source.label`. Opens the agent's page.

@@ -1,9 +1,12 @@
 import type { MailSummary } from "@agenteschat/adapters";
 import { and, type Database, eq, inArray, schema } from "@agenteschat/db";
 import type { Judge } from "../judge";
+import { notifyImportantMail } from "../notification-producers";
+import type { NotificationDeps } from "../notifications";
+import { enqueue } from "../outbox";
 import { formatAddress, oneLine } from "./text";
 
-const { mailTriage } = schema;
+const { mailTriage, mailAccounts, mailSeen, mailWatches } = schema;
 
 /**
  * How new mail is sorted when its mailbox has triage on (ADR 0038, addendum 2026-11-15):
@@ -117,4 +120,72 @@ export async function triageMail(
       .values(judged.map((j) => ({ orgId: input.orgId, accountId: input.account.id, ...j })))
       .onConflictDoNothing();
   return verdicts;
+}
+
+/** Checks whether any routine took an email its watch left out (ADR 0038, addendum 2026-11-15). */
+export const MAIL_UNCLAIMED_JOB = "mail.unclaimed";
+/** Long enough for the mailbox's other watches to see the same email (IMAP polls every few minutes). */
+export const UNCLAIMED_AFTER_MS = 10 * 60_000;
+/** What the mailbox's owner hears about when no routine takes it: anything worth attention. */
+const TOLD: ReadonlySet<MailTriageVerdict> = new Set(["important", "needs_reply"]);
+
+/**
+ * New mail a watch left out (its filter, or what its agent may read): sorted like the rest, and what is worth
+ * attention waits `UNCLAIMED_AFTER_MS` for another routine of the mailbox to take it before its owner hears of it.
+ * Once per mailbox and message, however many watches leave it out.
+ */
+export async function holdUnclaimedMail(
+  deps: { db: Database; judge: Judge; now?: () => Date },
+  input: { orgId: string; agentId: string; account: { id: string; address: string }; messages: MailSummary[] },
+) {
+  if (input.messages.length === 0) return;
+  const verdicts = await triageMail(deps, input);
+  const runAt = new Date((deps.now?.() ?? new Date()).getTime() + UNCLAIMED_AFTER_MS);
+  for (const m of input.messages) {
+    const verdict = verdicts.get(m.id);
+    if (!verdict || !TOLD.has(verdict)) continue;
+    await enqueue(deps.db, {
+      orgId: input.orgId,
+      kind: MAIL_UNCLAIMED_JOB,
+      payload: {
+        accountId: input.account.id,
+        messageKey: m.id,
+        from: oneLine(formatAddress(m.from), 120),
+        subject: oneLine(m.subject, 200),
+      },
+      dedupeKey: `${MAIL_UNCLAIMED_JOB}:${input.account.id}:${m.id}`,
+      runAt,
+      maxAttempts: 3,
+    });
+  }
+}
+
+/**
+ * `mail.unclaimed`: no watch of the mailbox handed the email to a routine (`mail_seen`), so its owner hears of it,
+ * while the mailbox is still connected with triage on.
+ */
+export async function tellUnclaimedMail(deps: NotificationDeps, orgId: string, payload: Record<string, unknown>) {
+  const accountId = String(payload.accountId ?? "");
+  const messageKey = String(payload.messageKey ?? "");
+  const [account] = await deps.db
+    .select()
+    .from(mailAccounts)
+    .where(and(eq(mailAccounts.id, accountId), eq(mailAccounts.orgId, orgId)));
+  if (!account || account.revokedAt || !account.triage || !account.createdByUserId) return;
+  const [taken] = await deps.db
+    .select({ key: mailSeen.messageKey })
+    .from(mailSeen)
+    .innerJoin(mailWatches, eq(mailWatches.id, mailSeen.watchId))
+    .where(and(eq(mailWatches.accountId, account.id), eq(mailSeen.messageKey, messageKey)))
+    .limit(1);
+  if (taken) return;
+  await notifyImportantMail(deps, {
+    orgId,
+    userId: account.createdByUserId,
+    accountId: account.id,
+    address: account.address,
+    messageKey,
+    from: String(payload.from ?? ""),
+    subject: String(payload.subject ?? ""),
+  });
 }
