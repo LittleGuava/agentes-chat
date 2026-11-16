@@ -14052,7 +14052,12 @@
     "whoTitle": "Wer {{name}} nutzen darf",
     "oauthHelp": "Du autorisierst auf der Seite von {{name}} und kommst hierher zurück.",
     "customText": "Jeder MCP-Server über seine https-Adresse. Unterstützt er OAuth, autorisierst du auf seiner Seite.",
-    "urlHelp": "Die https-Adresse des Servers.",
+    "urlHelp": "Die https-Adresse des Servers oder der Befehl claude mcp add oder der mcpServers-Block, den du bekommen hast.",
+    "paste": {
+      "command": "Das ist ein Server, der als Befehl läuft (stdio). Agenten erreichen MCP-Server nur über ihre https-Adresse.",
+      "urlAsked": "Ergänze {{names}} in der Adresse.",
+      "keyAsked": "Gib den Schlüssel ein, den der eingefügte Text aus {{names}} nahm."
+    },
     "name": "Name",
     "namePlaceholder": "Z. B. Support",
     "continueIn": "Weiter bei {{name}}",

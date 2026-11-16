@@ -13594,7 +13594,12 @@
     "whoTitle": "谁可以使用 {{name}}",
     "oauthHelp": "你在 {{name}} 的页面上授权，然后回到这里。",
     "customText": "通过 https 地址连接任意 MCP 服务器。如果它支持 OAuth，你会在它的页面上授权。",
-    "urlHelp": "服务器的 https 地址。",
+    "urlHelp": "服务器的 https 地址，或别人给你的 claude mcp add 命令或 mcpServers 配置块。",
+    "paste": {
+      "command": "这是以命令方式运行的服务器 (stdio)。智能体只能通过 https 地址连接 MCP 服务器。",
+      "urlAsked": "请补全地址中的 {{names}}。",
+      "keyAsked": "请输入粘贴内容原本从 {{names}} 读取的密钥。"
+    },
     "name": "名称",
     "namePlaceholder": "例如：客服",
     "continueIn": "在 {{name}} 上继续",

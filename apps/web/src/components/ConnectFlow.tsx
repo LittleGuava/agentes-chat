@@ -43,7 +43,9 @@ import {
 } from "@agenteschat/client/lib/connected";
 import { humanize, isHttpsUrl, sameServer } from "@agenteschat/client/lib/custom-tools";
 import { errorText } from "@agenteschat/client/lib/errors";
+import { joinNames } from "@agenteschat/client/lib/format";
 import { useHeldWhile } from "@agenteschat/client/lib/hold";
+import { type McpPaste, parseMcpPaste, pasteForForm } from "@agenteschat/client/lib/mcp-paste";
 import {
   BLANK_HEADER,
   connectsWithoutKey,
@@ -83,7 +85,7 @@ import {
 } from "@agenteschat/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
-import { Fragment, type ReactNode, useEffect, useRef, useState } from "react";
+import { type ClipboardEvent, Fragment, type ReactNode, useEffect, useRef, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useApi } from "@/api/context";
 import { AgentAvatar } from "@/components/AgentAvatar";
@@ -289,6 +291,7 @@ function ConnectStep({
   const [refused, setRefused] = useState<HeaderRefused | null>(null);
   // The saved headers couldn't be read: kept until the form closes, so nothing brings "they stay" back.
   const [unreadable, setUnreadable] = useState<HeaderRefused | null>(null);
+  const [pasted, setPasted] = useState<McpPaste | null>(null);
 
   // An account of a server by address: its own address, whatever the catalog says.
   const fixed = item?.server?.serverUrl ?? null;
@@ -337,6 +340,39 @@ function ConnectStep({
     t("connectFlow.listing"),
     t("connectFlow.almost"),
   ]);
+
+  // A `claude mcp add` line or an `mcpServers` block pasted as the address: what it says goes in the form's fields.
+  const pasteServer = (e: ClipboardEvent<HTMLInputElement>) => {
+    const text = e.clipboardData.getData("text");
+    const paste = parseMcpPaste(text);
+    if (paste.kind === "none" || (paste.kind === "url" && paste.url === text.trim())) return setPasted(null);
+    e.preventDefault();
+    setPasted(paste);
+    setNeedsKey(null);
+    if (paste.kind !== "url") return;
+    const form = pasteForForm(paste);
+    setUrl(form.url);
+    if (form.name && !label.trim()) setLabel(form.name);
+    if (form.apiKey) setApiKey(form.apiKey);
+    if (form.apiKey || form.keyAsked.length > 0) setKeyOpen(true);
+    // Any other header goes with the request headers (ADR 0186), where its value is typed or checked.
+    if (canHeaders && form.headers.length > 0) {
+      setHeaderRows(form.headers.map((header, i) => ({ id: i + 1, ...header })));
+      setRefused(null);
+      setHeadersOpen(true);
+    }
+  };
+  const pastedForm = pasted?.kind === "url" ? pasteForForm(pasted) : null;
+  const pasteNotes = pastedForm
+    ? [
+        pasted?.kind === "url" && pasted.missing.length > 0
+          ? t("connectFlow.paste.urlAsked", { names: joinNames(pasted.missing, t) })
+          : null,
+        pastedForm.keyAsked.length > 0
+          ? t("connectFlow.paste.keyAsked", { names: joinNames(pastedForm.keyAsked, t) })
+          : null,
+      ].filter((note): note is string => note !== null)
+    : [];
 
   const urlError = touched && askUrl && !isHttpsUrl(url) ? t("connectors.serverUrlInvalid") : undefined;
   const keyError = touched === "key" && apiKey.trim().length < 8 ? t("connectors.apiKeyInvalid") : undefined;
@@ -474,12 +510,16 @@ function ConnectStep({
                 onChange={(e) => {
                   setUrl(e.target.value);
                   setNeedsKey(null);
+                  setPasted(null);
                 }}
+                onPaste={pasteServer}
                 placeholder="https://"
                 inputMode="url"
               />
             </Field>
           )}
+          {askUrl && pasted?.kind === "command" && <Alert>{t("connectFlow.paste.command")}</Alert>}
+          {askUrl && pasteNotes.length > 0 && <Alert tone="neutral">{pasteNotes.join(" ")}</Alert>}
           {def === null && fixed === null && (
             <Field label={t("connectFlow.name")} id="cflow-name">
               <Input

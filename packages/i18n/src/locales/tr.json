@@ -13988,7 +13988,12 @@
     "whoTitle": "{{name}} kimler kullanabilir",
     "oauthHelp": "{{name}} sayfasında yetki verip buraya dönersiniz.",
     "customText": "https adresiyle herhangi bir MCP sunucusu. OAuth destekliyorsa onun sayfasında yetki verirsiniz.",
-    "urlHelp": "Sunucunun https adresi.",
+    "urlHelp": "Sunucunun https adresi ya da sana verilen claude mcp add komutu veya mcpServers bloğu.",
+    "paste": {
+      "command": "Bu, komut olarak çalışan bir sunucu (stdio). Ajanlar MCP sunucularına yalnızca https adresinden ulaşır.",
+      "urlAsked": "Adresteki {{names}} kısmını doldur.",
+      "keyAsked": "Yapıştırılan metnin {{names}} içinden aldığı anahtarı yaz."
+    },
     "name": "Ad",
     "namePlaceholder": "Örn. Destek",
     "continueIn": "{{name}} ile devam et",

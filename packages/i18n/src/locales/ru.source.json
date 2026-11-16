@@ -34592,7 +34592,16 @@
     "value": "Any MCP server by its https address. If it supports OAuth, you authorize on its page."
   },
   "connectFlow.urlHelp": {
-    "value": "The server's https address."
+    "value": "The server's https address, or the claude mcp add command or mcpServers block you were given."
+  },
+  "connectFlow.paste.command": {
+    "value": "That's a server run as a command (stdio). Agents reach MCP servers only by their https address."
+  },
+  "connectFlow.paste.urlAsked": {
+    "value": "Fill in {{names}} in the address."
+  },
+  "connectFlow.paste.keyAsked": {
+    "value": "Type the key the paste took from {{names}}."
   },
   "connectFlow.name": {
     "value": "Name"

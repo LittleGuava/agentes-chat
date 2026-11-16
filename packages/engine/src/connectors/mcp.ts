@@ -1,6 +1,5 @@
 import { type ComposioClient, composioFile, FileTooLargeError } from "@agenteschat/adapters";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { FetchLike, Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import type { jsonSchemaValidator } from "@modelcontextprotocol/sdk/validation/types.js";
 import { ARTIFACT_LIMITS, type ArtifactDeps, createFileArtifact, fileReach } from "../artifacts";
@@ -40,6 +39,7 @@ import {
   syncCustomTools,
   type ToolAccess,
 } from "./custom";
+import { openHttpSession } from "./mcp-sse";
 import { applyToolPins } from "./pins";
 import { presetForServer } from "./presets";
 import type { McpServerInfo } from "./server-icon";
@@ -73,7 +73,7 @@ export interface McpSession {
 }
 
 /**
- * Opens a session to a connection's server (or one not stored yet). Default: streamable HTTP; tests: in-process. A
+ * Opens a session to a connection's server (or one not stored yet). Default: over HTTP (`connectOverHttp`); tests: in-process. A
  * service through Composio is opened by its workspace and Composio account (`withComposio`).
  */
 export type McpConnect = (
@@ -144,53 +144,56 @@ export async function mcpSessionOver(transport: Transport): Promise<McpSession> 
 const MASKED_FROM = 8;
 
 /**
- * A session over streamable HTTP whose failures hold none of the header values it was opened with: a server may repeat
+ * Sessions over HTTP through `fetch`: Streamable HTTP, or the older HTTP+SSE transport for a server that has only it.
+ * A session's failures hold none of the header values it was opened with, over either transport: a server may repeat
  * what it was sent in its refusal, and that text goes to the log, the connection's last error and the agent. The
  * error thrown is the server's own (its class and code are read), with its words changed. A tool's answer flagged as
  * an error is a refusal in the server's words too; any other answer is left as it came.
  */
-export const connectOverHttp: McpConnect = async (connection, headers) => {
-  const secrets = Object.entries(headers)
-    // `Authorization` is a scheme and a credential: a server names the credential alone.
-    .flatMap(([name, value]) =>
-      name.toLowerCase() === "authorization" ? [value, value.slice(value.indexOf(" ") + 1)] : [value],
-    )
-    .filter((value) => value.length >= MASKED_FROM)
-    // A JSON body writes a quote, a backslash and a tab its own way, and some encoders a slash as `\/`.
-    .flatMap((value) => {
-      const json = JSON.stringify(value).slice(1, -1);
-      return [value, json, json.replaceAll("/", "\\/")];
-    });
-  const clean = (text: string) => maskValues(text, secrets);
-  const masked = <T>(work: Promise<T>) =>
-    work.catch((error: unknown) => {
-      if (error instanceof Error) {
-        // Written only where a value was: an abort's message (a DOMException's) can't be written at all.
-        for (const part of ["message", "stack"] as const) {
-          const text = error[part] ?? "";
-          const safe = clean(text);
-          if (safe !== text) error[part] = safe;
+export function connectOverHttpVia(fetch: FetchLike, options: { sseOpenMs?: number } = {}): McpConnect {
+  const tolerant = tolerantMcpFetch(fetch);
+  return async (connection, headers) => {
+    const secrets = Object.entries(headers)
+      // `Authorization` is a scheme and a credential: a server names the credential alone.
+      .flatMap(([name, value]) =>
+        name.toLowerCase() === "authorization" ? [value, value.slice(value.indexOf(" ") + 1)] : [value],
+      )
+      .filter((value) => value.length >= MASKED_FROM)
+      // A JSON body writes a quote, a backslash and a tab its own way, and some encoders a slash as `\/`.
+      .flatMap((value) => {
+        const json = JSON.stringify(value).slice(1, -1);
+        return [value, json, json.replaceAll("/", "\\/")];
+      });
+    const clean = (text: string) => maskValues(text, secrets);
+    const masked = <T>(work: Promise<T>) =>
+      work.catch((error: unknown) => {
+        if (error instanceof Error) {
+          // Written only where a value was: an abort's message (a DOMException's) can't be written at all.
+          for (const part of ["message", "stack"] as const) {
+            const text = error[part] ?? "";
+            const safe = clean(text);
+            if (safe !== text) error[part] = safe;
+          }
         }
-      }
-      throw error;
-    });
-  const session = await masked(
-    mcpSessionOver(
-      new StreamableHTTPClientTransport(new URL(connection.serverUrl), {
-        requestInit: { headers },
-        fetch: tolerantMcpFetch(outboundFetch({ ownRedirects: true })),
-      }),
-    ),
-  );
-  return {
-    ...session,
-    listTools: () => masked(session.listTools()),
-    callTool: async (...call) => {
-      const result = await masked(session.callTool(...call));
-      return result.isError ? { ...result, content: clean(result.content) } : result;
-    },
+        throw error;
+      });
+    const session = await masked(
+      openHttpSession(new URL(connection.serverUrl), headers, tolerant, mcpSessionOver, options.sseOpenMs),
+    );
+    return {
+      ...session,
+      listTools: () => masked(session.listTools()),
+      callTool: async (...call) => {
+        const result = await masked(session.callTool(...call));
+        return result.isError ? { ...result, content: clean(result.content) } : result;
+      },
+    };
   };
-};
+}
+
+/** The guarded `fetch` is made for each session, as before: it reads the process's `fetch` of that moment. */
+export const connectOverHttp: McpConnect = (connection, headers) =>
+  connectOverHttpVia(outboundFetch({ ownRedirects: true }))(connection, headers);
 
 const JSONRPC_MEMBERS = ["jsonrpc", "id", "method", "params", "result", "error"];
 

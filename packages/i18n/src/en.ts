@@ -14290,7 +14290,13 @@ export const en = {
     whoTitle: "Who can use {{name}}",
     oauthHelp: "You authorize on {{name}}'s page and come back here.",
     customText: "Any MCP server by its https address. If it supports OAuth, you authorize on its page.",
-    urlHelp: "The server's https address.",
+    urlHelp: "The server's https address, or the claude mcp add command or mcpServers block you were given.",
+    /** After pasting a `claude mcp add` line or an `mcpServers` block as the server's address. */
+    paste: {
+      command: "That's a server run as a command (stdio). Agents reach MCP servers only by their https address.",
+      urlAsked: "Fill in {{names}} in the address.",
+      keyAsked: "Type the key the paste took from {{names}}.",
+    },
     name: "Name",
     namePlaceholder: "E.g. Support",
     continueIn: "Continue on {{name}}",

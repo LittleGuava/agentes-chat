@@ -13585,7 +13585,12 @@
     "whoTitle": "Siapa yang bisa memakai {{name}}",
     "oauthHelp": "Kamu memberi izin di halaman {{name}} lalu kembali ke sini.",
     "customText": "Server MCP apa pun lewat alamat https-nya. Kalau mendukung OAuth, kamu memberi izin di halamannya.",
-    "urlHelp": "Alamat https server.",
+    "urlHelp": "Alamat https server, atau perintah claude mcp add atau blok mcpServers yang kamu terima.",
+    "paste": {
+      "command": "Itu server yang berjalan sebagai perintah (stdio). Agen hanya menjangkau server MCP lewat alamat https-nya.",
+      "urlAsked": "Isi {{names}} di alamat.",
+      "keyAsked": "Ketik kunci yang diambil teks tempelan dari {{names}}."
+    },
     "name": "Nama",
     "namePlaceholder": "Mis. Dukungan",
     "continueIn": "Lanjutkan di {{name}}",

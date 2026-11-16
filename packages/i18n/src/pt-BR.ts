@@ -14271,7 +14271,13 @@ export const ptBR = {
     whoTitle: "Quem pode usar {{name}}",
     oauthHelp: "Você autoriza na página do {{name}} e volta para cá.",
     customText: "Qualquer servidor MCP pelo endereço https. Se ele aceitar OAuth, você autoriza na página dele.",
-    urlHelp: "O endereço https do servidor.",
+    urlHelp: "O endereço https do servidor, ou o comando claude mcp add ou o bloco mcpServers que te passaram.",
+    paste: {
+      command:
+        "Esse é um servidor que roda como comando (stdio). Os agentes só alcançam servidores MCP pelo endereço https.",
+      urlAsked: "Preencha {{names}} no endereço.",
+      keyAsked: "Digite a chave que o texto colado tirava de {{names}}.",
+    },
     name: "Nome",
     namePlaceholder: "Ex.: Suporte",
     continueIn: "Continuar no {{name}}",

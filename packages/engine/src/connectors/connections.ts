@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 import type { KeyWrapper } from "@agenteschat/adapters";
 import { and, asc, type Database, type Executor, eq, isNull, lt, ne, or, schema, sql } from "@agenteschat/db";
-import { StreamableHTTPError } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { type AuditEntry, recordAudit } from "../audit";
 import { caches } from "../cache";
 import { openSecret, randomToken, sealSecret, sha256 } from "../crypto";
@@ -15,6 +14,7 @@ import { type ComposioConnectors, completeComposioOAuth, forgetComposioAccount }
 import { beginMcpOAuth, isCustom, storeCustomConnection } from "./custom";
 import { offersCatalog } from "./listing";
 import type { McpConnect } from "./mcp";
+import { refusedCredentials } from "./mcp-sse";
 import { clientAuth, getOAuthClient, type McpOAuthDeps, probeMcpServer } from "./oauth-mcp";
 import { oauthReturnTo } from "./oauth-return";
 import { presetForServer } from "./presets";
@@ -755,7 +755,7 @@ export async function markToReconnect(
  * refusals say whose they are (`composioFailure`).
  */
 export async function noteRefusedSignIn(db: Database, connection: ConnectorConnection, error: unknown) {
-  if (!(error instanceof StreamableHTTPError) || error.code !== 401 || connection.composioAccountId) return;
+  if (!refusedCredentials(error) || connection.composioAccountId) return;
   await markToReconnect(db, connection, error.message);
 }
 

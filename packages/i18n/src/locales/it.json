@@ -14550,7 +14550,12 @@
     "whoTitle": "Chi può usare {{name}}",
     "oauthHelp": "Autorizzi nella pagina di {{name}} e torni qui.",
     "customText": "Qualsiasi server MCP tramite il suo indirizzo https. Se supporta OAuth, autorizzi nella sua pagina.",
-    "urlHelp": "L'indirizzo https del server.",
+    "urlHelp": "L'indirizzo https del server, o il comando claude mcp add o il blocco mcpServers che ti hanno dato.",
+    "paste": {
+      "command": "Questo è un server che gira come comando (stdio). Gli agenti raggiungono i server MCP solo dal loro indirizzo https.",
+      "urlAsked": "Completa {{names}} nell'indirizzo.",
+      "keyAsked": "Scrivi la chiave che il testo incollato prendeva da {{names}}."
+    },
     "name": "Nome",
     "namePlaceholder": "Es. Assistenza",
     "continueIn": "Continua su {{name}}",

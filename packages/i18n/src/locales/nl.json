@@ -14116,7 +14116,12 @@
     "whoTitle": "Wie {{name}} mag gebruiken",
     "oauthHelp": "Je geeft toestemming op de pagina van {{name}} en komt hier terug.",
     "customText": "Elke MCP-server via zijn https-adres. Ondersteunt hij OAuth, dan geef je toestemming op zijn pagina.",
-    "urlHelp": "Het https-adres van de server.",
+    "urlHelp": "Het https-adres van de server, of het commando claude mcp add of het mcpServers-blok dat je kreeg.",
+    "paste": {
+      "command": "Dat is een server die als commando draait (stdio). Agents bereiken MCP-servers alleen via hun https-adres.",
+      "urlAsked": "Vul {{names}} in het adres in.",
+      "keyAsked": "Typ de sleutel die de geplakte tekst uit {{names}} haalde."
+    },
     "name": "Naam",
     "namePlaceholder": "Bijv. Support",
     "continueIn": "Verder op {{name}}",

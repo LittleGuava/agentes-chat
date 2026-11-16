@@ -13530,7 +13530,12 @@
     "whoTitle": "{{name}}を使える人",
     "oauthHelp": "{{name}}のページで承認して、ここに戻ってきます。",
     "customText": "httpsアドレスで、どのMCPサーバーでも接続できます。OAuthに対応していれば、そのページで承認します。",
-    "urlHelp": "サーバーのhttpsアドレス。",
+    "urlHelp": "サーバーの https アドレス、または受け取った claude mcp add コマンドや mcpServers ブロック。",
+    "paste": {
+      "command": "これはコマンドとして動くサーバー (stdio) です。エージェントは https アドレスでしか MCP サーバーに届きません。",
+      "urlAsked": "アドレスの {{names}} を埋めてください。",
+      "keyAsked": "貼り付けたテキストが {{names}} から取っていたキーを入力してください。"
+    },
     "name": "名前",
     "namePlaceholder": "例: サポート",
     "continueIn": "{{name}}で続ける",

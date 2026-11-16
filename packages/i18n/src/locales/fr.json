@@ -14537,7 +14537,12 @@
     "whoTitle": "Qui peut utiliser {{name}}",
     "oauthHelp": "Vous autorisez l'accès sur la page de {{name}} puis revenez ici.",
     "customText": "N'importe quel serveur MCP, via son adresse https. S'il prend en charge OAuth, vous autorisez l'accès sur sa page.",
-    "urlHelp": "L'adresse https du serveur.",
+    "urlHelp": "L'adresse https du serveur, ou la commande claude mcp add ou le bloc mcpServers qu'on vous a donné.",
+    "paste": {
+      "command": "C'est un serveur lancé comme une commande (stdio). Les agents n'atteignent les serveurs MCP que par leur adresse https.",
+      "urlAsked": "Complétez {{names}} dans l'adresse.",
+      "keyAsked": "Saisissez la clé que le texte collé prenait de {{names}}."
+    },
     "name": "Nom",
     "namePlaceholder": "Ex. : Support client",
     "continueIn": "Continuer sur {{name}}",

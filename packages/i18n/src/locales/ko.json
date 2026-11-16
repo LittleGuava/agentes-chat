@@ -13524,7 +13524,12 @@
     "whoTitle": "{{name}}을(를) 사용할 수 있는 대상",
     "oauthHelp": "{{name}} 페이지에서 승인한 뒤 여기로 돌아와요.",
     "customText": "https 주소만 있으면 어떤 MCP 서버든 연결할 수 있어요. OAuth를 지원하면 해당 페이지에서 승인해요.",
-    "urlHelp": "서버의 https 주소예요.",
+    "urlHelp": "서버의 https 주소, 또는 전달받은 claude mcp add 명령이나 mcpServers 블록.",
+    "paste": {
+      "command": "명령으로 실행되는 서버(stdio)입니다. 에이전트는 https 주소로만 MCP 서버에 연결합니다.",
+      "urlAsked": "주소의 {{names}}을(를) 채워 주세요.",
+      "keyAsked": "붙여 넣은 텍스트가 {{names}}에서 가져오던 키를 입력하세요."
+    },
     "name": "이름",
     "namePlaceholder": "예: 고객 지원",
     "continueIn": "{{name}}에서 계속",
