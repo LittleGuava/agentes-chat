@@ -4,6 +4,7 @@ export * from "./admin-asks";
 export * from "./agent-actions";
 export * from "./agent-audit";
 export * from "./agent-deletion";
+export * from "./agent-duplicate";
 export * from "./agent-for-you";
 export * from "./agent-groups";
 export * from "./agent-import";

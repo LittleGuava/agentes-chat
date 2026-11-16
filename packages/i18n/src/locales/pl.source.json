@@ -4061,6 +4061,18 @@
   "contextMenu.editAgent": {
     "value": "Edit agent"
   },
+  "contextMenu.duplicateAgent": {
+    "value": "Duplicate"
+  },
+  "contextMenu.agentCopyName": {
+    "value": "{{name}} (copy)"
+  },
+  "contextMenu.agentDuplicated": {
+    "value": "Copy created: {{name}}."
+  },
+  "contextMenu.agentDuplicatedPartly": {
+    "value": "Copy created: {{name}}. What you can't give an agent was left out."
+  },
   "contextMenu.openPage": {
     "value": "Open full page"
   },
