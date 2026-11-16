@@ -3012,6 +3012,19 @@
       "action": "Aç",
       "done": "Bekleyen bir şey kalmadı"
     },
+    "today": {
+      "title": "Bugün: {{what}}",
+      "meetings_one": "{{count}} toplantı",
+      "meetings_other": "{{count}} toplantı",
+      "routines_one": "{{count}} rutin",
+      "routines_other": "{{count}} rutin",
+      "deadlines_one": "{{count}} teslim tarihli görev",
+      "deadlines_other": "{{count}} teslim tarihli görev",
+      "first": "İlki: {{time}} saatinde {{title}}.",
+      "firstAllDay": "Tüm gün: {{title}}.",
+      "noMeeting": "Bugün toplantı yok.",
+      "action": "Takvimi aç"
+    },
     "stuck": {
       "title_one": "{{name}} bir hatayla durdu",
       "title_other": "{{name}} hatayla {{count}} kez durdu",
@@ -3072,7 +3085,9 @@
       "label": "Ekibin haftası",
       "help": "{{name}} her hafta DM’inde ekibin nasıl geçtiğini ve neyin iyileştirilebileceğini anlatır. Yalnızca yöneticiler alır.",
       "dayLabel": "Günün özeti",
-      "dayHelp": "{{name}} her gün DM'inde seni neyin beklediğini, ajanlarının neyi bitirdiğini ve neyin takıldığını anlatır, yalnızca yeni bir şey olan günlerde."
+      "dayHelp": "{{name}} her gün DM'inde seni neyin beklediğini, ajanlarının neyi bitirdiğini ve neyin takıldığını anlatır, yalnızca yeni bir şey olan günlerde.",
+      "agendaLabel": "Önündeki gün",
+      "agendaHelp": "Günlük özet bugünün toplantıları, ajanlarınızın rutinleri ve teslim tarihi gelen görevlerinizle başlar. Başka yenilik olmasa da bunların olduğu her gün gelir."
     }
   },
   "routing": {

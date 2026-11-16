@@ -3129,6 +3129,22 @@
       "action": "Abrir",
       "done": "Ya no hay nada esperando"
     },
+    "today": {
+      "title": "Hoy: {{what}}",
+      "meetings_one": "{{count}} reunión",
+      "meetings_many": "{{count}} reuniones",
+      "meetings_other": "{{count}} reuniones",
+      "routines_one": "{{count}} rutina",
+      "routines_many": "{{count}} rutinas",
+      "routines_other": "{{count}} rutinas",
+      "deadlines_one": "{{count}} tarea con fecha límite",
+      "deadlines_many": "{{count}} tareas con fecha límite",
+      "deadlines_other": "{{count}} tareas con fecha límite",
+      "first": "La primera: {{title}} a las {{time}}.",
+      "firstAllDay": "Todo el día: {{title}}.",
+      "noMeeting": "Hoy no hay reuniones.",
+      "action": "Ver calendario"
+    },
     "stuck": {
       "title_one": "{{name}} se detuvo con un error",
       "title_many": "{{name}} se detuvo con un error {{count}} veces",
@@ -3191,7 +3207,9 @@
       "label": "Semana del equipo",
       "help": "Cada semana {{name}} te cuenta en tu DM cómo le fue al equipo y qué mejorar. Solo la reciben los admins.",
       "dayLabel": "Resumen del día",
-      "dayHelp": "Cada día {{name}} te cuenta en tu DM qué te espera, qué terminaron tus agentes y qué está atascado, solo los días con algo nuevo."
+      "dayHelp": "Cada día {{name}} te cuenta en tu DM qué te espera, qué terminaron tus agentes y qué está atascado, solo los días con algo nuevo.",
+      "agendaLabel": "El día por delante",
+      "agendaHelp": "El resumen del día empieza con las reuniones de hoy, las rutinas de tus agentes y tus tareas con fecha límite, y llega cada día que tenga alguna, aunque no haya otra novedad."
     }
   },
   "routing": {

@@ -2902,6 +2902,16 @@
       "action": "Buka",
       "done": "Tidak ada lagi yang menunggu"
     },
+    "today": {
+      "title": "Hari ini: {{what}}",
+      "meetings_other": "{{count}} rapat",
+      "routines_other": "{{count}} rutinitas",
+      "deadlines_other": "{{count}} tugas jatuh tempo",
+      "first": "Pertama: {{title}} pukul {{time}}.",
+      "firstAllDay": "Sepanjang hari: {{title}}.",
+      "noMeeting": "Tidak ada rapat hari ini.",
+      "action": "Buka kalender"
+    },
     "stuck": {
       "title_other": "{{name}} berhenti karena error {{count}} kali",
       "heldTitle": "{{name}} berhenti dan menunggu untuk lanjut",
@@ -2960,7 +2970,9 @@
       "label": "Minggu tim",
       "help": "Setiap minggu {{name}} menceritakan di DM-mu bagaimana tim bekerja dan apa yang bisa diperbaiki. Hanya admin yang menerimanya.",
       "dayLabel": "Ringkasan harian",
-      "dayHelp": "Setiap hari {{name}} memberi tahu di DM-mu apa yang menunggumu, apa yang diselesaikan agenmu, dan apa yang macet, hanya pada hari yang ada kabar baru."
+      "dayHelp": "Setiap hari {{name}} memberi tahu di DM-mu apa yang menunggumu, apa yang diselesaikan agenmu, dan apa yang macet, hanya pada hari yang ada kabar baru.",
+      "agendaLabel": "Hari di depan",
+      "agendaHelp": "Ringkasan harian dibuka dengan rapat hari ini, rutinitas agen Anda, dan tugas Anda yang jatuh tempo, dan datang setiap hari yang memilikinya, meski tidak ada hal baru lainnya."
     }
   },
   "routing": {

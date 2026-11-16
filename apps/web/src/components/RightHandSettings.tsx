@@ -833,6 +833,23 @@ function OwnRows({ name, prefs }: { name: string; prefs: LodiPrefs }) {
   return (
     <div className="settings-rows">
       {card("day", "rh-day", "clock", t("teamWeek.settings.dayLabel"), t("teamWeek.settings.dayHelp", g))}
+      {/* The day ahead on the daily card: only while that card comes, and only from a server that has it. */}
+      {prefs.agenda !== undefined && teamWeekOn(prefs, "day", admin) && (
+        <PrefRow
+          id="rh-day-agenda"
+          icon="calendar"
+          label={t("teamWeek.settings.agendaLabel")}
+          hint={t("teamWeek.settings.agendaHelp")}
+          control={
+            <Switch
+              aria-label={t("teamWeek.settings.agendaLabel")}
+              checked={prefs.agenda}
+              disabled={set.isPending}
+              onCheckedChange={(on) => save({ agenda: on })}
+            />
+          }
+        />
+      )}
       {admin && card("week", "rh-team-week", "calendar", t("teamWeek.settings.label"), t("teamWeek.settings.help", g))}
       {mine("digest", "shield", "digestOff")}
       {mine("reminders", "bell", "remindOff")}

@@ -7511,6 +7511,39 @@
   "teamWeek.waiting.done": {
     "value": "Nothing left waiting"
   },
+  "teamWeek.today.title": {
+    "value": "Today: {{what}}"
+  },
+  "teamWeek.today.meetings": {
+    "value": {
+      "one": "{{count}} meeting",
+      "other": "{{count}} meetings"
+    }
+  },
+  "teamWeek.today.routines": {
+    "value": {
+      "one": "{{count}} routine",
+      "other": "{{count}} routines"
+    }
+  },
+  "teamWeek.today.deadlines": {
+    "value": {
+      "one": "{{count}} task due",
+      "other": "{{count}} tasks due"
+    }
+  },
+  "teamWeek.today.first": {
+    "value": "First: {{title}} at {{time}}."
+  },
+  "teamWeek.today.firstAllDay": {
+    "value": "All day: {{title}}."
+  },
+  "teamWeek.today.noMeeting": {
+    "value": "No meetings today."
+  },
+  "teamWeek.today.action": {
+    "value": "Open calendar"
+  },
   "teamWeek.stuck.title": {
     "value": {
       "one": "{{name}} stopped on an error",
@@ -7648,6 +7681,12 @@
   },
   "teamWeek.settings.dayHelp": {
     "value": "Every day {{name}} tells you in your DM what waits for you, what your agents finished and what is stuck, on days with something new."
+  },
+  "teamWeek.settings.agendaLabel": {
+    "value": "The day ahead"
+  },
+  "teamWeek.settings.agendaHelp": {
+    "value": "The daily summary opens with today's meetings, your agents' routines and your tasks due, and comes every day that has any, even with nothing else new."
   },
   "routing.title": {
     "value": "Who picks the agents"

@@ -110,6 +110,8 @@ function WeekCard({ message, card }: { message: Message; card: TeamWeekCard }) {
   const lodi = dir.agents.find(isRightHand);
   const apply = async (row: TeamWeekRow) => {
     const place = teamWeekRowPlace(row);
+    // The phone has no calendar screen: the day ahead is read on the card, with no button (`FixRow`).
+    if (place?.to === "calendar") return;
     if (place)
       router.push(
         (place.to === "waiting"
@@ -323,11 +325,13 @@ function Fix({
               name={
                 row.kind === "unanswered" || row.kind === "waiting"
                   ? "help"
-                  : row.kind === "stalled"
-                    ? "issue"
-                    : row.kind === "howto"
-                      ? "sparkle"
-                      : "clock"
+                  : row.kind === "today"
+                    ? "calendar"
+                    : row.kind === "stalled"
+                      ? "issue"
+                      : row.kind === "howto"
+                        ? "sparkle"
+                        : "clock"
               }
               size={15}
               color={c.muted}
@@ -369,7 +373,7 @@ function Fix({
         <Text variant="footnote" tone="muted">
           {t(state === "gone" ? "teamWeek.gone" : "teamWeek.skipped")}
         </Text>
-      ) : (
+      ) : teamWeekRowPlace(row)?.to === "calendar" ? null : (
         <>
           <Button
             variant="secondary"

@@ -3134,6 +3134,22 @@
       "action": "Ouvrir",
       "done": "Plus rien en attente"
     },
+    "today": {
+      "title": "Aujourd’hui : {{what}}",
+      "meetings_one": "{{count}} réunion",
+      "meetings_many": "{{count}} réunions",
+      "meetings_other": "{{count}} réunions",
+      "routines_one": "{{count}} tâche récurrente",
+      "routines_many": "{{count}} tâches récurrentes",
+      "routines_other": "{{count}} tâches récurrentes",
+      "deadlines_one": "{{count}} tâche à rendre",
+      "deadlines_many": "{{count}} tâches à rendre",
+      "deadlines_other": "{{count}} tâches à rendre",
+      "first": "La première : {{title}} à {{time}}.",
+      "firstAllDay": "Toute la journée : {{title}}.",
+      "noMeeting": "Aucune réunion aujourd’hui.",
+      "action": "Voir l’agenda"
+    },
     "stuck": {
       "title_one": "{{name}} : arrêt sur une erreur",
       "title_many": "{{name}} : {{count}} arrêts sur une erreur",
@@ -3196,7 +3212,9 @@
       "label": "Semaine de l’équipe",
       "help": "Chaque semaine, {{name}} vous raconte dans votre DM comment l’équipe s’en est sortie et ce qu’il faut améliorer. Seuls les admins la reçoivent.",
       "dayLabel": "Résumé du jour",
-      "dayHelp": "Chaque jour {{name}} vous raconte dans votre DM ce qui vous attend, ce que vos agents ont terminé et ce qui est bloqué, seulement les jours où il y a du nouveau."
+      "dayHelp": "Chaque jour {{name}} vous raconte dans votre DM ce qui vous attend, ce que vos agents ont terminé et ce qui est bloqué, seulement les jours où il y a du nouveau.",
+      "agendaLabel": "La journée à venir",
+      "agendaHelp": "Le résumé du jour commence par les réunions du jour, les routines de vos agents et vos tâches à rendre, et arrive chaque jour où il y en a, même sans autre nouveauté."
     }
   },
   "routing": {

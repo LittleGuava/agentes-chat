@@ -3248,6 +3248,25 @@
       "action": "Otwórz",
       "done": "Nic już nie czeka"
     },
+    "today": {
+      "title": "Dziś: {{what}}",
+      "meetings_one": "{{count}} spotkanie",
+      "meetings_few": "{{count}} spotkania",
+      "meetings_many": "{{count}} spotkań",
+      "meetings_other": "{{count}} spotkania",
+      "routines_one": "{{count}} rutyna",
+      "routines_few": "{{count}} rutyny",
+      "routines_many": "{{count}} rutyn",
+      "routines_other": "{{count}} rutyny",
+      "deadlines_one": "{{count}} zadanie z terminem",
+      "deadlines_few": "{{count}} zadania z terminem",
+      "deadlines_many": "{{count}} zadań z terminem",
+      "deadlines_other": "{{count}} zadania z terminem",
+      "first": "Pierwsze: {{title}} o {{time}}.",
+      "firstAllDay": "Cały dzień: {{title}}.",
+      "noMeeting": "Dziś bez spotkań.",
+      "action": "Otwórz kalendarz"
+    },
     "stuck": {
       "title_one": "{{name}}: zatrzymanie z błędem",
       "title_few": "{{name}}: {{count}} zatrzymania z błędem",
@@ -3312,7 +3331,9 @@
       "label": "Tydzień zespołu",
       "help": "Co tydzień {{name}} opowiada ci w DM, jak poszło zespołowi i co poprawić. Dostają go tylko admini.",
       "dayLabel": "Podsumowanie dnia",
-      "dayHelp": "Codziennie {{name}} mówi ci w DM, co na ciebie czeka, co skończyli twoi agenci i co utknęło, tylko w dni, gdy jest coś nowego."
+      "dayHelp": "Codziennie {{name}} mówi ci w DM, co na ciebie czeka, co skończyli twoi agenci i co utknęło, tylko w dni, gdy jest coś nowego.",
+      "agendaLabel": "Dzień przed tobą",
+      "agendaHelp": "Podsumowanie dnia zaczyna się od dzisiejszych spotkań, rutyn twoich agentów i twoich zadań z terminem i przychodzi każdego dnia, w którym coś takiego jest, nawet bez innych nowości."
     }
   },
   "routing": {

@@ -3146,6 +3146,19 @@ export const ptBR = {
       action: "Abrir",
       done: "Nada mais esperando",
     },
+    today: {
+      title: "Hoje: {{what}}",
+      meetings_one: "{{count}} reunião",
+      meetings_other: "{{count}} reuniões",
+      routines_one: "{{count}} rotina",
+      routines_other: "{{count}} rotinas",
+      deadlines_one: "{{count}} tarefa com prazo",
+      deadlines_other: "{{count}} tarefas com prazo",
+      first: "A primeira: {{title}} às {{time}}.",
+      firstAllDay: "O dia todo: {{title}}.",
+      noMeeting: "Nenhuma reunião hoje.",
+      action: "Ver agenda",
+    },
     stuck: {
       title_one: "{{name}} parou com um erro",
       title_other: "{{name}} parou com erro {{count}} vezes",
@@ -3214,6 +3227,9 @@ export const ptBR = {
         "Todo dia o {{name}} conta na sua DM o que espera você, o que seus agentes terminaram e o que travou, só nos dias com algo novo.",
       dayHelp_female:
         "Todo dia a {{name}} conta na sua DM o que espera você, o que seus agentes terminaram e o que travou, só nos dias com algo novo.",
+      agendaLabel: "O dia pela frente",
+      agendaHelp:
+        "O resumo do dia abre com as reuniões de hoje, as rotinas dos seus agentes e as suas tarefas com prazo, e chega todo dia que tiver alguma, mesmo sem outra novidade.",
     },
   },
   routing: {

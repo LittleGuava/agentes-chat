@@ -2901,6 +2901,16 @@
       "action": "打开",
       "done": "没有在等的了"
     },
+    "today": {
+      "title": "今天：{{what}}",
+      "meetings_other": "{{count}} 个会议",
+      "routines_other": "{{count}} 个例行任务",
+      "deadlines_other": "{{count}} 个到期任务",
+      "first": "第一个：{{time}} 的 {{title}}。",
+      "firstAllDay": "全天：{{title}}。",
+      "noMeeting": "今天没有会议。",
+      "action": "打开日历"
+    },
     "stuck": {
       "title_other": "{{name}} 因出错停了 {{count}} 次",
       "heldTitle": "{{name}} 停下了，等着继续",
@@ -2959,7 +2969,9 @@
       "label": "团队周报",
       "help": "每周 {{name}} 会在你的私信里告诉你团队的情况和可以改进的地方。只有管理员会收到。",
       "dayLabel": "每日摘要",
-      "dayHelp": "{{name}} 每天在你的私信里告诉你有什么在等你、你的智能体完成了什么、什么卡住了，只在有新消息的日子。"
+      "dayHelp": "{{name}} 每天在你的私信里告诉你有什么在等你、你的智能体完成了什么、什么卡住了，只在有新消息的日子。",
+      "agendaLabel": "今天的安排",
+      "agendaHelp": "每日摘要会先列出今天的会议、你的智能体的例行任务和你的到期任务。只要有这些，即使没有其他新消息，每天也会发送。"
     }
   },
   "routing": {

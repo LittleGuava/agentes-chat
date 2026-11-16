@@ -3129,6 +3129,22 @@
       "action": "Apri",
       "done": "Niente più in attesa"
     },
+    "today": {
+      "title": "Oggi: {{what}}",
+      "meetings_one": "{{count}} riunione",
+      "meetings_many": "{{count}} riunioni",
+      "meetings_other": "{{count}} riunioni",
+      "routines_one": "{{count}} attività ricorrente",
+      "routines_many": "{{count}} attività ricorrenti",
+      "routines_other": "{{count}} attività ricorrenti",
+      "deadlines_one": "{{count}} attività in scadenza",
+      "deadlines_many": "{{count}} attività in scadenza",
+      "deadlines_other": "{{count}} attività in scadenza",
+      "first": "La prima: {{title}} alle {{time}}.",
+      "firstAllDay": "Tutto il giorno: {{title}}.",
+      "noMeeting": "Nessuna riunione oggi.",
+      "action": "Apri il calendario"
+    },
     "stuck": {
       "title_one": "{{name}}: arresto per un errore",
       "title_many": "{{name}}: {{count}} arresti per un errore",
@@ -3191,7 +3207,9 @@
       "label": "Settimana del team",
       "help": "Ogni settimana {{name}} ti racconta nella tua DM com’è andato il team e cosa migliorare. La ricevono solo gli admin.",
       "dayLabel": "Riepilogo del giorno",
-      "dayHelp": "Ogni giorno {{name}} ti racconta nella tua DM cosa ti aspetta, cosa hanno finito i tuoi agenti e cosa è bloccato, solo nei giorni in cui c'è qualcosa di nuovo."
+      "dayHelp": "Ogni giorno {{name}} ti racconta nella tua DM cosa ti aspetta, cosa hanno finito i tuoi agenti e cosa è bloccato, solo nei giorni in cui c'è qualcosa di nuovo.",
+      "agendaLabel": "La giornata che ti aspetta",
+      "agendaHelp": "Il riepilogo del giorno si apre con le riunioni di oggi, le routine dei tuoi agenti e le tue attività in scadenza, e arriva ogni giorno che ne ha, anche senza altre novità."
     }
   },
   "routing": {

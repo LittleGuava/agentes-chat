@@ -3261,6 +3261,23 @@ export const en = {
       action: "Open",
       done: "Nothing left waiting",
     },
+    /**
+     * The day ahead on the day's card, for who asked for it: `{{what}}` joins the counts below ("2 meetings, 1 routine
+     * and 1 task due"); `{{title}}` is the first meeting's title, `{{time}}` its hour ("11:00").
+     */
+    today: {
+      title: "Today: {{what}}",
+      meetings_one: "{{count}} meeting",
+      meetings_other: "{{count}} meetings",
+      routines_one: "{{count}} routine",
+      routines_other: "{{count}} routines",
+      deadlines_one: "{{count}} task due",
+      deadlines_other: "{{count}} tasks due",
+      first: "First: {{title}} at {{time}}.",
+      firstAllDay: "All day: {{title}}.",
+      noMeeting: "No meetings today.",
+      action: "Open calendar",
+    },
     /** An agent's work that failed, or that stopped and waits (`heldTitle`). `{{name}}` is the agent. */
     stuck: {
       title_one: "{{name}} stopped on an error",
@@ -3331,6 +3348,10 @@ export const en = {
       dayLabel: "Daily summary",
       dayHelp:
         "Every day {{name}} tells you in your DM what waits for you, what your agents finished and what is stuck, on days with something new.",
+      /** A switch under the daily summary: it opens with the day ahead. Off unless the person turns it on. */
+      agendaLabel: "The day ahead",
+      agendaHelp:
+        "The daily summary opens with today's meetings, your agents' routines and your tasks due, and comes every day that has any, even with nothing else new.",
     },
   },
   routing: {

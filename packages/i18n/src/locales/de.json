@@ -3016,6 +3016,19 @@
       "action": "Öffnen",
       "done": "Nichts wartet mehr"
     },
+    "today": {
+      "title": "Heute: {{what}}",
+      "meetings_one": "{{count}} Meeting",
+      "meetings_other": "{{count}} Meetings",
+      "routines_one": "{{count}} Routine",
+      "routines_other": "{{count}} Routinen",
+      "deadlines_one": "{{count}} fällige Aufgabe",
+      "deadlines_other": "{{count}} fällige Aufgaben",
+      "first": "Zuerst: {{title}} um {{time}}.",
+      "firstAllDay": "Ganztägig: {{title}}.",
+      "noMeeting": "Heute keine Meetings.",
+      "action": "Kalender öffnen"
+    },
     "stuck": {
       "title_one": "{{name}} hat mit einem Fehler gestoppt",
       "title_other": "{{name}} hat {{count}}-mal mit einem Fehler gestoppt",
@@ -3076,7 +3089,9 @@
       "label": "Teamwoche",
       "help": "Jede Woche erzählt dir {{name}} in deiner DM, wie es im Team lief und was sich verbessern lässt. Nur Admins bekommen sie.",
       "dayLabel": "Tageszusammenfassung",
-      "dayHelp": "Jeden Tag erzählt dir {{name}} in deiner DM, was auf dich wartet, was deine Agenten erledigt haben und was feststeckt, nur an Tagen mit etwas Neuem."
+      "dayHelp": "Jeden Tag erzählt dir {{name}} in deiner DM, was auf dich wartet, was deine Agenten erledigt haben und was feststeckt, nur an Tagen mit etwas Neuem.",
+      "agendaLabel": "Der Tag vor dir",
+      "agendaHelp": "Die Tageszusammenfassung beginnt mit den heutigen Meetings, den Routinen deiner Agenten und deinen fälligen Aufgaben und kommt an jedem Tag, an dem es welche gibt, auch ohne andere Neuigkeiten."
     }
   },
   "routing": {

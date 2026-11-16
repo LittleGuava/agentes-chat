@@ -256,3 +256,19 @@ test("one suggestion put away alone is not the card put away, and its proposal s
   // What I muted is not a setting of the screen: the prefs the apps read do not list it.
   expect(await (await owner(`${base}/team-week`)).json()).not.toHaveProperty("muted");
 });
+
+test("the day ahead on my daily card is mine to ask for: off until I turn it on, and only a boolean", async () => {
+  const owner = browser(t);
+  await signUp(owner, "owner@example.com");
+  const { orgId } = await seedOrg(owner);
+  const base = `/api/app/organizations/${orgId}/team-week`;
+
+  expect(await (await owner(base)).json()).toMatchObject({ agenda: false });
+  const on = await owner(base, { method: "PUT", json: { agenda: true } });
+  expect(await on.json()).toMatchObject({ agenda: true, dayOff: false });
+  expect((await owner(base, { method: "PUT", json: { agenda: "yes" } })).status).toBe(400);
+  // Someone else's stays theirs.
+  const nina = await joinByInvitation(t, owner, orgId, "nina@example.com");
+  expect(await (await nina(base)).json()).toMatchObject({ agenda: false });
+  expect(await (await owner(base)).json()).toMatchObject({ agenda: true });
+});
