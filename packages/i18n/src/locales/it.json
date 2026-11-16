@@ -3202,8 +3202,8 @@
       "cursor": "Cursor non ha effettuato l'accesso su questo computer. Collega un account Cursor nella pagina di {{name}}.",
       "cursor_female": "Cursor non ha effettuato l'accesso su questo computer. Collega un account Cursor nella pagina di {{name}}.",
       "grok": "Grok non ha effettuato l'accesso su questo computer. Collega un account Grok nella pagina di {{name}}.",
-      "copilot": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "grok_female": "Grok non ha effettuato l'accesso su questo computer. Collega un account Grok nella pagina di {{name}}.",
+      "copilot": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "copilot_female": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "antigravity": "Gemini non ha effettuato l'accesso su questo computer. Collega un account Gemini nella pagina di {{name}}.",
       "antigravity_female": "Gemini non ha effettuato l'accesso su questo computer. Collega un account Gemini nella pagina di {{name}}.",
@@ -10981,6 +10981,17 @@
       "leaves": "L'audio dei messaggi vocali va a {{name}} per diventare testo.",
       "invalid": "La chiave salvata non si apre su questo server. Incollala di nuovo."
     }
+  },
+  "voiceCall": {
+    "start": "Chiama {{name}}",
+    "region": "Chiamata vocale con {{name}}",
+    "listening": "In ascolto…",
+    "sending": "Invio…",
+    "waiting": "{{name}} sta pensando…",
+    "speaking": "{{name}} sta parlando…",
+    "done": "Fatto",
+    "interrupt": "Interrompi",
+    "hangUp": "Riattacca"
   },
   "media": {
     "word": {

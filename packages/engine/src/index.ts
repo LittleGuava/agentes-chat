@@ -343,6 +343,7 @@ export * from "./usage-tools";
 export * from "./vault";
 export * from "./vault/tools";
 export * from "./voice";
+export * from "./voice-call";
 export * from "./waiting";
 export * from "./waitlist";
 export * from "./web-push";

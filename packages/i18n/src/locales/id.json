@@ -2971,8 +2971,8 @@
       "cursor": "Cursor belum masuk di komputer ini. Hubungkan akun Cursor di halaman {{name}}.",
       "cursor_female": "Cursor belum masuk di komputer ini. Hubungkan akun Cursor di halaman {{name}}.",
       "grok": "Grok belum masuk di komputer ini. Hubungkan akun Grok di halaman {{name}}.",
-      "copilot": "Copilot belum masuk di komputer ini. Hubungkan akun Copilot di halaman {{name}}.",
       "grok_female": "Grok belum masuk di komputer ini. Hubungkan akun Grok di halaman {{name}}.",
+      "copilot": "Copilot belum masuk di komputer ini. Hubungkan akun Copilot di halaman {{name}}.",
       "copilot_female": "Copilot belum masuk di komputer ini. Hubungkan akun Copilot di halaman {{name}}.",
       "antigravity": "Gemini belum masuk di komputer ini. Hubungkan akun Gemini di halaman {{name}}.",
       "antigravity_female": "Gemini belum masuk di komputer ini. Hubungkan akun Gemini di halaman {{name}}.",
@@ -10187,6 +10187,17 @@
       "leaves": "Audio dari pesan suara dikirim ke {{name}} untuk diubah menjadi teks.",
       "invalid": "Kunci yang tersimpan tidak bisa dibuka di server ini. Tempel lagi."
     }
+  },
+  "voiceCall": {
+    "start": "Telepon {{name}}",
+    "region": "Panggilan suara dengan {{name}}",
+    "listening": "Mendengarkan…",
+    "sending": "Mengirim…",
+    "waiting": "{{name}} sedang berpikir…",
+    "speaking": "{{name}} sedang berbicara…",
+    "done": "Selesai",
+    "interrupt": "Sela",
+    "hangUp": "Tutup"
   },
   "media": {
     "word": {

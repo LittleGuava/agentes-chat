@@ -389,6 +389,9 @@ test("a provider refused this server's own OAuth app: what's wrong and who fixes
  * hit goes in `KNOWN` instead.
  */
 const PLAIN_LINE = new Set([
+  // A voice call (ADR 0198) asks only for agents' replies and skips one with nothing to read, saying nothing.
+  "voice_call.not_agent",
+  "voice_call.no_words",
   // Only an agent names a project by a name that isn't one, and the pickers offer only projects that exist.
   "issue_project.unknown",
   "issue_project.not_found",

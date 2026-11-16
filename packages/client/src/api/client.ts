@@ -428,6 +428,11 @@ export interface ApiClient {
         language?: string | null;
       },
     ): Promise<{ clipId: string }>;
+    /**
+     * An agent's reply read aloud, for a voice call (ADR 0198): the audio, made now and never kept. `voice_call.*`
+     * errors: `unavailable` 409, `not_agent`/`no_words` 422, `busy` 503, `failed` 502.
+     */
+    speech(orgId: string, messageId: string): Promise<Blob>;
   };
   account: {
     authConfig(): Promise<AuthConfig>;

@@ -118,6 +118,8 @@ export interface ComposerVoice {
   onNotice: (notice: VoiceNotice) => void;
   /** Each second it records, never while starting or paused: the others see "gravando áudio…". */
   onRecording?: () => void;
+  /** A voice call with the agent (ADR 0198): the phone beside the microphone starts it. */
+  call?: { label: string; onStart: () => void };
   labels: {
     record: string;
     recording: string;
@@ -1001,6 +1003,18 @@ export function Composer({
                 )}
               </div>
               <div className="ac-composer__tools">
+                {hasMic && voice?.call && !recording && (
+                  <Button
+                    variant="ghost"
+                    iconOnly
+                    size="sm"
+                    icon="phone"
+                    className="ac-composer__call"
+                    aria-label={voice.call.label}
+                    title={voice.call.label}
+                    onClick={voice.call.onStart}
+                  />
+                )}
                 {hasMic && (
                   <Button
                     variant="ghost"

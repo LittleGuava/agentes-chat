@@ -8047,11 +8047,11 @@
   "connectAi.plan.grok.title": {
     "value": "Your Grok plan"
   },
-  "connectAi.plan.copilot.title": {
-    "value": "Your GitHub Copilot plan"
-  },
   "connectAi.plan.grok.tiers": {
     "value": "SuperGrok, SuperGrok Heavy or X Premium+"
+  },
+  "connectAi.plan.copilot.title": {
+    "value": "Your GitHub Copilot plan"
   },
   "connectAi.plan.copilot.tiers": {
     "value": "Copilot Pro, Pro+, Business or Enterprise"
@@ -25711,6 +25711,33 @@
   },
   "voice.settings.invalid": {
     "value": "The saved key doesn't open on this server. Paste it again."
+  },
+  "voiceCall.start": {
+    "value": "Call {{name}}"
+  },
+  "voiceCall.region": {
+    "value": "Voice call with {{name}}"
+  },
+  "voiceCall.listening": {
+    "value": "Listening…"
+  },
+  "voiceCall.sending": {
+    "value": "Sending…"
+  },
+  "voiceCall.waiting": {
+    "value": "{{name}} is thinking…"
+  },
+  "voiceCall.speaking": {
+    "value": "{{name}} is speaking…"
+  },
+  "voiceCall.done": {
+    "value": "Done"
+  },
+  "voiceCall.interrupt": {
+    "value": "Interrupt"
+  },
+  "voiceCall.hangUp": {
+    "value": "Hang up"
   },
   "media.word.gif": {
     "value": "GIF"

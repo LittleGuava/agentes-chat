@@ -1911,9 +1911,11 @@ export function useSendVoice(
       replyTo: string | null;
       language: string | null;
       meta?: Record<string, unknown>;
+      /** The caller's own, to follow the message (a voice call, ADR 0198); else a new one. */
+      clientId?: string;
     }) => {
       const { blob, durationMs, peaks, threadId, replyTo, language, meta } = input;
-      const clientId = newClientId();
+      const clientId = input.clientId ?? newClientId();
       voiceLocal.set(clientId, URL.createObjectURL(blob));
       const local: Message = {
         id: `local-${clientId}`,

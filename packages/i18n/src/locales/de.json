@@ -3087,8 +3087,8 @@
       "cursor": "Cursor ist auf diesem Computer nicht angemeldet. Verbinde ein Cursor-Konto auf der Seite von {{name}}.",
       "cursor_female": "Cursor ist auf diesem Computer nicht angemeldet. Verbinde ein Cursor-Konto auf der Seite von {{name}}.",
       "grok": "Grok ist auf diesem Computer nicht angemeldet. Verbinde ein Grok-Konto auf der Seite von {{name}}.",
-      "copilot": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "grok_female": "Grok ist auf diesem Computer nicht angemeldet. Verbinde ein Grok-Konto auf der Seite von {{name}}.",
+      "copilot": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "copilot_female": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "antigravity": "Gemini ist auf diesem Computer nicht angemeldet. Verbinde ein Gemini-Konto auf der Seite von {{name}}.",
       "antigravity_female": "Gemini ist auf diesem Computer nicht angemeldet. Verbinde ein Gemini-Konto auf der Seite von {{name}}.",
@@ -10554,6 +10554,17 @@
       "leaves": "Audio aus Sprachnachrichten geht an {{name}}, um zu Text zu werden.",
       "invalid": "Der gespeicherte Schlüssel lässt sich auf diesem Server nicht öffnen. Füge ihn noch mal ein."
     }
+  },
+  "voiceCall": {
+    "start": "{{name}} anrufen",
+    "region": "Sprachanruf mit {{name}}",
+    "listening": "Hört zu…",
+    "sending": "Wird gesendet…",
+    "waiting": "{{name}} denkt nach…",
+    "speaking": "{{name}} spricht…",
+    "done": "Fertig",
+    "interrupt": "Unterbrechen",
+    "hangUp": "Auflegen"
   },
   "media": {
     "word": {

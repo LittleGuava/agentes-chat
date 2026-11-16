@@ -150,6 +150,7 @@ export {
   type PhoneKind,
   type PortraitKind,
 } from "./components/Computer";
+export { CALL_LEVEL_MS, heardSpeech, listenAgain, turnEnded } from "./components/call-turn";
 export { DatePicker, type DatePickerProps, monthGrid, parseYmd, ymd } from "./components/DatePicker";
 export {
   DetailsDialog,
@@ -255,7 +256,7 @@ export {
   type MessageProps,
   MessageText,
 } from "./components/Message";
-export { stopPlayback } from "./components/media-playback";
+export { claimPlayback, releasePlayback, stopPlayback } from "./components/media-playback";
 export { OptionList, type OptionListItem, type OptionListProps } from "./components/OptionList";
 export { PageHeader, type PageHeaderProps } from "./components/PageHeader";
 export {
@@ -411,7 +412,9 @@ export {
   type VoicePlayerProps,
 } from "./components/VoicePlayer";
 export {
+  VOICE_LEVEL_MS,
   type VoiceNotice,
+  VoiceRecording,
   type VoiceTake,
   voiceRecordingSupported,
 } from "./components/voice-recorder";

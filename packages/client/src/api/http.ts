@@ -245,12 +245,14 @@ export function createFileRequester(options: TransportOptions = {}) {
       });
       return parseResponse<T>(res);
     },
-    /** The bytes of a download. */
-    async blob(path: string): Promise<Blob> {
+    /** The bytes of a download; a `POST` (one that costs, such as a reply read aloud) sends an empty JSON body. */
+    async blob(path: string, method: "GET" | "POST" = "GET"): Promise<Blob> {
+      const headers = t.headers ? await t.headers() : {};
       const res = await t.fetch(t.base + path, {
-        method: "GET",
-        headers: t.headers ? await t.headers() : {},
+        method,
+        headers: method === "POST" ? { ...headers, "content-type": "application/json" } : headers,
         credentials: t.credentials,
+        ...(method === "POST" ? { body: "{}" } : {}),
       });
       if (!res.ok) await parseResponse<never>(res);
       // Bun's and React Native's Blob types differ from the DOM's; the value is the platform's Blob.
