@@ -6,6 +6,7 @@ import {
   addChannelMember,
   agentDetail,
   budgetPercent,
+  CHANNEL_INSTRUCTIONS_MAX,
   ConflictError,
   createAgent,
   createChannel,
@@ -295,6 +296,51 @@ describe("agents, runs and usage", () => {
       visibility: "public",
     });
     expect(updated.topic).toBe("Everything");
+  });
+
+  test("channel instructions: who manages the channel sets them, within the limit, and the change is audited", async () => {
+    f = await setup();
+    const member = await addMember(f.db, f.org.id, "member");
+    await expect(
+      updateChannel(f.db, member.id, f.org.id, f.general.id, { instructions: "Answer in English." }),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(
+      updateChannel(f.db, f.owner.id, f.org.id, f.general.id, {
+        instructions: "x".repeat(CHANNEL_INSTRUCTIONS_MAX + 1),
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    const audited = () =>
+      f.db
+        .select()
+        .from(schema.auditLog)
+        .where(and(eq(schema.auditLog.orgId, f.org.id), eq(schema.auditLog.action, "channel.instructions_changed")));
+    expect(await audited()).toEqual([]);
+
+    const updated = await updateChannel(f.db, f.owner.id, f.org.id, f.general.id, {
+      instructions: "  Answer in English. Link the ticket.  ",
+    });
+    expect(updated.instructions).toBe("Answer in English. Link the ticket.");
+    // The same text again changes nothing, so nothing more is audited.
+    await updateChannel(f.db, f.owner.id, f.org.id, f.general.id, {
+      instructions: "Answer in English. Link the ticket.",
+    });
+    const rows = await audited();
+    expect(rows).toHaveLength(1);
+    // Who and where, never the text itself (it can be long and say anything), as with an agent's instructions.
+    expect(rows[0]).toMatchObject({
+      actorId: f.owner.id,
+      targetType: "channel",
+      targetId: f.general.id,
+      channelId: f.general.id,
+      details: { name: "general", length: "Answer in English. Link the ticket.".length },
+    });
+    expect(JSON.stringify(rows[0]?.details)).not.toContain("Link the ticket");
+
+    // A DM has none.
+    const dm = await openDm(f.db, f.owner.id, f.org.id, { userId: member.id });
+    await expect(
+      updateChannel(f.db, f.owner.id, f.org.id, dm.id, { instructions: "Be brief." }),
+    ).rejects.toBeInstanceOf(ValidationError);
   });
 
   test("the owner is told when an agent crosses 80% and 100% of its budget", async () => {

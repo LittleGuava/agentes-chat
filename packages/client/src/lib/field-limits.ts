@@ -15,6 +15,8 @@ export const FIELD_LIMITS = {
   eventDescription: 10_000,
   /** `issues.ts` description. */
   issueDescription: 50_000,
+  /** `channels.ts` instructions (`CHANNEL_INSTRUCTIONS_MAX` in the engine, ADR 0208). */
+  channelInstructions: 4000,
   /** `approvals.ts` right-hand guidance (`RIGHT_HAND_CAPS.guidanceChars`). */
   rightHandGuidance: 2000,
 } as const;

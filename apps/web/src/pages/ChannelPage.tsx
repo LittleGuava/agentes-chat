@@ -136,6 +136,7 @@ import {
   sendNeedsEdit,
 } from "@agenteschat/client/lib/errors";
 import { everyoneWord, isEveryoneMention, mentionsReader, offersEveryone } from "@agenteschat/client/lib/everyone";
+import { FIELD_LIMITS } from "@agenteschat/client/lib/field-limits";
 import { fileIcon, fitsUpload, formatBytes, MAX_UPLOAD_MB, previewKind } from "@agenteschat/client/lib/files";
 import { FIRST_REPLY_RESCUE_MS, firstReplyRescue } from "@agenteschat/client/lib/first-reply";
 import { dayLabel, formatClock, formatFullDate, formatTime } from "@agenteschat/client/lib/format";
@@ -219,6 +220,7 @@ import {
   MessageText,
   mayTakeFocus,
   OPEN_LAYER,
+  overLimit,
   PixelSpinner,
   SavedNote,
   Skeleton,
@@ -226,6 +228,7 @@ import {
   SkeletonGroup,
   Spinner,
   skeletonOnScreen,
+  Textarea,
   type VoiceNotice,
 } from "@agenteschat/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -425,6 +428,7 @@ import { useMentionSearch } from "@/hooks/useMentionSearch";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useAgentLines } from "@/hooks/usePresence";
 import { useRightHandLook } from "@/hooks/useRightHandLook";
+import { useTextLimit } from "@/hooks/useTextLimit";
 import { useHeaderSearch } from "@/hooks/useWorkspaceSearch";
 import { TYPED_VALUES } from "@/i18n";
 import { onAgentPanel, takeAgentPanel } from "@/lib/agent-panel-ask";
@@ -5228,6 +5232,9 @@ function ChannelDetails({
     categories.data?.find((c) => c.id === channel.categoryId)?.name ?? t("channelCategories.noCategory");
   const [q, setQ] = useState("");
   const [topic, setTopic] = useState(channel.topic);
+  // What every agent here follows (ADR 0208): saved on blur, like the description.
+  const [instructions, setInstructions] = useState(channel.instructions ?? "");
+  const instructionsLimit = useTextLimit(FIELD_LIMITS.channelInstructions);
   const [saved, setSaved] = useState(false);
   const [addingHere, setAdding] = useState(false);
   const adding = addingHere || (startAdding && editable);
@@ -5267,6 +5274,12 @@ function ChannelDetails({
     setTopic(channel.topic);
     sentTopic.current = null;
   }, [open, channel.topic]);
+  const sentInstructions = useRef<string | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    setInstructions(channel.instructions ?? "");
+    sentInstructions.current = null;
+  }, [open, channel.instructions]);
   useEffect(() => {
     if (!saved) return;
     const id = setTimeout(() => setSaved(false), 1800);
@@ -5282,6 +5295,22 @@ function ChannelDetails({
         onSuccess: () => setSaved(true),
         onError: () => {
           sentTopic.current = null;
+        },
+      },
+    );
+  };
+  const saveInstructions = () => {
+    const next = instructions.trim();
+    if (!editable || overLimit(instructions, instructionsLimit)) return;
+    if (next === (channel.instructions ?? "") || next === sentInstructions.current) return;
+    sentInstructions.current = next;
+    update.mutate(
+      { instructions: next },
+      {
+        onSuccess: () => setSaved(true),
+        onError: (e) => {
+          sentInstructions.current = null;
+          toast.show(errorText(t, e), "error");
         },
       },
     );
@@ -5312,6 +5341,7 @@ function ChannelDetails({
   // would open again over it.
   const inviteInstead = () => {
     saveTopic();
+    saveInstructions();
     saveName();
     setAdding(false);
     onOpenChange(false);
@@ -5349,6 +5379,7 @@ function ChannelDetails({
   });
   const leave = () => {
     saveTopic();
+    saveInstructions();
     saveName();
     onOpenChange(false);
   };
@@ -5570,6 +5601,7 @@ function ChannelDetails({
                       disabled={busy}
                       onClick={() => {
                         saveTopic();
+                        saveInstructions();
                         saveName();
                         setDeleting(true);
                       }}
@@ -5618,6 +5650,24 @@ function ChannelDetails({
                       }}
                       placeholder={t("channel.topicPlaceholder")}
                       maxLength={250}
+                    />
+                  </Field>
+                  <Field
+                    label={t("channel.instructionsLabel")}
+                    id="channel-edit-instructions"
+                    hint={{
+                      name: t("common.about", { label: t("channel.instructionsLabel") }),
+                      text: t("channel.instructionsHelp"),
+                    }}
+                  >
+                    <Textarea
+                      autoGrow
+                      rows={3}
+                      limit={instructionsLimit}
+                      value={instructions}
+                      onChange={(e) => setInstructions(e.target.value)}
+                      onBlur={saveInstructions}
+                      placeholder={t("channel.instructionsPlaceholder")}
                     />
                   </Field>
                   <Field label={t("channelCategories.category")} id="channel-edit-category">

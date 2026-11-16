@@ -6,6 +6,7 @@ import {
   buildRunContext,
   CONTINUE_THE_CONVERSATION,
   createAgent,
+  createChannel,
   forComputerBrain,
   type HandOff,
   handOffsBlock,
@@ -13,9 +14,11 @@ import {
   type Message,
   nowLine,
   openAgentDm,
+  openDm,
   PLAIN_WORDS_LINE,
   postPersonMessage,
   toTurns,
+  updateChannel,
 } from "../src";
 import { type Fixture, setup } from "./fixtures";
 
@@ -417,4 +420,46 @@ test("the person's app language is a line of the turn", async () => {
   const line = system.find((b) => b.text.startsWith("The person's app language"));
   expect(line?.text).toBe("The person's app language: ja, Japanese. Still reply in the language they write in.");
   expect((line as { turn?: boolean } | undefined)?.turn).toBe(true);
+});
+
+test("a channel's instructions reach every agent there, in a section of their own, and nowhere else", async () => {
+  await updateChannel(f.db, f.owner.id, f.org.id, f.general.id, {
+    instructions: "Every answer links the ticket it is about.",
+  });
+  const runOf = async (channelId: string, body: string) => {
+    const trigger = await postPersonMessage({ db: f.db, pubsub: f.pubsub }, f.owner.id, f.org.id, channelId, { body });
+    // A DM starts the agent's run itself; a channel message that names nobody doesn't.
+    await f.db
+      .insert(schema.agentRuns)
+      .values({
+        orgId: f.org.id,
+        agentId: f.agent.id,
+        channelId,
+        threadRootId: trigger.id,
+        triggerMessageId: trigger.id,
+        trigger: "mention",
+        hop: 0,
+      })
+      .onConflictDoNothing();
+    const [run] = await f.db.select().from(schema.agentRuns).where(eq(schema.agentRuns.triggerMessageId, trigger.id));
+    if (!run) throw new Error("no run");
+    return buildRunContext(f.db, run, f.agent, { maxMessages: 10 });
+  };
+  const here = await runOf(f.general.id, "how do we answer here?");
+  const block = here.system.find((b) => b.text.startsWith("# Instructions for this channel"));
+  expect(block?.text).toContain("Every answer links the ticket it is about.");
+  // Held for the conversation: a computer brain reads it when its session starts, and a change starts a new one.
+  expect(block).toMatchObject({ conversation: true });
+  expect(here.sessionPrompt.join("\n")).toContain("Every answer links the ticket it is about.");
+
+  const produto = await createChannel(f.db, f.owner.id, f.org.id, { name: "produto" });
+  const there = await runOf(produto.id, "and here?");
+  expect(systemText(there.system)).not.toContain("# Instructions for this channel");
+  expect(systemText(there.system)).not.toContain("links the ticket");
+
+  // A DM never has them, even with text left in its row.
+  const dm = await openDm(f.db, f.owner.id, f.org.id, { agentId: f.agent.id });
+  await f.db.update(schema.channels).set({ instructions: "Never in a DM." }).where(eq(schema.channels.id, dm.id));
+  const inDm = await runOf(dm.id, "hi");
+  expect(systemText(inDm.system)).not.toContain("Never in a DM.");
 });

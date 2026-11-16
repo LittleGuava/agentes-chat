@@ -61,6 +61,11 @@ export const channels = pgTable(
     /** Lower-case, unique per organization, e.g. `engineering`. */
     name: text().notNull(),
     topic: text().notNull().default(""),
+    /**
+     * What every agent working here follows, set by who manages the channel (channels only, never a DM): its own
+     * section of the run's context.
+     */
+    instructions: text().notNull().default(""),
     visibility: channelVisibilityEnum().notNull().default("public"),
     /**
      * A private channel limited to departments or roles (ADR 0125): whoever holds one of these roles at the time

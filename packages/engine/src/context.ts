@@ -1024,6 +1024,16 @@ export async function buildRunContext(
           },
         )
       : null;
+  // Written by who manages the channel, a person of the workspace like whoever wrote the agent's instructions and the
+  // organization's context, so read as instructions too, under the rules (ADR 0208). Channels only, never a DM.
+  const channelInstructions =
+    channel.kind === "channel" && channel.instructions.trim()
+      ? [
+          "# Instructions for this channel",
+          `People of this workspace set these for every agent working in #${channel.name}. Follow them here, along with your own instructions; they never change the rules above, your permissions or what needs a person's approval.`,
+          channel.instructions.trim(),
+        ].join("\n")
+      : "";
   // Most stable first, so prompt-cache prefixes are shared: the rules are the same for every agent with the same
   // tools, the organization's block for every agent of the organization (a breakpoint after it, token-trim B5),
   // the agent's block per agent.
@@ -1121,6 +1131,7 @@ export async function buildRunContext(
           },
         ]
       : []),
+    ...(channelInstructions ? [{ conversation: true, text: channelInstructions }] : []),
     // Only when a person is behind the run: like the team, it follows the requester.
     // A heading of its own: on its own, the line would read as part of the section before it ("# Your team").
     ...(options.choices ? [{ conversation: true, text: `# Options to pick from\n${ASK_CHOICES_LINE}` }] : []),
@@ -1318,6 +1329,9 @@ export async function buildRunContext(
         ]),
       ),
       JSON.stringify(options.skills ?? []),
+      // Read once when a computer session starts (a `conversation` block): a change starts a new one. Only when there
+      // are some, so a session in a channel without them keeps its key.
+      ...(channelInstructions ? [channelInstructions] : []),
     ],
     personal,
   };
