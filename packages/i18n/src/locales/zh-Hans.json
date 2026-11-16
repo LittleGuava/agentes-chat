@@ -1247,7 +1247,8 @@
         "update": "将更新",
         "unchanged": "已存在",
         "skip": "已跳过",
-        "join": "已存在"
+        "join": "已存在",
+        "keptHere": "已在这里修改"
       },
       "why": {
         "exists": "这里已有同名项，会保持原样。",
@@ -1260,7 +1261,8 @@
         "channel_not_picked": "它的频道没有带上。",
         "invalid": "内容不完整，或者格式在这里无法使用。",
         "failed": "暂时无法创建。请重试。",
-        "too_many_routines": "以暂停状态导入：它的智能体已达到活跃例行工作的上限。"
+        "too_many_routines": "以暂停状态导入：它的智能体已达到活跃例行工作的上限。",
+        "edited_here": "导入后在这里改过：保持现状。"
       },
       "whyExists": {
         "skill": "这里已有同名技能，会保持原样。",
@@ -1269,6 +1271,8 @@
       "renamed": "将改为 @{{handle}}：这里已有 @{{wanted}}。",
       "joins": "智能体会加入现有的 #{{name}}。",
       "updates": "自上次导入后在另一个应用中有改动：这里的版本将被新版本替换。",
+      "keptHere": "导入后在这里改过，另一个应用里也改了。保持现状。勾选即可换成新版本。",
+      "overwrites": "用新版本替换在这里改过的内容。",
       "trimmed": "已截短以适应长度：{{fields}}。",
       "fields": {
         "name": "名称",
@@ -1351,6 +1355,7 @@
         "openSkills": "打开技能",
         "kept_other": "{{count}} 项已经存在，保持原样。",
         "capped_other": "{{count}} 个例行工作以暂停状态导入：它们的智能体已达到活跃例行工作的上限。",
+        "keptHere_other": "在这里改过的 {{count}} 项保持现状。",
         "notCame": "未导入",
         "another": "导入其他文件"
       },
@@ -16489,6 +16494,23 @@
       "download": "下载文件",
       "neverLine": "绝不包含密钥、密码、登录信息或对话。",
       "whatsIn": "文件中包含什么",
+      "undo": {
+        "title": "你的导入",
+        "action": "撤销",
+        "dialogTitle": "撤销来自 {{name}} 的导入",
+        "back": "智能体和频道会被归档，技能会被删除。再次导入即可恢复。",
+        "goes": "将移除",
+        "stays": "保留",
+        "why": {
+          "edited_here": "导入后在这里改过。",
+          "in_use": "里面有对话。",
+          "failed": "无法撤销。请重试。"
+        },
+        "nothing": "没有可撤销的内容：导入的内容已在这里修改。",
+        "confirm": "撤销导入",
+        "done_other": "已撤销 {{count}} 项。",
+        "failed": "无法撤销导入。请重试。"
+      },
       "exportWhat": "导出内容",
       "exportAll": "整个工作区",
       "exportPart": "部门或智能体",

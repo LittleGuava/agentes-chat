@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { ImportItemResult, MigrationBundle } from "@agenteschat/client";
-import { cardName, defaultMethod, IMPORT_CARDS, mcpClient } from "@agenteschat/client/lib/import/flow";
+import { cardName, defaultMethod, defaultPicks, IMPORT_CARDS, mcpClient } from "@agenteschat/client/lib/import/flow";
 import { parseImport } from "@agenteschat/client/lib/import/index";
 import {
   agentRows,
@@ -190,6 +190,23 @@ describe("Importar agentes on the phone: the preview", () => {
       free: [],
       on: false,
     });
+  });
+
+  test("what was changed here since the import stays: said why, never picked, never overwritten from the phone", () => {
+    const b = bundle();
+    const items = [
+      item("agent", "vera", "skip", { reason: "edited_here", targetId: "agent-vera" }),
+      item("agent", "otto", "update"),
+      item("routine", "daily", "skip", { reason: "edited_here", targetId: "routine-daily" }),
+    ];
+    const pick = defaultPicks(items);
+    expect([...pick]).toEqual(["agent:otto"]);
+    const rows = agentRows(b, items, new Set([...pick, "agent:vera"]), new Map());
+    expect(rows.map((r) => [r.name, r.status, r.free, r.on, r.reason])).toEqual([
+      ["Otto", "update", true, true, null],
+      ["Vera", "skip", false, false, "edited_here"],
+    ]);
+    expect(kindGroups(items, pick, new Map())).toEqual([]);
   });
 });
 

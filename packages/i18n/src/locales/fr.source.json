@@ -3134,6 +3134,9 @@
   "onboarding.import.status.join": {
     "value": "already exists"
   },
+  "onboarding.import.status.keptHere": {
+    "value": "changed here"
+  },
   "onboarding.import.why.exists": {
     "value": "One with this name already exists here, and it stays as it is."
   },
@@ -3167,6 +3170,9 @@
   "onboarding.import.why.too_many_routines": {
     "value": "Arrives paused: its agent is at the limit of active routines."
   },
+  "onboarding.import.why.edited_here": {
+    "value": "Changed here since the import: it stays as it is."
+  },
   "onboarding.import.whyExists.skill": {
     "value": "A skill with this name already exists here. It stays as it is."
   },
@@ -3181,6 +3187,12 @@
   },
   "onboarding.import.updates": {
     "value": "Changed in the other app since the last import: the version here makes way for the new one."
+  },
+  "onboarding.import.keptHere": {
+    "value": "Changed here since the import, and in the other app too. It stays as it is. Check it to take the new version."
+  },
+  "onboarding.import.overwrites": {
+    "value": "Replaces what was changed here with the new version."
   },
   "onboarding.import.trimmed": {
     "value": "Cut to fit: {{fields}}."
@@ -3444,6 +3456,12 @@
     "value": {
       "one": "{{count}} routine arrived paused: its agent was at the limit of active routines.",
       "other": "{{count}} routines arrived paused: their agents were at the limit of active routines."
+    }
+  },
+  "onboarding.import.report.keptHere": {
+    "value": {
+      "one": "{{count}} item changed here stays as it is.",
+      "other": "{{count}} items changed here stay as they are."
     }
   },
   "onboarding.import.report.notCame": {
@@ -41859,6 +41877,48 @@
   },
   "settings.import.whatsIn": {
     "value": "What's in the file"
+  },
+  "settings.import.undo.title": {
+    "value": "Your imports"
+  },
+  "settings.import.undo.action": {
+    "value": "Undo"
+  },
+  "settings.import.undo.dialogTitle": {
+    "value": "Undo the import from {{name}}"
+  },
+  "settings.import.undo.back": {
+    "value": "Agents and channels are archived and skills deleted. Importing again brings them back."
+  },
+  "settings.import.undo.goes": {
+    "value": "Removed"
+  },
+  "settings.import.undo.stays": {
+    "value": "Stays"
+  },
+  "settings.import.undo.why.edited_here": {
+    "value": "Changed here since the import."
+  },
+  "settings.import.undo.why.in_use": {
+    "value": "People talked in it."
+  },
+  "settings.import.undo.why.failed": {
+    "value": "Couldn't be undone. Try again."
+  },
+  "settings.import.undo.nothing": {
+    "value": "Nothing to undo: what it brought was changed here."
+  },
+  "settings.import.undo.confirm": {
+    "value": "Undo import"
+  },
+  "settings.import.undo.done": {
+    "value": {
+      "one": "{{count}} item undone.",
+      "other": "{{count}} items undone."
+    }
+  },
+  "settings.import.undo.failed": {
+    "value": "Couldn't undo the import. Try again."
   },
   "settings.import.exportWhat": {
     "value": "What to export"

@@ -8,13 +8,22 @@ import {
   createChannel,
   createOrganization,
   deleteSkill,
+  editContextItem,
   ForbiddenError,
   type ImportInput,
   type ImportPlan,
+  importedSources,
   insertMessage,
   type MigrationBundle,
+  parseSkillMarkdown,
+  saveSkill,
   setAgentSkills,
+  unarchiveAgent,
+  undoImport,
+  updateAgent,
+  updateChannel,
   updateMyProfile,
+  updateRoutine,
   ValidationError,
 } from "../src";
 import { addMember as addPerson, addUser, everyoneWithout, type Fixture, setup } from "./fixtures";
@@ -781,5 +790,262 @@ describe("agents another app knows by an id", () => {
       .from(schema.messages)
       .where(eq(schema.messages.id, said.id));
     expect(message).toEqual({ body: "@agent-05ba44fd-45b0-4b0e-9bb0-37 o que mudou hoje?", mentioned: [ids[0] ?? ""] });
+  });
+});
+
+describe("what was changed here since the import (ADR 0055, addendum 2026-11-15)", () => {
+  type Agent = MigrationBundle["agents"][number];
+  type Routine = MigrationBundle["routines"][number];
+  type Note = MigrationBundle["notes"][number];
+  const routineDeps = () => ({ db: f.db, pubsub: f.pubsub });
+  const NEW_SKILL_MD = SKILL_MD.replace("Junte as entregas.", "Junte as entregas e os riscos.");
+  /** The source changed every kind an update overwrites: the agent, the skill, the routine and a note. */
+  const changedAtSource = () => {
+    const changed = bundle();
+    (changed.agents[0] as Agent).instructions = "Ache leads e qualifique.";
+    changed.skills = [{ key: "weekly", markdown: NEW_SKILL_MD }];
+    (changed.routines[0] as Routine).prompt = "Resuma o pipeline e os riscos.";
+    (changed.notes[0] as Note).content = "O ciclo de venda leva 45 dias.";
+    return changed;
+  };
+  const agentOf = async (id: string) => (await f.db.select().from(schema.agents).where(eq(schema.agents.id, id)))[0];
+  const activeNotes = async () =>
+    (
+      await f.db
+        .select({ content: schema.contextItems.content })
+        .from(schema.contextItems)
+        .where(and(eq(schema.contextItems.orgId, f.org.id), eq(schema.contextItems.status, "active")))
+    ).map((n) => n.content);
+
+  test("nothing changed here: every kind the source changed is an update, again and again", async () => {
+    f = await setup();
+    const tomorrow = new Date(Date.now() + 86_400_000).toISOString();
+    const routines: Routine[] = [
+      {
+        key: "cron",
+        name: "Cron",
+        agent: "scout",
+        prompt: "A",
+        channel: "room",
+        trigger: { cron: "0 9 * * 1-5", timezone: "America/Sao_Paulo" },
+      },
+      {
+        key: "rule",
+        name: "Regra",
+        agent: "scout",
+        prompt: "B",
+        channel: null,
+        trigger: { rule: { freq: "weekly", byWeekday: ["MO"], times: ["08:00"], interval: 1 } },
+      },
+      { key: "at", name: "Uma vez", agent: "closer", prompt: "C", channel: null, trigger: { at: tomorrow } },
+    ];
+    await run({ bundle: bundle({ routines }) });
+    for (const round of [1, 2]) {
+      const changed = bundle({ routines: routines.map((r) => ({ ...r, prompt: `${r.prompt} ${round}` })) });
+      (changed.agents[0] as Agent).instructions = `Ache leads, rodada ${round}.`;
+      (changed.agents[0] as Agent).appearance = { color: round === 1 ? "sky" : "rose" };
+      changed.skills = [{ key: "weekly", markdown: `${NEW_SKILL_MD}\n\nRodada ${round}.` }];
+      (changed.notes[0] as Note).content = `O ciclo de venda leva ${round} meses.`;
+      const plan = byKey((await run({ bundle: changed })).items);
+      for (const id of ["agent:scout", "skill:weekly", "routine:cron", "routine:rule", "routine:at", "note:cycle"]) {
+        expect([id, plan.get(id)?.action, plan.get(id)?.reason]).toEqual([id, "update", undefined]);
+      }
+    }
+  });
+
+  test("an update keeps what someone changed here, shown as kept; picked one by one, it is overwritten", async () => {
+    f = await setup();
+    const first = byKey((await run({ bundle: bundle() })).items);
+    const id = (k: string) => first.get(k)?.targetId ?? "";
+    await updateAgent(f.db, f.owner.id, f.org.id, id("agent:scout"), { instructions: "Só leads do Sul." });
+    await saveSkill({ db: f.db, blobs: f.artifactDeps.blobs }, f.owner.id, f.org.id, {
+      ...parseSkillMarkdown(SKILL_MD.replace("Junte as entregas.", "Junte as entregas do time.")),
+      source: "upload",
+    });
+    await updateRoutine(routineDeps(), f.owner.id, f.org.id, id("routine:daily"), { prompt: "Resuma só o Sul." });
+    await editContextItem(f.db, f.owner.id, f.org.id, id("note:cycle"), { content: "O ciclo leva 20 dias no Sul." });
+
+    const plan = byKey((await run({ bundle: changedAtSource(), dryRun: true })).items);
+    for (const k of ["agent:scout", "skill:weekly", "routine:daily", "note:cycle"]) {
+      expect([k, plan.get(k)?.action, plan.get(k)?.reason, plan.get(k)?.targetId]).toEqual([
+        k,
+        "skip",
+        "edited_here",
+        id(k),
+      ]);
+    }
+    // The other note, unchanged at the source, is still just that.
+    expect(plan.get("note:rule")?.action).toBe("unchanged");
+
+    // Applying everything it offers (what a client sends by default) changes none of them.
+    await run({ bundle: changedAtSource() });
+    expect((await agentOf(id("agent:scout")))?.instructions).toBe("Só leads do Sul.");
+    const [skill] = await f.db
+      .select()
+      .from(schema.skills)
+      .where(eq(schema.skills.id, id("skill:weekly")));
+    expect(skill?.body).toContain("Junte as entregas do time.");
+    const [routine] = await f.db
+      .select()
+      .from(schema.routines)
+      .where(eq(schema.routines.id, id("routine:daily")));
+    expect(routine?.prompt).toBe("Resuma só o Sul.");
+    expect(await activeNotes()).toContain("O ciclo leva 20 dias no Sul.");
+
+    // The person picks two to overwrite: only those take the source's version, said so.
+    const over = byKey((await run({ bundle: changedAtSource(), overwrite: ["agent:scout", "note:cycle"] })).items);
+    expect(over.get("agent:scout")).toMatchObject({ action: "update", reason: "edited_here" });
+    expect(over.get("note:cycle")).toMatchObject({ action: "update", reason: "edited_here" });
+    expect(over.get("routine:daily")).toMatchObject({ action: "skip", reason: "edited_here" });
+    expect((await agentOf(id("agent:scout")))?.instructions).toBe("Ache leads e qualifique.");
+    const notes = await activeNotes();
+    expect(notes).toContain("O ciclo de venda leva 45 dias.");
+    expect(notes).not.toContain("O ciclo leva 20 dias no Sul.");
+
+    // Overwritten, they follow the source again; the ones kept are still kept.
+    const next = byKey((await run({ bundle: changedAtSource(), dryRun: true })).items);
+    expect(next.get("agent:scout")?.action).toBe("unchanged");
+    expect(next.get("note:cycle")?.action).toBe("unchanged");
+    expect(next.get("routine:daily")).toMatchObject({ action: "skip", reason: "edited_here" });
+  });
+});
+
+describe("undoing an import (ADR 0055, addendum 2026-11-15)", () => {
+  const SOURCE = { app: "openmausbot", ref: "pkg-sales" };
+  const undo = (dryRun: boolean, actor = f.owner.id) => undoImport(deps(), actor, f.org.id, { ...SOURCE, dryRun });
+  const line = (i: { kind: string; key: string; action: string; reason?: string }) =>
+    `${i.kind}:${i.key}:${i.action}${i.reason ? `:${i.reason}` : ""}`;
+
+  test("takes back what it made and nobody changed, keeps what was changed; again: nothing; importing again brings the same ones back", async () => {
+    f = await setup();
+    const first = byKey((await run({ bundle: bundle() })).items);
+    const id = (k: string) => first.get(k)?.targetId ?? "";
+    await editContextItem(f.db, f.owner.id, f.org.id, id("note:rule"), { content: "Contas acima de 80 pessoas." });
+
+    const before = await counts();
+    const preview = await undo(true);
+    expect(await counts()).toEqual(before);
+    expect(preview.items.map(line)).toEqual([
+      "note:cycle:remove",
+      "note:rule:keep:edited_here",
+      "routine:daily:remove",
+      "channel:room:remove",
+      "agent:scout:remove",
+      "agent:closer:remove",
+      "skill:weekly:remove",
+    ]);
+    expect(preview.items.find((i) => i.key === "scout")).toMatchObject({ label: "Scout", targetId: id("agent:scout") });
+
+    const done = await undo(false);
+    expect(done.items.map(line)).toEqual(preview.items.map(line));
+    const [scout] = await f.db
+      .select()
+      .from(schema.agents)
+      .where(eq(schema.agents.id, id("agent:scout")));
+    expect(scout?.archivedAt).not.toBeNull();
+    const [room] = await f.db
+      .select()
+      .from(schema.channels)
+      .where(eq(schema.channels.id, id("channel:room")));
+    expect(room?.archivedAt).not.toBeNull();
+    const [skill] = await f.db
+      .select()
+      .from(schema.skills)
+      .where(eq(schema.skills.id, id("skill:weekly")));
+    expect(skill?.deletedAt).not.toBeNull();
+    const [routine] = await f.db
+      .select()
+      .from(schema.routines)
+      .where(eq(schema.routines.id, id("routine:daily")));
+    expect(routine?.deletedAt).not.toBeNull();
+    const [cycle] = await f.db
+      .select()
+      .from(schema.contextItems)
+      .where(eq(schema.contextItems.id, id("note:cycle")));
+    expect(cycle?.status).toBe("archived");
+    const active = await f.db.select().from(schema.contextItems).where(eq(schema.contextItems.status, "active"));
+    expect(active.map((n) => n.content)).toContain("Contas acima de 80 pessoas.");
+    const [audit] = await f.db.select().from(schema.auditLog).where(eq(schema.auditLog.action, "import.undone"));
+    expect(audit?.details).toMatchObject({ app: "openmausbot", ref: "pkg-sales", removed: 6, kept: 1 });
+
+    // Twice is once: what it already took back isn't there to take.
+    expect((await undo(false)).items.map(line)).toEqual(["note:rule:keep:edited_here"]);
+    expect(await importedSources(f.db, f.owner.id, f.org.id)).toEqual([
+      {
+        app: "openmausbot",
+        ref: "pkg-sales",
+        mine: true,
+        counts: { agent: 0, skill: 0, channel: 0, routine: 0, note: 1 },
+      },
+    ]);
+
+    // Someone brought Closer back by hand meanwhile: still that one, not a copy.
+    await unarchiveAgent(f.db, f.owner.id, f.org.id, id("agent:closer"));
+    // Brought again: the same agents with their handles, the same room and skill, no copies beside them.
+    const again = byKey((await run({ bundle: bundle() })).items);
+    expect(again.get("agent:closer")).toMatchObject({ action: "create", targetId: id("agent:closer") });
+    expect(again.get("agent:closer")?.renamedTo).toBeUndefined();
+    expect(again.get("agent:scout")).toMatchObject({ action: "create", targetId: id("agent:scout") });
+    expect(again.get("agent:scout")?.renamedTo).toBeUndefined();
+    expect(again.get("channel:room")).toMatchObject({ action: "create", targetId: id("channel:room") });
+    expect(again.get("skill:weekly")).toMatchObject({ action: "create", targetId: id("skill:weekly") });
+    expect(again.get("routine:daily")?.action).toBe("create");
+    expect(again.get("note:rule")?.action).toBe("unchanged");
+    const all = await f.db.select().from(schema.agents).where(eq(schema.agents.orgId, f.org.id));
+    expect(all.filter((a) => a.handle.startsWith("scout")).map((a) => [a.id, a.archivedAt])).toEqual([
+      [id("agent:scout"), null],
+    ]);
+    expect(all.filter((a) => a.handle.startsWith("closer")).map((a) => a.id)).toEqual([id("agent:closer")]);
+    const [back] = await f.db
+      .select()
+      .from(schema.channels)
+      .where(eq(schema.channels.id, id("channel:room")));
+    expect(back?.archivedAt).toBeNull();
+    const members = await f.db
+      .select({ agentId: schema.channelMembers.agentId })
+      .from(schema.channelMembers)
+      .where(eq(schema.channelMembers.channelId, id("channel:room")));
+    expect(members.map((m) => m.agentId)).toEqual(expect.arrayContaining([id("agent:scout"), id("agent:closer")]));
+  });
+
+  test("a room people talked in stays; a channel that was here already is never touched", async () => {
+    f = await setup();
+    const room = bundle().channels[0] as MigrationBundle["channels"][number];
+    const general = { key: "geral", name: "general", topic: "", agents: [{ key: "closer", autoReply: false }] };
+    const first = byKey((await run({ bundle: bundle({ channels: [general, room], routines: [] }) })).items);
+    expect(first.get("channel:geral")).toMatchObject({ action: "update", reason: "exists" });
+    await insertMessage(f.db, {
+      orgId: f.org.id,
+      channelId: first.get("channel:room")?.targetId ?? "",
+      author: { type: "person", userId: f.owner.id },
+      body: "Bom dia, time de vendas",
+    });
+    // A room people renamed is theirs, even after an import that only brought an agent into it.
+    const lounge = bundle({ channels: [{ key: "lounge", name: "lounge", topic: "", agents: [] }], routines: [] });
+    const made = byKey((await run({ bundle: lounge })).items).get("channel:lounge")?.targetId ?? "";
+    await updateChannel(f.db, f.owner.id, f.org.id, made, { name: "sala-do-time" });
+    const joined = bundle({
+      channels: [{ key: "lounge", name: "lounge", topic: "", agents: [{ key: "scout", autoReply: false }] }],
+      routines: [],
+    });
+    expect(byKey((await run({ bundle: joined })).items).get("channel:lounge")?.action).toBe("update");
+    const items = (await undo(false)).items.map(line);
+    expect(items).toContain("channel:room:keep:in_use");
+    expect(items).toContain("channel:lounge:keep:edited_here");
+    expect(items.some((i) => i.startsWith("channel:geral"))).toBe(false);
+    const [kept] = await f.db.select().from(schema.channels).where(eq(schema.channels.id, f.general.id));
+    expect(kept?.archivedAt).toBeNull();
+  });
+
+  test("only who manages agents, and only their own import: another person's package with the same ids is theirs", async () => {
+    f = await setup();
+    await run({ bundle: bundle() });
+    const member = await addPerson(f.db, f.org.id, "member");
+    await expect(undo(true, member.id)).rejects.toBeInstanceOf(ForbiddenError);
+    const admin = await addPerson(f.db, f.org.id, "admin");
+    expect((await undo(false, admin.id)).items).toEqual([]);
+    expect((await importedSources(f.db, admin.id, f.org.id)).map((s) => s.mine)).toEqual([false]);
+    const all = await f.db.select().from(schema.agents).where(eq(schema.agents.orgId, f.org.id));
+    expect(all.every((a) => a.archivedAt === null)).toBe(true);
   });
 });

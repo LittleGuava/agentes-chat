@@ -1274,7 +1274,8 @@
         "update": "wird aktualisiert",
         "unchanged": "schon hier",
         "skip": "übersprungen",
-        "join": "existiert schon"
+        "join": "existiert schon",
+        "keptHere": "hier geändert"
       },
       "why": {
         "exists": "Hier gibt es schon einen mit diesem Namen, und er bleibt, wie er ist.",
@@ -1287,7 +1288,8 @@
         "channel_not_picked": "Der zugehörige Kanal kommt nicht mit.",
         "invalid": "Kam unvollständig oder in einer Form, die wir hier nicht nutzen können.",
         "failed": "Konnte gerade nicht erstellt werden. Versuch es noch einmal.",
-        "too_many_routines": "Kommt pausiert an: Der zugehörige Agent hat das Limit aktiver Routinen erreicht."
+        "too_many_routines": "Kommt pausiert an: Der zugehörige Agent hat das Limit aktiver Routinen erreicht.",
+        "edited_here": "Seit dem Import hier geändert: Es bleibt, wie es ist."
       },
       "whyExists": {
         "skill": "Hier gibt es schon einen Skill mit diesem Namen. Er bleibt, wie er ist.",
@@ -1296,6 +1298,8 @@
       "renamed": "Wird zu @{{handle}}: @{{wanted}} gibt es hier schon.",
       "joins": "Die Agenten treten dem bestehenden #{{name}} bei.",
       "updates": "Seit dem letzten Import in der anderen App geändert: Die Version hier macht Platz für die neue.",
+      "keptHere": "Seit dem Import hier geändert und auch in der anderen App. Es bleibt, wie es ist. Hake es an, um die neue Version zu übernehmen.",
+      "overwrites": "Ersetzt, was hier geändert wurde, durch die neue Version.",
       "trimmed": "Gekürzt, damit es passt: {{fields}}.",
       "fields": {
         "name": "Name",
@@ -1397,6 +1401,8 @@
         "kept_other": "{{count}} Elemente waren schon hier und bleiben, wie sie sind.",
         "capped_one": "{{count}} Routine kam pausiert an: Ihr Agent hatte das Limit aktiver Routinen erreicht.",
         "capped_other": "{{count}} Routinen kamen pausiert an: Ihre Agenten hatten das Limit aktiver Routinen erreicht.",
+        "keptHere_one": "{{count}} hier geändertes Element bleibt, wie es ist.",
+        "keptHere_other": "{{count}} hier geänderte Elemente bleiben, wie sie sind.",
         "notCame": "Nicht mitgekommen",
         "another": "Weitere Datei importieren"
       },
@@ -16996,6 +17002,24 @@
       "download": "Datei herunterladen",
       "neverLine": "Enthält nie Schlüssel, Passwörter, Anmeldungen oder Unterhaltungen.",
       "whatsIn": "Was in der Datei steht",
+      "undo": {
+        "title": "Deine Importe",
+        "action": "Rückgängig machen",
+        "dialogTitle": "Import aus {{name}} rückgängig machen",
+        "back": "Agenten und Kanäle werden archiviert, Skills gelöscht. Ein neuer Import bringt sie zurück.",
+        "goes": "Wird entfernt",
+        "stays": "Bleibt",
+        "why": {
+          "edited_here": "Seit dem Import hier geändert.",
+          "in_use": "Darin wurde geschrieben.",
+          "failed": "Konnte nicht rückgängig gemacht werden. Versuch es noch einmal."
+        },
+        "nothing": "Nichts rückgängig zu machen: Was kam, wurde hier geändert.",
+        "confirm": "Import rückgängig machen",
+        "done_one": "{{count}} Element rückgängig gemacht.",
+        "done_other": "{{count}} Elemente rückgängig gemacht.",
+        "failed": "Der Import konnte nicht rückgängig gemacht werden. Versuch es noch einmal."
+      },
       "exportWhat": "Was exportieren",
       "exportAll": "Den ganzen Workspace",
       "exportPart": "Abteilungen oder Agenten",

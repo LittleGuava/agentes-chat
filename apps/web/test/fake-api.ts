@@ -3188,12 +3188,26 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         for (const { app, ref, kind } of state.imported ?? []) {
           let source = sources.find((x) => x.app === app && x.ref === ref);
           if (!source) {
-            source = { app, ref, counts: { agent: 0, skill: 0, channel: 0, routine: 0, note: 0 } };
+            source = { app, ref, mine: true, counts: { agent: 0, skill: 0, channel: 0, routine: 0, note: 0 } };
             sources.push(source);
           }
           source.counts[kind] += 1;
         }
         return sources;
+      },
+      // Like the backend when nothing was changed here: everything the package brought goes.
+      undo: async (orgId, input) => {
+        log("imports.undo", orgId, input);
+        const theirs = (state.imported ?? []).filter((i) => i.app === input.app && i.ref === input.ref);
+        const items = theirs.map((i, n) => ({
+          kind: i.kind,
+          key: `${i.kind}-${n}`,
+          label: `${i.kind} ${n + 1}`,
+          action: "remove" as const,
+          targetId: id(i.kind),
+        }));
+        if (!input.dryRun) state.imported = (state.imported ?? []).filter((i) => !theirs.includes(i));
+        return { items };
       },
       exportUrl: (orgId, scope) => `/api/app/organizations/${orgId}/export${exportQuery(scope)}`,
       // Like the backend's part: the agents named and the setores' agents, with their routines; no skills or memory here.

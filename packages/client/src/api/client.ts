@@ -170,6 +170,7 @@ import type {
   ImportFileInput,
   ImportInput,
   ImportPlan,
+  ImportUndoItem,
   InstallableCli,
   Instance,
   Invitation,
@@ -986,6 +987,11 @@ export interface ApiClient {
     apply(orgId: string, input: ImportInput): Promise<ImportPlan>;
     /** What this workspace brought from other apps, by source package (admins). */
     sources(orgId: string): Promise<ImportedSource[]>;
+    /**
+     * Takes back what one source package brought, as the caller imported it (`dryRun`: only what would go); what
+     * was changed here since stays. Importing it again brings the same items back. Who manages agents.
+     */
+    undo(orgId: string, input: { app: string; ref: string; dryRun: boolean }): Promise<{ items: ImportUndoItem[] }>;
     /**
      * One of an imported agent's files into its folder in the Drive (multipart, ≤ 50 MB). A name already in the
      * folder is never overwritten (`exists`); a credential store is refused (`import.secret_file`).

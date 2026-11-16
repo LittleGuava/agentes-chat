@@ -1247,7 +1247,8 @@
         "update": "akan diperbarui",
         "unchanged": "sudah ada di sini",
         "skip": "dilewati",
-        "join": "sudah ada"
+        "join": "sudah ada",
+        "keptHere": "diubah di sini"
       },
       "why": {
         "exists": "Sudah ada yang bernama sama di sini, dan tetap seperti apa adanya.",
@@ -1260,7 +1261,8 @@
         "channel_not_picked": "Kanalnya tidak ikut dibawa.",
         "invalid": "Datang tidak lengkap, atau dalam bentuk yang tidak bisa kami pakai di sini.",
         "failed": "Tidak bisa dibuat saat ini. Coba lagi.",
-        "too_many_routines": "Tiba dalam keadaan dijeda: agennya sudah mencapai batas rutinitas aktif."
+        "too_many_routines": "Tiba dalam keadaan dijeda: agennya sudah mencapai batas rutinitas aktif.",
+        "edited_here": "Diubah di sini sejak impor: tetap seperti sekarang."
       },
       "whyExists": {
         "skill": "Sudah ada skill dengan nama ini di sini. Skill itu tetap seperti apa adanya.",
@@ -1269,6 +1271,8 @@
       "renamed": "Menjadi @{{handle}}: @{{wanted}} sudah ada di sini.",
       "joins": "Agen bergabung ke #{{name}} yang sudah ada.",
       "updates": "Berubah di aplikasi lain sejak impor terakhir: versi di sini diganti dengan yang baru.",
+      "keptHere": "Diubah di sini sejak impor, dan juga di aplikasi lain. Tetap seperti sekarang. Centang untuk memakai versi baru.",
+      "overwrites": "Mengganti yang diubah di sini dengan versi baru.",
       "trimmed": "Dipotong agar muat: {{fields}}.",
       "fields": {
         "name": "nama",
@@ -1351,6 +1355,7 @@
         "openSkills": "Buka Skill",
         "kept_other": "{{count}} item sudah ada di sini dan tetap seperti apa adanya.",
         "capped_other": "{{count}} rutinitas tiba dalam keadaan dijeda: agennya sudah mencapai batas rutinitas aktif.",
+        "keptHere_other": "{{count}} item yang diubah di sini tetap seperti sekarang.",
         "notCame": "Tidak ikut",
         "another": "Impor file lain"
       },
@@ -16480,6 +16485,23 @@
       "download": "Unduh file",
       "neverLine": "Tidak pernah menyertakan kunci, kata sandi, login, atau percakapan.",
       "whatsIn": "Isi file ini",
+      "undo": {
+        "title": "Impor Anda",
+        "action": "Urungkan",
+        "dialogTitle": "Urungkan impor dari {{name}}",
+        "back": "Agen dan kanal diarsipkan, skill dihapus. Impor lagi akan mengembalikannya.",
+        "goes": "Dihapus",
+        "stays": "Tetap",
+        "why": {
+          "edited_here": "Diubah di sini sejak impor.",
+          "in_use": "Ada percakapan di dalamnya.",
+          "failed": "Tidak bisa diurungkan. Coba lagi."
+        },
+        "nothing": "Tidak ada yang bisa diurungkan: yang datang sudah diubah di sini.",
+        "confirm": "Urungkan impor",
+        "done_other": "{{count}} item diurungkan.",
+        "failed": "Tidak bisa mengurungkan impor. Coba lagi."
+      },
       "exportWhat": "Apa yang diekspor",
       "exportAll": "Seluruh ruang kerja",
       "exportPart": "Departemen atau agen",

@@ -1302,7 +1302,8 @@
         "update": "se actualizará",
         "unchanged": "ya está aquí",
         "skip": "omitido",
-        "join": "ya existe"
+        "join": "ya existe",
+        "keptHere": "cambió aquí"
       },
       "why": {
         "exists": "Ya existe uno con este nombre aquí, y se queda como está.",
@@ -1315,7 +1316,8 @@
         "channel_not_picked": "Su canal no viene.",
         "invalid": "Llegó incompleto, o en una forma que no podemos usar aquí.",
         "failed": "No se pudo crear ahora. Inténtalo de nuevo.",
-        "too_many_routines": "Llega en pausa: su agente está en el límite de rutinas activas."
+        "too_many_routines": "Llega en pausa: su agente está en el límite de rutinas activas.",
+        "edited_here": "Cambió aquí desde la importación: se queda como está."
       },
       "whyExists": {
         "skill": "Ya existe aquí una habilidad con este nombre. Se queda como está.",
@@ -1324,6 +1326,8 @@
       "renamed": "Pasa a ser @{{handle}}: @{{wanted}} ya existe aquí.",
       "joins": "Los agentes entran en el #{{name}} que ya existe.",
       "updates": "Cambió en la otra app desde la última importación: la versión de aquí deja lugar a la nueva.",
+      "keptHere": "Cambió aquí desde la importación, y en la otra app también. Se queda como está. Márcalo para tomar la versión nueva.",
+      "overwrites": "Reemplaza lo que se cambió aquí por la versión nueva.",
       "trimmed": "Recortado para que entre: {{fields}}.",
       "fields": {
         "name": "nombre",
@@ -1444,6 +1448,9 @@
         "capped_one": "{{count}} rutina llegó en pausa: su agente estaba en el límite de rutinas activas.",
         "capped_many": "{{count}} rutinas llegaron en pausa: sus agentes estaban en el límite de rutinas activas.",
         "capped_other": "{{count}} rutinas llegaron en pausa: sus agentes estaban en el límite de rutinas activas.",
+        "keptHere_one": "{{count}} elemento cambiado aquí se quedó como está.",
+        "keptHere_many": "{{count}} elementos cambiados aquí se quedaron como están.",
+        "keptHere_other": "{{count}} elementos cambiados aquí se quedaron como están.",
         "notCame": "No vino",
         "another": "Importar otro archivo"
       },
@@ -17457,6 +17464,25 @@
       "download": "Descargar el archivo",
       "neverLine": "Nunca incluye claves, contraseñas, sesiones ni conversaciones.",
       "whatsIn": "Qué hay en el archivo",
+      "undo": {
+        "title": "Tus importaciones",
+        "action": "Deshacer",
+        "dialogTitle": "Deshacer la importación de {{name}}",
+        "back": "Los agentes y canales se archivan y las skills se borran. Importar de nuevo los trae de vuelta.",
+        "goes": "Sale",
+        "stays": "Se queda",
+        "why": {
+          "edited_here": "Cambió aquí desde la importación.",
+          "in_use": "Hay conversación en él.",
+          "failed": "No se pudo deshacer. Inténtalo de nuevo."
+        },
+        "nothing": "Nada que deshacer: lo que vino cambió aquí.",
+        "confirm": "Deshacer importación",
+        "done_one": "{{count}} elemento deshecho.",
+        "done_many": "{{count}} elementos deshechos.",
+        "done_other": "{{count}} elementos deshechos.",
+        "failed": "No se pudo deshacer la importación. Inténtalo de nuevo."
+      },
       "exportWhat": "Qué exportar",
       "exportAll": "Todo el espacio de trabajo",
       "exportPart": "Departamentos o agentes",

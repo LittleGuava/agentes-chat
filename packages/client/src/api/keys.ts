@@ -29,6 +29,8 @@ export const keys = {
   /** Under `members`: someone joining or leaving refreshes it too. */
   limits: (orgId: string) => ["org", orgId, "members", "limits"] as const,
   invitations: (orgId: string) => ["org", orgId, "invitations"] as const,
+  /** What the workspace brought from other apps, by source package (ADR 0055). */
+  importedSources: (orgId: string) => ["org", orgId, "imports"] as const,
   agents: (orgId: string) => ["org", orgId, "agents"] as const,
   /** Set whole by every change; read again on the `agent.groups` org event. */
   agentGroups: (orgId: string) => ["org", orgId, "agent-groups"] as const,

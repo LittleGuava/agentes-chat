@@ -172,8 +172,22 @@ export const retryable = ({ from, step, cause }: ImportFailure) =>
 
 export const itemId = (item: { kind: string; key: string }) => `${item.kind}:${item.key}`;
 
-/** A row the person checks or unchecks: something the import would create or change. */
-export const choosable = (item: ImportItemResult) => item.action === "create" || item.action === "update";
+/** Changed here since the import and at the source: it stays as it is unless the person checks it to overwrite. */
+export const keptHere = (item: ImportItemResult) => item.action === "skip" && item.reason === "edited_here";
+
+/** A row the person checks or unchecks: something the import would create or change, or overwrite if checked. */
+export const choosable = (item: ImportItemResult) =>
+  item.action === "create" || item.action === "update" || keptHere(item);
+
+/** What starts checked: everything it would create or change; never what someone changed here since. */
+export const defaultPicks = (items: ImportItemResult[]) =>
+  new Set(items.filter((i) => choosable(i) && !keptHere(i)).map(itemId));
+
+/** Of what is picked, what overwrites a change made here (sent as `overwrite`). */
+export const overwritesOf = (items: ImportItemResult[], picks: readonly string[]) => {
+  const kept = new Set(items.filter(keptHere).map(itemId));
+  return picks.filter((id) => kept.has(id));
+};
 
 /**
  * Routines and notes that won't come although checked: the agent (or channel)
@@ -239,16 +253,18 @@ export function sliceBundle(bundle: MigrationBundle, pick: ReadonlySet<string>):
 export async function applyInChunks(
   api: ApiClient,
   orgId: string,
-  input: { bundle: MigrationBundle; pick: string[] },
+  input: { bundle: MigrationBundle; pick: string[]; overwrite?: string[] },
   done: Map<string, ImportItemResult>,
   onProgress?: (applied: number) => void,
 ): Promise<ImportItemResult[]> {
   for (let at = 0; at < input.pick.length; at += PER_APPLY) {
     const pick = input.pick.slice(at, at + PER_APPLY);
+    const overwrite = pick.filter((id) => input.overwrite?.includes(id));
     const { items } = await api.imports.apply(orgId, {
       bundle: sliceBundle(input.bundle, new Set(pick)),
       dryRun: false,
       pick,
+      ...(overwrite.length > 0 ? { overwrite } : {}),
     });
     for (const item of items) {
       const before = done.get(itemId(item));

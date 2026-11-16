@@ -1331,7 +1331,8 @@
         "update": "zostanie zaktualizowane",
         "unchanged": "już tu jest",
         "skip": "pominięte",
-        "join": "już istnieje"
+        "join": "już istnieje",
+        "keptHere": "zmienione tutaj"
       },
       "why": {
         "exists": "Element o tej nazwie już tu istnieje i zostaje bez zmian.",
@@ -1344,7 +1345,8 @@
         "channel_not_picked": "Jego kanał nie jest przenoszony.",
         "invalid": "Przyszło niekompletne lub w formie, której nie możemy tu użyć.",
         "failed": "Nie udało się teraz utworzyć. Spróbuj ponownie.",
-        "too_many_routines": "Przyjdzie wstrzymana: jej agent ma już limit aktywnych rutyn."
+        "too_many_routines": "Przyjdzie wstrzymana: jej agent ma już limit aktywnych rutyn.",
+        "edited_here": "Zmienione tutaj od importu: zostaje bez zmian."
       },
       "whyExists": {
         "skill": "Umiejętność o tej nazwie już tu istnieje. Zostaje bez zmian.",
@@ -1353,6 +1355,8 @@
       "renamed": "Zmieni się na @{{handle}}: @{{wanted}} już tu istnieje.",
       "joins": "Agenci dołączą do istniejącego kanału #{{name}}.",
       "updates": "Zmienione w drugiej aplikacji od ostatniego importu: wersja tutaj ustąpi miejsca nowej.",
+      "keptHere": "Zmienione tutaj od importu, a także w drugiej aplikacji. Zostaje bez zmian. Zaznacz, żeby wziąć nową wersję.",
+      "overwrites": "Zastępuje to, co zmieniono tutaj, nową wersją.",
       "trimmed": "Skrócono, żeby się zmieściło: {{fields}}.",
       "fields": {
         "name": "nazwa",
@@ -1492,6 +1496,10 @@
         "capped_few": "{{count}} rutyny przyszły wstrzymane: ich agenci mieli już limit aktywnych rutyn.",
         "capped_many": "{{count}} rutyn przyszło wstrzymanych: ich agenci mieli już limit aktywnych rutyn.",
         "capped_other": "{{count}} rutyny przyszło wstrzymane: ich agenci mieli już limit aktywnych rutyn.",
+        "keptHere_one": "{{count}} element zmieniony tutaj zostaje bez zmian.",
+        "keptHere_few": "{{count}} elementy zmienione tutaj zostają bez zmian.",
+        "keptHere_many": "{{count}} elementów zmienionych tutaj zostaje bez zmian.",
+        "keptHere_other": "{{count}} elementu zmienionego tutaj zostaje bez zmian.",
         "notCame": "Nie dotarło",
         "another": "Importuj inny plik"
       },
@@ -18073,6 +18081,26 @@
       "download": "Pobierz plik",
       "neverLine": "Nigdy nie zawiera kluczy, haseł, logowań ani rozmów.",
       "whatsIn": "Co jest w pliku",
+      "undo": {
+        "title": "Twoje importy",
+        "action": "Cofnij",
+        "dialogTitle": "Cofnij import z {{name}}",
+        "back": "Agenci i kanały są archiwizowani, a skille usuwane. Ponowny import je przywraca.",
+        "goes": "Znika",
+        "stays": "Zostaje",
+        "why": {
+          "edited_here": "Zmienione tutaj od importu.",
+          "in_use": "Toczyła się w nim rozmowa.",
+          "failed": "Nie udało się cofnąć. Spróbuj ponownie."
+        },
+        "nothing": "Nie ma czego cofnąć: to, co przyszło, zmieniono tutaj.",
+        "confirm": "Cofnij import",
+        "done_one": "Cofnięto {{count}} element.",
+        "done_few": "Cofnięto {{count}} elementy.",
+        "done_many": "Cofnięto {{count}} elementów.",
+        "done_other": "Cofnięto {{count}} elementu.",
+        "failed": "Nie udało się cofnąć importu. Spróbuj ponownie."
+      },
       "exportWhat": "Co wyeksportować",
       "exportAll": "Cała przestrzeń robocza",
       "exportPart": "Działy lub agenci",

@@ -1303,7 +1303,8 @@
         "update": "verrà aggiornato",
         "unchanged": "già qui",
         "skip": "saltato",
-        "join": "esiste già"
+        "join": "esiste già",
+        "keptHere": "modificato qui"
       },
       "why": {
         "exists": "Qui ne esiste già uno con questo nome, e resta com'è.",
@@ -1316,7 +1317,8 @@
         "channel_not_picked": "Il suo canale non viene importato.",
         "invalid": "È arrivato incompleto, o in una forma che qui non possiamo usare.",
         "failed": "Non è stato possibile crearlo adesso. Riprova.",
-        "too_many_routines": "Arriva in pausa: il suo agente è al limite di routine attive."
+        "too_many_routines": "Arriva in pausa: il suo agente è al limite di routine attive.",
+        "edited_here": "Modificato qui dopo l'importazione: resta com'è."
       },
       "whyExists": {
         "skill": "Qui esiste già una skill con questo nome. Resta com'è.",
@@ -1325,6 +1327,8 @@
       "renamed": "Diventa @{{handle}}: @{{wanted}} esiste già qui.",
       "joins": "Gli agenti entrano nel #{{name}} esistente.",
       "updates": "Cambiato nell'altra app dall'ultima importazione: la versione qui lascia il posto a quella nuova.",
+      "keptHere": "Modificato qui dopo l'importazione, e anche nell'altra app. Resta com'è. Selezionalo per prendere la versione nuova.",
+      "overwrites": "Sostituisce ciò che è stato modificato qui con la versione nuova.",
       "trimmed": "Accorciato per starci: {{fields}}.",
       "fields": {
         "name": "nome",
@@ -1445,6 +1449,9 @@
         "capped_one": "{{count}} routine è arrivata in pausa: il suo agente era al limite di routine attive.",
         "capped_many": "{{count}} routine sono arrivate in pausa: i loro agenti erano al limite di routine attive.",
         "capped_other": "{{count}} routine sono arrivate in pausa: i loro agenti erano al limite di routine attive.",
+        "keptHere_one": "{{count}} elemento modificato qui resta com'è.",
+        "keptHere_many": "{{count}} elementi modificati qui restano come sono.",
+        "keptHere_other": "{{count}} elementi modificati qui restano come sono.",
         "notCame": "Non arrivati",
         "another": "Importa un altro file"
       },
@@ -17541,6 +17548,25 @@
       "download": "Scarica il file",
       "neverLine": "Non include mai chiavi, password, accessi o conversazioni.",
       "whatsIn": "Cosa c'è nel file",
+      "undo": {
+        "title": "Le tue importazioni",
+        "action": "Annulla",
+        "dialogTitle": "Annulla l'importazione da {{name}}",
+        "back": "Agenti e canali vengono archiviati, le skill eliminate. Importare di nuovo li riporta.",
+        "goes": "Esce",
+        "stays": "Resta",
+        "why": {
+          "edited_here": "Modificato qui dopo l'importazione.",
+          "in_use": "Ci sono conversazioni.",
+          "failed": "Non è stato possibile annullare. Riprova."
+        },
+        "nothing": "Niente da annullare: ciò che è arrivato è stato modificato qui.",
+        "confirm": "Annulla importazione",
+        "done_one": "{{count}} elemento annullato.",
+        "done_many": "{{count}} elementi annullati.",
+        "done_other": "{{count}} elementi annullati.",
+        "failed": "Non è stato possibile annullare l'importazione. Riprova."
+      },
       "exportWhat": "Cosa esportare",
       "exportAll": "Tutto lo spazio di lavoro",
       "exportPart": "Reparti o agenti",

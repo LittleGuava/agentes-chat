@@ -1,9 +1,9 @@
 # 0055. Imports from other apps, and our own export, through one bundle
 
-- Status: Accepted (2026-10-21). Addendum 2026-10-31: an old id handle still reaches its agent. Addendum 2026-11-12: private repositories through the workspace's GitHub. Addendum 2026-11-15: exporting a part, setores or chosen agents (§6). Addendum 2026-11-15: a conversation's transcript, for whoever reads it. Addendum 2026-11-15: a team file applied, checked and pruned from the command line
+- Status: Accepted (2026-10-21). Addendum 2026-10-31: an old id handle still reaches its agent. Addendum 2026-11-12: private repositories through the workspace's GitHub. Addendum 2026-11-15: exporting a part, setores or chosen agents (§6). Addendum 2026-11-15: a conversation's transcript, for whoever reads it. Addendum 2026-11-15: a team file applied, checked and pruned from the command line. Addendum 2026-11-15: an update keeps what was changed here, and an import can be undone
 - Date: 2026-10-21
 - Extends: ADR 0020 (skills), ADR 0016 (connectors), ADR 0017 (context items), ADR 0019 (SSRF guard)
-- Out of scope for now: chat history, a scan of `~/.openclaw` / `~/.hermes` on a connected computer, the Manus API, rollback
+- Out of scope for now: chat history, a scan of `~/.openclaw` / `~/.hermes` on a connected computer, the Manus API (rollback came with the addendum of 2026-11-15)
 - Amended 2026-10-31: §8, the agents' own files into the Drive
 
 ## Context
@@ -110,7 +110,7 @@ Some exports carry what the agents made, not only how they are set up: OpenBot.r
 
 - One apply path for every source: a new source is a parser that fills the bundle, plus fixtures.
 - Re-running is safe and picks up where it stopped; the plan says what would change before anything does.
-- An update overwrites what the import made with the source's version (instructions, routine prompts, notes). The plan shows it as `update`, and the person can leave it unchecked.
+- An update overwrites what the import made with the source's version (instructions, routine prompts, notes). The plan shows it as `update`, and the person can leave it unchecked. Since the addendum of 2026-11-15, what someone changed here since is kept unless the person checks it.
 - Importing into the same workspace makes copies (suffixed handles); restoring by id is not covered.
 
 ## Later
@@ -119,7 +119,7 @@ Some exports carry what the agents made, not only how they are set up: OpenBot.r
 - **A CLI** (`agentes migrate --from … --out bundle.json`, MIT, no dependencies) once scripting or agents kept in git asks for it; writing from it needs a sign-in the app API doesn't have.
 - **A runner scan** of `~/.openclaw*` and `~/.hermes` on a connected computer, read-only and confirmed by its owner, preferring their own redacted `--json` CLIs.
 - **The Manus API**.
-- **Rollback** of what an import made (the table already says what that is, and never adopted channels).
+- ~~**Rollback** of what an import made~~: done, the addendum of 2026-11-15 ("Undo").
 
 ## Addendum (2026-10-31): an old id handle still reaches its agent
 
@@ -247,3 +247,35 @@ The import brings, it doesn't reconcile (§2): `unchanged` means the file's item
 - The same command from outside the server, once the app API has tokens of its own for scripts.
 - A check that compares with the workspace as it is now (instructions edited in the app), not with the last apply.
 - Unarchiving, from the plan, an agent or a channel that `--prune` archived when the file has it again.
+
+## Addendum (2026-11-15): an update keeps what was changed here, and an import can be undone
+
+Two things people hit after an import, as other apps' organization libraries already handle them: updating a package wrote over what the team had changed since (an agent's instructions, a routine's prompt, a note), and there was no way to take an import back but one item at a time.
+
+### What the import wrote (§3)
+
+`import_items` gains `written_hash` (migration 0300): a print of the target as the import last wrote it, read back from the database after the apply (`targetPrints` in `packages/engine/src/imports.ts`), never derived from the bundle. Its fields are the ones an import writes and people change, never what jobs write on their own:
+
+- agent: name, role, instructions and look (an update writes the look too);
+- skill: name, description, body;
+- routine: name, prompt, agent, target and trigger (`trigger_type`, `cron`, `rule`, `timezone`, `event`), not its on/off, next run or failures;
+- note: title, content and `superseded_by`, since a person's edit makes a new version and points the old one at it (memory upkeep merging it counts as a change too);
+- channel: name and topic (an update only adds agents, so this matters only to an undo; its print is taken when the import makes it, never when it adopts one).
+
+A print other than the stored one means someone changed it here. A row written before this (`written_hash` null) reads as not changed, in an update and in an undo alike: the old behavior, a known limit until an import next writes that item (one the source never changes again stays so).
+
+### Kept unless overwritten (§2)
+
+When the source changed an item (another hash) and someone changed it here too, the plan says `skip` with `edited_here` and the item's `targetId`, and applying leaves it and its provenance row as they are (the source hash stays old, so the next import says the same). The request takes `overwrite: string[]` (`kind:key`): an item in it is an `update` with the note `edited_here`, written over (a note's newest version, the head of its chain). `pick` alone never overwrites, so a client that sends every item, or an older one, keeps what people changed. A channel's update only joins agents and is never held.
+
+The apps: the row is checkable but starts unchecked (`defaultPicks` in `packages/client/src/lib/import/flow.ts`), its chip reads "mudou aqui" and its note says it stays unless checked; checking it sends it in `overwrite` (`overwritesOf`, `applyInChunks`). A group's "Trazer tudo" never checks it: one row at a time. The report counts what stayed. The phone shows it as kept and leaves it unchecked, and never overwrites: that is the web's, for now.
+
+### Undo
+
+`POST /api/app/organizations/{orgId}/imports/undo` with `{ app, ref, dryRun }` (`undoImport`) takes back what one package brought, as the caller imported it (the same rows `loadImportState` reads). Who manages agents only (`manage_agents`), since it archives them. Each item nobody changed here goes: a note archived, a routine deleted (soft, its run history stays, but it does not come back as itself), a channel archived, an agent archived, a skill deleted (soft), in that order, each in its own `try`. What was changed here stays (`keep`, `edited_here`), a channel with any message in it stays (`in_use`), a channel that was here already (`adopted`) is never listed, and a removal that fails stays (`failed`). One audit entry, `import.undone`, with the counts.
+
+The rows stay, with `undone_at` set (migration 0300). An undone row is not "there": importing the package again makes the items again, and an archived agent or channel an undo left (or one a person brought back by hand since) is brought back instead of a copy beside it (`unarchiveAgent`, `unarchiveChannel`), with its handle and its conversation, so `scout` never becomes `scout-2`. A skill comes back through `saveSkill`, as a deleted one already did. Running the undo twice ends in the same state: what it took back isn't there to take. `GET …/imports` leaves undone rows out and says `mine` per package.
+
+Configurações › Importar lists the caller's packages ("Suas importações", with the kinds each still has) with Desfazer, which opens the dry run (what goes, what stays and why) before anything changes.
+
+Out of it: the agents' own files copied to the Drive (§8) stay, and so does what the agents did since (messages, runs, files of their own); an undo takes back setup, not work. Routines and notes come back as new rows when imported again (they hold no name). The decision on permissions diverges between §4 (`manage_agents` for the import) and the code (`create_agents` in `applyImport`): the undo asks for `manage_agents`, and that divergence is left for its own change.

@@ -1274,7 +1274,8 @@
         "update": "wordt bijgewerkt",
         "unchanged": "staat er al",
         "skip": "overgeslagen",
-        "join": "bestaat al"
+        "join": "bestaat al",
+        "keptHere": "hier gewijzigd"
       },
       "why": {
         "exists": "Hier bestaat er al een met deze naam, en die blijft zoals hij is.",
@@ -1287,7 +1288,8 @@
         "channel_not_picked": "Het kanaal ervan komt niet mee.",
         "invalid": "Het kwam onvolledig binnen, of in een vorm die we hier niet kunnen gebruiken.",
         "failed": "Kon nu niet worden gemaakt. Probeer het opnieuw.",
-        "too_many_routines": "Komt gepauzeerd binnen: de agent zit aan de limiet van actieve routines."
+        "too_many_routines": "Komt gepauzeerd binnen: de agent zit aan de limiet van actieve routines.",
+        "edited_here": "Hier gewijzigd sinds de import: het blijft zoals het is."
       },
       "whyExists": {
         "skill": "Hier bestaat al een skill met deze naam. Die blijft zoals hij is.",
@@ -1296,6 +1298,8 @@
       "renamed": "Wordt @{{handle}}: @{{wanted}} bestaat hier al.",
       "joins": "De agents komen in het bestaande #{{name}}.",
       "updates": "Gewijzigd in de andere app sinds de laatste import: de versie hier maakt plaats voor de nieuwe.",
+      "keptHere": "Hier gewijzigd sinds de import, en ook in de andere app. Het blijft zoals het is. Vink het aan om de nieuwe versie te nemen.",
+      "overwrites": "Vervangt wat hier is gewijzigd door de nieuwe versie.",
       "trimmed": "Ingekort om te passen: {{fields}}.",
       "fields": {
         "name": "naam",
@@ -1397,6 +1401,8 @@
         "kept_other": "{{count}} items stonden er al en blijven zoals ze zijn.",
         "capped_one": "{{count}} routine kwam gepauzeerd binnen: de agent zat aan de limiet van actieve routines.",
         "capped_other": "{{count}} routines kwamen gepauzeerd binnen: de agents zaten aan de limiet van actieve routines.",
+        "keptHere_one": "{{count}} hier gewijzigd item blijft zoals het is.",
+        "keptHere_other": "{{count}} hier gewijzigde items blijven zoals ze zijn.",
         "notCame": "Niet meegekomen",
         "another": "Nog een bestand importeren"
       },
@@ -17060,6 +17066,24 @@
       "download": "Het bestand downloaden",
       "neverLine": "Bevat nooit sleutels, wachtwoorden, logins of gesprekken.",
       "whatsIn": "Wat er in het bestand zit",
+      "undo": {
+        "title": "Jouw imports",
+        "action": "Ongedaan maken",
+        "dialogTitle": "Import uit {{name}} ongedaan maken",
+        "back": "Agents en kanalen worden gearchiveerd, skills verwijderd. Opnieuw importeren brengt ze terug.",
+        "goes": "Gaat weg",
+        "stays": "Blijft",
+        "why": {
+          "edited_here": "Hier gewijzigd sinds de import.",
+          "in_use": "Er is in gepraat.",
+          "failed": "Kon niet ongedaan worden gemaakt. Probeer het opnieuw."
+        },
+        "nothing": "Niets ongedaan te maken: wat kwam is hier gewijzigd.",
+        "confirm": "Import ongedaan maken",
+        "done_one": "{{count}} item ongedaan gemaakt.",
+        "done_other": "{{count}} items ongedaan gemaakt.",
+        "failed": "Kon de import niet ongedaan maken. Probeer het opnieuw."
+      },
       "exportWhat": "Wat exporteren",
       "exportAll": "De hele werkruimte",
       "exportPart": "Afdelingen of agents",

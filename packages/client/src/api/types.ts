@@ -5620,7 +5620,12 @@ export type ImportSkipReason =
   | "invalid"
   | "failed"
   /** A note on a created routine: its agent already had the most active routines, so it arrived paused. */
-  | "too_many_routines";
+  | "too_many_routines"
+  /**
+   * Changed here since the import and at the source too: a `skip` (kept as it is) unless the item is in `overwrite`,
+   * then an `update` with this note.
+   */
+  | "edited_here";
 
 export interface ImportItemResult {
   kind: ImportItemKind;
@@ -5649,6 +5654,8 @@ export interface ImportInput {
    * in the plan's order (each call is safe to repeat).
    */
   pick?: string[];
+  /** `kind:key` of items changed here (`edited_here`) to overwrite with the source's version; the rest stay. */
+  overwrite?: string[];
 }
 
 export interface ImportPlan {
@@ -5682,7 +5689,20 @@ export interface ImportedFile {
 export interface ImportedSource {
   app: string;
   ref: string;
+  /** The caller imported some of it: they may undo it (`imports.undo`). */
+  mine: boolean;
   counts: Record<ImportItemKind, number>;
+}
+
+/** One item an undo takes back (`remove`) or leaves (`keep`, with why). */
+export interface ImportUndoItem {
+  kind: ImportItemKind;
+  key: string;
+  label: string;
+  action: "remove" | "keep";
+  /** Changed here since the import, a channel people talked in, or taking it back failed. */
+  reason?: "edited_here" | "in_use" | "failed";
+  targetId: string;
 }
 
 /** Where a page is mentioned: other pages, messages, issues. */

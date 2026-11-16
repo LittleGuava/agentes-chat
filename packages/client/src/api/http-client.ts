@@ -130,6 +130,7 @@ import type {
   ImportedFile,
   ImportedSource,
   ImportPlan,
+  ImportUndoItem,
   Instance,
   Invitation,
   InvitationPreview,
@@ -1069,6 +1070,7 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
     imports: {
       apply: (orgId, input) => request<ImportPlan>(`${org(orgId)}/imports`, { json: input }),
       sources: async (orgId) => (await request<{ sources: ImportedSource[] }>(`${org(orgId)}/imports`)).sources,
+      undo: (orgId, input) => request<{ items: ImportUndoItem[] }>(`${org(orgId)}/imports/undo`, { json: input }),
       copyFile: (orgId, input) => {
         const form = new FormData();
         form.append("file", input.file, input.name);

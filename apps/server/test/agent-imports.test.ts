@@ -344,7 +344,12 @@ describe("imports and the export", () => {
     expect(again.items.map((i) => i.action)).toEqual(Array(5).fill("unchanged"));
     // What came, once, by the package it came from.
     expect(await sources()).toEqual([
-      { app: "openmausbot", ref: "pkg-sales", counts: { agent: 1, skill: 1, channel: 1, routine: 1, note: 1 } },
+      {
+        app: "openmausbot",
+        ref: "pkg-sales",
+        mine: true,
+        counts: { agent: 1, skill: 1, channel: 1, routine: 1, note: 1 },
+      },
     ]);
 
     expect((await b(imports, { json: { bundle: { ...BUNDLE, format: "other" }, dryRun: true } })).status).toBe(400);
@@ -364,6 +369,42 @@ describe("imports and the export", () => {
     expect((await anon(imports, { json: { bundle: BUNDLE, dryRun: true } })).status).toBe(401);
     expect((await anon(imports)).status).toBe(401);
     expect((await anon(`/api/app/organizations/${orgId}/export`)).status).toBe(401);
+  });
+
+  test("an edit made here is kept unless overwritten; undo takes back the rest, by who manages agents", async () => {
+    const { b, orgId } = await owner({});
+    const imports = `/api/app/organizations/${orgId}/imports`;
+    const first = (await (await b(imports, { json: { bundle: BUNDLE, dryRun: false } })).json()) as Plan;
+    const scout = first.items.find((i) => i.kind === "agent")?.targetId ?? "";
+    const edit = await b(`/api/app/organizations/${orgId}/agents/${scout}`, {
+      method: "PATCH",
+      json: { instructions: "Só leads do Sul." },
+    });
+    expect(edit.status).toBe(200);
+    const changed = { ...BUNDLE, agents: [{ ...BUNDLE.agents[0], instructions: "Ache e qualifique leads." }] };
+    const kept = (await (await b(imports, { json: { bundle: changed, dryRun: true } })).json()) as Plan;
+    expect(kept.items.find((i) => i.kind === "agent")).toMatchObject({ action: "skip", reason: "edited_here" });
+    const over = (await (
+      await b(imports, { json: { bundle: changed, dryRun: true, overwrite: ["agent:scout"] } })
+    ).json()) as Plan;
+    expect(over.items.find((i) => i.kind === "agent")).toMatchObject({ action: "update", reason: "edited_here" });
+
+    const undo = `${imports}/undo`;
+    const source = { app: "openmausbot", ref: "pkg-sales" };
+    const member = await joinByInvitation(t as TestServer, b, orgId, "member@example.com");
+    expect((await member(undo, { json: { ...source, dryRun: true } })).status).toBe(403);
+    const preview = (await (await b(undo, { json: { ...source, dryRun: true } })).json()) as Plan;
+    expect(preview.items.map((i) => `${i.kind}:${i.action}${i.reason ? `:${i.reason}` : ""}`)).toEqual([
+      "note:remove",
+      "routine:remove",
+      "channel:remove",
+      "agent:keep:edited_here",
+      "skill:remove",
+    ]);
+    const done = await b(undo, { json: { ...source, dryRun: false } });
+    expect(done.status).toBe(200);
+    const left = ((await (await b(imports)).json()) as { sources: { counts: Record<string, number> }[] }).sources;
+    expect(left.map((s) => s.counts)).toEqual([{ agent: 1, skill: 0, channel: 0, routine: 0, note: 0 }]);
   });
 
   test("the export downloads as a file and imports into another workspace", async () => {
@@ -394,7 +435,14 @@ describe("imports and the export", () => {
     ]);
     // The channel it found here was joined, not brought: it isn't counted as what came.
     expect(await (await other(into)).json()).toEqual({
-      sources: [{ app: "agenteschat", ref: orgId, counts: { agent: 2, skill: 1, channel: 1, routine: 1, note: 1 } }],
+      sources: [
+        {
+          app: "agenteschat",
+          ref: orgId,
+          mine: true,
+          counts: { agent: 2, skill: 1, channel: 1, routine: 1, note: 1 },
+        },
+      ],
     });
     const copy = (await (
       await other(`/api/app/organizations/${created.organization.id}/export`)
