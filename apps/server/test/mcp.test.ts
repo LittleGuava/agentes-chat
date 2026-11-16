@@ -520,6 +520,159 @@ describe("tools", () => {
     ).toBe(true);
   });
 
+  test("scope tree: work handed to a colleague holds the job; the cursor returns on each change", async () => {
+    const { b, orgId, agentId } = await setup();
+    const app = await connectApp(t, b, orgId);
+    const [lodi] = await t.db
+      .select({ id: schema.agents.id })
+      .from(schema.agents)
+      .where(and(eq(schema.agents.orgId, orgId), eq(schema.agents.handle, "lodi")));
+    const lodiId = lodi?.id ?? "";
+    const sent = (
+      await callTool(t, app.access, "send_to_agent", { agent: "dev", message: "Prepare the launch", wait_seconds: 0 })
+    ).structuredContent as { task_id: string };
+    await t.drain();
+    const [root] = await t.db
+      .select()
+      .from(schema.agentRuns)
+      .where(eq(schema.agentRuns.triggerMessageId, sent.task_id));
+    if (!root) throw new Error("no run");
+    type Tree = {
+      status: string;
+      waiting_on?: string;
+      approval_url?: string;
+      poll_after_seconds?: number;
+      reply?: { untrusted_text: string };
+      tree: { id: string; parent_id: string | null; via: string; agent: { handle: string }; state: string }[];
+      changes?: { id: string; state: string; previous: string | null }[];
+      cursor: string;
+    };
+    const wait = async (args: Record<string, unknown>) =>
+      (await callTool(t, app.access, "wait_for_reply", { task_id: sent.task_id, timeout_seconds: 1, ...args }))
+        .structuredContent as Tree;
+    // The turn alone: done, as before.
+    expect((await wait({})).status).toBe("done");
+
+    // Dev handed part of it to Lodi, who hasn't started.
+    const [note] = await t.db
+      .insert(schema.agentConsultations)
+      .values({
+        orgId,
+        askerRunId: root.id,
+        askerAgentId: agentId,
+        targetAgentId: lodiId,
+        channelId: crypto.randomUUID(),
+        messageId: crypto.randomUUID(),
+        waitId: "async:note",
+        question: "Check the numbers",
+        chain: [agentId],
+        kind: "note",
+        expiresAt: new Date(Date.now() + 3600_000),
+      })
+      .returning();
+    if (!note) throw new Error("no note");
+    const first = await wait({ scope: "tree" });
+    expect(first.status).toBe("still_running");
+    expect(first.poll_after_seconds).toBe(5);
+    expect(first.tree.map((n) => [n.id, n.parent_id, n.via, n.agent.handle, n.state])).toEqual([
+      [root.id, null, "task", "dev", "done"],
+      [note.id, root.id, "note", "lodi", "not_started"],
+    ]);
+    expect(first.changes).toBeUndefined();
+
+    // Nothing changed since the cursor: held to the deadline.
+    let started = Date.now();
+    const same = await wait({ scope: "tree", cursor: first.cursor });
+    expect(Date.now() - started).toBeGreaterThanOrEqual(900);
+    expect([same.status, same.changes]).toEqual(["still_running", []]);
+
+    // Lodi's run starts: the waiting call returns with that change.
+    const other = (await callTool(t, app.access, "send_to_agent", { agent: "lodi", message: "x", wait_seconds: 0 }))
+      .structuredContent as { task_id: string };
+    const [lodiRun] = await t.db
+      .select()
+      .from(schema.agentRuns)
+      .where(eq(schema.agentRuns.triggerMessageId, other.task_id));
+    if (!lodiRun) throw new Error("no lodi run");
+    started = Date.now();
+    const waiting = wait({ scope: "tree", cursor: first.cursor, timeout_seconds: 20 });
+    await Bun.sleep(50);
+    await t.db
+      .update(schema.agentConsultations)
+      .set({ targetRunId: lodiRun.id })
+      .where(eq(schema.agentConsultations.id, note.id));
+    const moved = await waiting;
+    expect(Date.now() - started).toBeLessThan(10_000);
+    expect([moved.status, moved.changes]).toEqual([
+      "still_running",
+      [{ id: note.id, state: "queued", previous: "not_started" }],
+    ]);
+
+    // Lodi waits on an approval: the job waits on a person, linked where the card is.
+    await t.db.update(schema.agentRuns).set({ status: "waiting_approval" }).where(eq(schema.agentRuns.id, lodiRun.id));
+    await t.db.insert(schema.approvals).values({
+      orgId,
+      runId: lodiRun.id,
+      agentId: lodiId,
+      channelId: lodiRun.channelId,
+      threadRootId: lodiRun.threadRootId,
+      messageId: other.task_id,
+      toolUseId: "tu1",
+      tool: "merge",
+      scope: "github:merge",
+      params: {},
+      actionHash: "h",
+      title: "Merge",
+      expiresAt: new Date(Date.now() + 3600_000),
+    });
+    const approval = await wait({ scope: "tree" });
+    expect([approval.status, approval.waiting_on]).toEqual(["waiting_approval", note.id]);
+    expect(approval.approval_url).toBe(`${ORIGIN}/org/${orgId}/c/${lodiRun.channelId}?m=${other.task_id}`);
+    // Seen already: a wait with its cursor holds while the person decides.
+    started = Date.now();
+    const deciding = await wait({ scope: "tree", cursor: approval.cursor });
+    expect(Date.now() - started).toBeGreaterThanOrEqual(900);
+    expect([deciding.status, deciding.changes]).toEqual(["waiting_approval", []]);
+
+    // Lodi's run ended (here it failed) and the note isn't closed yet: still running, never settled early.
+    await t.db.update(schema.agentRuns).set({ status: "failed" }).where(eq(schema.agentRuns.id, lodiRun.id));
+    const closing = await wait({ scope: "tree" });
+    expect([closing.status, closing.tree.at(-1)?.state]).toEqual(["still_running", "waiting_agents"]);
+
+    // Lodi is done, but Dev hasn't heard back yet: still running.
+    await t.db.update(schema.agentRuns).set({ status: "done" }).where(eq(schema.agentRuns.id, lodiRun.id));
+    await t.db
+      .update(schema.agentConsultations)
+      .set({ status: "answered", answer: "They add up.", answeredAt: new Date() })
+      .where(eq(schema.agentConsultations.id, note.id));
+    const unreported = await wait({ scope: "tree" });
+    expect(unreported.status).toBe("still_running");
+    expect(unreported.tree.at(-1)?.state).toBe("done");
+    await t.db
+      .update(schema.agentConsultations)
+      .set({ reportedAt: new Date() })
+      .where(eq(schema.agentConsultations.id, note.id));
+    const settled = await wait({ scope: "tree", cursor: unreported.cursor });
+    expect(settled.status).toBe("done");
+    expect(settled.reply?.untrusted_text).toBe("Here is the launch copy.");
+    expect(settled.changes).toEqual([]);
+
+    // A cursor belongs to its task.
+    const foreign = await callTool(t, app.access, "wait_for_reply", {
+      task_id: other.task_id,
+      scope: "tree",
+      cursor: first.cursor,
+      timeout_seconds: 1,
+    });
+    expect(foreign.isError).toBe(true);
+    expect(foreign.content[0]?.text).toContain("another task");
+    expect((await callTool(t, app.access, "wait_for_reply", { task_id: sent.task_id, cursor: "x!" })).isError).toBe(
+      true,
+    );
+    expect(openWaits()).toBe(0);
+    // Four of its waits run to their 1 s deadline on purpose.
+  }, 20_000);
+
   test("sending is limited per person: 20 a minute", async () => {
     const { b, orgId, ownerId } = await setup();
     const app = await connectApp(t, b, orgId);
