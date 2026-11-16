@@ -56,6 +56,14 @@ describe("Auditoria in words (web and phone)", () => {
     expect(set({})).toBe("audit.change.pattern(audit.change.verb.other,audit.change.area.other)");
   });
 
+  test("editing a message (ADR 0207) reads as edited a message", () => {
+    const person = { type: "person" as const, id: "u1", name: "Bia" };
+    const edited = row({ actor: person, action: "message.edited", details: { before: 14, after: 14, redo: false } });
+    expect(auditSentence(t, edited, "pt-BR").text).toBe(
+      "audit.change.pattern(audit.change.verb.edited,audit.change.area.message)",
+    );
+  });
+
   test("a billing hold's reason is said in words, never as its code; any other reason as written", () => {
     expect(auditReason(t, standing({ from: "active", to: "hold", reason: "unpaid" }))).toBe(
       "standing.notification.billing.unpaid",

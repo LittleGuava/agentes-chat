@@ -8,6 +8,7 @@ import {
   consultationConversation,
   consultationsIn,
   createChannel,
+  editMessage,
   idRef,
   joinChannel,
   listChannelMembers,
@@ -691,6 +692,54 @@ export function chatRoutes(deps: AppDeps) {
       // post → `message.created` published (the commit and the event happen inside postPersonMessage).
       c.header("server-timing", `created;dur=${(performance.now() - started).toFixed(1)}`);
       return c.json(message, 201);
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "patch",
+      path: "/organizations/{orgId}/messages/{messageId}",
+      tags,
+      security,
+      summary: "Edit a message you sent, or edit it and redo the agents' answer",
+      description:
+        "Its author only (403 `message.edit_not_yours`), within a day of sending it (409 `message.edit_expired`); not a voice message, an answer to an agent's question or a notice (409 `message.not_editable`). The text is checked as a new message's (400 `message.too_long`). Its mentions stay as they were: an edit wakes and notifies nobody. Everyone in the conversation hears `message.edited`, with no unread. A message an agent already took (a run started on it, or it reached an agent's task at work) is only edited with `redo` (409 `message.edit_answered`), and only when it is the last message a person sent in that conversation (409 `message.redo_not_latest`): each of those agents' runs still on it stops and a `message_edited` notice (what it said, what it says now) starts its new answer; the answers already given stay (ADR 0207). Audited (`message.edited`) without the text.",
+      request: {
+        params: OrgParams.extend({ messageId: z.uuid() }),
+        body: body(
+          z.object({
+            body: z
+              .string()
+              .max(MAX_MESSAGE_LENGTH * 10)
+              .openapi({ description: `Markdown, up to ${MAX_MESSAGE_LENGTH} characters.` }),
+            redo: z.boolean().optional().openapi({
+              description: '"Editar e refazer a resposta": the agents that took it answer the new text.',
+            }),
+          }),
+        ),
+      },
+      responses: {
+        200: json(
+          z.object({
+            message: Message,
+            runs: z
+              .array(z.object({ agentId: z.uuid(), runId: z.uuid() }))
+              .openapi({ description: "With `redo`: the runs that answer the new text." }),
+          }),
+        ),
+        429: errorResponse("Too many requests"),
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { orgId, messageId } = c.req.valid("param");
+      const user = c.get("user");
+      // An edit that redoes the answer sends the message again, in effect: the same limit as posting.
+      const limit = await adapters.rateLimiter.consume(`post:${user.id}`, { limit: 30, windowMs: 10_000 });
+      if (!limit.allowed) return apiError(c, 429, "rate_limited", "Slow down");
+      const result = await editMessage({ db, pubsub: adapters.pubsub }, user.id, orgId, messageId, c.req.valid("json"));
+      if (result.runs.length > 0) deps.wakeWorkers?.();
+      return c.json(result, 200);
     },
   );
 

@@ -21,6 +21,7 @@ export const NOTICE_KINDS = [
   "run_stopped",
   "github_event",
   "work_follow_up",
+  "message_edited",
 ] as const;
 export type NoticeKind = (typeof NOTICE_KINDS)[number];
 
@@ -223,6 +224,12 @@ export function noticeView(
       if (r.answerFor) return line("chat.notice.github.asked", values, detail);
       return { ...line(githubLineKey(r), values, detail), answer: r.outside === "1" && !r.answeredBy };
     }
+    // A person edited a message the agent answered and asked it for another answer (ADR 0207): who, and which agent.
+    case "message_edited":
+      return line("chat.notice.messageEdited", {
+        person: notice.refs.personName ?? notice.from ?? "",
+        name: names.author,
+      });
     // A return's line is the bar's (`isReturnLine`), never one of the conversation's.
     case "follow_up":
     case "proposal_result":
