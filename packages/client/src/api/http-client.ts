@@ -24,6 +24,7 @@ import type {
   Agent,
   AgentAccess,
   AgentAction,
+  AgentApiKeys,
   AgentBrain,
   AgentBrowserSettings,
   AgentChannel,
@@ -33,6 +34,7 @@ import type {
   AgentForYou,
   AgentGroup,
   AgentHolds,
+  AgentKeyRoom,
   AgentLineChange,
   AgentMailbox,
   AgentPlanUsage,
@@ -89,6 +91,7 @@ import type {
   ConnectorCatalog,
   ConsultationConversation,
   CostlyDecision,
+  CreatedAgentApiKey,
   CreatedPersonalToken,
   Credential,
   CustomConnectStart,
@@ -1406,6 +1409,14 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       disconnect: (orgId, grantId) => request<void>(`${org(orgId)}/apps/${enc(grantId)}`, { method: "DELETE" }),
       createToken: (orgId, input) => request<CreatedPersonalToken>(`${org(orgId)}/tokens`, { json: input }),
       revokeToken: (orgId, grantId) => request<void>(`${org(orgId)}/tokens/${enc(grantId)}`, { method: "DELETE" }),
+    },
+    agentApiKeys: {
+      list: (orgId, agentId) => request<AgentApiKeys>(`${org(orgId)}/agents/${enc(agentId)}/api-keys`),
+      create: (orgId, agentId, input) =>
+        request<CreatedAgentApiKey>(`${org(orgId)}/agents/${enc(agentId)}/api-keys`, { json: input }),
+      revoke: (orgId, agentId, keyId) =>
+        request<void>(`${org(orgId)}/agents/${enc(agentId)}/api-keys/${enc(keyId)}`, { method: "DELETE" }),
+      room: (orgId, channelId) => request<AgentKeyRoom>(`${org(orgId)}/agent-key-rooms/${enc(channelId)}`),
     },
     skills: {
       list: async (orgId) => (await request<{ skills: Skill[] }>(`${org(orgId)}/skills`)).skills,

@@ -36,6 +36,10 @@ const KNOWN = {
   "agent.handle_taken": "newAgent.errors.handleTaken",
   "agent.right_hand_permanent": "errors.rightHand.permanent",
   "agent.not_owner": "errors.agent.ownerOrAdmin",
+  // An agent's API keys (ADR 0187): its card offers them only to who manages the agent, and only while it is active.
+  "agent_api.not_manager": "errors.agent.ownerOrAdmin",
+  "agent_api.agent_archived": "dashboards.errors.agentArchived",
+  "agent_api.key_limit": "errors.agentApi.keyLimit",
   "usage_queue.cancel_forbidden": "errors.agent.ownerOrAdmin",
   "agent.details_hidden": "errors.agent.detailsHidden",
   "brain.extra_owner_only": "errors.agent.extraOwnerOnly",

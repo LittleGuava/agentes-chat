@@ -35,6 +35,8 @@ import type {
   Agent,
   AgentAccess,
   AgentAction,
+  AgentApiKeyInput,
+  AgentApiKeys,
   AgentAudience,
   AgentBrain,
   AgentBrainInput,
@@ -49,6 +51,7 @@ import type {
   AgentGroupPatch,
   AgentHolds,
   AgentInput,
+  AgentKeyRoom,
   AgentLineChange,
   AgentMailbox,
   AgentMailboxInput,
@@ -120,6 +123,7 @@ import type {
   ConnectorCatalog,
   ConsultationConversation,
   CostlyDecision,
+  CreatedAgentApiKey,
   CreatedPersonalToken,
   Credential,
   CustomConnectStart,
@@ -2132,6 +2136,17 @@ export interface ApiClient {
     /** 409 `token_limit` past 10 live tokens per person here. */
     createToken(orgId: string, input: PersonalTokenInput): Promise<CreatedPersonalToken>;
     revokeToken(orgId: string, grantId: string): Promise<void>;
+  };
+  /**
+   * An agent's API keys (ADR 0187), for its owner or whoever has `manage_agents`: 409 `agent_api.key_limit` past 10
+   * live, 403 `reauth.sign_in` for one with no expiry without a recent sign-in.
+   */
+  agentApiKeys: {
+    list(orgId: string, agentId: string): Promise<AgentApiKeys>;
+    create(orgId: string, agentId: string, input: AgentApiKeyInput): Promise<CreatedAgentApiKey>;
+    revoke(orgId: string, agentId: string, keyId: string): Promise<void>;
+    /** A conversation outside the DM list that is one of my keys' rooms; 404 for any other. */
+    room(orgId: string, channelId: string): Promise<AgentKeyRoom>;
   };
   /** "Lembrar": one-off reminders in conversations (also routines in Rotinas). */
   reminders?: {

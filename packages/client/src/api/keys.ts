@@ -158,6 +158,8 @@ export const keys = {
   machineDevice: (userCode: string) => ["machine-device", userCode] as const,
   /** Settings → AI apps: mine, or the whole workspace's (`all`), both under `apps`. */
   apps: (orgId: string, all = false) => ["org", orgId, "apps", all ? "all" : "mine"] as const,
+  agentApiKeys: (orgId: string, agentId: string) => ["org", orgId, "agents", agentId, "api-keys"] as const,
+  agentKeyRoom: (orgId: string, channelId: string) => ["org", orgId, "agent-key-room", channelId] as const,
   /** An app's consent (`/autorizar?req=`): not under an organization, it is picked on that page. */
   appConsent: (requestId: string) => ["app-consent", requestId] as const,
   desktopLatest: (target: string, arch: string) => ["desktop-latest", target, arch] as const,

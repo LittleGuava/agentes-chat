@@ -57,6 +57,7 @@ import {
   FIELD_PLACE,
 } from "@/lib/agent-edit";
 import { BLANK_LOOK, cleanHandle } from "@/lib/new-agent";
+import { AgentApiCard } from "./ApiCard";
 import { BrakesCard } from "./BrakesCard";
 import { CardHead, useAgentEdit, WasLine } from "./context";
 import { ReadOnlyNote, useVisibleChannels } from "./pieces";
@@ -374,6 +375,8 @@ export function SettingsTab({
           )}
 
           {part !== "basic" && <BrakesCard />}
+
+          {part !== "basic" && <AgentApiCard />}
 
           {has("channels") && (
             <Section

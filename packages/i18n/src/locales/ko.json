@@ -14045,6 +14045,9 @@
     }
   },
   "errors": {
+    "agentApi": {
+      "keyLimit": "이 에이전트에는 이미 키가 10개 있습니다. 하나를 취소한 뒤 만드세요."
+    },
     "tooLarge": "서버가 받을 수 있는 크기보다 커요.",
     "tooLargeMax": "서버가 받을 수 있는 크기보다 커요. 최대 {{max}}MB예요.",
     "passwordLink": {
@@ -15356,6 +15359,33 @@
     "deniedTitle": "연결 안 됨",
     "denied": "컴퓨터를 연결하지 않았어요. 직접 연 게 아니라면 아무도 접근 권한을 얻지 못했어요.",
     "home": "agentes로 가기"
+  },
+  "agentApi": {
+    "title": "에이전트 API",
+    "subtitle": "스크립트가 키로 HTTP를 통해 {{name}}와 대화합니다.",
+    "help": "각 키는 {{name}}만 엽니다. 스크립트가 보내는 내용은 내 이름으로, 키 전용 대화에서, 내 권한으로 전송됩니다. 키를 가진 사람은 에이전트가 나를 대신해 읽을 수 있는 것을 답장을 통해 읽을 수 있습니다.",
+    "empty": "아직 키가 없습니다.",
+    "create": "키 만들기",
+    "namePlaceholder": "예: 배포 파이프라인",
+    "createdTitle": "키를 만들었습니다",
+    "once": "지금 복사하세요. 다시 표시되지 않습니다.",
+    "copy": "키 복사",
+    "copied": "키를 복사했습니다",
+    "leaveText": "복사하지 않고 닫을까요? 키는 다시 표시되지 않으며, 사용하려면 새로 만들어야 합니다.",
+    "example": "예시",
+    "copyExample": "명령 복사",
+    "exampleCopied": "명령을 복사했습니다",
+    "sampleMessage": "오늘 바뀐 내용을 요약해 줘",
+    "revokeText": "지금부터 작동하지 않습니다. 이 키를 쓰는 스크립트는 더 이상 메시지를 보낼 수 없습니다.",
+    "revoked": "키를 취소했습니다",
+    "created": "{{date}}에 {{name}} 님이 만듦",
+    "createdByYou": "{{date}}에 내가 만듦",
+    "usedAt": "{{when}} 사용",
+    "neverUsed": "사용한 적 없음",
+    "openRoom": "대화 열기",
+    "reauth": "만료 없는 키는 최근 로그인이 필요합니다. 다시 로그인한 뒤 만들거나 만료 기간을 고르세요.",
+    "roomLine": "API 키 {{name}}의 대화",
+    "roomLineGone": "API 키의 대화"
   },
   "apps": {
     "connect": "앱 연결",

@@ -14757,6 +14757,9 @@ export const en = {
     },
   },
   errors: {
+    agentApi: {
+      keyLimit: "This agent has 10 keys. Revoke one to create another.",
+    },
     /** A request the server, or a proxy in front of it, refused for its size. */
     tooLarge: "This is bigger than the server takes.",
     /** The same, from a screen that knows the most it may send. */
@@ -16183,6 +16186,33 @@ export const en = {
     deniedTitle: "Not connected",
     denied: "The computer wasn't connected. If it wasn't you who opened it, nobody got access.",
     home: "Go to agentes",
+  },
+  agentApi: {
+    title: "Agent API",
+    subtitle: "Scripts talk to {{name}} over HTTP with a key.",
+    help: "Each key opens only {{name}}. What a script sends goes in your name, in a conversation of the key's own, with your access. Whoever holds the key reads through the replies what the agent can read for you.",
+    empty: "No keys yet.",
+    create: "Create key",
+    namePlaceholder: "E.g. Deploy pipeline",
+    createdTitle: "Key created",
+    once: "Copy it now. It won't be shown again.",
+    copy: "Copy key",
+    copied: "Key copied",
+    leaveText: "Close without copying? The key won't show again, and you'll have to create another one to use it.",
+    example: "Example",
+    copyExample: "Copy command",
+    exampleCopied: "Command copied",
+    sampleMessage: "Summarize what changed today",
+    revokeText: "It stops working now. Scripts using this key can't send messages anymore.",
+    revoked: "Key revoked",
+    created: "Created {{date}} by {{name}}",
+    createdByYou: "Created {{date}} by you",
+    usedAt: "Used {{when}}",
+    neverUsed: "Never used",
+    openRoom: "Open conversation",
+    reauth: "A key with no expiry needs a recent sign-in. Sign in again and create it, or pick an expiry.",
+    roomLine: "Conversation of API key {{name}}",
+    roomLineGone: "Conversation of an API key",
   },
   apps: {
     connect: "Connect an app",

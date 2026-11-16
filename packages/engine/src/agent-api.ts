@@ -1,5 +1,5 @@
 import type { GifProvider, PubSub } from "@agenteschat/adapters";
-import { and, type Database, desc, eq, gt, isNull, lt, or, schema, sql } from "@agenteschat/db";
+import { and, type Database, desc, eq, gt, inArray, isNull, lt, or, schema, sql } from "@agenteschat/db";
 import { type Agent, getAgent } from "./agents";
 import { TOKEN_EXPIRY_DAYS } from "./apps/grants";
 import { revokeAgentApiKeys, revokeMemberApps } from "./apps/revoke";
@@ -8,7 +8,7 @@ import { randomBase62 } from "./apps/urls";
 import { audienceError, canTalkTo, speakerOf } from "./audience";
 import { recordAudit } from "./audit";
 import { sha256 } from "./crypto";
-import { agentKeyRoomKey, openAgentKeyRoom } from "./dms";
+import { agentKeyRoomKey, agentKeyRoomOf, openAgentKeyRoom } from "./dms";
 import { ConflictError, ForbiddenError, NotFoundError } from "./errors";
 import type { Judge } from "./judge";
 import { getMessage, postPersonMessage } from "./messages";
@@ -36,6 +36,8 @@ export interface AgentApiKeyView {
   expiresAt: string | null;
   lastUsedAt: string | null;
   createdBy: { id: string; name: string };
+  /** The key's conversation, for its maker once a message was sent with it; null otherwise (a DM only its maker reads). */
+  roomId: string | null;
 }
 
 const iso = (d: Date | null) => (d ? d.toISOString() : null);
@@ -68,10 +70,43 @@ export async function listAgentApiKeys(
     .innerJoin(users, eq(users.id, agentApiKeys.createdByUserId))
     .where(and(eq(agentApiKeys.orgId, orgId), eq(agentApiKeys.agentId, agentId), live()))
     .orderBy(desc(agentApiKeys.createdAt));
-  return rows.map((r) => viewOf(r.key, r.creatorName));
+  const roomKeys = rows
+    .filter((r) => r.key.createdByUserId === actorId)
+    .map((r) => agentKeyRoomKey(agentId, r.key.id, actorId));
+  const rooms = roomKeys.length
+    ? await db
+        .select({ id: channels.id, dmKey: channels.dmKey })
+        .from(channels)
+        .where(and(eq(channels.orgId, orgId), inArray(channels.dmKey, roomKeys)))
+    : [];
+  const roomOf = new Map(rooms.map((r) => [r.dmKey, r.id]));
+  return rows.map((r) => ({
+    ...viewOf(r.key, r.creatorName),
+    roomId: roomOf.get(agentKeyRoomKey(agentId, r.key.id, r.key.createdByUserId)) ?? null,
+  }));
 }
 
-const viewOf = (key: AgentApiKey, creatorName: string): AgentApiKeyView => ({
+/**
+ * The agent and key an API key's room belongs to (ADR 0187), so the apps open it as that key's conversation: only for
+ * the person who made the key, the room's only person; anyone else, an admin included, finds nothing (a DM, ADR 0151).
+ */
+export async function agentKeyRoom(db: Database, actorId: string, orgId: string, channelId: string) {
+  await requireActiveMembership(db, actorId, orgId);
+  const [room] = await db
+    .select({ dmKey: channels.dmKey })
+    .from(channels)
+    .where(and(eq(channels.orgId, orgId), eq(channels.id, channelId), eq(channels.kind, "dm")));
+  const of = agentKeyRoomOf(room?.dmKey);
+  if (!of || of.userId !== actorId) throw new NotFoundError("Conversation not found");
+  // A revoked key's room stays its maker's to read, by the name the key had; purged, it is the API's.
+  const [key] = await db
+    .select({ name: agentApiKeys.name })
+    .from(agentApiKeys)
+    .where(and(eq(agentApiKeys.orgId, orgId), eq(agentApiKeys.id, of.keyId)));
+  return { agentId: of.agentId, keyId: of.keyId, keyName: key?.name ?? null };
+}
+
+const viewOf = (key: AgentApiKey, creatorName: string): Omit<AgentApiKeyView, "roomId"> => ({
   id: key.id,
   name: key.name,
   lastFour: key.lastFour,
@@ -138,7 +173,7 @@ export async function createAgentApiKey(
     return key;
   });
   const [me] = await db.select({ name: users.name }).from(users).where(eq(users.id, actorId));
-  return { key: viewOf(key, me?.name ?? ""), secret };
+  return { key: { ...viewOf(key, me?.name ?? ""), roomId: null } satisfies AgentApiKeyView, secret };
 }
 
 /** Revokes a key now: its maker, or anyone who manages the agent. */

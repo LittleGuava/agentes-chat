@@ -35837,6 +35837,9 @@
   "files.nav.place": {
     "value": "{{index}} of {{count}}"
   },
+  "errors.agentApi.keyLimit": {
+    "value": "This agent has 10 keys. Revoke one to create another."
+  },
   "errors.tooLarge": {
     "value": "This is bigger than the server takes."
   },
@@ -39171,6 +39174,81 @@
   },
   "connect.home": {
     "value": "Go to agentes"
+  },
+  "agentApi.title": {
+    "value": "Agent API"
+  },
+  "agentApi.subtitle": {
+    "value": "Scripts talk to {{name}} over HTTP with a key."
+  },
+  "agentApi.help": {
+    "value": "Each key opens only {{name}}. What a script sends goes in your name, in a conversation of the key's own, with your access. Whoever holds the key reads through the replies what the agent can read for you."
+  },
+  "agentApi.empty": {
+    "value": "No keys yet."
+  },
+  "agentApi.create": {
+    "value": "Create key"
+  },
+  "agentApi.namePlaceholder": {
+    "value": "E.g. Deploy pipeline"
+  },
+  "agentApi.createdTitle": {
+    "value": "Key created"
+  },
+  "agentApi.once": {
+    "value": "Copy it now. It won't be shown again."
+  },
+  "agentApi.copy": {
+    "value": "Copy key"
+  },
+  "agentApi.copied": {
+    "value": "Key copied"
+  },
+  "agentApi.leaveText": {
+    "value": "Close without copying? The key won't show again, and you'll have to create another one to use it."
+  },
+  "agentApi.example": {
+    "value": "Example"
+  },
+  "agentApi.copyExample": {
+    "value": "Copy command"
+  },
+  "agentApi.exampleCopied": {
+    "value": "Command copied"
+  },
+  "agentApi.sampleMessage": {
+    "value": "Summarize what changed today"
+  },
+  "agentApi.revokeText": {
+    "value": "It stops working now. Scripts using this key can't send messages anymore."
+  },
+  "agentApi.revoked": {
+    "value": "Key revoked"
+  },
+  "agentApi.created": {
+    "value": "Created {{date}} by {{name}}"
+  },
+  "agentApi.createdByYou": {
+    "value": "Created {{date}} by you"
+  },
+  "agentApi.usedAt": {
+    "value": "Used {{when}}"
+  },
+  "agentApi.neverUsed": {
+    "value": "Never used"
+  },
+  "agentApi.openRoom": {
+    "value": "Open conversation"
+  },
+  "agentApi.reauth": {
+    "value": "A key with no expiry needs a recent sign-in. Sign in again and create it, or pick an expiry."
+  },
+  "agentApi.roomLine": {
+    "value": "Conversation of API key {{name}}"
+  },
+  "agentApi.roomLineGone": {
+    "value": "Conversation of an API key"
   },
   "apps.connect": {
     "value": "Connect an app"

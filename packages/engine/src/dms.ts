@@ -241,6 +241,12 @@ export const agentKeyRoomKey = (agentId: string, keyId: string, userId: string) 
 
 export const isAgentKeyRoom = (dmKey: string | null | undefined) => Boolean(dmKey?.startsWith("apikey|"));
 
+/** The agent, key and maker an agent API key's room belongs to, read back from its DM key; null for any other room. */
+export function agentKeyRoomOf(dmKey: string | null | undefined) {
+  const m = /^apikey\|a:([^|]+)\|k:([^|]+)\|u:([^|]+)$/.exec(dmKey ?? "");
+  return m ? { agentId: m[1] as string, keyId: m[2] as string, userId: m[3] as string } : null;
+}
+
 /** The DM key of a conversation between two agents (`ask_agent`, ADR 0034): no person in it. */
 export const agentDmKey = (a: string, b: string) => keyOf([`a:${a}`, `a:${b}`]);
 
