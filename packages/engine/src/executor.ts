@@ -5028,6 +5028,7 @@ async function executeRunInner(
               toolUseId: use.id,
               text: outcome.text,
               choices: outcome.choices,
+              items: outcome.items,
               requestedForUserId: outcome.requestedForUserId,
               why: outcome.why,
             });

@@ -464,6 +464,74 @@ html:not([data-pointer]) .rq__choice:focus-visible {
   box-shadow: none;
   background: none;
 }
+/*
+ * A card of several questions, or of one where several may be picked: the questions stacked 16 apart, each its words
+ * and its choices as toggles (a check in the key's place once picked), sent together from the footer.
+ */
+.rq__items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-2);
+}
+.rq__item-q {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.rq__q {
+  margin: 0;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--ink);
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+}
+.rq__q-hint {
+  display: block;
+  font-size: 12.5px;
+  line-height: 18px;
+  color: var(--faint);
+}
+.rq__item-q .rq__choices,
+.rq__item-q .rq__field {
+  margin-top: var(--space-2);
+}
+.rq__choice[data-on] {
+  background: var(--plate);
+}
+.rq__choice[data-on] .rq__key {
+  box-shadow: none;
+  background: var(--ink);
+  color: var(--bg);
+}
+/* "Faltam 2" beside Enviar respostas. */
+.rq__left {
+  font-size: 12.5px;
+  color: var(--faint);
+}
+/* Closed: each question, and what was said to it under it. */
+.rq__answers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: var(--space-2) 0 0;
+}
+.rq__answers dt {
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.rq__answers dd {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
 /* "Tecle 1–4 para responder": only where there are keys. */
 .rq__keys {
   font-size: 12.5px;

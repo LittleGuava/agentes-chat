@@ -263,6 +263,7 @@ import type {
   PostMedia,
   Proposal,
   PushDeviceInput,
+  QuestionAnswerInput,
   ReactionCount,
   ReadOnlyOrgSettings,
   Reminder,
@@ -1378,8 +1379,8 @@ export interface ApiClient {
     reads(orgId: string, channelId: string): Promise<DmRead[]>;
   };
   questions: {
-    /** Answers an agent's question with a choice or free text. */
-    answer(orgId: string, questionId: string, input: { choice?: string; text?: string }): Promise<AgentQuestion>;
+    /** Answers an agent's question with a choice or free text, or a card of several questions all at once. */
+    answer(orgId: string, questionId: string, input: QuestionAnswerInput): Promise<AgentQuestion>;
     /** Skips it: the agent goes on without an answer. */
     dismiss(orgId: string, questionId: string): Promise<AgentQuestion>;
   };

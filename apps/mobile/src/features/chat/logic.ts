@@ -7,6 +7,8 @@ import type {
   MessageCard,
   MessageConsultation,
   MessagePin,
+  QuestionItem,
+  QuestionItemAnswer,
   ReactionCount,
   TypingWho,
 } from "@agenteschat/client";
@@ -280,6 +282,7 @@ export function eventLineOf(
 
 const obj = (v: unknown) => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : null);
 const str = (v: unknown) => (typeof v === "string" ? v : "");
+const strings = (v: unknown) => (Array.isArray(v) ? v.filter((c): c is string => typeof c === "string" && !!c) : []);
 
 export const approvalIdOf = (meta: Message["meta"]) => str(meta?.approvalId) || null;
 
@@ -360,7 +363,7 @@ export function artifactsOf(
 export function questionOf(meta: Message["meta"]): AgentQuestion | null {
   const q = obj(meta?.question);
   if (!q || !str(q.id) || !str(q.text) || !str(q.agentId)) return null;
-  const choices = Array.isArray(q.choices) ? q.choices.filter((c): c is string => typeof c === "string" && !!c) : [];
+  const choices = strings(q.choices);
   return {
     id: str(q.id),
     agentId: str(q.agentId),
@@ -374,9 +377,32 @@ export function questionOf(meta: Message["meta"]): AgentQuestion | null {
     answeredByUserId: str(q.answeredByUserId) || null,
     answeredAt: str(q.answeredAt) || null,
     ...(str(q.requestedForUserId) ? { requestedForUserId: str(q.requestedForUserId) } : {}),
+    ...questionItemsOf(q),
     ...(q.withdrawn === true ? { withdrawn: true as const } : {}),
     ...(q.dismissed === true ? { dismissed: true as const } : {}),
   };
+}
+
+/** A card of several questions, or of one where several may be picked: its questions and, once answered, each answer. */
+function questionItemsOf(q: Record<string, unknown>): Pick<AgentQuestion, "items" | "answers"> {
+  const items: QuestionItem[] = (Array.isArray(q.items) ? q.items : []).flatMap((raw) => {
+    const item = obj(raw);
+    if (!item || !str(item.question)) return [];
+    const choices = strings(item.choices);
+    return [
+      {
+        question: str(item.question),
+        choices: choices.length > 0 ? choices : null,
+        ...(item.multiSelect === true ? { multiSelect: true as const } : {}),
+      },
+    ];
+  });
+  if (items.length === 0) return {};
+  const answers: QuestionItemAnswer[] = (Array.isArray(q.answers) ? q.answers : []).flatMap((raw) => {
+    const answer = obj(raw);
+    return answer ? [{ choices: strings(answer.choices), text: str(answer.text) || null }] : [];
+  });
+  return { items, ...(answers.length === items.length ? { answers } : {}) };
 }
 
 /** A message the person never needs to read as text (the card says it all; a question's card repeats it). */

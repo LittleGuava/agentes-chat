@@ -3086,8 +3086,8 @@
       "cursor": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "cursor_female": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "grok": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
-      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "grok_female": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
+      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "copilot_female": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "antigravity": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",
       "antigravity_female": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",
@@ -4649,7 +4649,15 @@
     "skip": "Overslaan",
     "skipFailed": "De vraag kon niet worden overgeslagen. Probeer het opnieuw.",
     "dismissed": "{{name}} heeft deze vraag overgeslagen.",
-    "dismissedByYou": "Je hebt deze vraag overgeslagen."
+    "dismissedByYou": "Je hebt deze vraag overgeslagen.",
+    "several_one": "{{count}} vraag",
+    "several_other": "{{count}} vragen",
+    "pickSeveral": "Kies er een of meer",
+    "sendAll": "Antwoorden versturen",
+    "left_one": "Nog {{count}} te beantwoorden",
+    "left_other": "Nog {{count}} te beantwoorden",
+    "answeredCard": "Beantwoord door {{name}}",
+    "answeredCardByYou": "Je hebt geantwoord"
   },
   "ask": {
     "kindOther": {

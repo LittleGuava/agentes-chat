@@ -3202,8 +3202,8 @@
       "cursor": "Cursor non ha effettuato l'accesso su questo computer. Collega un account Cursor nella pagina di {{name}}.",
       "cursor_female": "Cursor non ha effettuato l'accesso su questo computer. Collega un account Cursor nella pagina di {{name}}.",
       "grok": "Grok non ha effettuato l'accesso su questo computer. Collega un account Grok nella pagina di {{name}}.",
-      "copilot": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "grok_female": "Grok non ha effettuato l'accesso su questo computer. Collega un account Grok nella pagina di {{name}}.",
+      "copilot": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "copilot_female": "Copilot non ha effettuato l'accesso su questo computer. Collega un account Copilot nella pagina di {{name}}.",
       "antigravity": "Gemini non ha effettuato l'accesso su questo computer. Collega un account Gemini nella pagina di {{name}}.",
       "antigravity_female": "Gemini non ha effettuato l'accesso su questo computer. Collega un account Gemini nella pagina di {{name}}.",
@@ -4782,7 +4782,17 @@
     "skip": "Salta",
     "skipFailed": "Impossibile saltare la domanda. Riprova.",
     "dismissed": "{{name}} ha saltato questa domanda.",
-    "dismissedByYou": "Hai saltato questa domanda."
+    "dismissedByYou": "Hai saltato questa domanda.",
+    "several_one": "{{count}} domanda",
+    "several_many": "{{count}} domande",
+    "several_other": "{{count}} domande",
+    "pickSeveral": "Scegline una o più",
+    "sendAll": "Invia risposte",
+    "left_one": "Ne manca {{count}}",
+    "left_many": "Ne mancano {{count}}",
+    "left_other": "Ne mancano {{count}}",
+    "answeredCard": "Risposta di {{name}}",
+    "answeredCardByYou": "Hai risposto"
   },
   "ask": {
     "kindOther": {
