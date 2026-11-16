@@ -20,6 +20,7 @@ import {
   toBase64,
 } from "../src/vault/bitwarden-crypto";
 import { type VaultConnection, VaultSourceError } from "../src/vault/source";
+import { totpNow } from "../src/vault/totp";
 import { createFakeBitwarden, FAKE_BW, type FakeBitwardenOptions, type FakeLogin } from "./fixtures/vault-fakes";
 
 /*
@@ -542,6 +543,43 @@ describe("Bitwarden source", () => {
     expect(fake.callsTo("/sync")).toHaveLength(0);
     expect(fake.callsTo("/folders")).toHaveLength(1);
     expect(fake.callsTo(`/ciphers/${ID.admin}`)).toHaveLength(1);
+  });
+
+  test("a login's one-time code: made now from the seed it keeps, which never leaves the source", async () => {
+    // RFC 6238's SHA-1 seed: a URI with its own settings on a login with a key of its own, a bare seed on another.
+    const uri = "otpauth://totp/Acme:billing?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&digits=8&period=30";
+    const bare = "gezd gnbv gy3t qojq gezd gnbv gy3t qojq";
+    const logins = LOGINS.map((login) =>
+      login.id === ID.billing ? { ...login, totp: uri } : login.id === ID.admin ? { ...login, totp: bare } : login,
+    );
+    const { fake, source, connection, advance } = await setup({ logins });
+    // The fake's clock starts here; RFC 6238's own vectors for these seeds are in vault-totp.test.ts.
+    const at = Date.parse("2026-11-03T12:00:00Z");
+    const codeAt = (seed: string, ms: number) => totpNow(seed, ms) ?? "no code";
+    expect(codeAt(uri, at)).toMatch(/^\d{8}$/);
+    expect(await source.currentCode?.(connection, ID.billing)).toBe(codeAt(uri, at));
+    expect(await source.currentCode?.(connection, ID.admin)).toBe(codeAt(bare, at));
+    // The next 30 s step gives the next code.
+    advance(30_000);
+    expect(await source.currentCode?.(connection, ID.admin)).toBe(codeAt(bare, at + 30_000));
+    expect(fake.callsTo(`/ciphers/${ID.billing}`)).toHaveLength(1);
+    expect(JSON.stringify(await source.list(connection))).not.toContain("GEZDGNBV");
+  });
+
+  test("no code from a login without a seed, a seed that isn't TOTP, or outside the folder's own logins", async () => {
+    const logins = LOGINS.map((login) =>
+      login.id === ID.billing ? { ...login, totp: "steam://GEZDGNBVGY3TQOJQGEZDGNBV" } : login,
+    );
+    const { source, connection } = await setup({ logins });
+    const code = (ref: string) => sourceError(() => source.currentCode?.(connection, ref) ?? Promise.resolve());
+    expect((await code(ID.admin)).code).toBe("not_found");
+    const steam = await code(ID.billing);
+    expect(steam.code).toBe("unsupported");
+    expect(steam.message).toBe("This login's one-time code isn't one this server can make (only TOTP).");
+    expect(steam.message).not.toContain("GEZDGNBV");
+    for (const ref of [ID.personal, ID.shared, ID.trashed, ID.card, ID.loose, ID.broken, ID.unknown, "../sync"]) {
+      expect((await code(ref)).code).toBe("not_found");
+    }
   });
 
   test("reveal finds nothing outside the folder's own logins", async () => {

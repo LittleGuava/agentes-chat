@@ -105,6 +105,12 @@ export const refuse = {
       "no_value",
       `${named(item)} has nothing saved to use. Ask the person to add it in Settings, Vault.`,
     ),
+  /** No one-time code to type: the Vault keeps no seed (ADR 0144 §1), or its password manager has none. */
+  noCode: (item: VaultItemNaming, why: string) =>
+    new VaultRefusal(
+      "no_value",
+      `${named(item)} ${why} Ask the person for the code with request_secret (\`digits\`), on this site.`,
+    ),
   sourceError: (source: string, reason: string) =>
     new VaultRefusal("source_error", `Couldn't read it from ${source}: ${reason}`),
   sourceWrite: (place: VaultPlace, reason: string) =>

@@ -370,6 +370,47 @@ describe("1Password source: reveal", () => {
   });
 });
 
+describe("1Password source: a login's one-time code", () => {
+  const SEED = "otpauth://totp/Acme:ana@acme.example?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&issuer=Acme";
+  const coded = (totp: FakeOpItem["totp"]): FakeOpItem[] =>
+    ITEMS.map((item) => (item.id === ID.admin ? { ...item, totp } : item));
+
+  test("the code 1Password computed now, never the seed it keeps", async () => {
+    const { fake, source, connection } = await setup({}, coded({ uri: SEED, code: "492039" }));
+    const code = await source.currentCode?.(connection, ID.admin);
+    expect(code).toBe("492039");
+    expect(JSON.stringify(code)).not.toContain("GEZDGNBV");
+    expect(fake.calls.get).toEqual([ID.admin]);
+  });
+
+  test("a login that keeps no one-time code, a key, or another vault's item is not_found", async () => {
+    const { fake, source, connection } = await setup({}, coded({ uri: SEED, code: "492039" }));
+    for (const ref of [ID.mail, ID.openai, ID.note, "doesnotexist00000000000099"]) {
+      const err = await sourceError(() => source.currentCode?.(connection, ref) ?? Promise.resolve());
+      expect(err.code).toBe("not_found");
+      expect(err.message).not.toContain("GEZDGNBV");
+    }
+    const calls = fake.calls.get.length;
+    expect((await sourceError(() => source.currentCode?.(connection, "../items") ?? Promise.resolve())).code).toBe(
+      "not_found",
+    );
+    expect(fake.calls.get.length).toBe(calls);
+  });
+
+  test("a seed 1Password can't make a code from says so in our words, never the seed or the SDK's", async () => {
+    const { source, connection } = await setup({}, coded({ uri: SEED, errorMessage: `invalid secret in ${SEED}` }));
+    const err = await sourceError(() => source.currentCode?.(connection, ID.admin) ?? Promise.resolve());
+    expect(err.code).toBe("unsupported");
+    expect(err.message).toBe("1Password couldn't make this login's one-time code.");
+  });
+
+  test("the seed never shows in a list, nor as the login's password", async () => {
+    const { source, connection } = await setup({}, coded({ uri: SEED, code: "492039" }));
+    expect(JSON.stringify(await source.list(connection))).not.toContain("GEZDGNBV");
+    expect(await source.reveal(connection, ID.admin, "password")).toBe(SECRETS.admin);
+  });
+});
+
 describe("1Password source: writing", () => {
   const NEW = {
     title: "shop.acme.example",

@@ -6,6 +6,7 @@ import {
   openSecret,
   type SecretBox,
   sealSecret,
+  VAULT_CODE_PROTOCOL,
   VAULT_PASSWORD_PROTOCOL,
   VAULT_PROTOCOL,
   vaultAad,
@@ -103,7 +104,7 @@ function fakeComputer(at: { machineId: string; orgId: string }) {
     keys.delete(keyId);
     if (!privateKey) throw new Error("key_expired");
     const value = await openSecret(privateKey, box, vaultAad({ keyId, agentId, use }));
-    opened.push({ use: use.kind === "fill" ? `fill:${use.rule}` : `env:${use.name}`, value });
+    opened.push({ use: use.kind === "env" ? `env:${use.name}` : `${use.kind}:${use.rule}`, value });
     return value;
   };
   const answer = async (agentId: string, command: string, args: string[]): Promise<Reply> => {
@@ -117,6 +118,17 @@ function fakeComputer(at: { machineId: string; orgId: string }) {
         return { success: false, data: null, error: reason, code: "key_expired" };
       }
       return s.typeVault();
+    }
+    if (command === "agentes:type_vault_code") {
+      const [, rule, json] = args as [string, string, string];
+      const { keyId, box } = JSON.parse(json) as { keyId: string; box: SecretBox };
+      try {
+        await open(keyId, box, agentId, { kind: "code", rule });
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : "key_expired";
+        return { success: false, data: null, error: reason, code: "key_expired" };
+      }
+      return ok({ typed: "vault_code" });
     }
     if (command === "snapshot") return page('- textbox "Password" [ref=e2]\n- button "Sign in" [ref=e3]', s.url);
     if (command === "get") return ok({ url: s.url });
@@ -578,6 +590,88 @@ test("a code split in boxes is typed one character per box, only by a runner of 
     steps: [{ do: "type_secret", targets: boxes, login: v.items.login.id }],
   });
   expect(many.content).toContain("one password field");
+});
+
+test("a login's one-time code from its password manager is typed like its password, never seen, only on protocol 86", async () => {
+  const v = await vaultSetup();
+  const CODE = "482913";
+  const source = writableSource();
+  Object.assign(v.vault.sources, { fakepass: source });
+  source.items = [
+    { ref: "pm-1", kind: "login", title: "Acme SSO", websites: [{ url: "https://acme.example", match: "exact" }] },
+  ];
+  source.values.set("pm-1", "pm-password-0001");
+  source.codes.set("pm-1", CODE);
+  const connection = await connectVaultSource(v.vault, f.owner.id, f.org.id, {
+    kind: "fakepass",
+    scope: "team",
+    input: { token: SOURCE_TOKEN },
+    access: { everyone: true, roleIds: [], userIds: [], allAgents: true, agentIds: [] },
+  });
+  const [row] = await f.db.select().from(schema.vaultItems).where(eq(schema.vaultItems.connectionId, connection.id));
+  if (!row) throw new Error("no item");
+  const ana = await v.runFor(f.owner.id);
+  // The list says how to type a code, only once a login of a password manager is listed.
+  const listed = await v.call(ana, "vault_list", {});
+  expect(listed.content).toContain("`code: true`");
+  expect(listed.content).not.toContain(CODE);
+  await v.call(ana, "browser_read", {});
+  const typedCode = () =>
+    v.computer.calls
+      .flatMap((c) => (c.op === "browser.batch" ? c.commands : c.op === "browser.act" ? [c] : []))
+      .filter((c) => c.command === "agentes:type_vault_code");
+
+  // An older computer never gets a code: said before the password manager is asked.
+  const old = await v.call(ana, "browser_type_secret", { target: "e2", login: row.id, code: true });
+  expect(old.isError).toBe(true);
+  expect(old.content).toContain("agentes-runner update");
+  expect(source.calls.filter((c) => c.op === "code")).toHaveLength(0);
+
+  v.computer.s.protocol = VAULT_CODE_PROTOCOL;
+  const out = await v.call(ana, "browser_type_secret", { target: "e2", login: row.id, code: true });
+  expect(out.isError).toBeFalsy();
+  // Sealed for codes on the login's rule, opened once on the computer: never in a request, a result or a step.
+  expect(v.computer.opened).toEqual([{ use: "code:exact:https://acme.example", value: CODE }]);
+  expect(typedCode()[0]?.args.slice(0, 2)).toEqual(["@e2", "exact:https://acme.example"]);
+  expect(JSON.stringify(v.computer.calls)).not.toContain(CODE);
+  expect(out.content).not.toContain(CODE);
+  expect(out.content).toContain("Typed the one-time code of the Vault login for acme.example into");
+  expect(source.calls.filter((c) => c.op === "reveal")).toHaveLength(0);
+  const fills = (await usesOf(row.id)).filter((u) => u.action === "fill");
+  expect(fills).toHaveLength(1);
+  expect(fills[0]).toMatchObject({ origin: "https://acme.example", runId: ana.runId });
+
+  // Split in boxes: every box goes with it, in order.
+  const boxes = ["e4", "e5", "e6", "e7", "e8", "e9"];
+  const split = await v.call(ana, "browser_do", {
+    steps: [{ do: "type_secret", targets: boxes, login: row.id, code: true }],
+  });
+  expect(split.isError).toBeFalsy();
+  expect(typedCode()[1]?.args).toEqual([
+    "@e4",
+    "exact:https://acme.example",
+    expect.any(String),
+    "@e5",
+    "@e6",
+    "@e7",
+    "@e8",
+    "@e9",
+  ]);
+
+  // A login kept in the Vault has no code: the agent is told to ask the person, and nothing goes to the computer.
+  const keysBefore = v.computer.calls.filter((c) => c.op === "vault.key").length;
+  const builtIn = await v.call(ana, "browser_type_secret", { target: "e2", login: v.items.login.id, code: true });
+  expect(builtIn.isError).toBe(true);
+  expect(builtIn.content).toContain("keeps no authenticator seed");
+  expect(builtIn.content).toContain("request_secret");
+  expect(v.computer.calls.filter((c) => c.op === "vault.key").length).toBe(keysBefore);
+  // Kept nowhere here: not in a use, the audit log or the outbox.
+  const stored = JSON.stringify([
+    await f.db.select().from(schema.vaultUses),
+    await f.db.select().from(schema.auditLog),
+    await f.db.select().from(schema.outbox),
+  ]);
+  expect(stored).not.toContain(CODE);
 });
 
 test("a site's password is gone 15 minutes after it was given: not held, not listed, not replaced, said plainly", async () => {

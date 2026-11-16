@@ -1,6 +1,6 @@
 /**
  * The contract every Vault source keeps (ADR 0144), run on each source with a fake provider: `list` is metadata only,
- * `reveal` gives one value, and every failure is a `VaultSourceError` with a code whose text never carries a token,
+ * `reveal` gives one value, `currentCode` a login's code and never its seed, and every failure is a `VaultSourceError` with a code whose text never carries a token,
  * a password or the provider's own words. The fakes put their secrets into their raw errors on purpose.
  */
 import { describe, expect, test } from "bun:test";
@@ -32,6 +32,10 @@ const CODES: VaultSourceErrorCode[] = [
 /** What a source's access tokens look like in the fakes: they must never come out either. */
 const ACCESS_TOKEN_SHAPE = "fake-access-token";
 
+/** The authenticator seed a login keeps in its password manager: what `currentCode` must never give back. */
+const SEED_SECRET = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ";
+const SEED = `otpauth://totp/Acme:ana@acme.example?secret=${SEED_SECRET}&issuer=Acme`;
+
 interface Harness {
   source: VaultSource;
   input: Record<string, string>;
@@ -40,6 +44,8 @@ interface Harness {
   /** Every secret the fake holds. */
   secrets: string[];
   reveal: { ref: string; field: VaultSecretField; value: string };
+  /** A login whose password manager keeps an authenticator seed (`SEED`). */
+  codeRef: string;
   missingRef: string;
   /** The provider stops answering, with its secrets in the raw error. */
   breakDown(): void;
@@ -56,6 +62,7 @@ async function bitwardenHarness(): Promise<Harness> {
         folder: "Agents",
         username: "ana@acme.example",
         password: passwords[0],
+        totp: SEED,
         uris: [{ uri: "https://admin.acme.example/login", match: null }],
       },
       {
@@ -83,8 +90,9 @@ async function bitwardenHarness(): Promise<Harness> {
       masterPassword: FAKE_BW.masterPassword,
       folder: "Agents",
     },
-    secrets: [FAKE_BW.clientSecret, FAKE_BW.masterPassword, "refusedSecret00000", ...passwords],
+    secrets: [FAKE_BW.clientSecret, FAKE_BW.masterPassword, "refusedSecret00000", SEED_SECRET, ...passwords],
     reveal: { ref: "7d0c1f9e-0000-4000-8000-000000000001", field: "password", value: passwords[0] ?? "" },
+    codeRef: "7d0c1f9e-0000-4000-8000-000000000001",
     missingRef: "7d0c1f9e-0000-4000-8000-0000000000ff",
     breakDown: () => {
       fake.state.down = true;
@@ -106,6 +114,7 @@ async function onePasswordHarness(): Promise<Harness> {
         category: "Login",
         username: "ana@acme.example",
         password: secrets[0],
+        totp: { uri: SEED, code: "246810" },
         websites: [{ url: "https://admin.acme.example", autofillBehavior: "ExactDomain" }],
       },
       { id: "contractkey000000000000002", title: "ACME_API_KEY", category: "ApiCredentials", credential: secrets[1] },
@@ -115,8 +124,9 @@ async function onePasswordHarness(): Promise<Harness> {
     source: createOnePasswordSource({ loadSdk: async () => fake.sdk, timeoutMs: 1_000 }),
     input: { token: FAKE_OP_TOKEN },
     refusedInput: { token: refused },
-    secrets: [FAKE_OP_TOKEN, refused, ...secrets],
+    secrets: [FAKE_OP_TOKEN, refused, SEED_SECRET, ...secrets],
     reveal: { ref: "contractlogin0000000000001", field: "password", value: secrets[0] ?? "" },
+    codeRef: "contractlogin0000000000001",
     missingRef: "contractmissing00000000099",
     breakDown: () => {
       fake.state.failOn = "all";
@@ -206,6 +216,15 @@ for (const [name, make] of HARNESSES) {
       const h = await make();
       const connection = await connected(h);
       expect(await h.source.reveal(connection, h.reveal.ref, h.reveal.field)).toBe(h.reveal.value);
+    });
+
+    test("currentCode gives a login's code as digits, never the seed behind it", async () => {
+      const h = await make();
+      const connection = await connected(h);
+      const code = await h.source.currentCode?.(connection, h.codeRef);
+      expect(code).toMatch(/^\d{6,10}$/);
+      expect(code).not.toContain(SEED_SECRET);
+      expectClean(await failure(async () => h.source.currentCode?.(connection, h.missingRef)), h.secrets);
     });
 
     test("every failure is a coded VaultSourceError that never carries a secret", async () => {
