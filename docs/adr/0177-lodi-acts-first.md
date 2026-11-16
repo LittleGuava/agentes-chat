@@ -359,3 +359,26 @@ row as on the web, and on both a row offers its button only once the roles it na
   Only the reminder keeps to the person's daytime.
 - No model call anywhere except §5's wakes and turns a person starts.
 - `team_week` holds more than the weekly card. Renaming the column would be a migration that buys nothing.
+
+## Addendum (2026-11-15): a retry is the failure it retried
+
+§1's retry of a routine's first outside failure stays as decided: the right hand's, with "Cuidar da equipe" on, 15
+minutes later, for a scheduled routine whose next slot is over an hour away, once between two good runs. Three things
+change in how its outcome is counted and told.
+
+- The retry's routine run is marked by its `dedupe_key`, `retry:<the failed routine run's id>`, with the `schedule`
+  trigger (`routineRetryRunKey`, `isRoutineRetryRun` in `routine-state.ts`). An event's own key never comes with a
+  scheduled run, so nothing else reads as a retry, and the unique key on `(routine_id, dedupe_key)` holds one retry
+  per failed run whatever path closes that run, and however often. No migration.
+- The retry's failure is the failure it retried: `failures_in_row` stays where the first failure put it (at least 1,
+  `failuresAfter`), so a routine is paused as `failing` after five failed slots, not after two and a half. A widget's
+  routine reads the same rule when it decides whether this failure is the one that pauses it. A run a person started
+  in the retry's place, or the next slot when the retry never ran, is a failure of its own and counts as before.
+- The held failure, told when the retry fails too, says so: `routine_failed` carries `latest.retried`, and its
+  headline reads "couldn't run a routine, even after one more try" on the web, "Routine failed after one more try" on
+  the phone and "A routine didn't finish, even after one more try" in the push. The line under it is still the coded
+  reason. A held failure told at a person's run or at the next slot says nothing of a retry: none ran.
+
+Left as they are: no retry without the right hand's switch, the 15 minutes, the hour of room, routines started by an
+event, a webhook or "Rodar agora", and the causes outside the routine (`OUTSIDE_RUN_ERRORS`). Changing any of them is
+a decision on §1 itself.

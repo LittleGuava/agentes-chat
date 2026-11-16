@@ -880,6 +880,7 @@
       "mission_stopped_other": "ミッションが停止しました",
       "routine_finished_other": "ルーティンが完了しました",
       "routine_failed_other": "ルーティンが失敗しました",
+      "routine_failed_retried_other": "再試行してもルーティンが失敗しました",
       "run_failed_other": "完了できませんでした",
       "admin_ask_channel_agent": "{{names}} が {{agent}} を #{{label}} に追加するよう求めています",
       "admin_ask_create_agents": "{{names}} がエージェントを作成できるよう求めています",

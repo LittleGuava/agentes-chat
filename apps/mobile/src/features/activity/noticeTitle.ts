@@ -45,7 +45,9 @@ export function useNoticeTitle(n: AppNotification) {
             ? `approval_cover_${n.latest.statusTo}`
             : n.kind === "admin_ask"
               ? `admin_ask_${n.latest.reason ?? "create_agents"}`
-              : n.kind;
+              : n.kind === "routine_failed" && n.latest.retried
+                ? "routine_failed_retried"
+                : n.kind;
   const device = deviceNoticeOf(n);
   const person = useNoticePerson(n);
   const orgName = useOrg().org?.name ?? "";

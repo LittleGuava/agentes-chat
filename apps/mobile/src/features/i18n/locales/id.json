@@ -880,6 +880,7 @@
       "mission_stopped_other": "Misi dihentikan",
       "routine_finished_other": "Rutinitas selesai",
       "routine_failed_other": "Rutinitas gagal",
+      "routine_failed_retried_other": "Rutinitas gagal setelah dicoba lagi",
       "run_failed_other": "Tidak bisa selesai",
       "admin_ask_channel_agent": "{{names}} memintamu menambahkan {{agent}} ke #{{label}}",
       "admin_ask_create_agents": "{{names}} meminta izin membuat agen",
