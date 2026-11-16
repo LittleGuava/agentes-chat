@@ -102,40 +102,57 @@ export async function mcpSessionOver(transport: Transport): Promise<McpSession> 
       let cursor: string | undefined;
       for (let page = 0; page < 20; page++) {
         const res = await client.listTools(cursor ? { cursor } : undefined);
-        for (const t of res.tools) {
-          tools.push({
-            name: t.name,
-            description: t.description,
-            inputSchema: t.inputSchema as Record<string, unknown>,
-            readOnlyHint: (t.annotations as { readOnlyHint?: boolean } | undefined)?.readOnlyHint ?? null,
-            destructiveHint: (t.annotations as { destructiveHint?: boolean } | undefined)?.destructiveHint ?? null,
-          });
-        }
+        for (const t of res.tools) tools.push(mcpToolOf(t));
         cursor = res.nextCursor;
         if (!cursor) break;
       }
       return tools;
     },
     async callTool(name, args, meta) {
-      const res = (await client.callTool({ name, arguments: args, ...(meta ? { _meta: meta } : {}) })) as {
-        content?: { type: string; text?: string; resource?: { text?: unknown } }[];
-        isError?: boolean;
-        structuredContent?: unknown;
-      };
-      // GitHub's `get_file_contents` sends the file itself as an embedded resource next to a one-line text block.
-      const parts = (res.content ?? []).map((c) =>
-        c.type === "text"
-          ? (c.text ?? "")
-          : c.type === "resource" && typeof c.resource?.text === "string"
-            ? c.resource.text
-            : `[${c.type}]`,
-      );
-      if (parts.length === 0 && res.structuredContent !== undefined) parts.push(JSON.stringify(res.structuredContent));
-      return { content: parts.join("\n"), isError: res.isError === true };
+      const res = await client.callTool({ name, arguments: args, ...(meta ? { _meta: meta } : {}) });
+      return mcpCallResultOf(res as McpCallPayload);
     },
     serverInfo: () => (client.getServerVersion() as McpServerInfo | undefined) ?? null,
     close: () => client.close(),
   };
+}
+
+/** A tool as MCP lists it, in our shape: the same for every transport (ADR 0215). */
+export function mcpToolOf(t: {
+  name: string;
+  description?: string;
+  inputSchema: unknown;
+  annotations?: { readOnlyHint?: boolean; destructiveHint?: boolean };
+}): McpTool {
+  return {
+    name: t.name,
+    description: t.description,
+    inputSchema: t.inputSchema as Record<string, unknown>,
+    readOnlyHint: t.annotations?.readOnlyHint ?? null,
+    destructiveHint: t.annotations?.destructiveHint ?? null,
+  };
+}
+
+/** The parts of a `tools/call` result `mcpCallResultOf` reads. */
+export interface McpCallPayload {
+  content?: { type: string; text?: string; resource?: { text?: unknown } }[];
+  isError?: boolean;
+  structuredContent?: unknown;
+}
+
+/** A `tools/call` result as the model reads it: the same for every transport (ADR 0215). */
+export function mcpCallResultOf(result: McpCallPayload): McpCallResult {
+  // GitHub's `get_file_contents` sends the file itself as an embedded resource next to a one-line text block.
+  const parts = (result.content ?? []).map((c) =>
+    c.type === "text"
+      ? (c.text ?? "")
+      : c.type === "resource" && typeof c.resource?.text === "string"
+        ? c.resource.text
+        : `[${c.type}]`,
+  );
+  if (parts.length === 0 && result.structuredContent !== undefined)
+    parts.push(JSON.stringify(result.structuredContent));
+  return { content: parts.join("\n"), isError: result.isError === true };
 }
 
 /**

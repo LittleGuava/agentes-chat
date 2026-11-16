@@ -43,6 +43,7 @@ import { runCommand } from "./exec";
 import { type CacheFill, type CloneSlots, gitSync } from "./git";
 import { isGitInternalPath, touchesGitInternals } from "./git-guard";
 import { type McpTaskInfo, redactDeep } from "./mcp";
+import { ASK_ABOUT_MCP, argvLine, redactedReply, runStdioMcp } from "./mcp-stdio";
 import { missionWorktree } from "./mission-worktree";
 import { agentWorkspace, hiddenIn, isInside, resolveForAgent } from "./paths";
 import type { PhoneManager, PhoneRequest } from "./phones";
@@ -134,6 +135,7 @@ export const NEW_WORK_OPS: ReadonlySet<string> = new Set([
   "phone.record",
   "phone.screenshot",
   "phone.logs",
+  "mcp.stdio",
 ]);
 
 /**
@@ -227,6 +229,8 @@ export const OP_ROUTES: Readonly<Record<MachineOp, "machine" | "agent">> = {
   // Installed as the runner's own user. Root answers unsupported: the agents' users get their CLIs from the
   // computer's setup, never from an install run as root.
   "cli.install": "machine",
+  // ADR 0215: the program is one of the agent's commands, so it runs as the agent's own user.
+  "mcp.stdio": "agent",
 };
 
 type AccessRequestOp = Extract<MachineRequest, { op: "access.request" }>;
@@ -473,6 +477,71 @@ async function doExec(
     ...(redact ? { redact: redact.redact, redactHold: redact.hold } : {}),
   });
   return merge ? { ...result, merge } : result;
+}
+
+const NUL = String.fromCharCode(0);
+const ENV_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+/**
+ * ADR 0215: one MCP operation of a stdio program, as one of the agent's commands: the Commands switch, the agent's
+ * folder, and the command policy on the very argv that starts (`argvLine`). A held program doesn't start.
+ */
+async function doMcpStdio(
+  ctx: HandlerContext,
+  req: Extract<MachineRequest, { op: "mcp.stdio" }>,
+  scope: RequestScope,
+  secrets: Secrets,
+): Promise<MachineReplies["mcp.stdio"]> {
+  requireTool(ctx, "commands");
+  if (!req.agent) throw new RunnerError("bad_request", "An MCP program runs for an agent");
+  // From the wire: read as unknown and checked word by word.
+  const raw: unknown = req.server;
+  const server: Record<string, unknown> = isRecordLike(raw) ? raw : {};
+  const command = requireString(server.command, "server.command");
+  if (command.trim() === "") throw new RunnerError("bad_request", "server.command is empty");
+  const args = Array.isArray(server.args) ? server.args : [];
+  if (!args.every((a): a is string => typeof a === "string")) throw new RunnerError("bad_request", "server.args");
+  const env: Record<string, string> = {};
+  for (const [name, value] of Object.entries(isRecordLike(server.env) ? server.env : {})) {
+    if (!ENV_NAME.test(name) || typeof value !== "string") throw new RunnerError("bad_request", `server.env ${name}`);
+    env[name] = value;
+  }
+  if ([command, ...args, ...Object.values(env)].some((v) => v.includes(NUL))) {
+    throw new RunnerError("bad_request", "The program's words can't hold a NUL");
+  }
+  const call = req.call;
+  if (call?.method !== "tools/list" && !(call?.method === "tools/call" && typeof call.name === "string")) {
+    throw new RunnerError("bad_request", "call: tools/list or tools/call with a name");
+  }
+  if (call.method === "tools/call" && !isRecordLike(call.arguments))
+    throw new RunnerError("bad_request", "call.arguments");
+  let cwd = ctx.workspaceReal;
+  if (typeof server.cwd === "string" && server.cwd.trim() !== "") {
+    const resolved = await resolvePath(ctx, server.cwd);
+    if (!resolved.exists) throw new RunnerError("not_found", `The folder ${server.cwd} doesn't exist`);
+    if (!(await stat(resolved.abs)).isDirectory())
+      throw new RunnerError("bad_request", `${server.cwd} is not a folder`);
+    cwd = resolved.abs;
+  }
+  const held = await commandApproval(argvLine([command, ...args]), {
+    cwd,
+    own: ownBranches(req.agent),
+    how: ASK_ABOUT_MCP,
+    script: true,
+  });
+  if (held?.never) throw new RunnerError("not_allowed", held.message);
+  if (held) throw new RunnerError("approval_needed", held.message);
+  const reply = await runStdioMcp({
+    command,
+    args,
+    env,
+    cwd,
+    call,
+    timeoutMs: clampInt(req.timeoutSeconds, 1, 300, 60) * 1000,
+    signal: scope.signal,
+  });
+  // What leaves the computer is redacted like a command's output (ADR 0215 §4).
+  return secrets ? redactedReply(reply, secrets.redact) : reply;
 }
 
 /**
@@ -826,6 +895,8 @@ async function routeRequest(ctx: HandlerContext, req: MachineRequest, scope: Req
       return missionWorktree(ctx.workspaceReal, req);
     case "exec":
       return doExec(ctx, req, scope, secrets);
+    case "mcp.stdio":
+      return doMcpStdio(ctx, req, scope, secrets);
     case "read":
       await refuseSecretFile(ctx, secrets, requireString(req.path, "path"));
       return doRead(ctx, req, secrets);
@@ -1680,6 +1751,11 @@ function describeOp(req: MachineRequest): string {
       return `${req.op} ${String(req.platform)}/${String(req.serial)}${"app" in req && req.app ? ` ${String(req.app)}` : ""}`;
     case "access.allow":
       return `access.allow tool ${String(req.tool)}`;
+    case "mcp.stdio": {
+      // The program and the tool; never the arguments or the env's values.
+      const tool = req.call?.method === "tools/call" ? ` ${String(req.call.name).slice(0, 80)}` : "";
+      return `mcp.stdio ${String(req.server?.command ?? "").slice(0, 80)} ${String(req.call?.method)}${tool}`;
+    }
     case "access.reduce":
       return `access.reduce${req.removeFolder ? ` folder ${String(req.removeFolder.path ?? "")}` : ""}${req.disableTool ? ` tool ${String(req.disableTool)}` : ""}`;
     default:
