@@ -250,10 +250,12 @@ import {
 import { missionAsksPerson, missionReportSince, scheduleKeepGoing } from "./missions-engine";
 import { type NoAiCardReason, postNoAiCard } from "./no-ai";
 import {
+  notifyAgentNeedsAi,
   notifyCatchUpClosed,
   notifyCatchUpClosedAsker,
   notifyPlanModelDropped,
   notifyPlanResetUnknown,
+  resolveAgentNeedsAi,
   resolveRunFailed,
 } from "./notification-producers";
 import { openRequestNudge, openRequestsOf, WITHDRAW_REQUEST_TOOL } from "./open-requests";
@@ -1486,6 +1488,9 @@ async function executeRunInner(
         await addRunStep(db, run, "context", { continuation: { outcome: "done", rule: "ended" } }).catch(() => {});
       await resolveRunFailed({ db, pubsub: deps.pubsub }, run).catch(() => {});
     }
+    // It thought: whoever was told it had no AI is done with that (background work proves it as well).
+    if (status === "done")
+      await resolveAgentNeedsAi({ db, pubsub: deps.pubsub }, run.orgId, run.agentId).catch(() => {});
     if (status === "failed" && error && !standingErrorDetail(error))
       await reportRunFailure({ db, pubsub: deps.pubsub }, run, error, failCause);
   };
@@ -1614,7 +1619,8 @@ async function executeRunInner(
   };
   /**
    * Nothing to think with (ADR 0061): the run fails with `no_ai`, and the conversation gets its agent's
-   * card with Connect. Background work only fails, its routine run keeping why (a widget says it, ADR 0135 §20).
+   * card with Connect, and who can connect one hears it (`notifyAgentNeedsAi`, even when the card wasn't repeated).
+   * Background work only fails, its routine run keeping why (a widget says it, ADR 0135 §20).
    */
   const failNoAi = async (
     why: NoAiCardReason,
@@ -1628,6 +1634,7 @@ async function executeRunInner(
       await postNoAiCard({ ...cardDeps, judge: deps.context?.judge }, run, why, own, model, said, notYours)
         .catch((error) => addRunStep(db, run, "error", { reason: "no_ai_card", message: String(error) }))
         .catch(() => {});
+      await notifyAgentNeedsAi({ db, pubsub: deps.pubsub }, run, why, own).catch(() => {});
     }
     await fail(NO_AI, { code: NO_AI, detail: why });
   };

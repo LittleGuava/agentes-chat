@@ -3087,8 +3087,8 @@
       "cursor": "Cursor ist auf diesem Computer nicht angemeldet. Verbinde ein Cursor-Konto auf der Seite von {{name}}.",
       "cursor_female": "Cursor ist auf diesem Computer nicht angemeldet. Verbinde ein Cursor-Konto auf der Seite von {{name}}.",
       "grok": "Grok ist auf diesem Computer nicht angemeldet. Verbinde ein Grok-Konto auf der Seite von {{name}}.",
-      "copilot": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "grok_female": "Grok ist auf diesem Computer nicht angemeldet. Verbinde ein Grok-Konto auf der Seite von {{name}}.",
+      "copilot": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "copilot_female": "Copilot ist auf diesem Computer nicht angemeldet. Verbinde ein Copilot-Konto auf der Seite von {{name}}.",
       "antigravity": "Gemini ist auf diesem Computer nicht angemeldet. Verbinde ein Gemini-Konto auf der Seite von {{name}}.",
       "antigravity_female": "Gemini ist auf diesem Computer nicht angemeldet. Verbinde ein Gemini-Konto auf der Seite von {{name}}.",
@@ -4925,6 +4925,9 @@
     "planModelDropped": {
       "choose": "Anderes Modell wählen"
     },
+    "agentNeedsAi": {
+      "connect": "KI verbinden"
+    },
     "planServes": {
       "onlyMe": "Auf Nur ich umstellen",
       "done": "Jetzt nutzt nur du dieses Abo."
@@ -5042,6 +5045,7 @@
       "routineFinished": "<b>{{name}}</b> hat eine Routine abgeschlossen",
       "routineFailed": "<b>{{name}}</b> konnte eine Routine nicht ausführen",
       "runFailed": "<b>{{name}}</b> konnte nicht fertig werden",
+      "agentNeedsAi": "<b>{{name}}</b> hat <b>{{agent}}</b> angesprochen, aber dort ist keine KI zum Antworten verbunden",
       "runFailedMany_one": "<b>{{count}} Agent</b> konnte nicht weitermachen: {{cause}}",
       "runFailedMany_other": "<b>{{count}} Agenten</b> konnten nicht weitermachen: {{cause}}",
       "runFailedManyAny_one": "<b>{{count}} Agent</b> konnte nicht weitermachen",

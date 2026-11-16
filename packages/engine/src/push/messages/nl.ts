@@ -16,6 +16,8 @@ export const strings: Partial<PushStrings> = {
   missionStoppedTitle: "Een missie is gestopt",
   routineFailedTitle: "Een routine is niet afgerond",
   runFailedTitle: (a) => `${a} kon het niet afronden`,
+  needsAiTitle: (a) => `${a} heeft geen AI gekoppeld`,
+  needsAiBody: (p) => `${p} vroeg iets en kreeg geen antwoord. Koppel een AI zodat er geantwoord kan worden.`,
   routineFailedBody: "Tik om te zien wat er gebeurde.",
   routinePausedTitle: "Een routine is gepauzeerd",
   routinePausedBody: "Tik om te zien waarom.",

@@ -5236,6 +5236,9 @@
     "planModelDropped": {
       "choose": "Выбрать другую модель"
     },
+    "agentNeedsAi": {
+      "connect": "Подключить ИИ"
+    },
     "planServes": {
       "onlyMe": "Сделать только для меня",
       "done": "Теперь этим планом пользуетесь только вы."
@@ -5380,6 +5383,7 @@
       "routineFinished": "<b>{{name}}</b> выполнил(а) регулярную задачу",
       "routineFailed": "<b>{{name}}</b>: не удалось выполнить регулярную задачу",
       "runFailed": "<b>{{name}}</b>: не удалось закончить работу",
+      "agentNeedsAi": "<b>{{name}}</b> обратился(-ась) к <b>{{agent}}</b>, но к нему не подключён ИИ, чтобы ответить",
       "runFailedMany_one": "<b>{{count}} агент</b>: не удалось продолжить: {{cause}}",
       "runFailedMany_few": "<b>{{count}} агента</b>: не удалось продолжить: {{cause}}",
       "runFailedMany_many": "<b>{{count}} агентов</b>: не удалось продолжить: {{cause}}",

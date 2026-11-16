@@ -15,6 +15,9 @@ export interface PushStrings {
   missionStoppedTitle: string;
   routineFailedTitle: string;
   runFailedTitle: (actor: string) => string;
+  /** `agent_needs_ai`: the agent with no AI, then who couldn't reach it. */
+  needsAiTitle: (agent: string) => string;
+  needsAiBody: (person: string) => string;
   routineFailedBody: string;
   routinePausedTitle: string;
   routinePausedBody: string;
@@ -116,6 +119,8 @@ export const en: PushStrings = {
   missionStoppedTitle: "A mission stopped",
   routineFailedTitle: "A routine didn't finish",
   runFailedTitle: (a) => `${a} couldn't finish`,
+  needsAiTitle: (a) => `${a} has no AI connected`,
+  needsAiBody: (p) => `${p} called and got no answer. Connect an AI so it can answer.`,
   routineFailedBody: "Tap to see what happened.",
   routinePausedTitle: "A routine was paused",
   routinePausedBody: "Tap to see why.",

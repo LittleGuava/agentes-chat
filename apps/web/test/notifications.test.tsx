@@ -1345,3 +1345,22 @@ describe("catch-ups an agent skipped as already handled (ADR 0136)", () => {
     expect(within(dialog).getByRole("button", { name: "Responder mesmo assim" })).toBeTruthy();
   });
 });
+
+describe("someone couldn't reach an agent with no AI (ADR 0061 addendum)", () => {
+  test("who called which agent, and Conectar uma IA opens the dialog for that agent", async () => {
+    const needs = notification({
+      id: "n-needs-ai",
+      kind: "agent_needs_ai",
+      actors: [{ type: "user", id: "u-joao" }],
+      source: { agentId: ADA_ID, label: "Ada" },
+      latest: { reason: "no_key" },
+      updatedAt: ago(3),
+    });
+    await go(seedState({ notifications: [needs] }));
+    const row = document.querySelector('[data-n="n-needs-ai"]') as HTMLElement;
+    expect(row.textContent).toContain("João chamou a\u00a0Ada, que está sem IA conectada para responder");
+    await click(within(row).getByRole("button", { name: "Conectar uma IA" }));
+    await settle(8);
+    expect(screen().getByRole("dialog", { name: "Conectar uma IA para a Ada" })).toBeTruthy();
+  });
+});

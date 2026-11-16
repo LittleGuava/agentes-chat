@@ -17,7 +17,9 @@ import {
   type JudgeAnswer,
   listMessages,
   type MachineStatus,
+  markNotificationRead,
   messageRouter,
+  notifyAgentNeedsAi,
   postPersonMessage,
   previewMeta,
   type RouterStrategy,
@@ -46,6 +48,8 @@ const post = (body: string, threadId?: string) =>
 
 const cards = async () => (await f.db.select().from(schema.messages)).filter((m) => m.meta.bodyCode === "no_ai");
 const runs = () => f.db.select().from(schema.agentRuns);
+/** The `agent_needs_ai` rows (ADR 0061 addendum), by recipient. */
+const needsAi = async () => (await f.db.select().from(schema.notifications)).filter((n) => n.kind === "agent_needs_ai");
 const deps = () => ({ db: f.db, pubsub: f.pubsub, gateway: f.gateway });
 
 /** The judge's calls, by kind (the fixture's fake judge). */
@@ -176,6 +180,7 @@ test("background work fails with no_ai and posts nothing", async () => {
   await drainOutbox(f.db, f.handlers);
   expect(await runs()).toMatchObject([{ status: "failed", error: "no_ai", background: true }]);
   expect(await cards()).toHaveLength(0);
+  expect(await needsAi()).toHaveLength(0);
 });
 
 test("a computer brain signed out with nothing to fall back on: the card, not a wait that never ends", async () => {
@@ -540,4 +545,69 @@ test("an agent's message: only a no_ai run starts again, never a run that failed
   expect(failed).toMatchObject({ agentId: qa.id, status: "failed" });
   expect(await answerNow(deps(), f.owner.id, f.org.id, handed.id)).toEqual({ runs: [] });
   expect(await runs()).toMatchObject([{ id: failed?.id, status: "failed" }]);
+});
+
+test("a member who can't reach an agent with no AI: who can connect one hears it, once a day per agent", async () => {
+  f = await setup();
+  const bia = await addMember(f.db, f.org.id, "member", "bia");
+  const carla = await addMember(f.db, f.org.id, "admin", "carla");
+  const dani = await addMember(f.db, f.org.id, "member", "dani");
+  for (const id of [bia.id, carla.id, dani.id])
+    await addChannelMember(f.db, f.owner.id, f.org.id, f.general.id, { userId: id });
+  await revokeKeys();
+  const say = (userId: string, body: string, threadId?: string) =>
+    postPersonMessage({ db: f.db, pubsub: f.pubsub }, userId, f.org.id, f.general.id, {
+      body,
+      ...(threadId ? { threadId } : {}),
+    });
+
+  const asked = await say(bia.id, "@dev resume o canal");
+  await drainOutbox(f.db, f.handlers);
+  expect((await runs()).map((r) => r.error)).toEqual(["no_ai"]);
+  // Its owner (Ana) and the admin who manages keys; not who asked, nor a member who can't connect one.
+  const rows = await needsAi();
+  expect(rows.map((r) => r.userId).sort()).toEqual([f.owner.id, carla.id].sort());
+  expect(rows[0]).toMatchObject({
+    waiting: false,
+    actors: [{ type: "user", id: bia.id }],
+    source: { agentId: f.agent.id, label: f.agent.name },
+    latest: { reason: "no_key" },
+  });
+
+  // Elsewhere, from someone else, after it was read: still the one row each that day, so no second push.
+  const ownRow = rows.find((r) => r.userId === f.owner.id);
+  await markNotificationRead({ db: f.db, pubsub: f.pubsub }, f.owner.id, f.org.id, ownRow?.id ?? "", true);
+  await say(dani.id, "@dev e aqui?", asked.id);
+  await drainOutbox(f.db, f.handlers);
+  expect((await runs()).map((r) => r.error)).toEqual(["no_ai", "no_ai"]);
+  expect(await needsAi()).toHaveLength(2);
+
+  // Once it thinks again, the row is done.
+  await restoreKeys();
+  await say(bia.id, "@dev agora vai?");
+  await drainOutbox(f.db, f.handlers);
+  expect((await runs()).at(-1)?.status).toBe("done");
+  expect((await needsAi()).every((r) => r.doneAt !== null)).toBe(true);
+});
+
+test("no AI notice: only when nothing is connected; never for a wait, another person's plan or a plan's hold", async () => {
+  f = await setup();
+  const bia = await addMember(f.db, f.org.id, "member", "bia");
+  const trigger = await insertMessage(f.db, {
+    orgId: f.org.id,
+    channelId: f.general.id,
+    author: { type: "person", userId: bia.id },
+    body: "@dev oi",
+  });
+  const [run] = await f.db.transaction((tx) => createAgentRuns(tx, trigger, [f.agent.id], "mention"));
+  if (!run) throw new Error("no run");
+  const d = { db: f.db, pubsub: f.pubsub };
+  // Waits and other people's plans are not "nothing connected": the card says what to do, nobody is told.
+  for (const reason of ["computer_away", "plan_limit", "plans_not_yours", "plan_not_shared", "plan_hold"] as const)
+    await notifyAgentNeedsAi(d, run, reason);
+  // A sign-in that ended is the right hand's to tell (`team_watch`); only the computer's own, never made, is told here.
+  await notifyAgentNeedsAi(d, run, "not_signed_in");
+  expect(await needsAi()).toHaveLength(0);
+  await notifyAgentNeedsAi(d, run, "not_signed_in", "claude_code");
+  expect((await needsAi()).map((r) => r.latest)).toEqual([{ reason: "not_signed_in" }]);
 });

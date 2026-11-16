@@ -3086,8 +3086,8 @@
       "cursor": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "cursor_female": "Cursor is niet ingelogd op deze computer. Koppel een Cursor-account op de pagina van {{name}}.",
       "grok": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
-      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "grok_female": "Grok is niet ingelogd op deze computer. Koppel een Grok-account op de pagina van {{name}}.",
+      "copilot": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "copilot_female": "Copilot is niet ingelogd op deze computer. Koppel een Copilot-account op de pagina van {{name}}.",
       "antigravity": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",
       "antigravity_female": "Gemini is niet ingelogd op deze computer. Koppel een Gemini-account op de pagina van {{name}}.",
@@ -4928,6 +4928,9 @@
     "planModelDropped": {
       "choose": "Ander model kiezen"
     },
+    "agentNeedsAi": {
+      "connect": "Een AI koppelen"
+    },
     "planServes": {
       "onlyMe": "Wijzig naar Alleen ik",
       "done": "Nu gebruik alleen jij dit abonnement."
@@ -5045,6 +5048,7 @@
       "routineFinished": "<b>{{name}}</b> heeft een routine afgerond",
       "routineFailed": "<b>{{name}}</b> kon een routine niet uitvoeren",
       "runFailed": "<b>{{name}}</b> kon het niet afmaken",
+      "agentNeedsAi": "<b>{{name}}</b> heeft <b>{{agent}}</b> aangesproken, maar er is geen AI gekoppeld om te antwoorden",
       "runFailedMany_one": "<b>{{count}} agent</b> kon niet verder: {{cause}}",
       "runFailedMany_other": "<b>{{count}} agents</b> konden niet verder: {{cause}}",
       "runFailedManyAny_one": "<b>{{count}} agent</b> kon niet verder",

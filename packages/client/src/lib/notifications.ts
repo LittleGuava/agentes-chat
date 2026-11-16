@@ -507,6 +507,9 @@ export function openTarget(n: AppNotification): OpenTarget | null {
       ...(theirs && s.userId ? { search: { person: s.userId } } : {}),
     };
   }
+  // An agent someone couldn't reach for want of an AI, where "Conectar uma IA" isn't at hand: its page.
+  if (n.kind === "agent_needs_ai" && s.agentId)
+    return { to: "/org/$orgId/agents/$agentId", params: { agentId: s.agentId } };
   // The agent's model left its plan's list: its page, with "Quem pensa" open on its model to choose another.
   if (n.kind === "plan_model_dropped" && s.agentId)
     return {
@@ -623,13 +626,22 @@ export const opensOnComputer = (n: Pick<AppNotification, "kind" | "source" | "ac
     : null;
 
 /**
- * The workspace's computer is ready and its agents have no AI yet: opening it opens "Conectar uma IA" (the one
- * next step there is) instead of a page. `ai` unknown yet: the page.
+ * What "Conectar uma IA" opens on, when opening a notification opens it instead of a page: for an agent someone
+ * couldn't reach for want of an AI, that agent; when the workspace's computer is ready and its agents have no AI yet,
+ * the computer's plans (the one next step there is; `ai` unknown yet: the page). Null: the page.
  */
-export const opensConnectAi = (
-  n: Pick<AppNotification, "kind">,
+export function connectAiAsk(
+  n: Pick<AppNotification, "kind"> & Partial<Pick<AppNotification, "source">>,
   ai: Pick<AiStatus, "any" | "agents"> | undefined,
-): boolean => n.kind === "computer_ready" && ai !== undefined && !ai.any && ai.agents.length > 0;
+): { agentId: string } | { ready: true } | null {
+  if (n.kind === "agent_needs_ai") return n.source?.agentId ? { agentId: n.source.agentId } : null;
+  return n.kind === "computer_ready" && ai !== undefined && !ai.any && ai.agents.length > 0 ? { ready: true } : null;
+}
+
+export const opensConnectAi = (
+  n: Pick<AppNotification, "kind"> & Partial<Pick<AppNotification, "source">>,
+  ai: Pick<AiStatus, "any" | "agents"> | undefined,
+): boolean => connectAiAsk(n, ai) !== null;
 
 /** Mission and routine steps as strip cells: done, the one it stopped at, the rest to do. */
 export function stepCells(steps: { done: number; total: number; failedAt?: number }) {

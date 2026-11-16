@@ -5176,6 +5176,8 @@ export const ptBR = {
     },
     /** Under `plan_model_dropped`: opens the agent's "Quem pensa". */
     planModelDropped: { choose: "Escolher outro modelo" },
+    /** Under `agent_needs_ai`: opens "Conectar uma IA" for the agent. */
+    agentNeedsAi: { connect: "Conectar uma IA" },
     /** Under `plan_serves`: the person's plan serves only them again. */
     planServes: { onlyMe: "Mudar para Só eu", done: "Agora só você usa este plano." },
     /**
@@ -5292,6 +5294,9 @@ export const ptBR = {
       routineFinished: "<b>{{name}}</b> terminou uma rotina",
       routineFailed: "<b>{{name}}</b> não conseguiu rodar uma rotina",
       runFailed: "<b>{{name}}</b> não conseguiu terminar",
+      /** A person's message got no answer from an agent with no AI (`agent_needs_ai`): `agent` the agent's name. */
+      agentNeedsAi: "<b>{{name}}</b> chamou o\u00a0<b>{{agent}}</b>, que está sem IA conectada para responder",
+      agentNeedsAi_female: "<b>{{name}}</b> chamou a\u00a0<b>{{agent}}</b>, que está sem IA conectada para responder",
       /** Agents that failed for one cause close together, on one row; `cause` is a `failedCause` line. */
       runFailedMany_one: "<b>{{count}} agente</b> não conseguiu continuar: {{cause}}",
       runFailedMany_other: "<b>{{count}} agentes</b> não conseguiram continuar: {{cause}}",

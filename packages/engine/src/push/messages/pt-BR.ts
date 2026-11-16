@@ -15,6 +15,8 @@ export const ptBR: PushStrings = {
   missionStoppedTitle: "Uma missão parou",
   routineFailedTitle: "Uma rotina não terminou",
   runFailedTitle: (a) => `${a} não conseguiu terminar`,
+  needsAiTitle: (a) => `${a} está sem IA conectada`,
+  needsAiBody: (p) => `${p} chamou e ficou sem resposta. Conecte uma IA para responder.`,
   routineFailedBody: "Toque para ver o que aconteceu.",
   routinePausedTitle: "Uma rotina foi pausada",
   routinePausedBody: "Toque para ver o motivo.",

@@ -8047,11 +8047,11 @@
   "connectAi.plan.grok.title": {
     "value": "Your Grok plan"
   },
-  "connectAi.plan.copilot.title": {
-    "value": "Your GitHub Copilot plan"
-  },
   "connectAi.plan.grok.tiers": {
     "value": "SuperGrok, SuperGrok Heavy or X Premium+"
+  },
+  "connectAi.plan.copilot.title": {
+    "value": "Your GitHub Copilot plan"
   },
   "connectAi.plan.copilot.tiers": {
     "value": "Copilot Pro, Pro+, Business or Enterprise"
@@ -12012,6 +12012,9 @@
   "notifications.planModelDropped.choose": {
     "value": "Choose another model"
   },
+  "notifications.agentNeedsAi.connect": {
+    "value": "Connect an AI"
+  },
   "notifications.planServes.onlyMe": {
     "value": "Switch to Only me"
   },
@@ -12308,6 +12311,9 @@
   },
   "notifications.what.runFailed": {
     "value": "<b>{{name}}</b> couldn't finish"
+  },
+  "notifications.what.agentNeedsAi": {
+    "value": "<b>{{name}}</b> called <b>{{agent}}</b>, who has no AI connected to answer"
   },
   "notifications.what.runFailedMany": {
     "value": {

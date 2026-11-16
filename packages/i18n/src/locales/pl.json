@@ -5235,6 +5235,9 @@
     "planModelDropped": {
       "choose": "Wybierz inny model"
     },
+    "agentNeedsAi": {
+      "connect": "Połącz AI"
+    },
     "planServes": {
       "onlyMe": "Zmień na Tylko ja",
       "done": "Teraz tylko Ty używasz tego planu."
@@ -5379,6 +5382,7 @@
       "routineFinished": "Rutyna ukończona przez <b>{{name}}</b>",
       "routineFailed": "<b>{{name}}</b>: nie udało się uruchomić rutyny",
       "runFailed": "<b>{{name}}</b>: nie udało się dokończyć",
+      "agentNeedsAi": "<b>{{name}}</b> wywołał(a) <b>{{agent}}</b>, ale nie ma podłączonej AI, która mogłaby odpowiedzieć",
       "runFailedMany_one": "<b>{{count}} agent</b>: nie udało się kontynuować: {{cause}}",
       "runFailedMany_few": "<b>{{count}} agentów</b>: nie udało się kontynuować: {{cause}}",
       "runFailedMany_many": "<b>{{count}} agentów</b>: nie udało się kontynuować: {{cause}}",
