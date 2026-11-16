@@ -84,3 +84,14 @@ test("an agent changed its memory in the open conversation: that agent's memory 
   expect(stale(qc, keys.memory("o1", "a1"))).toBe(true);
   expect(stale(qc, keys.memory("o1", "a2"))).toBe(false);
 });
+
+test("a message waiting in an agent's run, read or handed to a run of its own: the agents' queues read again", () => {
+  for (const type of ["agent.run.steered", "agent.run.read", "agent.run.redispatched"]) {
+    const qc = filled([keys.agentStatus("o1"), keys.agentStatus("o2"), keys.messages("o1", "c1")]);
+    const event = { type, channelId: "c1", runId: "r1", agentId: "a1", messageId: "m1" } as unknown as ChannelEvent;
+    expect(applyConversationEvent(qc, "o1", event)).toBe(true);
+    expect(stale(qc, keys.agentStatus("o1"))).toBe(true);
+    expect(stale(qc, keys.agentStatus("o2"))).toBe(false);
+    expect(stale(qc, keys.messages("o1", "c1"))).toBe(false);
+  }
+});
