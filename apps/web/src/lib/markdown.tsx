@@ -9,6 +9,7 @@ import {
   parseMarkdown,
   parseWikiToken,
   SAFE_URL,
+  taskItem,
 } from "@agenteschat/client/lib/markdown";
 import { parseFileLink, parseMessageLink } from "@agenteschat/client/lib/message-links";
 import { type ReactNode, useMemo } from "react";
@@ -244,7 +245,6 @@ export interface MarkdownProps {
   bare?: boolean;
 }
 
-const TASK = /^\[( |x|X)\]\s+(.*)$/;
 const CALLOUT = /^\[!([\w-]+)\][+-]?\s*(.*)$/i;
 /** Obsidian's callout kinds, in our three looks. */
 const calloutKind = (kind: string) =>
@@ -308,14 +308,14 @@ export function Markdown({
           <L key={k}>
             {b.items.map((item, j) => {
               // "- [ ] tarefa" / "- [x] feita": a task with our own (read-only) box.
-              const task = item.match(TASK);
+              const task = taskItem(item);
               if (task) {
-                const done = task[1] !== " ";
+                const { done } = task;
                 return (
                   // biome-ignore lint/suspicious/noArrayIndexKey: static list
                   <li key={j} className="md__task" data-done={done || undefined}>
                     <span className="md__task-box" role="img" aria-label={done ? "✓" : "○"} />
-                    <span>{inline(task[2] ?? "", `${k}-${j}`)}</span>
+                    <span>{inline(task.text, `${k}-${j}`)}</span>
                   </li>
                 );
               }

@@ -2,7 +2,7 @@ import type { WikiPageSummary } from "@agenteschat/client";
 import { resolveWikiLink } from "@agenteschat/client/lib/wiki";
 import { memo, useMemo } from "react";
 import { Pressable, Text as RNText, ScrollView, StyleSheet, View } from "react-native";
-import { Icon, Text } from "@/ui";
+import { TaskBox, Text } from "@/ui";
 import { parseInline } from "../chat/logic";
 import { Spans, Table } from "../chat/MessageSpans";
 import { useColors } from "../shared/hooks";
@@ -91,14 +91,9 @@ function Block({
             hitSlop={10}
             accessibilityRole="checkbox"
             accessibilityState={{ checked: b.done, disabled: !onToggleTask }}
-            // Ink, as a task's criteria check: blue is the agents' color, and a fixed white broke on dark.
-            style={({ pressed }) => [
-              styles.box,
-              b.done ? { backgroundColor: c.ink } : { borderWidth: 1.5, borderColor: c.line2 },
-              pressed && styles.pressed,
-            ]}
+            style={({ pressed }) => [styles.box, pressed && styles.pressed]}
           >
-            {b.done ? <Icon name="check" size={13} color={c.bg} /> : null}
+            <TaskBox done={b.done} />
           </Pressable>
           <Text variant="body" tone={b.done ? "muted" : "ink2"} style={styles.grow} selectable>
             {runs(b.runs)}
@@ -182,7 +177,7 @@ const styles = StyleSheet.create({
   item: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
   mark: { minWidth: 14 },
   grow: { flex: 1, minWidth: 0 },
-  box: { width: 20, height: 20, borderRadius: 6, marginTop: 2, alignItems: "center", justifyContent: "center" },
+  box: { marginTop: 2 },
   quote: { borderLeftWidth: 3, paddingLeft: 12 },
   // As a diff's block (`DiffView`).
   code: { borderRadius: 14, padding: 12 },
