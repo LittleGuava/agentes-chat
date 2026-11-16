@@ -4027,6 +4027,8 @@ export const en = {
       notAgentDm: "Only a conversation with an agent can be shared.",
       target: "Share it in a channel you're in or with a person.",
       empty: "This conversation has nothing to share yet.",
+      /** `dm_share.note`: no note, or one past `max` characters. */
+      note: "Write a note of up to {{max}} characters.",
     },
   },
   memoryCard: {
@@ -15243,6 +15245,10 @@ export const en = {
        */
       misconfigured:
         "The connection to {{provider}} is set up wrong on the server, so it can't finish. Whoever runs the server needs to replace the key in the app's settings.",
+      /** `connector.not_per_person`: a person's own account asked of a connection that uses one account for everyone (ADR 0195). */
+      notPerPerson: "This connection doesn't use each person's own account.",
+      /** `connector.per_person_unsupported`: each person's own account turned on for a service that can't do it yet (ADR 0195). */
+      perPersonUnsupported: "This service can't use each person's own account yet.",
     },
     wiki: {
       githubNoNotes: "No Markdown notes in this link.",
@@ -15440,6 +15446,10 @@ export const en = {
         "Only the agent's owner or someone who approves its actions can let a routine act on its own.",
       editorOnly: "Only who created the routine, the agent's owner or an admin can change it.",
       widgetFixed: "This routine keeps a widget up to date. Change it from its widget.",
+      /** `routine.connector_channel_invalid`: a Slack routine's channel that isn't a channel ID (ADR 0196). */
+      connectorChannelInvalid: "That isn't a Slack channel's ID. Copy it from the channel's details in Slack.",
+      /** `routine.meeting_lead_invalid`: how long before each meeting a routine fires, out of range (ADR 0190). */
+      meetingLeadInvalid: "Pick from {{min}} to {{max}} minutes before the meeting.",
     },
     run: {
       notContinuable: "This answer can't be continued anymore.",
@@ -15550,6 +15560,13 @@ export const en = {
       undoForbidden: "Only the person the agent worked for, its owner or an admin can undo this.",
       /** `action.skills_admins`: skills are only admins' on the agent's page, so are their Undo and Redo. */
       undoSkillsAdmins: "Only an admin can undo or redo a change to an agent's skills.",
+      /** `brain.invalid_engine`: the ACP agent chosen isn't one its computer declares (ADR 0216). */
+      acpEngine: "Choose an ACP agent that this agent's computer has.",
+      /** `brain.reserve_invalid`: a list of reserve AIs that can't be saved (too many, one twice, or its own account). */
+      reserveInvalid:
+        "Check the reserve AIs: each account goes in once, and never the one the agent already thinks with.",
+      /** `brain.right_hand`: a model for one conversation asked of the right hand, which thinks with each person's own AI. */
+      rightHandModel: "The right hand thinks with each person's own AI, so it takes no model for one conversation.",
     },
     account: {
       notRestorable: "This account can't be restored anymore.",
@@ -15612,6 +15629,58 @@ export const en = {
     feedback: {
       filesGone: "A file you added is gone. Add it again.",
       filesPending: "Too many files are waiting to be sent. Send or remove some, then try again.",
+    },
+    /** An agent's own API keys (ADR 0210). */
+    agentApi: {
+      /** `agent_api.account`: the account that made the key is blocked or closed. */
+      account: "The account that made this key can't be used right now.",
+      agentArchived: "This agent is archived. Restore it to use its API keys.",
+      /** `limit`: how many keys one agent holds at most. */
+      keyLimit: "This agent already has {{limit}} API keys, the most it can have. Revoke one first.",
+      notManager: "Only an admin or the agent's owner manages its API keys.",
+    },
+    /** `announcement.period`: an operator's announcement whose end isn't after its start. */
+    announcement: {
+      period: "The end has to come after the start.",
+    },
+    /** Pictures agents make (ADR 0213): the workspace's 24 hours and one reply's most. */
+    images: {
+      perDay: "The workspace's agents already made all the images allowed in 24 hours. Try again tomorrow.",
+      perRun: "That's the most images one reply can have.",
+    },
+    /** A memory's last day (`valid_until`): not a date, or a day already gone. */
+    memory: {
+      invalidUntil: "That isn't a date. Pick the last day it holds.",
+      pastUntil: "That day has already passed. Pick one still ahead.",
+    },
+    /** Outgoing webhooks (ADR 0212): what a webhook can't be saved or tested with. */
+    outgoingWebhook: {
+      channel: "Choose only channels of this workspace, never a direct message.",
+      /** `outgoing_webhook.disabled`: Testar on a webhook that is turned off. */
+      disabled: "Turn the webhook on first.",
+      event: "That event doesn't exist. Choose one from the list.",
+      limit: "This workspace already has all the webhooks it can have. Delete one first.",
+      name: "Give the webhook a name.",
+      /** `outgoing_webhook.no_channels`: the message event chosen with no channel to send from. */
+      noChannels: "Choose the channels whose messages it sends.",
+      noEvents: "Choose at least one event.",
+    },
+    /** Publishing a file as a public page (ADR 0211). */
+    publishedPage: {
+      notAPage: "Only a page can be published, and this file isn't one.",
+      /** `published_page.person_cannot_read`: the person behind the agent's run can't open the file it would publish. */
+      personCannotRead: "Whoever asked can't open this file, so it wasn't published. Ask someone who sees it.",
+      tooMany: "This workspace already has all the public pages it can have. Take one down first.",
+    },
+    /** Reading a message aloud (ADR 0209): what can't be read. */
+    readAloud: {
+      noWords: "This message has nothing to read aloud.",
+      notAgent: "Only an agent's reply can be read aloud.",
+    },
+    /** A recording turned into text (ADR 0100): nothing could take it now, or no words came out. */
+    voice: {
+      busy: "Nothing could turn the recording into text right now. Try again in a moment.",
+      noWords: "The words couldn't be made out. Record it again.",
     },
   },
   machines: {
