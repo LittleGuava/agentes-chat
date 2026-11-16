@@ -40,7 +40,7 @@ import {
   type ToolSource,
 } from "@agenteschat/engine";
 import { PROVIDER_IDS } from "@agenteschat/providers";
-import { createFakeEmbeddings, createFakeProvider } from "@agenteschat/providers/testing";
+import { createFakeEmbeddings, createFakeImages, createFakeProvider } from "@agenteschat/providers/testing";
 import { createApp } from "../src/app";
 import { type AppleTokenRevoker, createAuth } from "../src/auth";
 import { buildEngine } from "../src/engine";
@@ -76,6 +76,8 @@ export async function createTestServer(
     http?: typeof fetch;
     /** Use fake embeddings (hybrid search). Off by default: full-text only, and no embedding usage rows. */
     embeddings?: boolean;
+    /** Image providers (ADR 0213); absent: fakes for OpenAI and Gemini, so no test reaches a real one. */
+    images?: Parameters<typeof buildEngine>[0]["imageProviders"];
     /** Fake S3 server and DNS for org buckets. */
     s3Fetch?: S3Fetch;
     resolveHost?: ResolveHost;
@@ -181,6 +183,7 @@ export async function createTestServer(
     mcpConnect: options.mcpConnect,
     http: options.http,
     embeddings: options.embeddings ? { provider: embeddings, apiKey: "test" } : undefined,
+    imageProviders: options.images ?? { openai: createFakeImages("openai"), gemini: createFakeImages("gemini") },
     s3Fetch: options.s3Fetch,
     speechFetch: options.speechFetch,
     resolveHost: options.resolveHost,
