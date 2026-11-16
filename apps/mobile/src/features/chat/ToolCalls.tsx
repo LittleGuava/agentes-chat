@@ -108,6 +108,7 @@ const KIND_ICON: Partial<Record<ActivityKind, IconName>> = {
   checkingComputer: "laptop",
   checkingUsage: "chart",
   findingAgent: "agent",
+  searchingContacts: "phone",
   proposingMission: "flag",
   messagingMission: "flag",
   updatingPlan: "flag",

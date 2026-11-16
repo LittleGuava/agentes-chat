@@ -274,6 +274,7 @@ export * from "./pdf";
 export * from "./permissions";
 export * from "./person-usage";
 export * from "./person-usage-report";
+export * from "./phone-tools";
 export * from "./pins";
 export * from "./plan-models";
 export * from "./plan-usage";
