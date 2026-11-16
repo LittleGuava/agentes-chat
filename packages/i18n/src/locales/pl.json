@@ -4380,7 +4380,22 @@
     "laterShort": "follow-up",
     "plan": "czeka na limit planu",
     "budget": "czeka na budżet",
-    "stopping": "zatrzymywanie…"
+    "stopping": "zatrzymywanie…",
+    "queue": {
+      "of_one": "W kolejce: prośba od {{names}}",
+      "of_few": "W kolejce: {{count}} prośby od {{names}}",
+      "of_many": "W kolejce: {{count}} próśb od {{names}}",
+      "of_other": "W kolejce: {{count}} prośby od {{names}}",
+      "yours_one": "W kolejce: twoja prośba",
+      "yours_few": "W kolejce: {{count}} twoje prośby",
+      "yours_many": "W kolejce: {{count}} twoich próśb",
+      "yours_other": "W kolejce: {{count}} twojej prośby",
+      "some_one": "W kolejce: {{count}} prośba",
+      "some_few": "W kolejce: {{count}} prośby",
+      "some_many": "W kolejce: {{count}} próśb",
+      "some_other": "W kolejce: {{count}} prośby",
+      "you": "ciebie"
+    }
   },
   "followUps": {
     "when": {

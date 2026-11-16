@@ -4107,7 +4107,16 @@
     "laterShort": "takip",
     "plan": "plan limitini bekliyor",
     "budget": "bütçeyi bekliyor",
-    "stopping": "durduruluyor…"
+    "stopping": "durduruluyor…",
+    "queue": {
+      "of_one": "Sırada: {{names}} tarafından bir istek",
+      "of_other": "Sırada: {{names}} tarafından {{count}} istek",
+      "yours_one": "Sırada: isteğiniz",
+      "yours_other": "Sırada: {{count}} isteğiniz",
+      "some_one": "Sırada: {{count}} istek",
+      "some_other": "Sırada: {{count}} istek",
+      "you": "siz"
+    }
   },
   "followUps": {
     "when": {

@@ -4248,7 +4248,19 @@
     "laterShort": "seguimiento",
     "plan": "esperando el plan",
     "budget": "esperando el presupuesto",
-    "stopping": "deteniendo…"
+    "stopping": "deteniendo…",
+    "queue": {
+      "of_one": "En cola: pedido de {{names}}",
+      "of_many": "En cola: {{count}} pedidos de {{names}}",
+      "of_other": "En cola: {{count}} pedidos de {{names}}",
+      "yours_one": "En cola: tu pedido",
+      "yours_many": "En cola: {{count}} pedidos tuyos",
+      "yours_other": "En cola: {{count}} pedidos tuyos",
+      "some_one": "En cola: {{count}} pedido",
+      "some_many": "En cola: {{count}} pedidos",
+      "some_other": "En cola: {{count}} pedidos",
+      "you": "ti"
+    }
   },
   "followUps": {
     "when": {

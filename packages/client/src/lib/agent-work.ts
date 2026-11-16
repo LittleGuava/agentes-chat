@@ -1,5 +1,14 @@
 import type { TFunction } from "i18next";
-import type { AgentStatus, AgentWork, AgentWorkState, PendingReturn, ThreadInfo, ThreadWait } from "../api/types";
+import type {
+  AgentQueue,
+  AgentStatus,
+  AgentWork,
+  AgentWorkState,
+  PendingReturn,
+  ThreadInfo,
+  ThreadWait,
+} from "../api/types";
+import { listNames, type MarkName } from "./activity";
 import { daysBetween, formatLineTime, formatTime } from "./format";
 import { agentGrammar } from "./grammar";
 
@@ -156,6 +165,39 @@ export function workDetail(
   if (work.state !== "working") return null;
   const place = workPlace(t, work, names);
   return place === t("agentWork.working") ? null : place;
+}
+
+// ── An agent's queue (ADR 0084 addendum of 2026-11-15) ─────────────────────────
+
+/** Whom a queue's askers are, by id: the reader (`me`), people and agents. */
+export interface QueueNames {
+  me: string;
+  personName: (id: string) => string | undefined;
+  agentName: (id: string) => string | undefined;
+}
+
+/**
+ * What waits for an agent, beside its work: "Na fila: pedido de Tom", "Na fila: 3 pedidos de Tom e Bia", "Na fila: seu
+ * pedido". Only the askers the reader's directory still knows are named (marked by `mark`); with none, how many. Null
+ * when nothing waits.
+ */
+export function queueLine(
+  t: TFunction,
+  queue: AgentQueue | null | undefined,
+  names: QueueNames,
+  mark: MarkName = (name) => name,
+): string | null {
+  if (!queue || queue.count <= 0) return null;
+  const count = queue.count;
+  if (queue.askers.length > 0 && queue.askers.every((a) => a.type === "person" && a.id === names.me))
+    return t("agentWork.queue.yours", { count });
+  const named = queue.askers.flatMap((a) => {
+    if (a.type === "person" && a.id === names.me) return [t("agentWork.queue.you")];
+    const name = a.type === "person" ? names.personName(a.id) : names.agentName(a.id);
+    return name ? [mark(name)] : [];
+  });
+  if (named.length === 0) return t("agentWork.queue.some", { count });
+  return t("agentWork.queue.of", { count, names: listNames(t, named) });
 }
 
 // ── A thread's chip ────────────────────────────────────────────────────────────

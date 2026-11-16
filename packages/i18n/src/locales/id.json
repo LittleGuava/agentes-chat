@@ -3993,7 +3993,13 @@
     "laterShort": "tindak lanjut",
     "plan": "menunggu kuota paket",
     "budget": "menunggu anggaran",
-    "stopping": "menghentikan…"
+    "stopping": "menghentikan…",
+    "queue": {
+      "of_other": "Dalam antrean: {{count}} permintaan dari {{names}}",
+      "yours_other": "Dalam antrean: {{count}} permintaanmu",
+      "some_other": "Dalam antrean: {{count}} permintaan",
+      "you": "kamu"
+    }
   },
   "followUps": {
     "when": {

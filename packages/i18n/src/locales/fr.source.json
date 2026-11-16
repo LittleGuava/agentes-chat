@@ -10113,6 +10113,27 @@
   "agentWork.stopping": {
     "value": "stopping…"
   },
+  "agentWork.queue.of": {
+    "value": {
+      "one": "Queued: {{names}}'s request",
+      "other": "Queued: {{count}} requests from {{names}}"
+    }
+  },
+  "agentWork.queue.yours": {
+    "value": {
+      "one": "Queued: your request",
+      "other": "Queued: {{count}} of your requests"
+    }
+  },
+  "agentWork.queue.some": {
+    "value": {
+      "one": "Queued: {{count}} request",
+      "other": "Queued: {{count}} requests"
+    }
+  },
+  "agentWork.queue.you": {
+    "value": "you"
+  },
   "followUps.when.at": {
     "value": "at {{time}}"
   },

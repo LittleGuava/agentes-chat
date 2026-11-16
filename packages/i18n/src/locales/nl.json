@@ -4123,7 +4123,16 @@
     "laterShort": "opvolging",
     "plan": "wacht op het abonnement",
     "budget": "wacht op het budget",
-    "stopping": "stoppen…"
+    "stopping": "stoppen…",
+    "queue": {
+      "of_one": "In de rij: verzoek van {{names}}",
+      "of_other": "In de rij: {{count}} verzoeken van {{names}}",
+      "yours_one": "In de rij: je verzoek",
+      "yours_other": "In de rij: {{count}} verzoeken van jou",
+      "some_one": "In de rij: {{count}} verzoek",
+      "some_other": "In de rij: {{count}} verzoeken",
+      "you": "jou"
+    }
   },
   "followUps": {
     "when": {

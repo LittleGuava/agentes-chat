@@ -4255,7 +4255,19 @@
     "laterShort": "follow-up",
     "plan": "aspetta il piano",
     "budget": "aspetta il budget",
-    "stopping": "arresto in corso…"
+    "stopping": "arresto in corso…",
+    "queue": {
+      "of_one": "In coda: richiesta di {{names}}",
+      "of_many": "In coda: {{count}} richieste di {{names}}",
+      "of_other": "In coda: {{count}} richieste di {{names}}",
+      "yours_one": "In coda: la tua richiesta",
+      "yours_many": "In coda: {{count}} tue richieste",
+      "yours_other": "In coda: {{count}} tue richieste",
+      "some_one": "In coda: {{count}} richiesta",
+      "some_many": "In coda: {{count}} richieste",
+      "some_other": "In coda: {{count}} richieste",
+      "you": "te"
+    }
   },
   "followUps": {
     "when": {

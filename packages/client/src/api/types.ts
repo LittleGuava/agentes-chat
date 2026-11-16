@@ -2704,6 +2704,18 @@ export interface AgentStatus {
   working?: boolean;
   /** Its most important work for you, with where it shows when you read it (ADR 0084). Absent from older servers. */
   work?: AgentWork | null;
+  /** The requests waiting for it that you read, by who asked; null: none. Absent from older servers. */
+  queue?: AgentQueue | null;
+}
+
+/**
+ * What waits for an agent, for you (ADR 0084 addendum of 2026-11-15): messages in its run's inbox and runs in line,
+ * only where you read, so a DM or a channel you don't read never shows, not even in the count.
+ */
+export interface AgentQueue {
+  count: number;
+  /** Who asked, each once, oldest request first (at most 10). */
+  askers: { type: "person" | "agent"; id: string }[];
 }
 
 /**

@@ -4463,6 +4463,23 @@ export const en = {
     plan: "waiting for its plan",
     budget: "waiting for its budget",
     stopping: "stopping…",
+    /**
+     * What waits for it (ADR 0084 addendum of 2026-11-15), beside its work in a conversation's bar: messages sent while it
+     * works and its runs in line, by who asked. `names`: who asked ("Tom", "Tom and Bia", "Tom and 2 more"), the reader
+     * as `you`.
+     */
+    queue: {
+      of_one: "Queued: {{names}}'s request",
+      of_other: "Queued: {{count}} requests from {{names}}",
+      /** Only the reader's own. */
+      yours_one: "Queued: your request",
+      yours_other: "Queued: {{count}} of your requests",
+      /** Nobody the reader's directory knows asked (they left the workspace). */
+      some_one: "Queued: {{count}} request",
+      some_other: "Queued: {{count}} requests",
+      /** The reader among the names. */
+      you: "you",
+    },
   },
   /** An agent comes back to a conversation by itself (its `follow_up`, ADR 0037): a follow-up. */
   followUps: {

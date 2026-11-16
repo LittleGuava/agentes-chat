@@ -3981,7 +3981,13 @@
     "laterShort": "フォローアップ",
     "plan": "プランのリセット待ち",
     "budget": "予算のリセット待ち",
-    "stopping": "停止しています…"
+    "stopping": "停止しています…",
+    "queue": {
+      "of_other": "順番待ち: {{names}}からの依頼{{count}}件",
+      "yours_other": "順番待ち: あなたの依頼{{count}}件",
+      "some_other": "順番待ち: 依頼{{count}}件",
+      "you": "あなた"
+    }
   },
   "followUps": {
     "when": {

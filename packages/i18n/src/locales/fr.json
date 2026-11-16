@@ -4253,7 +4253,19 @@
     "laterShort": "suivi",
     "plan": "attend l'abonnement",
     "budget": "attend le budget",
-    "stopping": "arrêt en cours…"
+    "stopping": "arrêt en cours…",
+    "queue": {
+      "of_one": "En file : demande de {{names}}",
+      "of_many": "En file : {{count}} demandes de {{names}}",
+      "of_other": "En file : {{count}} demandes de {{names}}",
+      "yours_one": "En file : votre demande",
+      "yours_many": "En file : {{count}} de vos demandes",
+      "yours_other": "En file : {{count}} de vos demandes",
+      "some_one": "En file : {{count}} demande",
+      "some_many": "En file : {{count}} demandes",
+      "some_other": "En file : {{count}} demandes",
+      "you": "vous"
+    }
   },
   "followUps": {
     "when": {

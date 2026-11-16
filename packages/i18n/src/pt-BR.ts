@@ -4347,6 +4347,23 @@ export const ptBR = {
     plan: "esperando o plano",
     budget: "esperando o orçamento",
     stopping: "parando…",
+    /**
+     * What waits for it (ADR 0084 addendum of 2026-11-15), beside its work in a conversation's bar: messages sent while it
+     * works and its runs in line, by who asked. `names`: who asked ("Tom", "Tom e Bia", "Tom e mais 2"), the reader
+     * as `you`.
+     */
+    queue: {
+      of_one: "Na fila: pedido de {{names}}",
+      of_other: "Na fila: {{count}} pedidos de {{names}}",
+      /** Only the reader's own. */
+      yours_one: "Na fila: seu pedido",
+      yours_other: "Na fila: {{count}} pedidos seus",
+      /** Nobody the reader's directory knows asked (they left the workspace). */
+      some_one: "Na fila: {{count}} pedido",
+      some_other: "Na fila: {{count}} pedidos",
+      /** The reader among the names. */
+      you: "você",
+    },
   },
   /** An agent comes back to a conversation by itself (its `follow_up`, ADR 0037): a return. */
   followUps: {

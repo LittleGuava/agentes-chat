@@ -3979,7 +3979,13 @@
     "laterShort": "후속 확인",
     "plan": "요금제 초기화 대기 중",
     "budget": "예산 초기화 대기 중",
-    "stopping": "중지하는 중…"
+    "stopping": "중지하는 중…",
+    "queue": {
+      "of_other": "차례 대기 중: {{names}}의 요청 {{count}}건",
+      "yours_other": "차례 대기 중: 내 요청 {{count}}건",
+      "some_other": "차례 대기 중: 요청 {{count}}건",
+      "you": "나"
+    }
   },
   "followUps": {
     "when": {

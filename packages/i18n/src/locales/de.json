@@ -4122,7 +4122,16 @@
     "laterShort": "Rückmeldung",
     "plan": "wartet auf das Abo",
     "budget": "wartet auf das Budget",
-    "stopping": "wird gestoppt…"
+    "stopping": "wird gestoppt…",
+    "queue": {
+      "of_one": "In der Warteschlange: Anfrage von {{names}}",
+      "of_other": "In der Warteschlange: {{count}} Anfragen von {{names}}",
+      "yours_one": "In der Warteschlange: deine Anfrage",
+      "yours_other": "In der Warteschlange: {{count}} deiner Anfragen",
+      "some_one": "In der Warteschlange: {{count}} Anfrage",
+      "some_other": "In der Warteschlange: {{count}} Anfragen",
+      "you": "dir"
+    }
   },
   "followUps": {
     "when": {

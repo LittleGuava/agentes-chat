@@ -3982,7 +3982,13 @@
     "laterShort": "跟进",
     "plan": "等待套餐重置",
     "budget": "等待预算重置",
-    "stopping": "正在停止…"
+    "stopping": "正在停止…",
+    "queue": {
+      "of_other": "排队中：{{names}} 的 {{count}} 个请求",
+      "yours_other": "排队中：你的 {{count}} 个请求",
+      "some_other": "排队中：{{count}} 个请求",
+      "you": "你"
+    }
   },
   "followUps": {
     "when": {

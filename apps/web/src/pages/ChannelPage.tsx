@@ -41,6 +41,7 @@ import {
   sendHelpers,
   typingIn,
   useAddChannelMember,
+  useAgentStatuses,
   useAiStatus,
   useApproval,
   useApprovals,
@@ -89,13 +90,14 @@ import {
   consultDetails,
   entriesOffScreen,
   lineStep,
+  markInk,
   runElapsed,
   someoneTypes,
   waitsForWords,
 } from "@agenteschat/client/lib/activity";
 import type { AgentTab } from "@agenteschat/client/lib/agent-edit";
 import { foldTalk, TALK_LINE_CHARS, talksToAgent } from "@agenteschat/client/lib/agent-talk";
-import { returnsHere } from "@agenteschat/client/lib/agent-work";
+import { queueLine, returnsHere } from "@agenteschat/client/lib/agent-work";
 import { looksLikeApiKey } from "@agenteschat/client/lib/api-key-text";
 import { approvalCardItems, asOfNow, cardDeadline } from "@agenteschat/client/lib/approval-card";
 import { artifactRefs } from "@agenteschat/client/lib/artifacts";
@@ -398,7 +400,15 @@ import {
 import { UsageWaitCancel, UsageWaitClosed } from "@/components/UsagePauseCard";
 import { PushAskContext, PushAskInline, usePushAsk } from "@/components/WebPush";
 import { useWikiLinkRenderer } from "@/components/WikiLinks";
-import { BarAlsoTyping, BarPhrase, BarStep, ConsultClock, TypingMark, WorkingStack } from "@/components/WorkingLine";
+import {
+  BarAlsoTyping,
+  BarPhrase,
+  BarStep,
+  boldNames,
+  ConsultClock,
+  TypingMark,
+  WorkingStack,
+} from "@/components/WorkingLine";
 import { useChannelSearch } from "@/hooks/useChannelSearch";
 import { useComposerDraft } from "@/hooks/useComposerDraft";
 import { useDirectory } from "@/hooks/useDirectory";
@@ -4089,6 +4099,23 @@ function ActivityBar({
   const { stop } = useStopRun();
   const active = entries.length > 0;
   const agents = entries.filter((e) => e.type === "agent");
+  // What waits for the one agent at work here, by who asked (ADR 0084 addendum of 2026-11-15): only what the reader
+  // reads, from the agents' list. With several at work, the line can't say whose.
+  const statuses = useAgentStatuses(org.id).data;
+  const workingHere = [...new Set(runs.map((r) => r.agentId))];
+  const queueAgent = workingHere.length === 1 ? workingHere[0] : undefined;
+  const queued = queueAgent
+    ? queueLine(
+        t,
+        statuses?.find((s) => s.agentId === queueAgent)?.queue,
+        {
+          me: me.user.id,
+          personName: (id) => dir.memberById.get(id)?.name,
+          agentName: (id) => dir.anyAgent(id)?.name,
+        },
+        markInk,
+      )
+    : null;
   // The strip behind the bar (and the orbit) take the color of the first agent at work.
   const firstAgent = agents[0];
   // The time, "Ver" and the stop are one agent's: with several, the line can't say whose (the composer still stops).
@@ -4112,8 +4139,10 @@ function ActivityBar({
   const away = ask ? undefined : waiting[0];
   const awayAgent = away?.asker?.type === "agent" ? dir.anyAgent(away.asker.id) : undefined;
   const pill = !ask && !away && active;
+  // Its row in view says what it does (so the pill is gone), and something waits for it: the queue rests in the box.
+  const queueRest = !ask && !away && !active && queued !== null && queueAgent !== undefined;
   // Nobody at work and nothing waiting on the reader: the soonest return rests in the same box (ADR 0037 addendum).
-  const rest = !ask && !away && !active && returns.length > 0;
+  const rest = !ask && !away && !active && !queueRest && returns.length > 0;
   // One agent's question or hand-off still out (ADR 0095 addendum): the consulted agent's state, its sky, its time, and
   // "Ver", which opens their talk (or, when its card waits on me, goes to the card). No stop: that is theirs.
   const consult = agents.length === 1 && firstAgent?.consult?.status === "asking" ? firstAgent.consult : undefined;
@@ -4152,7 +4181,7 @@ function ActivityBar({
         className="ac-typing"
         aria-live="polite"
         data-active={active || Boolean(ask) || Boolean(away)}
-        data-rest={rest || undefined}
+        data-rest={rest || queueRest || undefined}
         data-ask={ask || away ? true : undefined}
         data-consult={pill && consult ? (consult.yours ? "you" : consult.wait ? "wait" : "work") : undefined}
         data-browser={pill && openBrowser ? true : undefined}
@@ -4236,6 +4265,7 @@ function ActivityBar({
             {took && <span className="ac-typing__elapsed ac-num">{took}</span>}
             {consultTime && <span className="ac-typing__elapsed ac-num">{consultTime}</span>}
             {step !== null && <BarAlsoTyping entries={entries} />}
+            {queued && firstAgent?.id === queueAgent && <span className="ac-typing__also">{boldNames(queued)}</span>}
             {openBrowser && (
               <Button
                 size="sm"
@@ -4266,6 +4296,21 @@ function ActivityBar({
               </>
             )}
             {soloAway && stoppable === soloAway.runId && <StopButton run={soloAway} onStop={stop} place="bar" />}
+          </>
+        )}
+        {queueRest && queueAgent && queued && (
+          <>
+            <span className="ac-typing__avatars" aria-hidden="true">
+              <span className="ac-typing__tok">
+                <AgentAvatar agentId={queueAgent} size="xs" name={dir.anyAgent(queueAgent)?.name ?? ""} />
+              </span>
+            </span>
+            <Icon name="list" size={14} className="ac-typing__rest-mark" />
+            <span className="ac-typing__text ac-typing__rest">
+              <span key={queued} className="ac-typing__said">
+                {boldNames(queued)}
+              </span>
+            </span>
           </>
         )}
         {rest && <ReturnLine returns={returns} channelId={channelId} canAnswer={member} />}

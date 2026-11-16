@@ -333,8 +333,9 @@ export function applyMembershipEvent(qc: QueryClient, orgId: string, event: Chan
 
 /**
  * What the open conversation says about lists shown elsewhere too: a file saved, changed or deleted there (its cards,
- * the open viewer, the Drive; a deleted one's cards say so, from the conversation read again), and an agent changing its
- * memory there (its memory list). Returns whether the event was one of these.
+ * the open viewer, the Drive; a deleted one's cards say so, from the conversation read again), an agent changing its
+ * memory there (its memory list), and a message going into an agent's run or out of it (the agents' queues). Returns
+ * whether the event was one of these.
  */
 export function applyConversationEvent(qc: QueryClient, orgId: string, event: ChannelEvent): boolean {
   const type: string = event.type;
@@ -361,6 +362,12 @@ export function applyConversationEvent(qc: QueryClient, orgId: string, event: Ch
   }
   if (event.type === "memory.updated") {
     void qc.invalidateQueries({ queryKey: keys.memory(orgId, event.agentId) });
+    return true;
+  }
+  // A message went into an agent's run, was read there or got a run of its own: who waits for that agent changed (its
+  // queue, ADR 0084 addendum of 2026-11-15). Queues of conversations not open here follow the list's own poll.
+  if (type === "agent.run.steered" || type === "agent.run.read" || type === "agent.run.redispatched") {
+    void qc.invalidateQueries({ queryKey: keys.agentStatus(orgId) });
     return true;
   }
   return false;
