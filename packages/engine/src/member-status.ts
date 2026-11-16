@@ -1,7 +1,8 @@
 import type { Presence, PubSub } from "@agenteschat/adapters";
-import { and, type Database, eq, schema } from "@agenteschat/db";
+import { and, type Database, eq, inArray, schema } from "@agenteschat/db";
+import { requireChannelAccess } from "./channels";
 import { ValidationError } from "./errors";
-import { publishOrgEvent } from "./events";
+import { publishChannelEvent, publishOrgEvent } from "./events";
 import { rerouteApprovals } from "./notification-producers";
 import { requirePermission } from "./organizations";
 
@@ -142,3 +143,52 @@ export async function announcePresence(
 /** Whether `userId` has a connection open in `orgId` now. */
 export const isConnected = async (presence: Presence, orgId: string, userId: string) =>
   (await presence.online(orgId)).includes(userId);
+
+/**
+ * Who else has a conversation open now (ADR 0084 addendum 2026-11-15): the people whose realtime socket subscribed to
+ * it, in the order they opened it. Never the one asking, nor anyone hidden (they read offline to everyone else), nor
+ * someone no longer in the workspace. Only who reads the conversation may ask. Agents have no socket: never here.
+ */
+export async function channelViewers(
+  deps: { db: Database; presence: Presence },
+  viewerId: string,
+  orgId: string,
+  channelId: string,
+  now = new Date(),
+): Promise<string[]> {
+  await requireChannelAccess(deps.db, viewerId, orgId, channelId);
+  const ids = (await deps.presence.viewers(orgId, channelId)).filter((id) => id !== viewerId);
+  if (ids.length === 0) return [];
+  const rows = await deps.db
+    .select({
+      userId: schema.organizationMembers.userId,
+      availability: schema.organizationMembers.availability,
+      statusUntil: schema.organizationMembers.statusUntil,
+    })
+    .from(schema.organizationMembers)
+    .where(and(eq(schema.organizationMembers.orgId, orgId), inArray(schema.organizationMembers.userId, ids)));
+  const shown = new Set(rows.filter((r) => availabilityNow(r, now) !== "hidden").map((r) => r.userId));
+  return ids.filter((id) => shown.has(id));
+}
+
+/**
+ * Tells a conversation who has it open changed (a person opened it on their first connection or closed it on their
+ * last), ids only: its apps read `channelViewers` again. Never for a hidden person: the event alone would give them
+ * away, as `announcePresence` does. Their own sockets never hear it (`ws.ts`): they are never in their own list.
+ */
+export async function announceViewers(
+  deps: { db: Database; pubsub?: PubSub },
+  orgId: string,
+  channelId: string,
+  userId: string,
+): Promise<void> {
+  const [row] = await deps.db
+    .select({
+      availability: schema.organizationMembers.availability,
+      statusUntil: schema.organizationMembers.statusUntil,
+    })
+    .from(schema.organizationMembers)
+    .where(and(eq(schema.organizationMembers.orgId, orgId), eq(schema.organizationMembers.userId, userId)));
+  if (!row || availabilityNow(row) === "hidden") return;
+  await publishChannelEvent(deps.pubsub, { type: "channel.viewers", channelId, userId });
+}

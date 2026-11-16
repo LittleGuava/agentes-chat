@@ -2,6 +2,7 @@ import {
   archiveChannel,
   CHANNEL_KEYS,
   channelMembersDetail,
+  channelViewers,
   createChannelCategory,
   deleteChannel,
   deleteChannelCategory,
@@ -72,6 +73,28 @@ export function channelRoutes(deps: AppDeps) {
   const app = createAppRouter(deps);
   app.use("/organizations/*", requireSession(deps.auth));
   const opts = { pubsub: adapters.pubsub };
+
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/organizations/{orgId}/channels/{channelId}/viewers",
+      tags,
+      security,
+      summary: "Who else has this conversation open now",
+      description:
+        "People with the conversation open in an app now, in the order they opened it (ADR 0084 addendum 2026-11-15). Never you, nor anyone hidden. The channel hears `channel.viewers` when it changes. Each server replica answers for its own connections unless the presence adapter is shared.",
+      request: { params: ChannelParams },
+      responses: {
+        200: json(z.object({ viewers: z.array(z.string()).openapi({ description: "User ids." }) })),
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { orgId, channelId } = c.req.valid("param");
+      const viewers = await channelViewers({ db, presence: adapters.presence }, c.get("user").id, orgId, channelId);
+      return c.json({ viewers }, 200);
+    },
+  );
 
   app.openapi(
     createRoute({

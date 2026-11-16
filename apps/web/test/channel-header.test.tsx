@@ -54,3 +54,44 @@ describe("the channel header, as Discord's", () => {
     expect(pins.textContent).toContain("Nada fixado aqui ainda");
   });
 });
+
+describe("who else has the conversation open (ADR 0084 addendum 2026-11-15)", () => {
+  const withViewers = async (ids: string[]) => {
+    const state = seedState();
+    // Five more people, so the header has more than its three faces to show.
+    const base = state.members.find((m) => m.userId === "u-joao");
+    if (!base) throw new Error("the seed has João");
+    for (const [i, name] of ["Bia", "Caio", "Duda", "Eva", "Fábio"].entries()) {
+      state.members.push({ ...base, userId: `u-${i}`, name, handle: name.toLowerCase() });
+    }
+    const api = createFakeApi(state);
+    api.pins = { list: async () => [], pin: async () => ({}) as never, unpin: async () => {} };
+    api.viewers = { list: async () => ids };
+    await renderApp(`/org/${ORG_ID}/c/${ENG_ID}`, { api });
+    await settle(8);
+    return document.querySelector(".channel__header") as HTMLElement;
+  };
+
+  test("nobody else there: no faces", async () => {
+    const header = await withViewers([]);
+    expect(header.querySelector(".channel__viewers")).toBeNull();
+  });
+
+  test("one person: their face before the glyphs, their name in the tip", async () => {
+    const header = await withViewers(["u-joao"]);
+    const viewers = header.querySelector(".channel__viewers") as HTMLElement;
+    expect(viewers.parentElement?.firstElementChild).toBe(viewers);
+    expect(viewers.getAttribute("aria-label")).toBe("Aqui agora: João");
+    expect(viewers.getAttribute("title")).toBe("Aqui agora: João");
+    expect(viewers.querySelectorAll(".ac-avatar")).toHaveLength(1);
+    expect(viewers.querySelector(".channel__viewers-more")).toBeNull();
+  });
+
+  test("past three: three faces, +N, every name in the tip; someone not in the people yet waits", async () => {
+    const header = await withViewers(["u-joao", "u-0", "u-1", "u-2", "u-3", "u-stranger"]);
+    const viewers = header.querySelector(".channel__viewers") as HTMLElement;
+    expect(viewers.querySelectorAll(".ac-avatar")).toHaveLength(3);
+    expect(viewers.querySelector(".channel__viewers-more")?.textContent).toBe("+2");
+    expect(viewers.getAttribute("aria-label")).toBe("Aqui agora: João, Bia, Caio, Duda e Eva");
+  });
+});

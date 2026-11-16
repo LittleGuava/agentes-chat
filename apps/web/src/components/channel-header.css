@@ -68,6 +68,21 @@
   align-items: center;
   gap: var(--space-2);
 }
+/* Who else has it open: 24 faces centred in the glyphs' 32 row, ringed in the header's color, "+N" after them. A
+   tip, not a control: no box of its own. */
+.channel__viewers {
+  --stack-ring: var(--pane);
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-1);
+  height: var(--control-h-sm);
+}
+.channel__viewers-more {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--muted);
+}
 /* No plate on hover, pressed or open: the icon's own color says it, as Discord's header does. Its target grows to 44
    past the box, 4 to each side, so two boxes 8 apart never share one (`::after`). */
 .channel__icon.ac-btn {
@@ -221,7 +236,8 @@ html:not([data-pointer]) .channel__icon.ac-btn:focus-visible {
      search takes the whole screen, from its icon, a DM's too. */
   .channel__acts > .channel__threads,
   .channel__acts > .channel__pin,
-  .channel__acts > .channel__search {
+  .channel__acts > .channel__search,
+  .channel__acts > .channel__viewers {
     display: none;
   }
   .channel__acts:has(.channel__members-toggle) > .channel__cog {

@@ -5969,6 +5969,9 @@
       "other": "Channel members ({{count}})"
     }
   },
+  "channel.viewers": {
+    "value": "Here now: {{names}}"
+  },
   "channel.membersAgents": {
     "value": "Agents"
   },
