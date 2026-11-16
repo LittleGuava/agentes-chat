@@ -15353,6 +15353,7 @@
       "pausePast": "Kies een tijd in de toekomst.",
       "notOwner": "Alleen wie deze computer heeft gekoppeld zet de tools aan. Vraag het die persoon.",
       "askSelf": "Het is jouw computer: zet het aan met de knop.",
+      "localConfigUnsupported": "Deze computer draait de agenten als hun eigen gebruikers, niet als jou. Hij kan je instellingen niet lezen.",
       "adminAskSelf": "Dat kun je hier zelf doen.",
       "accountMethodUnsupported": "Deze computer kan Claude nog niet op deze manier koppelen. Werk het agentes.chat-programma erop bij, of gebruik een API-sleutel.",
       "offline": "{{name}} is nu offline. Probeer het opnieuw zodra hij terug is.",
@@ -15467,6 +15468,37 @@
     }
   },
   "machines": {
+    "local": {
+      "title": "MCP's en skills op deze computer",
+      "intro": "De MCP-servers en skills die je in Claude Code, Cursor en Codex hebt ingesteld. Alleen jij ziet ze, en geen enkele sleutel verlaat de computer.",
+      "look": "Zoeken",
+      "lookAgain": "Opnieuw zoeken",
+      "outdated": "Werk de app op deze computer bij om zijn MCP's en skills mee te nemen.",
+      "offline": "Zet de computer aan om te zoeken.",
+      "nothing": "Niets gevonden in Claude Code, Cursor of Codex.",
+      "servers": "MCP-servers",
+      "skills": "Skills",
+      "connect": "Koppelen",
+      "connectLabel": "{{name}} koppelen",
+      "connected": "Gekoppeld",
+      "needs": "Bij het koppelen vraagt hij om {{names}}",
+      "state": {
+        "private": "Alleen deze computer of zijn netwerk bereikt dat adres.",
+        "sse": "Gebruikt SSE, een ouder transport dat agentes.chat niet spreekt.",
+        "stdio": "Het is een programma dat op deze computer draait ({{command}}). De server kan het niet uitvoeren.",
+        "key_in_address": "Het adres bevat een sleutel, die op de computer is gebleven. Plak bij het koppelen het hele adres."
+      },
+      "masked": "In {{names}} is wat op een sleutel leek *** geworden.",
+      "noImport": "Voor het importeren van skills is de toestemming nodig om agenten te maken.",
+      "notRead": "Niet gelezen: {{list}}",
+      "why": {
+        "big": "te groot",
+        "unreadable": "niet leesbaar",
+        "link": "is een link",
+        "capped": "boven de limiet",
+        "noSkill": "geen SKILL.md"
+      }
+    },
     "reasons": {
       "browser_unsupported": "De browser van de agents werkt niet op het systeem van deze computer.",
       "browser_download": "De browser van de agents kon niet worden gedownload. Controleer de verbinding van deze computer, dan probeert hij het bij het volgende gebruik opnieuw.",

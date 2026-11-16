@@ -536,12 +536,23 @@ test("a system-mode runner (root) without workers does no agent work; machine-le
     "mychrome.act",
     "mychrome.list",
     "mychrome.disconnect",
+    // The person's tools' settings live in the runner's user's home: root answers unsupported.
+    "local.config",
   ]);
   const mine = { op: "mychrome.list" } as unknown as MachineRequest;
   expect(await errorCode(() => handleRequest(ctx, mine, scope))).toBe("not_allowed");
   const install = { op: "cli.install", action: "start", tool: "claude" } as unknown as MachineRequest;
   const installer = { ...ctx, cliInstall: () => ({ install: { tool: "claude" as const, state: "running" as const } }) };
   expect(await handleRequest(installer, install, scope)).toEqual({ install: { tool: "claude", state: "unsupported" } });
+  // Root's home isn't the person's: their tools' settings are never read from it.
+  const settings = { ...ctx, localConfig: () => ({ files: [], servers: [], skills: [], skipped: [] }) };
+  expect(await handleRequest(settings, { op: "local.config" }, scope)).toEqual({
+    files: [],
+    servers: [],
+    skills: [],
+    skipped: [],
+    unsupported: true,
+  });
 
   if (posix) {
     system = false;

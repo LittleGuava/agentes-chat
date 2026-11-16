@@ -14792,6 +14792,7 @@
       "pausePast": "Pilih waktu di masa depan.",
       "notOwner": "Hanya orang yang menghubungkan komputer ini yang menyalakan alatnya. Minta kepada orang itu.",
       "askSelf": "Ini komputermu: nyalakan dengan tombolnya.",
+      "localConfigUnsupported": "Komputer ini menjalankan agen sebagai pengguna mereka sendiri, bukan sebagai Anda. Komputer ini tidak bisa membaca pengaturan Anda.",
       "adminAskSelf": "Kamu bisa melakukannya sendiri di sini.",
       "accountMethodUnsupported": "Komputer ini belum bisa menghubungkan Claude dengan cara ini. Perbarui program agentes.chat di komputer ini, atau pakai kunci API.",
       "offline": "{{name}} sedang offline. Coba lagi setelah ia kembali.",
@@ -14905,6 +14906,37 @@
     }
   },
   "machines": {
+    "local": {
+      "title": "MCP dan skill di komputer ini",
+      "intro": "Server MCP dan skill yang Anda atur di Claude Code, Cursor, dan Codex. Hanya Anda yang melihatnya, dan tidak ada kunci yang keluar dari komputer.",
+      "look": "Cari",
+      "lookAgain": "Cari lagi",
+      "outdated": "Perbarui aplikasi di komputer ini untuk membawa MCP dan skill-nya.",
+      "offline": "Nyalakan komputer untuk mencari.",
+      "nothing": "Tidak ada yang ditemukan di Claude Code, Cursor, atau Codex.",
+      "servers": "Server MCP",
+      "skills": "Skill",
+      "connect": "Hubungkan",
+      "connectLabel": "Hubungkan {{name}}",
+      "connected": "Terhubung",
+      "needs": "Saat menghubungkan, meminta {{names}}",
+      "state": {
+        "private": "Hanya komputer ini atau jaringannya yang menjangkau alamat itu.",
+        "sse": "Memakai SSE, transport lama yang tidak dipakai agentes.chat.",
+        "stdio": "Ini program yang berjalan di komputer ini ({{command}}). Server tidak bisa menjalankannya.",
+        "key_in_address": "Alamatnya berisi kunci, yang tetap di komputer. Saat menghubungkan, tempel alamat lengkapnya."
+      },
+      "masked": "Di {{names}}, yang tampak seperti kunci menjadi ***.",
+      "noImport": "Mengimpor skill butuh izin membuat agen.",
+      "notRead": "Tidak dibaca: {{list}}",
+      "why": {
+        "big": "terlalu besar",
+        "unreadable": "tidak bisa dibaca",
+        "link": "berupa tautan",
+        "capped": "melewati batas",
+        "noSkill": "tanpa SKILL.md"
+      }
+    },
     "reasons": {
       "browser_unsupported": "Browser agen tidak berjalan di sistem komputer ini.",
       "browser_download": "Browser agen tidak bisa diunduh. Periksa koneksi komputer ini, dan akan dicoba lagi saat dipakai berikutnya.",

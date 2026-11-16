@@ -16327,6 +16327,7 @@
       "pausePast": "Wybierz godzinę w przyszłości.",
       "notOwner": "Narzędzia tego komputera włącza tylko osoba, która go podłączyła. Poproś ją.",
       "askSelf": "To Twój komputer: włącz to przyciskiem.",
+      "localConfigUnsupported": "Ten komputer uruchamia agentów jako ich własnych użytkowników, nie jako Ciebie. Nie może odczytać Twoich ustawień.",
       "adminAskSelf": "Możesz to zrobić tutaj sam.",
       "accountMethodUnsupported": "Ten komputer nie może jeszcze połączyć Claude w ten sposób. Zaktualizuj na nim program agentes.chat albo użyj klucza API.",
       "offline": "{{name}} jest teraz offline. Spróbuj ponownie, gdy wróci.",
@@ -16443,6 +16444,37 @@
     }
   },
   "machines": {
+    "local": {
+      "title": "MCP i umiejętności z tego komputera",
+      "intro": "Serwery MCP i umiejętności skonfigurowane przez Ciebie w Claude Code, Cursor i Codex. Widzisz je tylko Ty i żaden klucz nie opuszcza komputera.",
+      "look": "Szukaj",
+      "lookAgain": "Szukaj ponownie",
+      "outdated": "Zaktualizuj aplikację na tym komputerze, aby przenieść jego MCP i umiejętności.",
+      "offline": "Włącz komputer, aby szukać.",
+      "nothing": "Nic nie znaleziono w Claude Code, Cursor ani Codex.",
+      "servers": "Serwery MCP",
+      "skills": "Umiejętności",
+      "connect": "Połącz",
+      "connectLabel": "Połącz {{name}}",
+      "connected": "Połączono",
+      "needs": "Przy łączeniu prosi o {{names}}",
+      "state": {
+        "private": "Ten adres jest osiągalny tylko z tego komputera lub jego sieci.",
+        "sse": "Używa SSE, starszego transportu, którego agentes.chat nie obsługuje.",
+        "stdio": "To program działający na tym komputerze ({{command}}). Serwer nie może go uruchomić.",
+        "key_in_address": "Adres zawiera klucz, który został na komputerze. Przy łączeniu wklej cały adres."
+      },
+      "masked": "W {{names}} to, co wyglądało na klucz, zamieniono na ***.",
+      "noImport": "Import umiejętności wymaga uprawnienia do tworzenia agentów.",
+      "notRead": "Nie odczytano: {{list}}",
+      "why": {
+        "big": "za duży",
+        "unreadable": "nie da się odczytać",
+        "link": "to link",
+        "capped": "ponad limit",
+        "noSkill": "brak SKILL.md"
+      }
+    },
     "reasons": {
       "browser_unsupported": "Przeglądarka agentów nie działa w systemie tego komputera.",
       "browser_download": "Nie udało się pobrać przeglądarki agentów. Sprawdź połączenie tego komputera, a przy następnym użyciu spróbuje ponownie.",

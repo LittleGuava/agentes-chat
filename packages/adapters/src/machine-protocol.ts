@@ -834,6 +834,190 @@ export interface RunnerAcpEngineInfo {
   models?: CursorModelInfo[];
 }
 
+/**
+ * From this protocol on (ADR 0055, addendum 2026-11-15): `local.config`, what the person who runs the computer set up
+ * for their own coding tools, read there only when they ask from the apps: the MCP servers at the top level of
+ * Claude Code's `.claude.json`, Cursor's `~/.cursor/mcp.json` and Codex's `config.toml`, and Claude Code's skills
+ * (`<config>/skills/*\/SKILL.md`). The request names no path: the runner holds the list. Of a server only its name,
+ * kind, address (no user, query or fragment, and a part of its path that looks like a key masked), program name and
+ * the names of its headers, env and query leave the computer; never a value, never an argument. A SKILL.md leaves
+ * with what looks like a key masked (`redactCommon`). A file that is a link is never read. Root answers
+ * `unsupported` in system mode (its home isn't the person's). The server never sends it to an older runner.
+ */
+export const LOCAL_CONFIG_PROTOCOL = 72;
+/** The tools whose settings `local.config` reads. */
+export const LOCAL_CONFIG_APPS = ["claude", "cursor", "codex"] as const;
+export type LocalConfigApp = (typeof LOCAL_CONFIG_APPS)[number];
+/** `http`: Streamable HTTP; `sse`: the older HTTP+SSE transport; `stdio`: a program the tool starts. */
+export const LOCAL_SERVER_KINDS = ["http", "sse", "stdio"] as const;
+export type LocalServerKind = (typeof LOCAL_SERVER_KINDS)[number];
+/** `link`: the file is a link, never followed. */
+export const LOCAL_FILE_STATES = ["read", "missing", "too_big", "unreadable", "link"] as const;
+/** `no_skill`: a folder without SKILL.md; `link`: never followed; `too_many`: past a cap of one answer. */
+export const LOCAL_SKIP_REASONS = ["link", "too_big", "too_many", "no_skill", "unreadable"] as const;
+export const LOCAL_CONFIG_LIMITS = {
+  /** A settings file larger than this isn't read (`too_big`): `.claude.json` also keeps every project's history. */
+  fileBytes: 16 * 1024 * 1024,
+  servers: 200,
+  skills: 100,
+  /** One SKILL.md, then all of them: the answer stays well inside `MAX_FRAME_BYTES`. */
+  skillBytes: 256 * 1024,
+  skillsBytes: 4 * 1024 * 1024,
+  name: 100,
+  url: 2000,
+  /** Header, env and query names of one server. */
+  names: 50,
+  skipped: 300,
+} as const;
+export interface LocalMcpServer {
+  app: LocalConfigApp;
+  name: string;
+  kind: LocalServerKind;
+  /** `http` and `sse`: the address without user, query or fragment. */
+  url?: string;
+  /** `stdio`: the program's file name alone (`npx`, `uvx`), never its folder or arguments. */
+  command?: string;
+  /** The names of the headers it sends (`Authorization`), never their values. */
+  headers: string[];
+  /** The names of the variables it reads (`GITHUB_TOKEN`), never their values. */
+  env: string[];
+  /** The names of the query parameters its address had (`token`), never their values. */
+  query: string[];
+  /** A part of the address's path looked like a key: it is masked (`***`), so this address can't be used as it is. */
+  keyInAddress?: true;
+}
+export interface LocalSkill {
+  /** The skill's folder name. */
+  name: string;
+  /** The whole SKILL.md, with what looks like a key masked. */
+  markdown: string;
+  /** Something in it looked like a key and was masked. */
+  masked?: true;
+}
+export interface LocalConfig {
+  /** Each place read, shown with `~` for the home (`$CLAUDE_CONFIG_DIR`, `$CODEX_HOME` when set). */
+  files: { app: LocalConfigApp; path: string; state: (typeof LOCAL_FILE_STATES)[number] }[];
+  servers: LocalMcpServer[];
+  skills: LocalSkill[];
+  skipped: { path: string; reason: (typeof LOCAL_SKIP_REASONS)[number] }[];
+  /** This runner can't read the person's settings (system mode). */
+  unsupported?: true;
+}
+
+/**
+ * A path part that may be a key (some services put the key in the address, `/s/<key>/mcp`): a known key format, or a
+ * long run of letters and digits with both. Conservative: a long id there is masked too, and the person types it.
+ */
+const PATH_KEY =
+  /^(?:sk-|gh[pousr]_|github_pat_|xox[abposr]-|AKIA|AIza|eyJ)|^(?=.*\d)(?=.*[A-Za-z])[A-Za-z0-9_-]{24,}$/;
+
+/**
+ * An address from a settings file, ready to leave the computer: no user, query or fragment, a path part that looks
+ * like a key masked (`keyInPath`); null if it isn't one.
+ */
+export function cleanServerUrl(raw: unknown): { url: string; query: string[]; keyInPath: boolean } | null {
+  if (typeof raw !== "string" || raw.length > 8 * LOCAL_CONFIG_LIMITS.url) return null;
+  let url: URL;
+  try {
+    url = new URL(raw.trim());
+  } catch {
+    return null;
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+  const query = [...new Set(url.searchParams.keys())].filter(isSettingName).slice(0, LOCAL_CONFIG_LIMITS.names);
+  url.username = "";
+  url.password = "";
+  url.search = "";
+  url.hash = "";
+  let keyInPath = false;
+  url.pathname = url.pathname
+    .split("/")
+    .map((part) => {
+      let plain = part;
+      try {
+        plain = decodeURIComponent(part);
+      } catch {
+        // A malformed escape is checked as written.
+      }
+      if (!PATH_KEY.test(plain)) return part;
+      keyInPath = true;
+      return "***";
+    })
+    .join("/");
+  const clean = url.toString();
+  return clean.length <= LOCAL_CONFIG_LIMITS.url ? { url: clean, query, keyInPath } : null;
+}
+
+/** A header, variable or query name as written in a settings file (`Authorization`, `GITHUB_TOKEN`, `api-key`). */
+export const isSettingName = (v: unknown): v is string => typeof v === "string" && /^[A-Za-z0-9_.-]{1,100}$/.test(v);
+/** A program's file name alone: the last part of a path, without `.exe`/`.cmd`. */
+export function programName(raw: unknown): string | undefined {
+  if (typeof raw !== "string") return undefined;
+  const base =
+    raw
+      .trim()
+      .split(/[\\/]/)
+      .pop()
+      ?.replace(/\.(exe|cmd|bat)$/i, "") ?? "";
+  return /^[\w.@+-]{1,100}$/.test(base) ? base : undefined;
+}
+
+const settingNames = (v: unknown) =>
+  Array.isArray(v) ? [...new Set(v.filter(isSettingName))].slice(0, LOCAL_CONFIG_LIMITS.names) : [];
+const oneOf = <T extends string>(list: readonly T[], v: unknown): T | undefined => list.find((x) => x === v);
+
+/**
+ * `local.config`'s answer, checked again where it lands (it comes from the person's computer): every field kept to
+ * the shapes above and cut to the caps, an address cleaned again, anything else dropped.
+ */
+export function parseLocalConfig(raw: unknown): LocalConfig {
+  const r = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const list = (v: unknown) => (Array.isArray(v) ? (v as unknown[]) : []);
+  const record = (v: unknown) => (v && typeof v === "object" ? (v as Record<string, unknown>) : {});
+  const text = (v: unknown, max: number) => (typeof v === "string" && v.trim() ? v.trim().slice(0, max) : undefined);
+  const files: LocalConfig["files"] = [];
+  for (const f of list(r.files).slice(0, 20).map(record)) {
+    const app = oneOf(LOCAL_CONFIG_APPS, f.app);
+    const path = text(f.path, 300);
+    const state = oneOf(LOCAL_FILE_STATES, f.state);
+    if (app && path && state) files.push({ app, path, state });
+  }
+  const servers: LocalMcpServer[] = [];
+  for (const s of list(r.servers).slice(0, LOCAL_CONFIG_LIMITS.servers).map(record)) {
+    const app = oneOf(LOCAL_CONFIG_APPS, s.app);
+    const kind = oneOf(LOCAL_SERVER_KINDS, s.kind);
+    const name = text(s.name, LOCAL_CONFIG_LIMITS.name);
+    if (!app || !kind || !name) continue;
+    const base = { app, name, kind, headers: settingNames(s.headers), env: settingNames(s.env) };
+    if (kind === "stdio") {
+      servers.push({ ...base, command: programName(s.command) ?? "?", query: [] });
+      continue;
+    }
+    const clean = cleanServerUrl(s.url);
+    if (!clean) continue;
+    const query = [...new Set([...settingNames(s.query), ...clean.query])].slice(0, LOCAL_CONFIG_LIMITS.names);
+    const masked = clean.keyInPath || s.keyInAddress === true;
+    servers.push({ ...base, url: clean.url, query, ...(masked ? { keyInAddress: true as const } : {}) });
+  }
+  const skills: LocalSkill[] = [];
+  let bytes = 0;
+  for (const s of list(r.skills).slice(0, LOCAL_CONFIG_LIMITS.skills).map(record)) {
+    const name = text(s.name, LOCAL_CONFIG_LIMITS.name);
+    const markdown = typeof s.markdown === "string" ? s.markdown : "";
+    if (!name || !markdown || markdown.length > LOCAL_CONFIG_LIMITS.skillBytes) continue;
+    bytes += markdown.length;
+    if (bytes > LOCAL_CONFIG_LIMITS.skillsBytes) break;
+    skills.push({ name, markdown, ...(s.masked === true ? { masked: true as const } : {}) });
+  }
+  const skipped: LocalConfig["skipped"] = [];
+  for (const s of list(r.skipped).slice(0, LOCAL_CONFIG_LIMITS.skipped).map(record)) {
+    const path = text(s.path, 400);
+    const reason = oneOf(LOCAL_SKIP_REASONS, s.reason);
+    if (path && reason) skipped.push({ path, reason });
+  }
+  return { files, servers, skills, skipped, ...(r.unsupported === true ? { unsupported: true as const } : {}) };
+}
+
 export type PhonePlatform = "android" | "ios";
 export type PhoneKind = "device" | "emulator" | "simulator";
 /** A phone the host sees; one it doesn't see isn't reported (the server marks it offline). */
@@ -2943,6 +3127,8 @@ export type MachineRequest = (
   | { op: "mychrome.list" }
   /** Protocol 82: end one agent's use of it (`agentId`), or every one. Its tabs stay, the person's. */
   | { op: "mychrome.disconnect"; agentId?: string }
+  /** `LOCAL_CONFIG_PROTOCOL`: the MCP servers and skills its person set up for their coding tools, read now. */
+  | { op: "local.config" }
 ) & {
   agent?: AgentScope;
   /**
@@ -3034,6 +3220,7 @@ export const MACHINE_OPS: readonly MachineOp[] = [
   "mychrome.act",
   "mychrome.list",
   "mychrome.disconnect",
+  "local.config",
 ];
 
 /** What each op answers with `ok: true`. */
@@ -3224,6 +3411,7 @@ export interface MachineReplies {
   "mychrome.act": MyChromeTab & { text?: string; truncated?: boolean };
   "mychrome.list": { sessions: MyChromeSession[] };
   "mychrome.disconnect": { disconnected: number };
+  "local.config": LocalConfig;
 }
 
 /** An element numbered on a `browser.capture` image: its ref and box (CSS pixels). */

@@ -1,6 +1,6 @@
 # 0055. Imports from other apps, and our own export, through one bundle
 
-- Status: Accepted (2026-10-21). Addendum 2026-10-31: an old id handle still reaches its agent. Addendum 2026-11-12: private repositories through the workspace's GitHub. Addendum 2026-11-15: exporting a part, setores or chosen agents (§6). Addendum 2026-11-15: a conversation's transcript, for whoever reads it. Addendum 2026-11-15: a team file applied, checked and pruned from the command line. Addendum 2026-11-15: an update keeps what was changed here, and an import can be undone
+- Status: Accepted (2026-10-21). Addendum 2026-10-31: an old id handle still reaches its agent. Addendum 2026-11-12: private repositories through the workspace's GitHub. Addendum 2026-11-15: exporting a part, setores or chosen agents (§6). Addendum 2026-11-15: a conversation's transcript, for whoever reads it. Addendum 2026-11-15: a team file applied, checked and pruned from the command line. Addendum 2026-11-15: an update keeps what was changed here, and an import can be undone. Addendum 2026-11-15: MCP servers and skills from a person's own coding tools
 - Date: 2026-10-21
 - Extends: ADR 0020 (skills), ADR 0016 (connectors), ADR 0017 (context items), ADR 0019 (SSRF guard)
 - Out of scope for now: chat history, a scan of `~/.openclaw` / `~/.hermes` on a connected computer, the Manus API (rollback came with the addendum of 2026-11-15)
@@ -279,3 +279,59 @@ The rows stay, with `undone_at` set (migration 0300). An undone row is not "ther
 Configurações › Importar lists the caller's packages ("Suas importações", with the kinds each still has) with Desfazer, which opens the dry run (what goes, what stays and why) before anything changes.
 
 Out of it: the agents' own files copied to the Drive (§8) stay, and so does what the agents did since (messages, runs, files of their own); an undo takes back setup, not work. Routines and notes come back as new rows when imported again (they hold no name). The decision on permissions diverges between §4 (`manage_agents` for the import) and the code (`create_agents` in `applyImport`): the undo asks for `manage_agents`, and that divergence is left for its own change.
+
+## Addendum (2026-11-15): MCP servers and skills from a person's own coding tools
+
+People who already use Claude Code, Cursor or Codex have set up MCP servers and skills there. Typing each address again, or copying each SKILL.md by hand, is where they stop. This is the first part of "A runner scan" in Later, for those three tools rather than OpenClaw and Hermes.
+
+### What is read, and where
+
+- The server never reads a person's files. Their computer's runner does, when they ask from the apps, through one op, `local.config` (protocol 72, `LOCAL_CONFIG_PROTOCOL`). The request carries no path: the runner holds the list (`apps/server/runner/local-config.ts`):
+  - Claude Code: the top level `mcpServers` of `.claude.json` (in `CLAUDE_CONFIG_DIR` when set, else the home). A project's own servers and everything else in the file (the account, the history) stay on the computer.
+  - Cursor: `mcpServers` of `~/.cursor/mcp.json`.
+  - Codex: the `[mcp_servers.*]` tables of `config.toml` (in `CODEX_HOME` when set), read with Bun's own TOML parser.
+  - Claude Code's skills: each folder of `<config>/skills/` with its `SKILL.md`.
+- Every file is capped (16 MB for a settings file, since `.claude.json` keeps every project's history; 256 KB for one SKILL.md, 4 MB and 100 skills in all; 200 servers) and never read through a link: it is looked at before it is opened (Windows has no `O_NOFOLLOW`), and the file opened must be the one looked at. What isn't read comes back with its reason (`missing`, `too_big`, `unreadable`, `link`; for a skill folder `link`, `no_skill`, `too_big`, `too_many`), so "nothing found" and "couldn't read it" never look alike. A settings file or a skill folder that is a link (a dotfiles manager's) is listed and never followed, as §5 and §8 treat links.
+- Only the person who connected the computer may ask (`machine.not_owner` for anyone else, the workspace's owner included): the settings are theirs. Never the workspace's own computer. A runner in system mode answers `unsupported`, since root's home isn't the person's. Reading counts as nothing done on the computer (`isNewWork` false), and the audit keeps `machine.local_config_shown` with the counts only.
+
+### What leaves the computer, and what doesn't
+
+Of a server only its name, kind (`http`, `sse`, `stdio`), its address with the user, password, query and fragment removed, the program's file name (`npx`, never its folder), and the names of its headers, variables and query parameters leave the computer. A header's, a variable's or an argument's value never does: `--api-key=…` and `Authorization: Bearer …` are where those files keep keys. Some services put the key in the address's path (`/s/<key>/mcp`): a path part in a known key format, or a run of 24 or more letters and digits with both, is masked (`***`) and the server says so (`keyInAddress`). That is conservative: a long id there is masked too, and the person pastes the whole address themselves.
+
+A SKILL.md is text the person wrote, so it leaves whole, with what looks like a key masked by the same patterns the runner's own logs use (`redactCommon`: bearer headers, known key formats, `password=`/`token:` values), as the browser does for files dropped into an import (§8). A key in a shape those patterns don't know would still leave in a skill's text; the import's own check (§4, `looksLikeSecret`, `secret_like`) is the next stop, and nothing is stored before the person imports it.
+
+The server checks the answer again (`parseLocalConfig` in `machine-protocol.ts`, and the same masking of every SKILL.md): the same shapes and caps, the address cleaned again, anything else dropped, since it comes from the person's computer.
+
+Nothing secret is brought, even with a confirmation: the person types the key, or signs in, when they connect the server, as for any custom server.
+
+### The preview
+
+`POST …/machines/{machineId}/local-config` answers what was read (`LocalSetup`), stores nothing, and sorts each server by what can be done here:
+
+- `connect`: a public https address. It is connected through the usual flow (`POST …/connectors/custom`, ADR 0016, 0099), which signs in, asks for a key or connects it open.
+- `connected`: a server of the workspace already has that address.
+- `private`: `http://`, or an address only that computer or its network reaches (`localhost`, a private IP, a `.local` name). The server's SSRF guard would refuse it.
+- `sse`: the older HTTP+SSE transport, which our MCP client doesn't speak (it speaks Streamable HTTP).
+- `stdio`: a program the tool starts on that computer. The server can't run it.
+- `key_in_address`: a key in its address was masked; the person pastes the whole address in the custom-server flow.
+
+Only servers by address count as `connected` (`custom:` connections): a catalog connector at the same address shows as `connect`, and connecting it again makes a second account (ADR 0099).
+
+The skills come as a bundle (`source.app` `claude-code`, `source.ref` `computer:<machine id>`), applied through the usual import (§2): planned first, unchanged on a second read, and `secret_like` for a SKILL.md where the import still finds a key (§4). `masked` names the skills where something was masked on the way.
+
+### The screen
+
+On the web, the computer's page has a card for the person who connected it (`LocalSetupCard`, `localSetupWay` in `packages/client/src/lib/machines.ts`), never for anyone else, never on the workspace's own computer nor one in system mode. The list says which apps can be asked (`Machine.localConfig`); an older app gets a line asking to update it, an offline computer one asking to turn it on. Nothing is read until the person presses **Procurar**.
+
+- Each server shows its address and, in a short line, why it can't simply be connected (`private`, `sse`, `stdio` with its program, `key_in_address`) or what it will ask for (the names of its headers, query parameters and variables). **Conectar** opens the usual custom-server flow, with the address filled in for `connect` and left empty for `key_in_address`, for people who may connect services (`manage_connectors`). A server connected from there reads as connected without asking the computer again.
+- The skills go through the usual import screen itself (`useImportFlow` reading a ready bundle, its preview, picks and report, without **Trocar**, there being nothing else to pick), for people who may create agents (`create_agents`, which the import route asks for). Others see the skills' names and why they can't import them.
+- The files and skill folders not read are listed with their reason, a missing one left out, and the skills where something was masked are named before anything is imported.
+
+### Later
+
+- The phone app's screen: it has the API (`machines.localConfig`) but no screen yet.
+- Bringing a key with the person's explicit confirmation, per header, instead of typing it again.
+- A stdio server that only wraps a remote one (`npx mcp-remote https://…`), offered as that address.
+- Codex's skills (`$CODEX_HOME/skills`, `~/.agents/skills`), Claude Desktop, Gemini CLI and VS Code's `servers`, and a skill's other files (scripts, references), which today stay behind.
+- Following a settings file's link while it stays inside the home, for people who keep their dotfiles in a repository.
+- Stdio servers run on the computer itself, as the agents' own tools there.

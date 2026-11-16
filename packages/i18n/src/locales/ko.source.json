@@ -37565,6 +37565,9 @@
   "errors.machine.askSelf": {
     "value": "It's your computer: turn it on with the button."
   },
+  "errors.machine.localConfigUnsupported": {
+    "value": "This computer runs its agents as their own users, not as you. It can't read your settings."
+  },
   "errors.machine.adminAskSelf": {
     "value": "You can do this here yourself."
   },
@@ -37831,6 +37834,81 @@
   },
   "errors.feedback.filesPending": {
     "value": "Too many files are waiting to be sent. Send or remove some, then try again."
+  },
+  "machines.local.title": {
+    "value": "MCPs and skills on this computer"
+  },
+  "machines.local.intro": {
+    "value": "The MCP servers and skills you set up in Claude Code, Cursor and Codex. Only you see them, and no key leaves the computer."
+  },
+  "machines.local.look": {
+    "value": "Look"
+  },
+  "machines.local.lookAgain": {
+    "value": "Look again"
+  },
+  "machines.local.outdated": {
+    "value": "Update the app on this computer to bring its MCPs and skills."
+  },
+  "machines.local.offline": {
+    "value": "Turn the computer on to look."
+  },
+  "machines.local.nothing": {
+    "value": "Nothing found in Claude Code, Cursor or Codex."
+  },
+  "machines.local.servers": {
+    "value": "MCP servers"
+  },
+  "machines.local.skills": {
+    "value": "Skills"
+  },
+  "machines.local.connect": {
+    "value": "Connect"
+  },
+  "machines.local.connectLabel": {
+    "value": "Connect {{name}}"
+  },
+  "machines.local.connected": {
+    "value": "Connected"
+  },
+  "machines.local.needs": {
+    "value": "When connecting, it asks for {{names}}"
+  },
+  "machines.local.state.private": {
+    "value": "Only this computer or its network reaches that address."
+  },
+  "machines.local.state.sse": {
+    "value": "Uses SSE, an older transport agentes.chat doesn't speak."
+  },
+  "machines.local.state.stdio": {
+    "value": "It's a program that runs on this computer ({{command}}). The server can't run it."
+  },
+  "machines.local.state.key_in_address": {
+    "value": "Its address has a key, which stayed on the computer. When connecting, paste the whole address."
+  },
+  "machines.local.masked": {
+    "value": "In {{names}}, what looked like a key became ***."
+  },
+  "machines.local.noImport": {
+    "value": "Importing skills takes the permission to create agents."
+  },
+  "machines.local.notRead": {
+    "value": "Not read: {{list}}"
+  },
+  "machines.local.why.big": {
+    "value": "too big"
+  },
+  "machines.local.why.unreadable": {
+    "value": "couldn't be read"
+  },
+  "machines.local.why.link": {
+    "value": "it's a link"
+  },
+  "machines.local.why.capped": {
+    "value": "past the limit"
+  },
+  "machines.local.why.noSkill": {
+    "value": "no SKILL.md"
   },
   "machines.reasons.browser_unsupported": {
     "value": "The agent browser doesn't run on this computer's system."

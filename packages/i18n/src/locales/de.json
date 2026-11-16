@@ -15289,6 +15289,7 @@
       "pausePast": "Wähl eine Zeit in der Zukunft.",
       "notOwner": "Nur wer diesen Computer verbunden hat, schaltet seine Werkzeuge ein. Frag diese Person.",
       "askSelf": "Es ist dein Computer: schalte es mit dem Button ein.",
+      "localConfigUnsupported": "Dieser Computer führt die Agenten als eigene Benutzer aus, nicht als dich. Er kann deine Einstellungen nicht lesen.",
       "adminAskSelf": "Das kannst du hier selbst tun.",
       "accountMethodUnsupported": "Dieser Computer kann Claude noch nicht auf diese Weise verbinden. Aktualisiere das agentes.chat-Programm darauf oder verwende einen API-Schlüssel.",
       "offline": "{{name}} ist gerade offline. Versuch es noch einmal, sobald er wieder da ist.",
@@ -15403,6 +15404,37 @@
     }
   },
   "machines": {
+    "local": {
+      "title": "MCPs und Skills auf diesem Computer",
+      "intro": "Die MCP-Server und Skills, die du in Claude Code, Cursor und Codex eingerichtet hast. Nur du siehst sie, und kein Schlüssel verlässt den Computer.",
+      "look": "Suchen",
+      "lookAgain": "Erneut suchen",
+      "outdated": "Aktualisiere die App auf diesem Computer, um seine MCPs und Skills zu übernehmen.",
+      "offline": "Schalte den Computer ein, um zu suchen.",
+      "nothing": "Nichts in Claude Code, Cursor oder Codex gefunden.",
+      "servers": "MCP-Server",
+      "skills": "Skills",
+      "connect": "Verbinden",
+      "connectLabel": "{{name}} verbinden",
+      "connected": "Verbunden",
+      "needs": "Beim Verbinden fragt er nach {{names}}",
+      "state": {
+        "private": "Nur dieser Computer oder sein Netzwerk erreicht diese Adresse.",
+        "sse": "Nutzt SSE, ein älteres Protokoll, das agentes.chat nicht spricht.",
+        "stdio": "Das ist ein Programm, das auf diesem Computer läuft ({{command}}). Der Server kann es nicht ausführen.",
+        "key_in_address": "Die Adresse enthält einen Schlüssel, der auf dem Computer geblieben ist. Füge beim Verbinden die ganze Adresse ein."
+      },
+      "masked": "In {{names}} wurde, was wie ein Schlüssel aussah, zu ***.",
+      "noImport": "Zum Importieren von Skills braucht es die Berechtigung, Agenten zu erstellen.",
+      "notRead": "Nicht gelesen: {{list}}",
+      "why": {
+        "big": "zu groß",
+        "unreadable": "nicht lesbar",
+        "link": "ist ein Link",
+        "capped": "über dem Limit",
+        "noSkill": "keine SKILL.md"
+      }
+    },
     "reasons": {
       "browser_unsupported": "Der Browser der Agenten läuft nicht auf dem System dieses Computers.",
       "browser_download": "Der Browser der Agenten konnte nicht heruntergeladen werden. Prüfe die Verbindung dieses Computers, beim nächsten Mal versucht er es erneut.",

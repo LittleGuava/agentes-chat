@@ -1,5 +1,14 @@
 import { isIP } from "node:net";
-import { CLI_INSTALL_CAUSES, CLI_INSTALL_STATES, INSTALLABLE_CLIS, limitIp } from "@agenteschat/adapters";
+import {
+  CLI_INSTALL_CAUSES,
+  CLI_INSTALL_STATES,
+  INSTALLABLE_CLIS,
+  LOCAL_CONFIG_APPS,
+  LOCAL_FILE_STATES,
+  LOCAL_SERVER_KINDS,
+  LOCAL_SKIP_REASONS,
+  limitIp,
+} from "@agenteschat/adapters";
 import {
   ARTIFACT_LIMITS,
   allowMachineTool,
@@ -17,6 +26,7 @@ import {
   getDeviceCode,
   hostComputerState,
   hostKey,
+  LOCAL_SERVER_STATES,
   listMachineOutages,
   listMachines,
   machineCliInstall,
@@ -27,6 +37,7 @@ import {
   PROVISIONING_STATES,
   PROVISIONING_STEPS,
   pollDeviceToken,
+  readLocalSetup,
   receiveMachineUpload,
   reduceMachineAccess,
   renameMachine,
@@ -44,6 +55,7 @@ import { createRoute, type OpenAPIHono, z } from "@hono/zod-openapi";
 import { installScript } from "../../runner/install-script";
 import { requestIp, requestLimitIp } from "../http/client-ip";
 import { apiError, domainErrorResponse, errorResponse } from "../http/errors";
+import { Bundle } from "./app/agent-imports";
 import {
   type AppDeps,
   body,
@@ -183,6 +195,10 @@ export const Machine = z
     cliInstall: z.boolean().openapi({
       description:
         "Its coding CLIs can be looked for again from here (`POST …/clis/check`) and installed by the person who paired it (`…/cli-install`); `false`: its app is too old, or it is the workspace's own computer.",
+    }),
+    localConfig: z.boolean().openapi({
+      description:
+        "The person who paired it can read the MCP servers and skills of their own coding tools there (`POST …/local-config`); `false`: its app is too old, or it is the workspace's own computer.",
     }),
     cliErrors: z.record(z.string(), z.string()).nullable().openapi({
       description:
@@ -724,6 +740,58 @@ export function machineAppRoutes(deps: AppDeps) {
       const limited = await cliLimited(c, userId, "check");
       if (limited) return limited;
       return c.json(await checkMachineClis({ db, pubsub, hub: hub() }, userId, orgId, machineId), 200);
+    },
+  );
+
+  const LocalSetupView = z
+    .object({
+      files: z.array(z.object({ app: z.enum(LOCAL_CONFIG_APPS), path: z.string(), state: z.enum(LOCAL_FILE_STATES) })),
+      servers: z.array(
+        z.object({
+          app: z.enum(LOCAL_CONFIG_APPS),
+          name: z.string(),
+          kind: z.enum(LOCAL_SERVER_KINDS),
+          url: z.string().optional(),
+          command: z.string().optional().openapi({ description: "`stdio`: the program's file name alone." }),
+          headers: z.array(z.string()).openapi({ description: "The names of its headers, never their values." }),
+          env: z.array(z.string()).openapi({ description: "The names of its variables, never their values." }),
+          query: z.array(z.string()).openapi({ description: "The names its address's query had, never the values." }),
+          keyInAddress: z.literal(true).optional().openapi({
+            description: "A part of its address's path looked like a key and is masked (`***`).",
+          }),
+          state: z.enum(LOCAL_SERVER_STATES).openapi({
+            description:
+              "`connect`: a public https address, connected with `POST …/connectors/custom`; `connected`: a server of the workspace has that address; `private`: http or an address only that computer reaches; `sse`: the older transport; `stdio`: a program the tool starts there; `key_in_address`: a key in its address was masked, so the person pastes the whole address themselves.",
+          }),
+        }),
+      ),
+      skipped: z.array(z.object({ path: z.string(), reason: z.enum(LOCAL_SKIP_REASONS) })),
+      masked: z.array(z.string()).openapi({
+        description:
+          "The skills where something that looked like a key was masked (`***`) before they left the computer.",
+      }),
+      bundle: Bundle.openapi({ description: "The skills, ready for `POST …/imports`." }),
+    })
+    .openapi("LocalSetup");
+
+  app.openapi(
+    createRoute({
+      method: "post",
+      path: "/organizations/{orgId}/machines/{machineId}/local-config",
+      tags,
+      security,
+      summary: "Read the MCP servers and skills of Claude Code, Cursor and Codex on the computer",
+      description:
+        "Only the person who paired the computer (`machine.not_owner`), never the workspace's own one: the runner reads `~/.claude.json` (its top level), `~/.cursor/mcp.json`, `~/.codex/config.toml` and Claude Code's `skills/` there, now. Nothing is stored and no header, env or argument value leaves the computer. 400 `machine.local_config_outdated` when its app is too old, `machine.local_config_unsupported` when it runs in system mode.",
+      request: { params: MachineParams },
+      responses: { 200: json(LocalSetupView), 429: errorResponse("Too many reads"), ...errors, ...cliOffline },
+    }),
+    async (c) => {
+      const { orgId, machineId } = c.req.valid("param");
+      const userId = c.get("user").id;
+      const limited = await cliLimited(c, userId, "settings");
+      if (limited) return limited;
+      return c.json(await readLocalSetup({ db, pubsub, hub: hub() }, userId, orgId, machineId), 200);
     },
   );
 

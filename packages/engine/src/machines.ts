@@ -5,6 +5,7 @@ import {
   CLI_INSTALL_PROTOCOL,
   DESKTOP_PROTOCOL,
   HEARTBEAT_MS,
+  LOCAL_CONFIG_PROTOCOL,
   MACHINE_TOKEN_PREFIX,
   type MachineAgent,
   MIN_RUNNER_PROTOCOL,
@@ -545,6 +546,11 @@ async function machineViews(db: Database, actorId: string, orgId: string, only?:
        * (`CLI_INSTALL_PROTOCOL`); never the workspace's own computer, which installs them itself.
        */
       cliInstall: !managed && m.protocol >= CLI_INSTALL_PROTOCOL,
+      /**
+       * The MCP servers and skills its person set up for their own coding tools can be read from here, by them
+       * (`LOCAL_CONFIG_PROTOCOL`, ADR 0055 addendum 2026-11-15); never the workspace's own computer.
+       */
+      localConfig: !managed && m.protocol >= LOCAL_CONFIG_PROTOCOL,
       /** The coding CLIs there that can't start, with their own error line; admins and the pairer only. */
       cliErrors: (admin || mine) && !managed ? (m.executors?.broken ?? null) : null,
       pairedBy: m.pairedByUserId ? { id: m.pairedByUserId, name: pairedByName ?? "" } : null,

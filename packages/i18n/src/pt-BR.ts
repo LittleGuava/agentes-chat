@@ -15533,6 +15533,8 @@ export const ptBR = {
       pausePast: "Escolha um horário no futuro.",
       notOwner: "Só quem conectou este computador liga as ferramentas dele. Peça a essa pessoa.",
       askSelf: "O computador é seu: ligue com o botão.",
+      localConfigUnsupported:
+        "Este computador roda os agentes como usuários deles, não como você. Ele não lê as suas configurações.",
       /** "Pedir a um admin" from someone who may do it themselves. */
       adminAskSelf: "Você mesmo pode fazer isso aqui.",
       accountMethodUnsupported:
@@ -15656,6 +15658,38 @@ export const ptBR = {
     },
   },
   machines: {
+    local: {
+      title: "MCPs e skills deste computador",
+      intro:
+        "Os servidores MCP e as skills que você configurou no Claude Code, no Cursor e no Codex. Só você vê, e nenhuma chave sai do computador.",
+      look: "Procurar",
+      lookAgain: "Procurar de novo",
+      outdated: "Atualize o app deste computador para trazer os MCPs e as skills dele.",
+      offline: "Ligue o computador para procurar.",
+      nothing: "Nada encontrado no Claude Code, no Cursor nem no Codex.",
+      servers: "Servidores MCP",
+      skills: "Skills",
+      connect: "Conectar",
+      connectLabel: "Conectar {{name}}",
+      connected: "Conectado",
+      needs: "Ao conectar, pede {{names}}",
+      state: {
+        private: "Só este computador ou a rede dele chega a esse endereço.",
+        sse: "Usa SSE, um transporte antigo que o agentes.chat não fala.",
+        stdio: "É um programa que roda neste computador ({{command}}). O servidor não consegue rodá-lo.",
+        key_in_address: "O endereço tem uma chave, que ficou no computador. Ao conectar, cole o endereço inteiro.",
+      },
+      masked: "Em {{names}}, o que parecia uma chave virou ***.",
+      noImport: "Importar skills pede a permissão de criar agentes.",
+      notRead: "Não lido: {{list}}",
+      why: {
+        big: "grande demais",
+        unreadable: "não deu para ler",
+        link: "é um link",
+        capped: "passou do limite",
+        noSkill: "sem SKILL.md",
+      },
+    },
     reasons: {
       browser_unsupported: "O navegador dos agentes não roda no sistema deste computador.",
       browser_download:

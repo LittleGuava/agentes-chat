@@ -111,6 +111,20 @@ export function toolOneClick(
   return { kind: "ask", ownerId: m.pairedBy.id, ownerName: m.pairedBy.name };
 }
 
+/**
+ * Whether this person reads the MCP servers and skills of their own coding tools on a computer (ADR 0055, addendum
+ * 2026-11-15): only whoever connected it, never the workspace's own computer nor one in system mode (its app runs as
+ * the agents' users, not as them). `outdated`: its app is too old for it; `offline`: it reads only while online.
+ */
+export function localSetupWay(
+  m: Pick<Machine, "kind" | "mode" | "pairedBy" | "localConfig" | "online"> | null | undefined,
+  meId: string | null | undefined,
+): "read" | "offline" | "outdated" | null {
+  if (!m || m.kind === "managed" || m.mode === "system" || !meId || m.pairedBy?.id !== meId) return null;
+  if (!m.localConfig) return "outdated";
+  return m.online ? "read" : "offline";
+}
+
 /** How often a screen asks where an install of a coding CLI stands while it runs. */
 export const CLI_INSTALL_POLL_MS = 1500;
 

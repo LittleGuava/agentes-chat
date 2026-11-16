@@ -119,6 +119,7 @@ import type { HandlerContext, RequestObserver, RequestOutcome } from "./handlers
 import { Holds } from "./holds";
 import { IphoneSetup, type IphoneSetupOptions } from "./iphone-setup";
 import { currentProcess, isCompiled, selfCommand } from "./launch";
+import { localConfigPaths, readLocalConfig } from "./local-config";
 import { tailLines } from "./logfile";
 import { adoptLoginPath } from "./login-path";
 import { LoopbackGuard, loopbackEndpoints, runnerEndpoints } from "./loopback-guard";
@@ -1604,6 +1605,7 @@ export class RunnerDaemon implements RequestObserver {
         return { executors: this.executors() };
       },
       cliInstall: (req) => this.cliInstaller().handle(req),
+      localConfig: () => readLocalConfig(localConfigPaths()),
       xcodeOpen: () => this.iphoneSetup().open("xcode"),
     };
     // `hello` lists the accounts it already knows; a fresh look (each runs its CLI) never delays connecting:

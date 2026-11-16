@@ -15802,6 +15802,7 @@
       "pausePast": "Choisissez une heure dans le futur.",
       "notOwner": "Seule la personne qui a connecté cet ordinateur active ses outils. Demandez-lui.",
       "askSelf": "C'est votre ordinateur : activez-le avec le bouton.",
+      "localConfigUnsupported": "Cet ordinateur exécute les agents sous leurs propres utilisateurs, pas sous le vôtre. Il ne peut pas lire vos réglages.",
       "adminAskSelf": "Vous pouvez le faire ici vous-même.",
       "accountMethodUnsupported": "Cet ordinateur ne peut pas encore connecter Claude de cette façon. Mettez à jour le programme agentes.chat dessus ou utilisez une clé API.",
       "offline": "{{name}} est hors ligne pour le moment. Réessayez quand il sera de retour.",
@@ -15917,6 +15918,37 @@
     }
   },
   "machines": {
+    "local": {
+      "title": "MCP et compétences de cet ordinateur",
+      "intro": "Les serveurs MCP et les compétences que vous avez configurés dans Claude Code, Cursor et Codex. Vous seul les voyez, et aucune clé ne quitte l'ordinateur.",
+      "look": "Rechercher",
+      "lookAgain": "Rechercher à nouveau",
+      "outdated": "Mettez à jour l'application de cet ordinateur pour importer ses MCP et ses compétences.",
+      "offline": "Allumez l'ordinateur pour rechercher.",
+      "nothing": "Rien trouvé dans Claude Code, Cursor ou Codex.",
+      "servers": "Serveurs MCP",
+      "skills": "Compétences",
+      "connect": "Connecter",
+      "connectLabel": "Connecter {{name}}",
+      "connected": "Connecté",
+      "needs": "À la connexion, il demande {{names}}",
+      "state": {
+        "private": "Seul cet ordinateur ou son réseau atteint cette adresse.",
+        "sse": "Utilise SSE, un ancien transport qu'agentes.chat ne parle pas.",
+        "stdio": "C'est un programme qui tourne sur cet ordinateur ({{command}}). Le serveur ne peut pas l'exécuter.",
+        "key_in_address": "L'adresse contient une clé, restée sur l'ordinateur. À la connexion, collez l'adresse complète."
+      },
+      "masked": "Dans {{names}}, ce qui ressemblait à une clé est devenu ***.",
+      "noImport": "Importer des compétences demande l'autorisation de créer des agents.",
+      "notRead": "Non lu : {{list}}",
+      "why": {
+        "big": "trop volumineux",
+        "unreadable": "illisible",
+        "link": "c'est un lien",
+        "capped": "au-delà de la limite",
+        "noSkill": "pas de SKILL.md"
+      }
+    },
     "reasons": {
       "browser_unsupported": "Le navigateur des agents ne fonctionne pas sur le système de cet ordinateur.",
       "browser_download": "Impossible de télécharger le navigateur des agents. Vérifiez la connexion de cet ordinateur et il réessaiera à la prochaine utilisation.",

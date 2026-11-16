@@ -15593,6 +15593,8 @@ export const en = {
       pausePast: "Choose a time in the future.",
       notOwner: "Only whoever connected this computer turns its tools on. Ask them.",
       askSelf: "It's your computer: turn it on with the button.",
+      localConfigUnsupported:
+        "This computer runs its agents as their own users, not as you. It can't read your settings.",
       /** "Pedir a um admin" from someone who may do it themselves. */
       adminAskSelf: "You can do this here yourself.",
       accountMethodUnsupported:
@@ -15721,6 +15723,45 @@ export const en = {
     },
   },
   machines: {
+    /**
+     * A computer's page, for whoever connected it: the MCP servers and skills of their own Claude Code, Cursor and
+     * Codex there (ADR 0055, addendum 2026-11-15). No key or value ever leaves the computer.
+     */
+    local: {
+      title: "MCPs and skills on this computer",
+      intro:
+        "The MCP servers and skills you set up in Claude Code, Cursor and Codex. Only you see them, and no key leaves the computer.",
+      look: "Look",
+      lookAgain: "Look again",
+      outdated: "Update the app on this computer to bring its MCPs and skills.",
+      offline: "Turn the computer on to look.",
+      nothing: "Nothing found in Claude Code, Cursor or Codex.",
+      servers: "MCP servers",
+      skills: "Skills",
+      connect: "Connect",
+      connectLabel: "Connect {{name}}",
+      connected: "Connected",
+      /** `names`: the headers, query parameters and env vars it was set up with (their values stay there). */
+      needs: "When connecting, it asks for {{names}}",
+      state: {
+        private: "Only this computer or its network reaches that address.",
+        sse: "Uses SSE, an older transport agentes.chat doesn't speak.",
+        stdio: "It's a program that runs on this computer ({{command}}). The server can't run it.",
+        key_in_address:
+          "Its address has a key, which stayed on the computer. When connecting, paste the whole address.",
+      },
+      masked: "In {{names}}, what looked like a key became ***.",
+      noImport: "Importing skills takes the permission to create agents.",
+      /** `list`: "~/.codex/config.toml (too big), …". */
+      notRead: "Not read: {{list}}",
+      why: {
+        big: "too big",
+        unreadable: "couldn't be read",
+        link: "it's a link",
+        capped: "past the limit",
+        noSkill: "no SKILL.md",
+      },
+    },
     /** Why a computer can't run the agent browser or desktop use yet, by the runner's code; a command may follow. */
     reasons: {
       browser_unsupported: "The agent browser doesn't run on this computer's system.",

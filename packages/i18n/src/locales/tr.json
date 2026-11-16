@@ -15225,6 +15225,7 @@
       "pausePast": "Gelecekte bir zaman seçin.",
       "notOwner": "Bu bilgisayarın araçlarını yalnızca onu bağlayan kişi açar. O kişiden isteyin.",
       "askSelf": "Bu sizin bilgisayarınız: düğmeyle açın.",
+      "localConfigUnsupported": "Bu bilgisayar ajanları sizin olarak değil, kendi kullanıcıları olarak çalıştırır. Ayarlarınızı okuyamaz.",
       "adminAskSelf": "Bunu burada kendiniz yapabilirsiniz.",
       "accountMethodUnsupported": "Bu bilgisayar Claude'u henüz bu şekilde bağlayamıyor. Üzerindeki agentes.chat programını güncelleyin ya da bir API anahtarı kullanın.",
       "offline": "{{name}} şu an çevrimdışı. Geri geldiğinde tekrar deneyin.",
@@ -15339,6 +15340,37 @@
     }
   },
   "machines": {
+    "local": {
+      "title": "Bu bilgisayardaki MCP'ler ve beceriler",
+      "intro": "Claude Code, Cursor ve Codex'te kurduğunuz MCP sunucuları ve beceriler. Yalnızca siz görürsünüz ve hiçbir anahtar bilgisayardan çıkmaz.",
+      "look": "Ara",
+      "lookAgain": "Yeniden ara",
+      "outdated": "MCP'lerini ve becerilerini getirmek için bu bilgisayardaki uygulamayı güncelleyin.",
+      "offline": "Aramak için bilgisayarı açın.",
+      "nothing": "Claude Code, Cursor ve Codex'te hiçbir şey bulunamadı.",
+      "servers": "MCP sunucuları",
+      "skills": "Beceriler",
+      "connect": "Bağla",
+      "connectLabel": "{{name}} bağla",
+      "connected": "Bağlı",
+      "needs": "Bağlanırken {{names}} ister",
+      "state": {
+        "private": "Bu adrese yalnızca bu bilgisayar veya ağı ulaşır.",
+        "sse": "SSE kullanıyor, agentes.chat'in desteklemediği eski bir aktarım.",
+        "stdio": "Bu bilgisayarda çalışan bir program ({{command}}). Sunucu onu çalıştıramaz.",
+        "key_in_address": "Adreste bir anahtar var ve bilgisayarda kaldı. Bağlanırken adresin tamamını yapıştırın."
+      },
+      "masked": "{{names}} içinde anahtara benzeyen kısım *** oldu.",
+      "noImport": "Beceri içe aktarmak, ajan oluşturma iznini gerektirir.",
+      "notRead": "Okunmadı: {{list}}",
+      "why": {
+        "big": "çok büyük",
+        "unreadable": "okunamadı",
+        "link": "bir bağlantı",
+        "capped": "sınırı aştı",
+        "noSkill": "SKILL.md yok"
+      }
+    },
     "reasons": {
       "browser_unsupported": "Ajanların tarayıcısı bu bilgisayarın sisteminde çalışmıyor.",
       "browser_download": "Ajanların tarayıcısı indirilemedi. Bu bilgisayarın bağlantısını kontrol edin, bir sonraki kullanımda yeniden denenir.",

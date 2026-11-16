@@ -15731,6 +15731,7 @@
       "pausePast": "Elige una hora en el futuro.",
       "notOwner": "Solo quien conectó este ordenador activa sus herramientas. Pídeselo.",
       "askSelf": "Es tu ordenador: actívalo con el botón.",
+      "localConfigUnsupported": "Esta computadora ejecuta los agentes como sus propios usuarios, no como tú. No puede leer tu configuración.",
       "adminAskSelf": "Puedes hacerlo aquí tú mismo.",
       "accountMethodUnsupported": "Esta computadora todavía no puede conectar Claude de esta forma. Actualiza el programa de agentes.chat en ella o usa una clave de API.",
       "offline": "{{name}} está desconectada ahora. Intenta de nuevo cuando vuelva.",
@@ -15846,6 +15847,37 @@
     }
   },
   "machines": {
+    "local": {
+      "title": "MCPs y habilidades de esta computadora",
+      "intro": "Los servidores MCP y las habilidades que configuraste en Claude Code, Cursor y Codex. Solo tú los ves, y ninguna clave sale de la computadora.",
+      "look": "Buscar",
+      "lookAgain": "Buscar de nuevo",
+      "outdated": "Actualiza la app de esta computadora para traer sus MCPs y habilidades.",
+      "offline": "Enciende la computadora para buscar.",
+      "nothing": "No se encontró nada en Claude Code, Cursor ni Codex.",
+      "servers": "Servidores MCP",
+      "skills": "Habilidades",
+      "connect": "Conectar",
+      "connectLabel": "Conectar {{name}}",
+      "connected": "Conectado",
+      "needs": "Al conectar, pide {{names}}",
+      "state": {
+        "private": "Solo esta computadora o su red llega a esa dirección.",
+        "sse": "Usa SSE, un transporte antiguo que agentes.chat no habla.",
+        "stdio": "Es un programa que se ejecuta en esta computadora ({{command}}). El servidor no puede ejecutarlo.",
+        "key_in_address": "La dirección tiene una clave, que se quedó en la computadora. Al conectar, pega la dirección completa."
+      },
+      "masked": "En {{names}}, lo que parecía una clave pasó a ***.",
+      "noImport": "Importar habilidades requiere el permiso para crear agentes.",
+      "notRead": "No leído: {{list}}",
+      "why": {
+        "big": "demasiado grande",
+        "unreadable": "no se pudo leer",
+        "link": "es un enlace",
+        "capped": "pasó del límite",
+        "noSkill": "sin SKILL.md"
+      }
+    },
     "reasons": {
       "browser_unsupported": "El navegador de los agentes no funciona en el sistema de esta computadora.",
       "browser_download": "No se pudo descargar el navegador de los agentes. Revisa la conexión de esta computadora y lo intentará de nuevo en el próximo uso.",

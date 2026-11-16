@@ -14801,6 +14801,7 @@
       "pausePast": "请选择一个未来的时间。",
       "notOwner": "只有连接这台电脑的人能打开它的工具。请向那个人提出。",
       "askSelf": "这是你的电脑：用按钮打开它。",
+      "localConfigUnsupported": "这台电脑以各智能体自己的用户身份运行它们，而不是以你的身份。它无法读取你的设置。",
       "adminAskSelf": "你可以在这里自己完成。",
       "accountMethodUnsupported": "这台电脑暂时无法用这种方式连接 Claude。请更新电脑上的 agentes.chat 程序，或使用 API 密钥。",
       "offline": "{{name}} 现在离线，等它恢复后再试。",
@@ -14914,6 +14915,37 @@
     }
   },
   "machines": {
+    "local": {
+      "title": "这台电脑上的 MCP 和技能",
+      "intro": "你在 Claude Code、Cursor 和 Codex 中设置的 MCP 服务器和技能。只有你能看到，任何密钥都不会离开这台电脑。",
+      "look": "查找",
+      "lookAgain": "重新查找",
+      "outdated": "请更新这台电脑上的应用，以导入它的 MCP 和技能。",
+      "offline": "打开电脑后才能查找。",
+      "nothing": "在 Claude Code、Cursor 和 Codex 中没有找到任何内容。",
+      "servers": "MCP 服务器",
+      "skills": "技能",
+      "connect": "连接",
+      "connectLabel": "连接 {{name}}",
+      "connected": "已连接",
+      "needs": "连接时需要 {{names}}",
+      "state": {
+        "private": "只有这台电脑或它所在的网络能访问这个地址。",
+        "sse": "使用 SSE，这是 agentes.chat 不支持的旧传输方式。",
+        "stdio": "这是在这台电脑上运行的程序（{{command}}）。服务器无法运行它。",
+        "key_in_address": "地址中有密钥，密钥留在了电脑上。连接时请粘贴完整地址。"
+      },
+      "masked": "在 {{names}} 中，看起来像密钥的内容已替换为 ***。",
+      "noImport": "导入技能需要创建智能体的权限。",
+      "notRead": "未读取：{{list}}",
+      "why": {
+        "big": "太大",
+        "unreadable": "无法读取",
+        "link": "是链接",
+        "capped": "超出上限",
+        "noSkill": "没有 SKILL.md"
+      }
+    },
     "reasons": {
       "browser_unsupported": "智能体浏览器无法在这台电脑的系统上运行。",
       "browser_download": "无法下载智能体浏览器。请检查这台电脑的网络连接，下次使用时会再试一次。",

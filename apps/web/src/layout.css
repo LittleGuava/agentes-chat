@@ -8998,6 +8998,23 @@ html:not([data-pointer]) .machine-connect__toggle:focus-visible {
   flex: none;
   align-items: center;
 }
+/* A computer's own MCP servers and skills (ADR 0055): its lines, then a part per kind under its own heading. */
+.local-setup__lead {
+  margin: 0;
+}
+.local-setup__part {
+  display: grid;
+  gap: var(--space-2);
+}
+.local-setup__heading {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.local-setup__main {
+  flex: 1 1 220px;
+  min-width: 0;
+}
 .agent-folders {
   display: flex;
   flex-direction: column;

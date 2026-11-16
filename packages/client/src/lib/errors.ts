@@ -95,6 +95,7 @@ const KNOWN = {
   "machine.target_paused": "errors.machine.targetPaused",
   "machine.pause_past": "errors.machine.pausePast",
   "machine.not_owner": "errors.machine.notOwner",
+  "machine.local_config_unsupported": "errors.machine.localConfigUnsupported",
   "machine.ask_self": "errors.machine.askSelf",
   "admin_ask.self": "errors.machine.adminAskSelf",
   // A computer that can't take the request now (`MachineOfflineError`, `MachinePausedError`: `name`), or its own
@@ -550,6 +551,7 @@ const KNOWN = {
   "account.runner_old": "errors.said.updateComputerApp",
   "machine.access_outdated": "errors.said.updateComputerApp",
   "machine.cli_outdated": "errors.said.updateComputerApp",
+  "machine.local_config_outdated": "errors.said.updateComputerApp",
   "machine.outdated": "errors.said.updateComputerApp",
   "machine.updates_itself": "errors.said.computerUpdatesItself",
   "database.disabled": "errors.said.offHere",

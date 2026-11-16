@@ -5020,6 +5020,11 @@ export interface Machine {
    */
   cliInstall?: boolean;
   /**
+   * Who paired it reads the MCP servers and skills of their own coding tools there (`machines.localConfig`, ADR 0055
+   * addendum 2026-11-15); `false` or absent: its app is too old, or it is the workspace's own computer.
+   */
+  localConfig?: boolean;
+  /**
    * The coding CLIs there that can't start (`claude`, `codex`…), each with its own last error line, or
    * `CLI_GIT_MISSING`; null or absent for people who don't manage it.
    */
@@ -8700,6 +8705,36 @@ export interface CliInstall {
   message?: string;
   cause?: "git_missing" | "still_missing";
 }
+
+/**
+ * The MCP servers and skills of Claude Code, Cursor and Codex on a person's own computer (`…/local-config`, ADR 0055
+ * addendum 2026-11-15). Of a server only names and its address leave the computer, never a value. `state`: `connect`
+ * (a public https address, for `connectors.connectCustom`), `connected` (a server here has that address), `private`
+ * (http, or only that computer reaches it), `sse` (the older transport), `stdio` (a program the tool starts there),
+ * `key_in_address` (a key in its address was masked: the person pastes the whole address).
+ * The skills come as `bundle`, for `imports.apply`.
+ */
+export interface LocalSetup {
+  files: { app: LocalConfigApp; path: string; state: "read" | "missing" | "too_big" | "unreadable" | "link" }[];
+  servers: {
+    app: LocalConfigApp;
+    name: string;
+    kind: "http" | "sse" | "stdio";
+    url?: string;
+    command?: string;
+    headers: string[];
+    env: string[];
+    query: string[];
+    /** A part of its address's path looked like a key and is masked (`***`). */
+    keyInAddress?: true;
+    state: "connect" | "connected" | "private" | "sse" | "stdio" | "key_in_address";
+  }[];
+  skipped: { path: string; reason: "link" | "too_big" | "too_many" | "no_skill" | "unreadable" }[];
+  bundle: MigrationBundle;
+  /** The skills where something that looked like a key was masked (`***`) before they left the computer. */
+  masked: string[];
+}
+export type LocalConfigApp = "claude" | "cursor" | "codex";
 
 /** `fix: null`: none ran; `update`: the Mac's agentes.chat is too old to fix it (the Terminal way instead). */
 export interface XcodeFixView {

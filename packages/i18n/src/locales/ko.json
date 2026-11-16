@@ -14731,6 +14731,7 @@
       "pausePast": "앞으로의 시간을 고르세요.",
       "notOwner": "이 컴퓨터를 연결한 사람만 도구를 켤 수 있습니다. 그분께 요청하세요.",
       "askSelf": "내 컴퓨터입니다. 버튼으로 켜세요.",
+      "localConfigUnsupported": "이 컴퓨터는 에이전트를 내가 아닌 각 에이전트의 사용자로 실행해요. 내 설정을 읽을 수 없어요.",
       "adminAskSelf": "여기서 직접 할 수 있어요.",
       "accountMethodUnsupported": "이 컴퓨터에서는 아직 이 방식으로 Claude를 연결할 수 없어요. 컴퓨터의 agentes.chat 프로그램을 업데이트하거나 API 키를 쓰세요.",
       "offline": "{{name}}은(는) 지금 오프라인이에요. 돌아오면 다시 시도해 주세요.",
@@ -14844,6 +14845,37 @@
     }
   },
   "machines": {
+    "local": {
+      "title": "이 컴퓨터의 MCP와 스킬",
+      "intro": "Claude Code, Cursor, Codex에 설정한 MCP 서버와 스킬이에요. 나만 볼 수 있고, 키는 컴퓨터 밖으로 나가지 않아요.",
+      "look": "찾기",
+      "lookAgain": "다시 찾기",
+      "outdated": "MCP와 스킬을 가져오려면 이 컴퓨터의 앱을 업데이트하세요.",
+      "offline": "찾으려면 컴퓨터를 켜세요.",
+      "nothing": "Claude Code, Cursor, Codex에서 아무것도 찾지 못했어요.",
+      "servers": "MCP 서버",
+      "skills": "스킬",
+      "connect": "연결",
+      "connectLabel": "{{name}} 연결",
+      "connected": "연결됨",
+      "needs": "연결할 때 {{names}}을(를) 요청해요",
+      "state": {
+        "private": "이 컴퓨터나 그 네트워크에서만 이 주소에 닿을 수 있어요.",
+        "sse": "SSE를 사용해요. agentes.chat이 지원하지 않는 예전 방식이에요.",
+        "stdio": "이 컴퓨터에서 실행되는 프로그램이에요({{command}}). 서버에서는 실행할 수 없어요.",
+        "key_in_address": "주소에 키가 있었고, 키는 컴퓨터에 남았어요. 연결할 때 주소 전체를 붙여 넣으세요."
+      },
+      "masked": "{{names}}에서 키처럼 보이는 부분은 ***로 바꿨어요.",
+      "noImport": "스킬을 가져오려면 에이전트를 만들 권한이 필요해요.",
+      "notRead": "읽지 않음: {{list}}",
+      "why": {
+        "big": "너무 큼",
+        "unreadable": "읽을 수 없음",
+        "link": "링크임",
+        "capped": "한도 초과",
+        "noSkill": "SKILL.md 없음"
+      }
+    },
     "reasons": {
       "browser_unsupported": "이 컴퓨터의 시스템에서는 에이전트 브라우저가 실행되지 않아요.",
       "browser_download": "에이전트 브라우저를 다운로드하지 못했어요. 이 컴퓨터의 연결을 확인해 주세요. 다음에 사용할 때 다시 시도해요.",
