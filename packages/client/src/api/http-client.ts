@@ -194,7 +194,9 @@ import type {
   PersonLimits,
   PersonUsage,
   PhoneDevice,
+  PhoneJob,
   PhoneSignIn,
+  PhoneTools,
   PlanServes,
   Poll,
   Proposal,
@@ -1252,6 +1254,12 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
           method: "PUT",
           json: { machineId },
         }),
+    },
+    phone: {
+      tools: (orgId) => request<PhoneTools>(`${org(orgId)}/phone/tools`),
+      setTools: (orgId, input) => request<PhoneTools>(`${org(orgId)}/phone/tools`, { method: "PUT", json: input }),
+      jobs: (orgId) => request<{ jobs: PhoneJob[] }>(`${org(orgId)}/phone/jobs`),
+      answer: (orgId, jobId, answer) => request<void>(`${org(orgId)}/phone/jobs/${enc(jobId)}`, { json: answer }),
     },
     devices: {
       list: (orgId) => request<DevicesList>(`${org(orgId)}/devices`),

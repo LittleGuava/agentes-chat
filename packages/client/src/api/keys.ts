@@ -220,6 +220,8 @@ export const keys = {
   /** "Esperando você": under the notifications prefix, so whatever refreshes the inbox refreshes it. */
   waiting: (orgId: string) => ["org", orgId, "notifications", "waiting"] as const,
   noticePrefs: (orgId: string) => ["org", orgId, "notice-prefs"] as const,
+  /** What this person lets their agents use on their phone here (ADR 0205). */
+  phoneTools: (orgId: string) => ["org", orgId, "phone-tools"] as const,
   sidebarItems: (orgId: string) => ["org", orgId, "sidebar-items"] as const,
   sidebarOrder: (orgId: string) => ["org", orgId, "sidebar-order"] as const,
   issuesView: (orgId: string) => ["org", orgId, "issues-view"] as const,

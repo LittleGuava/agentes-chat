@@ -14462,6 +14462,10 @@
       "taken": "@{{handle}} 已被其他人使用。",
       "takenByAgent": "@{{handle}} 已被一个智能体使用。"
     },
+    "phone": {
+      "jobClosed": "智能体的这个请求已经结束。",
+      "jobNotFound": "智能体的这个请求已不存在。"
+    },
     "vault": {
       "invalid": "此项目有内容不正确。请检查后重试。",
       "notFound": "此项目已不在 Vault 中。",

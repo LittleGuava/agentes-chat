@@ -36677,6 +36677,12 @@
   "errors.handle.takenByAgent": {
     "value": "@{{handle}} belongs to an agent."
   },
+  "errors.phone.jobClosed": {
+    "value": "This request from the agent already ended."
+  },
+  "errors.phone.jobNotFound": {
+    "value": "This request from the agent isn't here anymore."
+  },
   "errors.vault.invalid": {
     "value": "Something in this item isn't right. Check it and try again."
   },

@@ -3381,6 +3381,21 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         return message;
       },
     },
+    // The phone's tools (ADR 0205) answer only the phone app: the web gets the server's `phone.app_only`.
+    phone: {
+      tools: async () => {
+        throw new ApiError(403, "phone.app_only", "Only the phone app");
+      },
+      setTools: async () => {
+        throw new ApiError(403, "phone.app_only", "Only the phone app");
+      },
+      jobs: async () => {
+        throw new ApiError(403, "phone.app_only", "Only the phone app");
+      },
+      answer: async () => {
+        throw new ApiError(403, "phone.app_only", "Only the phone app");
+      },
+    },
     // GIF search (ADR 0091): titles that hold the words, a page at a time; `gifs.off` like the server's.
     gifs: {
       search: async (orgId, query) => {

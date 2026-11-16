@@ -1,4 +1,4 @@
-import { useAuthConfig, useIssues, useMe, useOverview } from "@agenteschat/client";
+import { useAuthConfig, useIssues, useMe, useOverview, usePhoneTools } from "@agenteschat/client";
 import { showsAbout } from "@agenteschat/client/lib/about";
 import { isPersonal, modeKey } from "@agenteschat/client/lib/workspace-mode";
 import { isAppLocale, localeInfo, readyLocales } from "@agenteschat/i18n/locale";
@@ -29,6 +29,7 @@ import {
 } from "@/ui";
 import { CoverBarBackdrop, useCoverScroll } from "@/ui/cover";
 import { router } from "@/ui/navigation";
+import { deviceContacts } from "../phone-tools/contacts";
 import { AgentFace } from "../shared/Face";
 import { useColors, useDirectory, useMeId } from "../shared/hooks";
 import { agentLook } from "../shared/logic";
@@ -118,6 +119,8 @@ export function MeScreen() {
   const issues = useIssues(org.orgId);
   const proposals = useOverview(org.orgId).data?.proposalsWaitingForMe ?? 0;
   const push = usePushSwitch().on;
+  // Only a build with the contacts module, on a server that has the phone's tools (ADR 0205).
+  const phoneTools = usePhoneTools(org.orgId, deviceContacts !== null).data;
   const about = showsAbout(useAuthConfig().data);
   const mine = meId ? dir.memberById.get(meId) : undefined;
   // How you appear (to yourself: hidden stays hidden), on your photo's corner (ADR 0084).
@@ -423,6 +426,16 @@ export function MeScreen() {
                 }
                 chevron
                 onPress={() => open("/me/agent-style")}
+              />
+            ) : null}
+            {phoneTools ? (
+              <GroupedRow
+                key="phoneTools"
+                icon="phone"
+                label={t("mobile.phoneTools.title")}
+                value={phoneTools.tools.includes("contacts") ? t("mobile.me.on") : t("mobile.me.off")}
+                chevron
+                onPress={() => open("/me/phone-tools")}
               />
             ) : null}
             <GroupedRow

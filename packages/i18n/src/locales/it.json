@@ -15450,6 +15450,10 @@
       "taken": "@{{handle}} appartiene a qualcun altro.",
       "takenByAgent": "@{{handle}} appartiene a un agente."
     },
+    "phone": {
+      "jobClosed": "Questa richiesta dell'agente è già terminata.",
+      "jobNotFound": "Questa richiesta dell'agente non esiste più."
+    },
     "vault": {
       "invalid": "Qualcosa in questo elemento non va. Controllalo e riprova.",
       "notFound": "Questo elemento non è più nel Vault.",

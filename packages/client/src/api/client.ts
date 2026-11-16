@@ -257,7 +257,11 @@ import type {
   PersonUsage,
   PhoneDevice,
   PhoneDeviceInput,
+  PhoneJob,
+  PhoneJobAnswer,
   PhoneSignIn,
+  PhoneTool,
+  PhoneTools,
   PlanServes,
   Poll,
   PostMedia,
@@ -1114,6 +1118,16 @@ export interface ApiClient {
     computer(orgId: string, agentId: string): Promise<AgentComputer>;
     /** Which computer the agent uses: a connected machine, or `null` for none. */
     setTarget(orgId: string, agentId: string, machineId: string | null): Promise<ComputerTarget>;
+  };
+  /**
+   * The phone's own apps as the agents' tools (ADR 0205), from the phone app only (the server refuses the others):
+   * the person's switches here, the jobs their agents sent and the phone's answers.
+   */
+  phone: {
+    tools(orgId: string): Promise<PhoneTools>;
+    setTools(orgId: string, input: { tools: PhoneTool[]; deviceName: string }): Promise<PhoneTools>;
+    jobs(orgId: string): Promise<{ jobs: PhoneJob[] }>;
+    answer(orgId: string, jobId: string, answer: PhoneJobAnswer): Promise<void>;
   };
   /** Bring your own devices: computers people connect and the phones they reach, as agents' targets. */
   devices: {

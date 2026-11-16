@@ -2760,5 +2760,13 @@
       "title": "Tidak ada yang perlu ditinjau",
       "text": "Saat agen melakukan sesuatu di luar percakapan, itu muncul di sini."
     }
+  },
+  "phoneTools": {
+    "title": "Kontak di ponsel",
+    "contacts": "Agen boleh mencari di kontak saya",
+    "help": "Hanya di ruang kerja ini dan hanya di ponsel ini. Saat agen yang kamu ajak bicara butuh data seseorang, agen mencari namanya di kontakmu: paling banyak 5 hasil dikirim ke agen, masing-masing hanya berisi nama, nomor telepon, dan email.",
+    "deniedTitle": "Akses kontak nonaktif",
+    "deniedSub": "Izinkan untuk agentes.chat di Pengaturan ponsel.",
+    "failed": "Gagal menyimpan. Coba lagi."
   }
 }
