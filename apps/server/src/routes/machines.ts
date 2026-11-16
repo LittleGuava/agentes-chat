@@ -131,6 +131,17 @@ export const MachineAccess = z
         .optional()
         .openapi({ description: "Terminals people open as an agent (protocol 18, ADR 0058); absent = off." }),
     }),
+    relay: z
+      .array(
+        z.object({
+          site: z.string().openapi({ description: "A public site's domain; it covers the names under it." }),
+          agents: z.array(z.string()).openapi({ description: "Agent ids it is lent to (`*`: every agent)." }),
+        }),
+      )
+      .optional()
+      .openapi({
+        description: "Sites this computer lends its internet connection for (protocol 83, ADR 0203); absent = none.",
+      }),
   })
   .openapi("MachineAccess");
 

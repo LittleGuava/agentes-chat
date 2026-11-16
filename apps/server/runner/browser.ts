@@ -675,6 +675,7 @@ export function chromeLaunchArgs(
   debuggingPort = 0,
   startPage?: string,
   privateNetwork = false,
+  relayPac: string | null = null,
 ): string[] {
   const ua = headed ? null : chromeUserAgent(version, platform);
   return [
@@ -686,6 +687,8 @@ export function chromeLaunchArgs(
     ...(ua ? [`--user-agent=${ua}`] : []),
     ...(lang ? [`--lang=${lang}`] : []),
     ...(privateNetwork ? ["--force-webrtc-ip-handling-policy=disable_non_proxied_udp"] : []),
+    // The sites a person's computer opens for this agent go through the entrance on loopback (ADR 0203).
+    ...(relayPac ? [`--proxy-pac-url=${relayPac}`] : []),
     startPage && page === "about:blank" ? pathToFileURL(startPage).href : page,
   ];
 }
@@ -1406,6 +1409,8 @@ export interface BrowserManagerOptions {
   locale?: (agent: AgentScope) => string | undefined;
   /** Restrict WebRTC to the configured network path, without Chrome managed policies. */
   privateNetwork?: () => boolean;
+  /** The proxy script for the agent's Chrome when another computer lends it sites (ADR 0203); read at each start. */
+  relayPac?: (agentId: string) => Promise<string | null>;
   /** Tests: how to start `agent-browser` (default: the sidecar or the downloaded binary). */
   command?: string[];
   /** The runner's executable (the sidecar sits next to it). */
@@ -2692,6 +2697,7 @@ export class BrowserManager {
           ? path.join(this.opts.startPageDirectory, START_FILE)
           : prepareStartPage(this.startDir(agent, session.folder, exe), agent, this.opts.startPageData?.(agent));
         await forgetTabs(profile);
+        const relayPac = (await this.opts.relayPac?.(agent.id).catch(() => null)) ?? null;
         const args = chromeLaunchArgs(
           version,
           profile,
@@ -2702,6 +2708,7 @@ export class BrowserManager {
           this.opts.fixedPorts?.cdp ?? 0,
           startPage,
           this.opts.privateNetwork?.(),
+          relayPac,
         );
         try {
           const display = on && confinedChrome(exe) ? readableDisplay(on, session.folder) : on;
