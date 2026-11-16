@@ -272,3 +272,11 @@ A routine set up to post the weekly summary in Slack has that action in `own_act
 3. **Not the runs it wakes.** A run a routine's report or a teammate's answer woke (§4) still asks for every write beyond the routine's own actions: what it read is not the job its creator set up.
 4. **"Sempre nesta rotina" on the runs it wakes.** A card raised by a run that still does the routine's job (`onOwnJob`: its report or a teammate's answer woke it, and nothing else joined it) offers the routine's "Sempre nesta rotina" in place of the agent's "Aprovar sempre", with the refusals it has on the routine's own run (`routineKind`). A card of a run that something else joined offers "Aprovar sempre", as before.
 5. **Unchanged.** "Sempre perguntar" asks for every change, "Nunca perguntar" asks for nothing. The agent's routine block, `create_routine`'s description and confirmation, and the routine form's line say what runs without asking.
+
+## Addendum 2026-11-15: a tool that spends with every call (ADR 0213)
+
+`generate_image` makes a picture on the workspace's own key, and every call costs money on an outside service. It gets a kind of its own in the table, `paid` (`PAID`, read by name before the scope tables: its scope is the Drive's, whose writes a routine makes unasked).
+
+1. **A person's run and the agent's own work** use it as any tool (at `always`, every call asks).
+2. **A routine's run and a run a routine's reading feeds** get `approve`: a person's card comes before any provider is asked, so nothing spends unattended on what a routine read. The card is the permission, lifted as any card is: "Aprovar sempre", "Nunca perguntar" (ADR 0173) and the routine's own job.
+3. **A widget's refresh** never makes one (it only reads, ADR 0135 §5).

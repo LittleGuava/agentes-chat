@@ -17672,6 +17672,10 @@
       "label": "Perbarui file",
       "description": "Menyimpan versi baru sebuah file."
     },
+    "generate_image": {
+      "label": "Buat gambar",
+      "description": "Membuat gambar dari deskripsi dengan kunci OpenAI atau Gemini milik workspace dan menyimpannya di Drive."
+    },
     "publish_page": {
       "label": "Terbitkan halaman",
       "description": "Menaruh halaman buatannya di alamat publik yang bisa dibuka siapa pun yang punya tautannya, setelah seseorang menyetujui. Hanya di server yang menerbitkan halaman."

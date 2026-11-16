@@ -10,6 +10,12 @@ import {
   endpointKeyCheck,
   ensureOpenRouterModels,
   estimateTokens,
+  IMAGE_MODEL_OF,
+  IMAGE_PROVIDERS,
+  type ImageProvider,
+  type ImageProviderId,
+  type ImageShape,
+  imageCostNanoUsd,
   isCustomModel,
   isKnownModel,
   isOpenRouterModel,
@@ -40,7 +46,7 @@ import { brainPolicyRefusal, orgBrainPolicy } from "./brain-policy";
 import { caches } from "./cache";
 import { decryptCredential, usableCredentialRow } from "./credentials";
 import { loadEndpointModels } from "./endpoints";
-import { BudgetExceededError, MissingCredentialError, NotFoundError, ValidationError } from "./errors";
+import { BudgetExceededError, MissingCredentialError, NotFoundError, TooManyError, ValidationError } from "./errors";
 import { publishUserEvent } from "./events";
 import { maySql, type RolePermission } from "./permissions";
 import { addPersonSpend, assertPersonUnderLimit, personSpendAdded } from "./person-usage";
@@ -69,6 +75,8 @@ export interface ModelGatewayDeps {
   embeddings?: GatewayEmbeddings;
   /** Where an embeddings outage is reported, once (ADR 0104); absent: not reported. */
   errors?: ErrorReporter;
+  /** Image generation (ADR 0213): the providers and a workspace's pictures in 24 hours. Absent: none. */
+  images?: GatewayImages;
   /** Called when an agent's monthly spend crosses 80% (`warning`) or 100% (`exhausted`) of its budget. */
   onBudgetThreshold?(event: {
     agent: Agent;
@@ -85,6 +93,42 @@ export interface GatewayEmbeddings {
   kinds?: readonly SearchKind[];
   /** How long a query's vector may take before search goes on with words (`EMBEDDINGS_QUERY_TIMEOUT_MS`). */
   queryTimeoutMs?: number;
+}
+
+export interface GatewayImages {
+  providers: Partial<Record<ImageProviderId, ImageProvider>>;
+  /** Pictures one workspace's agents may make in 24 hours (`IMAGES_PER_DAY`); 0: none. */
+  perDay: number;
+}
+
+/** Pictures one reply may make (ADR 0213): pictures still being made count, so calls at once can't pass it. */
+export const IMAGES_PER_RUN_MAX = 4;
+/** How long a picture may take before the call gives up (and is charged nothing). */
+export const IMAGE_TIMEOUT_MS = 2 * 60_000;
+/** A slot still `pending` this long after it was taken belongs to a process that died: it no longer counts. */
+const IMAGE_PENDING_MS = IMAGE_TIMEOUT_MS + 60_000;
+const DAY_MS = 24 * 3600_000;
+
+/** A picture made for an agent's run (`generateImage`). */
+export interface ImageCall {
+  orgId: string;
+  agentId: string;
+  /** The reply it is for; absent for a call without a run (a mission task's), which only the day's limit counts. */
+  runId?: string;
+  /** The person behind the run (ADR 0141): their limit is checked and their month added to, as for a model call. */
+  personId?: string | null;
+  prompt: string;
+  shape: ImageShape;
+  signal?: AbortSignal;
+}
+
+export interface GatewayImage {
+  bytes: Uint8Array;
+  contentType: string;
+  provider: ImageProviderId;
+  model: string;
+  costNanoUsd: number;
+  usageRecordId: string;
 }
 
 export const EMBED_QUERY_TIMEOUT_MS = 1500;
@@ -435,6 +479,88 @@ export function createModelGateway(deps: ModelGatewayDeps) {
   }
 
   /**
+   * The agent's counter for this month, made on its first call and locked for update, with abandoned reservations
+   * (crashed workers) taken off. `expired`: some were, and `reserved` is what is left of them to write back.
+   */
+  async function lockedPeriod(tx: Executor, agent: Agent, at: Date) {
+    const period = periodOf(at);
+    await tx
+      .insert(agentBudgetPeriods)
+      .values({
+        orgId: agent.orgId,
+        agentId: agent.id,
+        periodStart: period,
+        // First call of the month (or first since budgets existed): start from the agent's own recorded calls
+        // (`agentSpendThisMonth`).
+        spentNanoUsd: sql`(select coalesce(sum(${usageRecords.costNanoUsd}), 0) from ${usageRecords}
+          where ${usageRecords.orgId} = ${agent.orgId} and ${usageRecords.agentId} = ${agent.id}
+          and ${usageRecords.kind} = 'agent'
+          and ${usageRecords.createdAt} >= ${monthStartUtc(at).toISOString()}::timestamptz)`,
+      })
+      .onConflictDoNothing();
+    const expired = await tx
+      .delete(budgetReservations)
+      .where(
+        and(
+          eq(budgetReservations.agentId, agent.id),
+          eq(budgetReservations.periodStart, period),
+          lt(budgetReservations.expiresAt, at),
+        ),
+      )
+      .returning({ amount: budgetReservations.amountNanoUsd });
+    const [row] = await tx
+      .select()
+      .from(agentBudgetPeriods)
+      .where(and(eq(agentBudgetPeriods.agentId, agent.id), eq(agentBudgetPeriods.periodStart, period)))
+      .for("update");
+    if (!row) throw new Error("budget period row missing");
+    const reserved = row.reservedNanoUsd - expired.reduce((n, e) => n + e.amount, 0);
+    return { row, reserved, expired: expired.length > 0 };
+  }
+
+  /** Writes back the counter's reservations once abandoned ones were taken off (a refusal reserves nothing). */
+  const keepReserved = (tx: Executor, agent: Agent, period: string, reserved: number) =>
+    tx
+      .update(agentBudgetPeriods)
+      .set({ reservedNanoUsd: Math.max(0, reserved) })
+      .where(and(eq(agentBudgetPeriods.agentId, agent.id), eq(agentBudgetPeriods.periodStart, period)));
+
+  /**
+   * Reserves a known price (a picture's) against the agent's counter for this month, under the row lock `reserve`
+   * takes. Throws BudgetExceededError when it doesn't fit; null without a budget.
+   */
+  async function reserveAmount(agent: Agent, amount: number) {
+    const budget = agent.monthlyBudgetNanoUsd;
+    if (budget === null) return null;
+    const at = now();
+    const period = periodOf(at);
+    return db.transaction(async (tx) => {
+      const { row, reserved, expired } = await lockedPeriod(tx, agent, at);
+      if (budget - row.spentNanoUsd - reserved < amount) {
+        if (expired) await keepReserved(tx, agent, period, reserved);
+        const byReservations = reserved > 0 && budget - row.spentNanoUsd >= amount;
+        throw new BudgetExceededError(agent.id, row.spentNanoUsd, budget, byReservations);
+      }
+      const [reservation] = await tx
+        .insert(budgetReservations)
+        .values({
+          orgId: agent.orgId,
+          agentId: agent.id,
+          periodStart: period,
+          amountNanoUsd: amount,
+          expiresAt: new Date(at.getTime() + RESERVATION_TTL_MS),
+        })
+        .returning();
+      await tx
+        .update(agentBudgetPeriods)
+        .set({ reservedNanoUsd: Math.max(0, reserved) + amount, updatedAt: at })
+        .where(and(eq(agentBudgetPeriods.agentId, agent.id), eq(agentBudgetPeriods.periodStart, period)));
+      if (!reservation) throw new Error("reservation insert returned nothing");
+      return reservation;
+    });
+  }
+
+  /**
    * Reserves the worst-case cost of a call against the agent's counter for
    * this month, under a row lock. Returns the reservation and the output cap
    * that fits. Throws BudgetExceededError when nothing useful fits.
@@ -475,49 +601,14 @@ export function createModelGateway(deps: ModelGatewayDeps) {
     if (Number(fast[0]?.ok ?? 0) > 0) return { reservation: { id, agentId: agent.id, periodStart: period }, maxTokens };
     // Slow path (first call of the month, expired reservations, or the cap must shrink): locked transaction.
     return db.transaction(async (tx) => {
-      await tx
-        .insert(agentBudgetPeriods)
-        .values({
-          orgId: agent.orgId,
-          agentId: agent.id,
-          periodStart: period,
-          // First call of the month (or first since budgets existed): start from the agent's own recorded calls
-          // (`agentSpendThisMonth`).
-          spentNanoUsd: sql`(select coalesce(sum(${usageRecords.costNanoUsd}), 0) from ${usageRecords}
-            where ${usageRecords.orgId} = ${agent.orgId} and ${usageRecords.agentId} = ${agent.id}
-            and ${usageRecords.kind} = 'agent'
-            and ${usageRecords.createdAt} >= ${monthStartUtc(at).toISOString()}::timestamptz)`,
-        })
-        .onConflictDoNothing();
-      // Abandoned reservations (crashed workers) stop counting.
-      const expired = await tx
-        .delete(budgetReservations)
-        .where(
-          and(
-            eq(budgetReservations.agentId, agent.id),
-            eq(budgetReservations.periodStart, period),
-            lt(budgetReservations.expiresAt, at),
-          ),
-        )
-        .returning({ amount: budgetReservations.amountNanoUsd });
-      const [row] = await tx
-        .select()
-        .from(agentBudgetPeriods)
-        .where(and(eq(agentBudgetPeriods.agentId, agent.id), eq(agentBudgetPeriods.periodStart, period)))
-        .for("update");
-      if (!row) throw new Error("budget period row missing");
-      const reserved = row.reservedNanoUsd - expired.reduce((n, e) => n + e.amount, 0);
+      const { row, reserved, expired } = await lockedPeriod(tx, agent, at);
 
       let cap = maxTokens;
       if (agent.monthlyBudgetNanoUsd !== null) {
         const left = agent.monthlyBudgetNanoUsd - row.spentNanoUsd - reserved;
         cap = Math.min(maxTokens, outputTokensWithin(model, promptTokens, left, longCache));
         if (left <= 0 || cap < Math.min(MIN_OUTPUT_TOKENS, maxTokens)) {
-          if (expired.length > 0)
-            await tx
-              .update(agentBudgetPeriods)
-              .set({ reservedNanoUsd: Math.max(0, reserved) })
-              .where(and(eq(agentBudgetPeriods.agentId, agent.id), eq(agentBudgetPeriods.periodStart, period)));
+          if (expired) await keepReserved(tx, agent, period, reserved);
           const room = agent.monthlyBudgetNanoUsd - row.spentNanoUsd;
           const byReservations =
             reserved > 0 &&
@@ -602,8 +693,11 @@ export function createModelGateway(deps: ModelGatewayDeps) {
     model: string;
     usage: ModelUsage;
     reportedCost?: number;
+    /** The model the call asked for; absent: the agent's (a picture's is its image model, ADR 0213). */
+    requestedModel?: string;
   }) {
     const { agent, usage } = input;
+    const requested = input.requestedModel ?? agent.model;
     const pricedModel = isKnownModel(input.model) ? input.model : agent.model;
     // ponytail: OpenRouter may route to an upstream dearer than its listed price, so a call can spend past what it
     // reserved; the counter takes the reported cost. Its `provider.max_price` would cap the route.
@@ -618,7 +712,7 @@ export function createModelGateway(deps: ModelGatewayDeps) {
           insert into ${usageRecords} (id, org_id, agent_id, kind, run_id, credential_id, provider, model, requested_model,
             input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, cost_nano_usd, partial, person_id, created_at)
           values (${id}::uuid, ${agent.orgId}::uuid, ${agent.id}::uuid, 'agent', ${input.runId ?? null}::uuid,
-            ${input.credentialId}::uuid, ${input.provider}, ${input.model}, ${agent.model}, ${usage.inputTokens},
+            ${input.credentialId}::uuid, ${input.provider}, ${input.model}, ${requested}, ${usage.inputTokens},
             ${usage.outputTokens}, ${usage.cacheReadTokens}, ${usage.cacheWriteTokens}, ${cost}, false,
             ${input.personId ?? null}, ${at}::timestamptz)
           returning id
@@ -654,6 +748,75 @@ export function createModelGateway(deps: ModelGatewayDeps) {
       spent: Number(rows[0]?.spent ?? cost),
       personSpent: personSpent === null || personSpent === undefined ? null : Number(personSpent),
     };
+  }
+
+  /** `imageProvider` (see the returned object). */
+  async function imageProviderOf(orgId: string): Promise<ImageProviderId | null> {
+    const images = deps.images;
+    if (!images || images.perDay <= 0) return null;
+    for (const id of IMAGE_PROVIDERS) {
+      if (!images.providers[id]) continue;
+      const credentialId = await orgDefaultCredentialId(orgId, id);
+      if (credentialId && (await usableCredentialRow(db, orgId, credentialId))?.provider === id) return id;
+    }
+    return null;
+  }
+
+  /**
+   * Takes a picture's slot (`image_generations`, `pending`) under the workspace's lock, or throws TooManyError when the
+   * reply or the workspace's last 24 hours have no room. Pictures being made count; a slot left `pending` past
+   * `IMAGE_PENDING_MS` (its process died) and a failed one don't.
+   */
+  async function takeImageSlot(call: ImageCall, perDay: number, provider: string, model: string) {
+    const { imageGenerations } = schema;
+    const at = now();
+    const live = sql`(${imageGenerations.status} = 'done' or (${imageGenerations.status} = 'pending' and ${imageGenerations.createdAt} > ${new Date(at.getTime() - IMAGE_PENDING_MS).toISOString()}::timestamptz))`;
+    return db.transaction(async (tx) => {
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`images:${call.orgId}`}))`);
+      const [today] = await tx
+        .select({ n: sql<number>`count(*)::int` })
+        .from(imageGenerations)
+        .where(
+          and(
+            eq(imageGenerations.orgId, call.orgId),
+            gte(imageGenerations.createdAt, new Date(at.getTime() - DAY_MS)),
+            live,
+          ),
+        );
+      if (Number(today?.n ?? 0) >= perDay) {
+        throw new TooManyError(
+          `This workspace's agents already made ${perDay} images in the last 24 hours, the most allowed: no more today.`,
+          "images.per_day",
+          { max: perDay },
+        );
+      }
+      if (call.runId) {
+        const [mine] = await tx
+          .select({ n: sql<number>`count(*)::int` })
+          .from(imageGenerations)
+          .where(and(eq(imageGenerations.orgId, call.orgId), eq(imageGenerations.runId, call.runId), live));
+        if (Number(mine?.n ?? 0) >= IMAGES_PER_RUN_MAX) {
+          throw new TooManyError(
+            `You already made ${IMAGES_PER_RUN_MAX} images in this reply, the most one reply may make.`,
+            "images.per_run",
+            { max: IMAGES_PER_RUN_MAX },
+          );
+        }
+      }
+      const [slot] = await tx
+        .insert(imageGenerations)
+        .values({
+          orgId: call.orgId,
+          agentId: call.agentId,
+          runId: call.runId || null,
+          provider,
+          model,
+          createdAt: at,
+        })
+        .returning({ id: imageGenerations.id });
+      if (!slot) throw new Error("image slot insert returned nothing");
+      return slot.id;
+    });
   }
 
   /** Tells the agent's owner when spend crosses 80% and 100% of the budget (once each per month). */
@@ -835,6 +998,113 @@ export function createModelGateway(deps: ModelGatewayDeps) {
         usageRecordId: record.id,
         costNanoUsd: record.cost,
         maxTokens,
+      };
+    },
+
+    /**
+     * The image provider the workspace's pictures are made with (ADR 0213): the first of `IMAGE_PROVIDERS` this
+     * server has and the workspace holds a key of its own for. Never the platform's key: a picture is the workspace's
+     * spend. Null: no `generate_image`. No key is decrypted (a listing reads it).
+     */
+    imageProvider: imageProviderOf,
+
+    /**
+     * One picture for an agent's run (ADR 0213), the way a model call goes: refused on a workspace or agent that may
+     * not work and past the person's limit; a slot taken under the workspace's lock, so the reply's
+     * (`IMAGES_PER_RUN_MAX`) and the day's (`images.perDay`, the last 24 hours) limits hold for calls made at once;
+     * the picture's price held on the agent's budget; the provider called on the workspace's own key; then the
+     * usage row, the agent's month and the person's, settled to that price. A failure gives the slot and the hold
+     * back and costs nothing. Throws TooManyError past a limit, BudgetExceededError, MissingCredentialError.
+     */
+    async generateImage(call: ImageCall): Promise<GatewayImage> {
+      const images = deps.images;
+      await assertCanWork(db, call.orgId, call.agentId);
+      const row = await getAgent(db, call.orgId, call.agentId);
+      if (!row || row.archivedAt) throw new NotFoundError("Agent not found");
+      const agent = await withEffectiveBudget(db, row);
+      const providerId = await imageProviderOf(call.orgId);
+      const provider = providerId ? images?.providers[providerId] : undefined;
+      if (!images || !providerId || !provider) {
+        throw new MissingCredentialError("Add an OpenAI or Gemini API key in the workspace settings to make images");
+      }
+      const credentialId = await orgDefaultCredentialId(call.orgId, providerId);
+      const credential = credentialId ? await decryptCredential(db, deps.keyWrappers, call.orgId, credentialId) : null;
+      const key = credential?.provider === providerId ? keyOf(credential, credentialId) : null;
+      if (!key) throw noKey(providerId);
+      const model = IMAGE_MODEL_OF[providerId];
+      const price = imageCostNanoUsd(model, call.shape);
+      const personId = call.personId ?? null;
+      if (personId) await assertPersonUnderLimit(db, agent.orgId, personId, now());
+
+      const slot = await takeImageSlot(call, images.perDay, providerId, model);
+      const freeSlot = () =>
+        db
+          .update(schema.imageGenerations)
+          .set({ status: "failed", finishedAt: now() })
+          .where(eq(schema.imageGenerations.id, slot));
+      let reservation: Awaited<ReturnType<typeof reserveAmount>>;
+      try {
+        reservation = await reserveAmount(agent, price);
+      } catch (error) {
+        await freeSlot();
+        if (error instanceof BudgetExceededError && !error.byReservations)
+          await budgetExhausted(agent, error.spentNanoUsd).catch(() => {});
+        throw error;
+      }
+
+      const timeout = AbortSignal.timeout(IMAGE_TIMEOUT_MS);
+      let result: Awaited<ReturnType<ImageProvider["generate"]>>;
+      try {
+        result = await provider.generate(
+          {
+            model,
+            prompt: call.prompt,
+            shape: call.shape,
+            signal: call.signal ? AbortSignal.any([call.signal, timeout]) : timeout,
+          },
+          { apiKey: key.apiKey, organization: key.organization, project: key.project },
+        );
+      } catch (error) {
+        await db.transaction((tx) => settle(tx, reservation, 0, agent));
+        await freeSlot();
+        throw masked(error, label(providerId), key);
+      }
+
+      const { record, spent, personSpent } = await settleCall({
+        agent,
+        reservation,
+        runId: call.runId,
+        personId,
+        credentialId: key.credentialId,
+        provider: providerId,
+        model: result.model,
+        usage: {
+          inputTokens: result.inputTokens,
+          outputTokens: result.outputTokens,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+        },
+        reportedCost: price,
+        requestedModel: model,
+      });
+      await db
+        .update(schema.imageGenerations)
+        .set({ status: "done", costNanoUsd: record.cost, finishedAt: now() })
+        .where(eq(schema.imageGenerations.id, slot));
+      await checkThresholds(agent, spent, record.cost);
+      if (personId && personSpent !== null)
+        await personSpendAdded(
+          db,
+          { orgId: agent.orgId, personId, amountNanoUsd: record.cost, at: now() },
+          personSpent,
+        );
+      return {
+        bytes: result.bytes,
+        contentType: result.contentType,
+        provider: providerId,
+        model: result.model,
+        costNanoUsd: record.cost,
+        usageRecordId: record.id,
       };
     },
 

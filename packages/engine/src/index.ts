@@ -166,6 +166,7 @@ export * from "./git/tools";
 export * from "./hand-off";
 export * from "./host-computer";
 export * from "./id-refs";
+export * from "./image-tools";
 export * from "./imports";
 export * from "./invite-choices";
 export * from "./invite-requests";

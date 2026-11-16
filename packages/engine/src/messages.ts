@@ -10,6 +10,7 @@ import {
   isNull,
   lt,
   ne,
+  notInArray,
   or,
   rowsOf,
   type SQL,
@@ -17,6 +18,7 @@ import {
   sql,
 } from "@agenteschat/db";
 import { mentionsEveryone } from "@agenteschat/i18n/everyone";
+import { IMAGE_MODELS } from "@agenteschat/providers";
 import { CHANNEL_REF } from "@agenteschat/ui/channel-refs";
 import { plainLine } from "@agenteschat/ui/markdown";
 import { type AgentActionView, actionsFor } from "./agent-actions";
@@ -1921,6 +1923,8 @@ async function usageFor(db: Database, orgId: string, list: Message[]) {
         inArray(u.runId, runIds),
         eq(u.kind, "agent"),
         sql`${u.provider} <> ${WEB_USAGE_PROVIDER}`,
+        // A picture the run made (ADR 0213) is its own line in the usage pages, never the reply's model or tokens.
+        notInArray(u.requestedModel, Object.keys(IMAGE_MODELS)),
       ),
     )
     .groupBy(u.runId);

@@ -18597,6 +18597,11 @@ export const ptBR = {
       description:
         "Põe uma página que fez num endereço público, que qualquer pessoa com o link abre, depois que alguém aprova. Só em servidores que publicam páginas.",
     },
+    generate_image: {
+      label: "Gerar imagem",
+      description:
+        "Cria uma imagem a partir de uma descrição, na chave da OpenAI ou do Gemini do workspace, e salva no Drive.",
+    },
     list_issues: {
       label: "Ver tarefas",
       description: "Lista e abre tarefas.",

@@ -2045,6 +2045,13 @@
       "when": 1794844277132,
       "tag": "0295_outgoing_webhooks",
       "breakpoints": true
+    },
+    {
+      "idx": 294,
+      "version": "7",
+      "when": 1794844314532,
+      "tag": "0296_image_generations",
+      "breakpoints": true
     }
   ]
 }

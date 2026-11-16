@@ -796,6 +796,13 @@ describe("a lone quick read that only fed the answer shows no card", () => {
     expect(saved && quietLine(saved)).toBe(true);
   });
 
+  test("the server's image tool reads as a picture being made, on every brain (ADR 0213)", () => {
+    expect(toolActivity("generate_image").kind).toBe("creatingImage");
+    expect(makingImage({ step: { tool: "generate_image" } })).toBe(true);
+    expect(quietWork(toolItemsLive([call("1", "generate_image", { ms: 20_000 })]))).toBe(true);
+    expect(quietWork(toolItemsLive([call("1", "generate_image", { ms: 20_000, failed: true })]))).toBe(false);
+  });
+
   test("while it makes a picture its live run says so (`makingImage`), until another step replaces it", () => {
     expect(makingImage({ step: { tool: "image_generation" } })).toBe(true);
     expect(makingImage({ step: { tool: "shell" } })).toBe(false);

@@ -18727,6 +18727,11 @@ export const en = {
       description:
         "Puts a page it made at a public address anyone with the link opens, after a person approves. Only on servers that publish pages.",
     },
+    generate_image: {
+      label: "Generate image",
+      description:
+        "Makes a picture from a description on the workspace's OpenAI or Gemini key and saves it to the Drive.",
+    },
     list_issues: {
       label: "View tasks",
       description: "Lists and opens tasks.",

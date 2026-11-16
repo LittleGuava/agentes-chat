@@ -1,5 +1,7 @@
 export { createFakeEmbeddings } from "./embeddings";
 
+import type { ImageProvider, ImageRequest } from "./images";
+
 import {
   type ContentBlock,
   type Endpoint,
@@ -140,3 +142,35 @@ export function createFakeProvider(reply?: (request: ModelRequest, call: number)
 }
 
 export type FakeProvider = ReturnType<typeof createFakeProvider>;
+
+/** A real 1×1 PNG: what the fake image provider makes. */
+export const FAKE_PNG = new Uint8Array(
+  Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+    "base64",
+  ),
+);
+
+/**
+ * An image provider for tests (ADR 0213): every call is recorded with the key it got; `reply` may answer with an
+ * error to throw, or hold the call until it settles. By default a 1×1 PNG.
+ */
+export function createFakeImages(
+  id = "openai",
+  reply?: (request: ImageRequest, call: number) => Error | Promise<Error | undefined> | undefined,
+) {
+  const calls: { request: ImageRequest; apiKey: string }[] = [];
+  const provider: ImageProvider & { calls: typeof calls } = {
+    id,
+    calls,
+    async generate(request, key) {
+      calls.push({ request, apiKey: key.apiKey });
+      const answer = await reply?.(request, calls.length - 1);
+      if (answer) throw answer;
+      return { bytes: FAKE_PNG, contentType: "image/png", model: request.model, inputTokens: 12, outputTokens: 1056 };
+    },
+  };
+  return provider;
+}
+
+export type FakeImages = ReturnType<typeof createFakeImages>;

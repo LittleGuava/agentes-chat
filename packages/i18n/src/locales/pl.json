@@ -19358,6 +19358,10 @@
       "label": "Zaktualizuj plik",
       "description": "Zapisuje nową wersję pliku."
     },
+    "generate_image": {
+      "label": "Wygeneruj obraz",
+      "description": "Tworzy obraz na podstawie opisu kluczem OpenAI lub Gemini workspace'u i zapisuje go w Drive."
+    },
     "publish_page": {
       "label": "Opublikuj stronę",
       "description": "Umieszcza stworzoną stronę pod publicznym adresem, który otworzy każdy z linkiem, po zatwierdzeniu przez osobę. Tylko na serwerach, które publikują strony."

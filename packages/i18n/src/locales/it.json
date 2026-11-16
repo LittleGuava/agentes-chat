@@ -18797,6 +18797,10 @@
       "label": "Aggiorna file",
       "description": "Salva una nuova versione di un file."
     },
+    "generate_image": {
+      "label": "Genera immagine",
+      "description": "Crea un'immagine da una descrizione con la chiave OpenAI o Gemini del workspace e la salva nel Drive."
+    },
     "publish_page": {
       "label": "Pubblica pagina",
       "description": "Mette una pagina che ha creato a un indirizzo pubblico che chiunque abbia il link apre, dopo che una persona approva. Solo sui server che pubblicano pagine."

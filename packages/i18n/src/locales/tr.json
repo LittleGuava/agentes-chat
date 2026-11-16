@@ -18147,6 +18147,10 @@
       "label": "Dosyayı güncelle",
       "description": "Bir dosyanın yeni sürümünü kaydeder."
     },
+    "generate_image": {
+      "label": "Görsel oluştur",
+      "description": "Bir açıklamadan, çalışma alanının OpenAI veya Gemini anahtarıyla görsel oluşturur ve Drive'a kaydeder."
+    },
     "publish_page": {
       "label": "Sayfa yayınla",
       "description": "Yaptığı bir sayfayı, bir kişi onayladıktan sonra, bağlantıya sahip herkesin açabileceği herkese açık bir adrese koyar. Yalnızca sayfa yayınlayan sunucularda."

@@ -18217,6 +18217,10 @@
       "label": "Datei aktualisieren",
       "description": "Speichert eine neue Version einer Datei."
     },
+    "generate_image": {
+      "label": "Bild erzeugen",
+      "description": "Erstellt ein Bild aus einer Beschreibung mit dem OpenAI- oder Gemini-Schlüssel des Workspace und speichert es im Drive."
+    },
     "publish_page": {
       "label": "Seite veröffentlichen",
       "description": "Stellt eine selbst erstellte Seite unter eine öffentliche Adresse, die jeder mit dem Link öffnet, nachdem eine Person zustimmt. Nur auf Servern, die Seiten veröffentlichen."

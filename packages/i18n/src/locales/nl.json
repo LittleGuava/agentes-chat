@@ -18287,6 +18287,10 @@
       "label": "Bestand bijwerken",
       "description": "Slaat een nieuwe versie van een bestand op."
     },
+    "generate_image": {
+      "label": "Afbeelding maken",
+      "description": "Maakt een afbeelding op basis van een beschrijving met de OpenAI- of Gemini-sleutel van de workspace en slaat die op in de Drive."
+    },
     "publish_page": {
       "label": "Pagina publiceren",
       "description": "Zet een pagina die het maakte op een openbaar adres dat iedereen met de link opent, nadat iemand goedkeurt. Alleen op servers die pagina's publiceren."

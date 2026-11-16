@@ -413,6 +413,12 @@ export const envVars = {
       "Small OpenAI model for the organization's own calls on an OpenAI key: picking who answers when Jev doesn't, summaries, reflection.",
     section: "Agents",
   },
+  IMAGES_PER_DAY: {
+    schema: z.coerce.number().int().min(0).max(100_000).default(50),
+    description:
+      "Most pictures one workspace's agents may make with `generate_image` in 24 hours, on the workspace's own OpenAI or Gemini key (ADR 0213). Each also counts against its agent's budget, and one reply makes at most 4. 0 turns image generation off on this server.",
+    section: "Agents",
+  },
   ROUTER_MIN_SCORE: {
     schema: z.coerce.number().min(0).max(1).default(0.5),
     description: "Minimum router score (0–1) for an agent to answer a message without mentions.",

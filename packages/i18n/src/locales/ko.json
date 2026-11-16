@@ -17609,6 +17609,10 @@
       "label": "파일 업데이트",
       "description": "파일의 새 버전을 저장해요."
     },
+    "generate_image": {
+      "label": "이미지 생성",
+      "description": "설명으로 이미지를 만들어 워크스페이스의 OpenAI 또는 Gemini 키로 생성하고 Drive에 저장합니다."
+    },
     "publish_page": {
       "label": "페이지 게시",
       "description": "만든 페이지를 링크가 있는 누구나 여는 공개 주소에 올려요. 사람이 승인한 뒤에만요. 페이지를 게시하는 서버에서만 돼요."

@@ -44952,6 +44952,12 @@
   "builtinTools.update_artifact.description": {
     "value": "Saves a new version of a file."
   },
+  "builtinTools.generate_image.label": {
+    "value": "Generate image"
+  },
+  "builtinTools.generate_image.description": {
+    "value": "Makes a picture from a description on the workspace's OpenAI or Gemini key and saves it to the Drive."
+  },
   "builtinTools.publish_page.label": {
     "value": "Publish page"
   },
