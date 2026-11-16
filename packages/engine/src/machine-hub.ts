@@ -758,6 +758,7 @@ export function createMachineHub(deps: MachineHubDeps) {
         frame.terminal ||
         frame.desktopUse ||
         frame.hostDesktop ||
+        frame.meetingAudio ||
         frame.claudeLoginMethods ||
         frame.toolchains ||
         frame.myChrome
@@ -773,6 +774,8 @@ export function createMachineHub(deps: MachineHubDeps) {
                 ...(frame.desktopUse ? { desktopUse: frame.desktopUse } : {}),
                 // Protocol 81: whether agents can use the person's own desktop there (ADR 0201).
                 ...(frame.hostDesktop ? { hostDesktop: frame.hostDesktop } : {}),
+                // ADR 0199 §4: whether it can hear a meeting an agent's browser is in.
+                ...(frame.meetingAudio ? { meetingAudio: frame.meetingAudio } : {}),
                 ...(system ? { mode: "system" as const } : {}),
                 ...(frame.claudeLoginMethods ? { claudeLoginMethods: frame.claudeLoginMethods } : {}),
                 ...(loginBlocked ? { claudeLoginBlocked: loginBlocked } : {}),

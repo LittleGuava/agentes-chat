@@ -40,6 +40,8 @@ const KNOWN = {
   "github_event.answered": "errors.githubEvent.answered",
   "github_event.not_found": "errors.said.gone",
   "github_event.agent_not_here": "errors.routine.agentNotInChannel",
+  "meeting.ended": "errors.said.alreadyDone",
+  "meeting.not_found": "errors.said.gone",
   "channel.post_denied": "channel.perms.readOnlyComposer",
   // Sharing a DM with an agent (ADR 0151, addendum 2026-11-15).
   "dm_share.not_agent_dm": "dmShare.errors.notAgentDm",

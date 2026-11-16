@@ -1,3 +1,4 @@
+import type { PubSub } from "@agenteschat/adapters";
 import { and, eq, inArray, lt, schema } from "@agenteschat/db";
 import { getAgentCached } from "../agents";
 import type { BrowserPlanner } from "../browser/tools";
@@ -14,9 +15,10 @@ import {
   meetingStateOf,
   parseMeetingLink,
 } from "./links";
-import { LIVE_MEETING } from "./notes";
+import { finishMeeting, LIVE_MEETING } from "./notes";
 
 export const JOIN_MEETING_TOOL = "join_meeting";
+export const LEAVE_MEETING_TOOL = "leave_meeting";
 
 /** A meeting live longer than this is over: it no longer keeps the agent from another (ADR 0199 §2). */
 export const MEETING_MAX_MS = 4 * 60 * 60_000;
@@ -24,11 +26,14 @@ export const MEETING_MAX_MS = 4 * 60 * 60_000;
 type MeetingRow = typeof schema.agentMeetings.$inferSelect;
 
 /**
- * Hears a meeting the agent joined, on its computer (ADR 0199 §4): asked once the bot is waiting or in the call. Its
- * first step tells the meeting's chat a bot takes notes. Without one, `join_meeting` isn't offered: an agent in a
- * call it can't hear would never bring notes.
+ * Hears a meeting the agent joined, on its computer (ADR 0199 §4): asked once the bot is waiting or in the call. It
+ * waits to be let in, tells the meeting's chat a bot takes notes, and only then starts hearing; anything it can't do
+ * ends with the bot out of the call (`ok: false`). Without one, or where it isn't `available` (the workspace's switch,
+ * a computer that can hear the call, a speech engine), the tools aren't offered: an agent in a call it can't hear
+ * would never bring notes.
  */
 export interface MeetingListener {
+  available(ctx: ToolContext): Promise<boolean>;
   listen(meeting: MeetingRow, ctx: ToolContext): Promise<{ ok: true } | { ok: false; text: string }>;
 }
 
@@ -36,6 +41,9 @@ export interface MeetingToolDeps {
   /** The browser source's plan (`browser_do`'s), run on the agent's own browser. */
   browser?: BrowserPlanner;
   listener?: MeetingListener;
+  /** Ends a live meeting now, the notes delivered (`MeetingAudio.leave`): `leave_meeting`. */
+  leave?: (input: { orgId: string; meetingId: string }) => Promise<{ left: boolean }>;
+  pubsub?: PubSub;
   now?: () => number;
 }
 
@@ -49,9 +57,12 @@ const fail = (content: string): ToolOutput => ({ content, isError: true });
 export function createMeetingToolSource(deps: MeetingToolDeps): ToolSource {
   const now = deps.now ?? Date.now;
   const { browser, listener } = deps;
+  const t = schema.agentMeetings;
 
   async function join(input: Record<string, unknown>, ctx: ToolContext): Promise<ToolOutput> {
-    if (!browser || !listener) return fail("Joining meetings isn't available on this server.");
+    if (!browser || !listener || !(await listener.available(ctx))) {
+      return fail("Joining meetings isn't available for you now (turned off, or your computer can't hear one).");
+    }
     const person = await personBehindCall(ctx);
     if (!person) {
       return fail(
@@ -63,11 +74,11 @@ export function createMeetingToolSource(deps: MeetingToolDeps): ToolSource {
     const { link } = parsed;
     const agent = await getAgentCached(ctx.db, ctx.orgId, ctx.agentId);
     const displayName = meetingDisplayName(agent?.name ?? "");
-    const t = schema.agentMeetings;
-    // A meeting left live past the longest one is over: it doesn't keep the agent out of this one.
-    await ctx.db
-      .update(t)
-      .set({ status: "failed", error: "timed_out", endedAt: new Date(now()) })
+    // A meeting left live past the longest one is over (its capture lost in a restart): it doesn't keep the agent out
+    // of this one, and what was heard of it still becomes notes.
+    const stale = await ctx.db
+      .select()
+      .from(t)
       .where(
         and(
           eq(t.orgId, ctx.orgId),
@@ -76,6 +87,21 @@ export function createMeetingToolSource(deps: MeetingToolDeps): ToolSource {
           lt(t.createdAt, new Date(now() - MEETING_MAX_MS)),
         ),
       );
+    for (const old of stale) {
+      if (old.transcript.length > 0) {
+        await finishMeeting(ctx.db, deps.pubsub, {
+          orgId: old.orgId,
+          meetingId: old.id,
+          transcript: old.transcript,
+          reason: "four hours, the longest a meeting is heard",
+        });
+      } else {
+        await ctx.db
+          .update(t)
+          .set({ status: "failed", error: "timed_out", endedAt: new Date(now()) })
+          .where(and(eq(t.id, old.id), inArray(t.status, [...LIVE_MEETING])));
+      }
+    }
     const [meeting] = await ctx.db
       .insert(t)
       .values({
@@ -135,20 +161,18 @@ export function createMeetingToolSource(deps: MeetingToolDeps): ToolSource {
       .update(t)
       .set({ status: state, ...(state === "in_call" ? { joinedAt: new Date(now()) } : {}) })
       .where(eq(t.id, meeting.id));
+    // The listener lets the bot in, tells the meeting's chat, then hears; it leaves the call itself when it can't.
     const heard = await listener.listen({ ...meeting, status: state }, ctx);
     if (!heard.ok) {
-      return failed(
-        "not_heard",
-        `You joined but can't hear the meeting, so no notes would come: leave it (close its page in your browser) and tell them why: ${heard.text}`,
-      );
+      return {
+        content: `You didn't stay in the ${platform} meeting: ${heard.text}`,
+        isError: true,
+        data: { meetingId: meeting.id, status: "failed" },
+      };
     }
-    const where =
-      state === "in_call"
-        ? `You are in the ${platform} meeting`
-        : `You asked to join the ${platform} meeting; the host must let you in`;
     return {
-      content: `${where} as «${displayName}», microphone and camera off. The notes come to this conversation when it ends: tell them in a line, nothing more.`,
-      data: { meetingId: meeting.id, status: state, platform: link.platform },
+      content: `You are in the ${platform} meeting as «${displayName}», microphone and camera off, and told its chat you take notes. The notes come to this conversation when it ends (or when someone here presses Leave, or you call ${LEAVE_MEETING_TOOL}): tell them in a line, nothing more.`,
+      data: { meetingId: meeting.id, status: "in_call", platform: link.platform },
     };
   }
 
@@ -169,8 +193,42 @@ export function createMeetingToolSource(deps: MeetingToolDeps): ToolSource {
     execute: join,
   };
 
+  async function leaveNow(_input: Record<string, unknown>, ctx: ToolContext): Promise<ToolOutput> {
+    const [live] = await ctx.db
+      .select({ id: t.id, url: t.url })
+      .from(t)
+      .where(and(eq(t.orgId, ctx.orgId), eq(t.agentId, ctx.agentId), inArray(t.status, [...LIVE_MEETING])));
+    if (!live || !deps.leave) return fail("You are not in a meeting.");
+    const { left } = await deps.leave({ orgId: ctx.orgId, meetingId: live.id });
+    if (!left) return fail("You are not in a meeting: it had ended already.");
+    return {
+      content: `You left the meeting (${live.url}). Its notes come to the conversation it was asked in.`,
+      data: { meetingId: live.id },
+    };
+  }
+
+  const leaveTool: ToolDefinition = {
+    name: LEAVE_MEETING_TOOL,
+    description:
+      "Leave the online meeting you are taking notes in, now (when someone asks you to, or you were told to stop). What was heard until then still becomes notes, in the conversation the meeting was asked in.",
+    scope: BROWSER_SCOPE,
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+    describe: () => ({ title: "Leave the meeting" }),
+    execute: leaveNow,
+  };
+
   return {
     name: "meetings",
-    tools: async () => (browser && listener ? [tool] : []),
+    tools: async (ctx) => {
+      if (!browser || !listener || !deps.leave) return [];
+      if (await listener.available(ctx)) return [tool, leaveTool];
+      // An agent still in a call keeps its way out after the switch goes off or its computer stops hearing.
+      const [live] = await ctx.db
+        .select({ id: t.id })
+        .from(t)
+        .where(and(eq(t.orgId, ctx.orgId), eq(t.agentId, ctx.agentId), inArray(t.status, [...LIVE_MEETING])))
+        .limit(1);
+      return live ? [leaveTool] : [];
+    },
   };
 }

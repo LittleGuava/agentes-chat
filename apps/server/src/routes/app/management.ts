@@ -196,6 +196,10 @@ const Settings = z
     voiceMessages: z.boolean().openapi({
       description: "People can send voice messages (ADR 0100); they also need `voiceAvailable`. On by default.",
     }),
+    meetingNotes: z.boolean().openapi({
+      description:
+        "Agents may join Google Meet and Jitsi calls to take notes (ADR 0199 §6): other people's voices, under recording and data laws that differ by place. Off by default; an agent also needs a computer that can hear a call and the server a speech engine.",
+    }),
     mode: z.enum(WORKSPACE_MODES).openapi({
       description:
         "Who the workspace is for (ADR 0159): `team` (the default) or `personal`. It changes the apps' defaults and words, never what anyone may do; a change is audited (`organization.mode_changed`) and reaches every member's apps (`org.mode`).",
@@ -650,6 +654,10 @@ export function managementRoutes(deps: AppDeps) {
               .boolean()
               .optional()
               .openapi({ description: "People can send voice messages (ADR 0100)." }),
+            meetingNotes: z
+              .boolean()
+              .optional()
+              .openapi({ description: "Agents may join online meetings to take notes (ADR 0199 §6)." }),
             gifs: z.boolean().optional().openapi({ description: "People can send GIFs in chat (ADR 0091)." }),
             gifRating: z.enum(GIF_RATINGS).optional(),
             agentStickers: z.boolean().optional(),

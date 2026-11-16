@@ -2599,6 +2599,8 @@ export interface OrgSettings {
   agentMedia: AgentMediaLevel;
   /** People can send voice messages (ADR 0100); only with `voiceAvailable` too. On by default. */
   voiceMessages: boolean;
+  /** Agents may join online meetings to take notes (ADR 0199 §6). Off by default; absent from an older server. */
+  meetingNotes?: boolean;
   /** The right hand watches for what stops the team and tells who can fix it. Absent from an older server: on. */
   teamWatch?: boolean;
   /** The right hand greets each person who joins, once. Absent from an older server: on. */

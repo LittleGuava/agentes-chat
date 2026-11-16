@@ -1219,6 +1219,7 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         request<void>(`${org(orgId)}/messages/${enc(messageId)}/cancel-follow-up`, { json: {} }),
       answerGitHub: (orgId, messageId) =>
         request<void>(`${org(orgId)}/messages/${enc(messageId)}/github-answer`, { json: {} }),
+      leaveMeeting: (orgId, meetingId) => request<void>(`${org(orgId)}/meetings/${enc(meetingId)}/leave`, { json: {} }),
       archive: (orgId, channelId) => request<void>(`${org(orgId)}/channels/${enc(channelId)}`, { method: "DELETE" }),
       unarchive: (orgId, channelId) =>
         request<void>(`${org(orgId)}/channels/${enc(channelId)}/unarchive`, { json: {} }),

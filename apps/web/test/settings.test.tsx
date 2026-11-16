@@ -132,6 +132,19 @@ describe("Configurações do workspace", () => {
     expect(screen().queryByText(/está disponível/)).toBeNull();
   });
 
+  test("meeting notes (ADR 0199 §6): off by default, their terms in the ⓘ, one switch turns them on", async () => {
+    const { state } = await go();
+    const toggle = screen().getByRole("switch", { name: "Agentes anotam reuniões" });
+    expect(toggle.getAttribute("aria-checked")).toBe("false");
+    const hint = hintOf("Agentes anotam reuniões");
+    expect(describedBy(toggle)).toEqual([hint.text]);
+    expect(hint.text).toContain("consentimento de todos os participantes");
+    expect(hint.hidden).toBe(true);
+    await click(toggle);
+    await settle(4);
+    expect(state.calls.findLast((c) => c.method === "orgs.updateSettings")?.args[1]).toEqual({ meetingNotes: true });
+  });
+
   test("usage statistics: the installation's owner gets the switch and sees exactly what is sent", async () => {
     const { state } = await go(
       seedState({ telemetry: { enabled: true, envOff: false, report: { report: 1, people: { total: 3 } } } }),

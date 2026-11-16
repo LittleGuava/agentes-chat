@@ -3470,6 +3470,9 @@ export function createFakeHttpApi(state: FakeState): Omit<HttpApi, FakedParts> {
         const notice = line?.meta?.notice as { refs?: Record<string, string> } | undefined;
         if (notice?.refs) notice.refs = { ...notice.refs, answeredBy: "me" };
       },
+      leaveMeeting: async (orgId, meetingId) => {
+        log("chat.leaveMeeting", orgId, meetingId);
+      },
       roster: async (_orgId, channelId) =>
         (state.channelMembers[channelId] ?? []).map((m) =>
           m.type === "agent"

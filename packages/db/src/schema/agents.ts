@@ -394,6 +394,11 @@ export const organizationSettings = pgTable("organization_settings", {
   /** People can send voice messages (ADR 0100): needs a speech engine on the server too. */
   voiceMessages: boolean().notNull().default(true),
   /**
+   * Agents may join online meetings to take notes (ADR 0199 §6): other people's voices, maybe outside the workspace,
+   * under recording and data laws that differ by place. Off until whoever configures the workspace turns it on.
+   */
+  meetingNotes: boolean().notNull().default(false),
+  /**
    * "Agentes melhoram as skills sozinhos": an agent's fix to a skill a person made applies at once (a new version,
    * with Desfazer) instead of waiting as a proposal; scripts still wait for a person (ADR 0120). A skill's own
    * `skills.agents_improve` wins.

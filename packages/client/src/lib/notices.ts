@@ -26,6 +26,7 @@ export const NOTICE_KINDS = [
   "run_incident",
   "run_retry",
   "meeting_ended",
+  "meeting_joined",
 ] as const;
 export type NoticeKind = (typeof NOTICE_KINDS)[number];
 
@@ -128,6 +129,8 @@ export interface NoticeView {
   detail: { words: { key: string; values: Record<string, string> } } | { content: string } | null;
   /** Someone the agent doesn't answer wrote it on GitHub: a person here may ask the agent to answer ("Pedir resposta"). */
   answer: boolean;
+  /** The meeting the agent is taking notes in (ADR 0199): a person here may make it leave ("Sair da reunião"). */
+  leave?: string;
 }
 
 /** A GitHub event's line (packages/engine/src/git/github-events.ts), by what happened and to which kind of item. */
@@ -244,6 +247,14 @@ export function noticeView(
     // A meeting the agent took notes in ended (ADR 0199): the transcript is for the agent; its notes are its reply.
     case "meeting_ended":
       return line("chat.notice.meetingEnded", { name: names.author });
+    // The agent is in a meeting taking notes: the line people make it leave from. The server answers 409 once it ended.
+    case "meeting_joined": {
+      const meetingId = notice.refs?.meetingId;
+      return {
+        ...line("chat.notice.meetingJoined", { name: names.author }),
+        ...(meetingId ? { leave: meetingId } : {}),
+      };
+    }
     // A return's line is the bar's (`isReturnLine`), never one of the conversation's.
     case "follow_up":
     case "proposal_result":

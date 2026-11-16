@@ -84,6 +84,8 @@ export interface OrgSettings extends MediaSettings {
   actionCheck: boolean;
   /** People can send voice messages (ADR 0100); they also need `voiceAvailable`. On by default. */
   voiceMessages: boolean;
+  /** Agents may join online meetings to take notes (ADR 0199 §6). Off by default. */
+  meetingNotes: boolean;
   /** Per provider, the models "Automático" picks per tier where the workspace chose its own (ADR 0087). */
   autoModels: AutoModels;
   /** Who the workspace is for (ADR 0159): `team` or `personal`. */
@@ -118,6 +120,7 @@ export async function getOrgSettings(db: Database, actorId: string, orgId: strin
     defaultAgentBudgetNanoUsd: s?.defaultAgentBudgetNanoUsd ?? DEFAULT_AGENT_BUDGET_NANO_USD,
     actionCheck: s?.actionCheck ?? true,
     voiceMessages: s?.voiceMessages ?? true,
+    meetingNotes: s?.meetingNotes ?? false,
     autoModels: (s?.autoModels ?? {}) as AutoModels,
     mode: isWorkspaceMode(s?.mode) ? s.mode : "team",
     teamWatch: s?.teamWatch ?? true,
@@ -267,6 +270,7 @@ export async function updateOrgSettings(
         : {}),
       ...(input.actionCheck !== undefined ? { actionCheck: input.actionCheck } : {}),
       ...(input.voiceMessages !== undefined ? { voiceMessages: input.voiceMessages } : {}),
+      ...(input.meetingNotes !== undefined ? { meetingNotes: input.meetingNotes } : {}),
       ...(input.gifs !== undefined ? { gifs: input.gifs } : {}),
       ...(input.gifRating !== undefined ? { gifRating: input.gifRating } : {}),
       ...(input.agentStickers !== undefined ? { agentStickers: input.agentStickers } : {}),

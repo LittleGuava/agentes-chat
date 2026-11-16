@@ -308,7 +308,8 @@ function keepRecording(
   };
 }
 
-const costOf = (engine: SpeechEngine, durationMs: number) =>
+/** What a speech engine bills for `durationMs` of audio, in nano-USD (its least billed seconds counted). */
+export const speechCostNanoUsd = (engine: SpeechEngine, durationMs: number) =>
   Math.round((Math.max(durationMs / 1000, engine.minBilledSeconds) / 3600) * engine.nanoUsdPerHour);
 
 /**
@@ -362,7 +363,7 @@ export async function transcribeVoiceClip(deps: VoiceDeps, clipId: string, optio
         status: "sent",
         messageId: message.id,
         engine: words?.engine.id ?? null,
-        costNanoUsd: words ? costOf(words.engine, clip.durationMs) : 0,
+        costNanoUsd: words ? speechCostNanoUsd(words.engine, clip.durationMs) : 0,
       })
       .where(eq(voiceClips.id, clip.id));
   } catch (error) {
@@ -425,7 +426,7 @@ export async function dictateVoice(
   if (!words) throw new ValidationError("The words could not be made out", "voice.no_words");
   await deps.db
     .update(voiceClips)
-    .set({ engine: words.engine.id, costNanoUsd: costOf(words.engine, durationMs) })
+    .set({ engine: words.engine.id, costNanoUsd: speechCostNanoUsd(words.engine, durationMs) })
     .where(eq(voiceClips.id, id));
   return { text: words.text };
 }

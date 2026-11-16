@@ -17594,6 +17594,8 @@
     "actionCheckPersonal": "Les agents vérifient ce qui a déjà été fait",
     "actionCheckHelp": "Avant un e-mail, un message ou une pull request, l'agent vérifie si quelqu'un de l'équipe l'a déjà fait pour la même personne ou au même endroit dans les 30 derniers jours, et ne le refait pas.",
     "actionCheckHelpPersonal": "Avant un e-mail ou un message, l'agent vérifie si vous ou un autre agent l'avez déjà fait auprès de la même personne ou au même endroit ces 30 derniers jours, et ne le refait pas.",
+    "meetingNotes": "Les agents prennent des notes de réunion",
+    "meetingNotesHelp": "Les agents peuvent rejoindre des appels Google Meet et Jitsi quand quelqu'un le demande, et le disent dans le chat de l'appel avant d'écouter. Dans certains pays, enregistrer exige le consentement de chaque participant. La personne qui envoie l'agent en répond et doit prévenir l'hôte.",
     "mode": {
       "label": "Mode de l'espace de travail",
       "team": "Équipe",
@@ -18346,6 +18348,8 @@
       "agentNoteAnon": "Note d'un autre agent",
       "waitResult": "Ce que {{name}} attendait est arrivé",
       "meetingEnded": "La réunion où {{name}} prenait des notes est terminée",
+      "meetingJoined": "{{name}} prend des notes dans une réunion",
+      "leaveMeeting": "Quitter la réunion",
       "runRetry": "{{by}} a demandé à {{name}} de réessayer",
       "runRetryAnon": "{{name}} réessaie",
       "other": "Avis pour {{name}}",
