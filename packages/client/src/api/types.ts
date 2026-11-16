@@ -8343,6 +8343,44 @@ export interface CreatedPersonalToken {
   secret: string;
 }
 
+/** One of an agent's API keys (ADR 0210), never its secret. */
+export interface AgentApiKey {
+  id: string;
+  name: string;
+  /** The secret's last four characters. */
+  lastFour: string;
+  createdAt: string;
+  expiresAt: string | null;
+  lastUsedAt: string | null;
+  createdBy: { id: string; name: string };
+  /** The key's conversation, for its maker once a message was sent with it; null otherwise. */
+  roomId: string | null;
+}
+
+/** `GET …/agents/{agentId}/api-keys`: the live keys and where a key sends this agent messages. */
+export interface AgentApiKeys {
+  keys: AgentApiKey[];
+  endpoint: string;
+}
+
+export interface AgentApiKeyInput {
+  name: string;
+  expiresInDays: 30 | 90 | 365 | null;
+}
+
+/** `POST …/agents/{agentId}/api-keys`: `secret` is shown once. */
+export interface CreatedAgentApiKey {
+  key: AgentApiKey;
+  secret: string;
+}
+
+/** `GET …/agent-key-rooms/{channelId}`: the key a conversation belongs to, for its maker; `keyName` null once gone. */
+export interface AgentKeyRoom {
+  agentId: string;
+  keyId: string;
+  keyName: string | null;
+}
+
 /** Who has a shared browser profile now (ADR 0110): an agent's run or a person in control. */
 export type BrowserProfileHolder =
   | { type: "agent"; agentId: string; since: string }

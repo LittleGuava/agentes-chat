@@ -1,6 +1,8 @@
 import {
   AGENT_API_LIMITS,
   AGENT_KEY_EXPIRY_DAYS,
+  agentKeyRoom,
+  appsUrls,
   createAgentApiKey,
   listAgentApiKeys,
   revokeAgentApiKey,
@@ -31,6 +33,10 @@ const Key = z
     expiresAt: z.string().nullable(),
     lastUsedAt: z.string().nullable(),
     createdBy: z.object({ id: z.string(), name: z.string() }),
+    roomId: z.uuid().nullable().openapi({
+      description:
+        "The key's conversation, for its maker once a message was sent with it (the channel id); null otherwise",
+    }),
   })
   .openapi("AgentApiKey");
 
@@ -42,6 +48,7 @@ export function agentApiKeyRoutes(deps: AppDeps) {
   const app = createAppRouter(deps);
   app.use("/organizations/:orgId/agents/:agentId/api-keys", requireSession(deps.auth));
   app.use("/organizations/:orgId/agents/:agentId/api-keys/*", requireSession(deps.auth));
+  app.use("/organizations/:orgId/agent-key-rooms/*", requireSession(deps.auth));
 
   app.openapi(
     createRoute({
@@ -52,11 +59,43 @@ export function agentApiKeyRoutes(deps: AppDeps) {
       summary: "The agent's live API keys",
       description: "Never their secrets. Its owner or anyone with `manage_agents`.",
       request: { params: AgentParams },
-      responses: { 200: json(z.object({ keys: z.array(Key) })), ...errors },
+      responses: {
+        200: json(
+          z.object({
+            keys: z.array(Key),
+            endpoint: z.string().openapi({ description: "Where a key sends this agent messages, on this server" }),
+          }),
+        ),
+        ...errors,
+      },
     }),
     async (c) => {
       const { orgId, agentId } = c.req.valid("param");
-      return c.json({ keys: await listAgentApiKeys(db, c.get("user").id, orgId, agentId) }, 200);
+      const keys = await listAgentApiKeys(db, c.get("user").id, orgId, agentId);
+      // By the agent's id, not its handle: a rename doesn't break a script that pasted it.
+      const endpoint = `${appsUrls(deps.config.PUBLIC_URL).issuer}/api/agents/v1/${agentId}/messages`;
+      return c.json({ keys, endpoint }, 200);
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/organizations/{orgId}/agent-key-rooms/{channelId}",
+      tags,
+      security,
+      summary: "Whose API key a conversation belongs to",
+      description:
+        "A key's conversation is a DM outside the DM list: the apps ask this to open it as that key's. Only for the key's maker (404 for anyone else and for any other conversation); `keyName` is null once the key is gone.",
+      request: { params: OrgParams.extend({ channelId: z.uuid() }) },
+      responses: {
+        200: json(z.object({ agentId: z.string(), keyId: z.string(), keyName: z.string().nullable() })),
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { orgId, channelId } = c.req.valid("param");
+      return c.json(await agentKeyRoom(db, c.get("user").id, orgId, channelId), 200);
     },
   );
 

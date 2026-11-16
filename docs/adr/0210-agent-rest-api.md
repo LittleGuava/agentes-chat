@@ -5,7 +5,9 @@
 - Code: `packages/db/src/schema/agent-api.ts` and migration `0285_agent_api_keys.sql`; `packages/engine/src/agent-api.ts`
   (keys, the bearer gate, sending and reading a result); the waits shared with `/mcp` in
   `packages/engine/src/apps/tools.ts` (`waitForTask`); `apps/server/src/routes/agent-api.ts` (`/api/agents/v1/*`),
-  `apps/server/src/routes/app/agent-api-keys.ts` (the keys' management API); tests `apps/server/test/agent-api.test.ts`
+  `apps/server/src/routes/app/agent-api-keys.ts` (the keys' management API); tests `apps/server/test/agent-api.test.ts`;
+  the card `apps/web/src/pages/agent/ApiCard.tsx` and the key's room in the apps `apps/web/src/pages/ChannelPage.tsx`
+  (`useAgentKeyRoom`), tests `apps/web/test/agent-api-card.test.tsx`
 
 ## Context
 
@@ -83,16 +85,34 @@ what such callers expect, and what other agent products offer.
 
 ## Later
 
-- The key's card on the agent page (web and phone): create with the secret shown once and a `curl` to copy, the
-  list with last use, revoke, and a link that opens the key's conversation.
+- The key's card on the phone (the web's is in the addendum below).
 - A per-workspace switch for the API, if owners ask for one (like ADR 0119 §12, default-allow, every send audited).
 - A conversation per call (or a thread per call, chosen with a `conversation` field), for callers that want
   unrelated requests kept apart.
-- Opening the key's room from a card's notification in the apps: they route a notification's channel to the channel
-  page, and a `dm` room outside the DM list hasn't been tried there.
 - Streaming the reply (SSE) for callers that want words as they come.
 - Confining what a run started through a key may do (fewer tools than the person's own run), if keys end up handed to
   people the creator wouldn't trust with their own access.
+
+## Addendum 2026-11-16: the key's card and its room in the web app
+
+1. **The card.** Configurações on the agent's page has "API do agente" for whoever manages the agent (the same rule
+   as §2): its live keys by name, the secret's last four, who made each and when, the expiry and the last use, never
+   a secret; "Criar chave" with a name and how long it lasts, the secret then shown once in a dialog that closes only
+   after a copy (or asks first), with the `curl` ready to paste with that secret; "Revogar" after a confirmation; and
+   a `curl` with a placeholder for the secret under the list.
+2. **The address is the server's.** `GET …/agents/{agentId}/api-keys` answers `{ keys, endpoint }`: `endpoint` is
+   `PUBLIC_URL` with `/api/agents/v1/{agentId}/messages`, by the agent's id so a rename of its handle never breaks a
+   script that pasted it. The page's own origin isn't used: behind a proxy or in development it isn't the address a
+   script reaches.
+3. **The room opens where its links already point.** `conversation_url`, a reply's `url`, a notification and "Copiar
+   link" all name the room as `/org/{org}/c/{channel}`, and the channel page found nothing there (a `dm` room outside
+   both lists). Rather than a route of its own and every link rewritten, the channel page asks
+   `GET …/agent-key-rooms/{channelId}` when a channel is in neither list, and opens the room as the agent's
+   conversation, its line saying it is the key's ("Conversa da chave de API …"). The answer is the agent, the key and
+   its name, only for the key's maker (the room's only person): anyone else, an admin included, gets 404, as a DM is
+   nobody else's to read (ADR 0151). A revoked key's room stays readable to its maker by the name the key had.
+4. **From the card.** Each key lists `roomId`, the room's channel once a message was sent with it, only for the
+   viewer's own keys; its row's menu then has "Abrir conversa". A key nobody used has no room, so nothing to open.
 
 ## Consequences
 
@@ -103,5 +123,7 @@ what such callers expect, and what other agent products offer.
 - All calls with one key share its room: what earlier calls said is in the context of later ones, and a message sent
   while the agent still works on the one before joins that run, so two calls at once can get one answer between
   them. Callers with unrelated requests at once use one key each until a conversation per call exists.
-- One more room per key; the DM list hides them, so a person with many keys sees no clutter, but finds a key's
-  conversation only through a card's link until the key's card on the agent page links it.
+- One more room per key; the DM list hides them, so a person with many keys sees no clutter, and finds a key's
+  conversation through its row on the agent's page, a card's link or `conversation_url` (addendum §3, §4).
+- A channel address that is neither a channel nor a DM of the person costs one more request before "not found": the
+  lookup of a key's room.

@@ -14892,6 +14892,9 @@
     }
   },
   "errors": {
+    "agentApi": {
+      "keyLimit": "Dieser Agent hat schon 10 Schlüssel. Widerrufe einen, um einen neuen zu erstellen."
+    },
     "tooLarge": "Das ist größer, als der Server annimmt.",
     "tooLargeMax": "Das ist größer, als der Server annimmt: bis zu {{max}} MB.",
     "sidebarLink": {
@@ -15327,12 +15330,6 @@
     "feedback": {
       "filesGone": "Eine Datei, die du hinzugefügt hast, ist weg. Füg sie noch einmal hinzu.",
       "filesPending": "Zu viele Dateien warten darauf, gesendet zu werden. Sende oder entferne einige und versuch es noch einmal."
-    },
-    "agentApi": {
-      "account": "Das Konto, das diesen Schlüssel erstellt hat, kann gerade nicht genutzt werden.",
-      "agentArchived": "Dieser Agent ist archiviert. Stell ihn wieder her, um seine API-Schlüssel zu nutzen.",
-      "keyLimit": "Dieser Agent hat schon {{limit}} API-Schlüssel, mehr geht nicht. Widerrufe zuerst einen.",
-      "notManager": "Nur ein Admin oder der Inhaber des Agenten verwaltet seine API-Schlüssel."
     },
     "announcement": {
       "period": "Das Ende muss nach dem Beginn liegen."
@@ -16334,6 +16331,33 @@
     "deniedTitle": "Nicht verbunden",
     "denied": "Der Computer wurde nicht verbunden. Falls du ihn nicht geöffnet hast, hat niemand Zugriff erhalten.",
     "home": "Zu agentes"
+  },
+  "agentApi": {
+    "title": "Agenten-API",
+    "subtitle": "Skripte sprechen mit {{name}} über HTTP, mit einem Schlüssel.",
+    "help": "Jeder Schlüssel öffnet nur {{name}}. Was ein Skript sendet, geht in deinem Namen in eine eigene Unterhaltung des Schlüssels, mit deinem Zugriff. Wer den Schlüssel hat, liest über die Antworten, was der Agent für dich lesen kann.",
+    "empty": "Noch keine Schlüssel.",
+    "create": "Schlüssel erstellen",
+    "namePlaceholder": "z. B. Deploy-Pipeline",
+    "createdTitle": "Schlüssel erstellt",
+    "once": "Kopiere ihn jetzt. Er wird nicht noch einmal angezeigt.",
+    "copy": "Schlüssel kopieren",
+    "copied": "Schlüssel kopiert",
+    "leaveText": "Ohne Kopieren schließen? Der Schlüssel wird nicht noch einmal angezeigt, und du musst einen neuen erstellen, um einen zu nutzen.",
+    "example": "Beispiel",
+    "copyExample": "Befehl kopieren",
+    "exampleCopied": "Befehl kopiert",
+    "sampleMessage": "Fasse zusammen, was sich heute geändert hat",
+    "revokeText": "Er funktioniert ab sofort nicht mehr. Skripte mit diesem Schlüssel können keine Nachrichten mehr senden.",
+    "revoked": "Schlüssel widerrufen",
+    "created": "Erstellt am {{date}} von {{name}}",
+    "createdByYou": "Erstellt am {{date}} von dir",
+    "usedAt": "Verwendet {{when}}",
+    "neverUsed": "Nie verwendet",
+    "openRoom": "Unterhaltung öffnen",
+    "reauth": "Ein Schlüssel ohne Ablauf braucht eine kürzliche Anmeldung. Melde dich erneut an und erstelle ihn, oder wähle einen Ablauf.",
+    "roomLine": "Unterhaltung des API-Schlüssels {{name}}",
+    "roomLineGone": "Unterhaltung eines API-Schlüssels"
   },
   "apps": {
     "connect": "App verbinden",

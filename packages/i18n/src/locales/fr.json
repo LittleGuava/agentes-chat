@@ -15406,6 +15406,9 @@
     }
   },
   "errors": {
+    "agentApi": {
+      "keyLimit": "Cet agent a déjà 10 clés. Révoques-en une pour en créer une autre."
+    },
     "tooLarge": "C'est plus que ce que le serveur accepte.",
     "tooLargeMax": "C'est plus que ce que le serveur accepte : jusqu'à {{max}} Mo.",
     "sidebarLink": {
@@ -15842,12 +15845,6 @@
     "feedback": {
       "filesGone": "Un fichier que vous avez ajouté n'est plus là. Ajoutez-le de nouveau.",
       "filesPending": "Trop de fichiers attendent d'être envoyés. Envoyez-en ou retirez-en quelques-uns, puis réessayez."
-    },
-    "agentApi": {
-      "account": "Le compte qui a créé cette clé ne peut pas être utilisé pour l'instant.",
-      "agentArchived": "Cet agent est archivé. Restaurez-le pour utiliser ses clés API.",
-      "keyLimit": "Cet agent a déjà {{limit}} clés API, le maximum. Révoquez-en une d'abord.",
-      "notManager": "Seuls un admin ou le responsable de l'agent gèrent ses clés API."
     },
     "announcement": {
       "period": "La fin doit venir après le début."
@@ -16862,6 +16859,33 @@
     "deniedTitle": "Non connecté",
     "denied": "L'ordinateur n'a pas été connecté. Si ce n'est pas vous qui l'avez ouvert, personne n'a obtenu l'accès.",
     "home": "Aller sur agentes"
+  },
+  "agentApi": {
+    "title": "API de l’agent",
+    "subtitle": "Des scripts parlent à {{name}} en HTTP, avec une clé.",
+    "help": "Chaque clé n’ouvre que {{name}}. Ce qu’un script envoie part en ton nom, dans une conversation propre à la clé, avec ton accès. Qui détient la clé lit dans les réponses ce que l’agent peut lire pour toi.",
+    "empty": "Aucune clé créée.",
+    "create": "Créer une clé",
+    "namePlaceholder": "Ex. : Pipeline de déploiement",
+    "createdTitle": "Clé créée",
+    "once": "Copie-la maintenant. Elle ne sera plus affichée.",
+    "copy": "Copier la clé",
+    "copied": "Clé copiée",
+    "leaveText": "Fermer sans copier ? La clé ne sera plus affichée, et il faudra en créer une autre pour en utiliser une.",
+    "example": "Exemple",
+    "copyExample": "Copier la commande",
+    "exampleCopied": "Commande copiée",
+    "sampleMessage": "Résume ce qui a changé aujourd’hui",
+    "revokeText": "Elle cesse de fonctionner tout de suite. Les scripts qui l’utilisent ne peuvent plus envoyer de messages.",
+    "revoked": "Clé révoquée",
+    "created": "Créée le {{date}} par {{name}}",
+    "createdByYou": "Créée le {{date}} par toi",
+    "usedAt": "Utilisée {{when}}",
+    "neverUsed": "Jamais utilisée",
+    "openRoom": "Ouvrir la conversation",
+    "reauth": "Une clé sans expiration demande une connexion récente. Reconnecte-toi et crée-la, ou choisis une expiration.",
+    "roomLine": "Conversation de la clé d’API {{name}}",
+    "roomLineGone": "Conversation d’une clé d’API"
   },
   "apps": {
     "connect": "Connecter une app",
