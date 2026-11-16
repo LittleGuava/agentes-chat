@@ -160,7 +160,17 @@ async function profilesSetup() {
       agentIds,
     });
   const ops = () => fake.calls.filter((c) => c.op === "browser.act" || c.op === "browser.batch");
-  return { ...fake, machineId: paired.machineId, bia, call, names, profile, ops, readPage: source.readPage };
+  return {
+    ...fake,
+    machineId: paired.machineId,
+    bia,
+    call,
+    names,
+    profile,
+    ops,
+    readPage: source.readPage,
+    plan: source.plan,
+  };
 }
 
 const audits = async (action: string) =>
@@ -356,6 +366,24 @@ test("a web search's page opens in the agent's own browser, never its default pr
   const sent = b.ops();
   expect(sent.length).toBeGreaterThan(0);
   expect(sent.every((c) => c.profile === undefined)).toBe(true);
+});
+
+test("a plan with `own` (a meeting, ADR 0199) runs in the agent's own browser even after it switched to a profile", async () => {
+  const b = await profilesSetup();
+  const p = await b.profile([f.agent.id]);
+  const ada = await runOf(f.agent.id);
+  await b.call(ada, "browser_profile", { name: p.name });
+  let n = b.ops().length;
+  await b.plan(ada, [{ do: "open", url: "https://meet.example/abc" }], { own: true });
+  const own = b.ops().slice(n);
+  expect(own.length).toBeGreaterThan(0);
+  expect(own.every((c) => c.profile === undefined)).toBe(true);
+  // Without it, the plan goes where the run switched, as `browser_do`'s does.
+  n = b.ops().length;
+  await b.plan(ada, [{ do: "open", url: "https://chat.example/" }]);
+  const shared = b.ops().slice(n);
+  expect(shared.length).toBeGreaterThan(0);
+  expect(shared.every((c) => c.profile?.id === p.id)).toBe(true);
 });
 
 test("revoking or deleting an agent's default profile tells its next command, not its own browser", async () => {
