@@ -1195,7 +1195,11 @@ export function createJobHandlers(deps: JobDeps): JobHandlers {
     // One event to an outgoing webhook (ADR 0212); retried by the outbox until its last attempt.
     [OUTGOING_WEBHOOK_JOB]: async (job, ctx) => {
       if (!deps.outgoingWebhooks) throw new PermanentJobError("outgoing webhooks aren't set up on this server");
-      await deliverOutgoingWebhook({ db: deps.db, ...deps.outgoingWebhooks }, String(job.payload.deliveryId), ctx);
+      await deliverOutgoingWebhook(
+        { db: deps.db, pubsub: deps.pubsub, ...deps.outgoingWebhooks },
+        String(job.payload.deliveryId),
+        ctx,
+      );
     },
     // Every workspace's failures of the last window, counted into their issues (ADR 0214).
     [HEALTH_SCAN_JOB]: async () => {

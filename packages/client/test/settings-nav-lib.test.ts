@@ -21,6 +21,7 @@ const ALL = [
   "skills",
   "vault",
   "access",
+  "webhooks",
   "devices",
   "storage",
   "import",
@@ -50,7 +51,8 @@ describe("a team's list", () => {
     // Cargos is an entry of its own (ADR 0085 addendum of 2026-11-13); People holds Membros and Convites (ADR 0184).
     expect(settingsTabs("members", ALL, short)).toEqual(["members", "invites"]);
     expect(settingsTabs("roles", ALL, short)).toEqual([]);
-    expect(settingsTabs("connectors", ALL, short)).toEqual(["connectors", "skills", "vault", "access"]);
+    // Outgoing webhooks (ADR 0212) are where the workspace's integrations are, for administrators only.
+    expect(settingsTabs("connectors", ALL, short)).toEqual(["connectors", "skills", "vault", "access", "webhooks"]);
     expect(settingsTabs("usage", ALL, short)).toEqual([]);
     expect(settingsTabs("devices", ALL, short)).toEqual([]);
     expect(settingsEntry("billing", new Set(ALL), short)).toBe("usage");
@@ -73,7 +75,7 @@ describe("a personal workspace's list", () => {
     const { main, advanced } = settingsNav(sections(ALL), short);
     expect(ids(main)).toEqual(["account", "general", "usage", "connectors", "vault", "devices"]);
     expect(ids(advanced)).toEqual(["members", "roles", "storage", "import", "audit", "about"]);
-    expect(settingsTabs("connectors", ALL, short)).toEqual(["connectors", "skills", "access"]);
+    expect(settingsTabs("connectors", ALL, short)).toEqual(["connectors", "skills", "access", "webhooks"]);
     // Inviting someone in works the same: People's Convites tab.
     expect(settingsTabs("members", ALL, short)).toEqual(["members", "invites"]);
   });

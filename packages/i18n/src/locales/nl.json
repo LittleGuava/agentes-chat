@@ -15131,6 +15131,13 @@
       "invalidSecret": "Plak het hele Client Secret, zonder spaties.",
       "invalidRepo": "Schrijf de repository als eigenaar/naam."
     },
+    "outgoingWebhook": {
+      "noEvents": "Kies minstens één gebeurtenis.",
+      "noChannels": "Kies de kanalen waarvan hij de berichten verstuurt.",
+      "channel": "Kies alleen kanalen van de werkruimte. Directe berichten worden nooit verstuurd.",
+      "disabled": "Zet de webhook aan voordat je hem test.",
+      "limit": "Deze werkruimte heeft al het maximum aantal webhooks. Verwijder er eerst een."
+    },
     "githubEvent": {
       "answered": "Iemand heeft al om dit antwoord gevraagd. De agent is ermee bezig."
     },
@@ -15516,15 +15523,6 @@
     "memory": {
       "invalidUntil": "Dat is geen datum. Kies de laatste dag waarop het geldt.",
       "pastUntil": "Die dag is al voorbij. Kies een dag die nog komt."
-    },
-    "outgoingWebhook": {
-      "channel": "Kies alleen kanalen van deze werkruimte, nooit een direct bericht.",
-      "disabled": "Zet de webhook eerst aan.",
-      "event": "Die gebeurtenis bestaat niet. Kies er een uit de lijst.",
-      "limit": "Deze werkruimte heeft al zoveel webhooks als mogelijk. Verwijder er eerst een.",
-      "name": "Geef de webhook een naam.",
-      "noChannels": "Kies de kanalen waarvan hij de berichten verstuurt.",
-      "noEvents": "Kies minstens één gebeurtenis."
     },
     "publishedPage": {
       "notAPage": "Alleen een pagina kan worden gepubliceerd, en dit bestand is er geen.",
@@ -17043,6 +17041,7 @@
       "roles": "Rollen",
       "vault": "Vault",
       "access": "Agents en toegang",
+      "webhooks": "Webhooks",
       "connectors": "Connectors en MCP's",
       "skills": "Skills",
       "storage": "Opslag",
@@ -17077,6 +17076,7 @@
       "roles": "Elke rol voegt rechten, kanalen en agents toe.",
       "vault": "Wachtwoorden, sleutels en contacten van je agents. Wachtwoorden zien ze nooit.",
       "access": "Wat elke agent kan gebruiken: één niveau per connector.",
+      "webhooks": "Stuur de gebeurtenissen van de werkruimte, ondertekend, naar je eigen systemen.",
       "connectors": "Diensten en MCP-servers die één keer voor de hele werkruimte zijn gekoppeld.",
       "skills": "Markdown-instructies die agents openen als ze ze nodig hebben.",
       "storage": "Waar de bestanden van de werkruimte staan.",
@@ -20007,6 +20007,91 @@
         "done": "Vandaag klaar"
       },
       "none": "{{name}} is nu vrij."
+    }
+  },
+  "webhooks": {
+    "new": "Nieuwe webhook",
+    "emptyTitle": "Nog geen webhooks",
+    "emptyText": "Stuur de gebeurtenissen van deze werkruimte naar een eigen adres, ondertekend met een geheim.",
+    "full": "Deze werkruimte heeft {{max}} webhooks, het maximum.",
+    "state": {
+      "on": "Aan",
+      "failures": "Uit door fouten",
+      "off": "Uit"
+    },
+    "inChannels": "in {{channels}}",
+    "lastSuccess": "Laatst bezorgd {{when}}",
+    "offByFailures_one": "Uitgezet na {{count}} mislukte bezorging. Er gaat niets uit tot hij weer aan staat.",
+    "offByFailures_other": "Uitgezet na {{count}} mislukte bezorgingen op rij. Er gaat niets uit tot hij weer aan staat.",
+    "turnOn": "Weer aanzetten",
+    "turnOnAgain": "Aanzetten",
+    "turnOff": "Uitzetten",
+    "turnedOn": "Webhook aangezet",
+    "turnedOff": "Webhook uitgezet",
+    "test": "Testen",
+    "tested": "Test verstuurd. Het resultaat staat bij de bezorgingen.",
+    "edit": "Bewerken",
+    "newSecret": "Nieuw geheim",
+    "newSecretBody": "Het huidige geheim ondertekent vanaf nu niet meer. Wat de handtekening controleert, heeft het nieuwe nodig.",
+    "secretOnce": "Kopieer het ondertekengeheim nu. Het wordt niet meer getoond.",
+    "secretCopied": "Geheim gekopieerd",
+    "delete": "Verwijderen",
+    "deleteBody": "{{name}} en de bezorgingen ervan worden verwijderd. Er gaat niets meer naar het adres.",
+    "deleted": "Webhook verwijderd",
+    "deliveries": "Laatste bezorgingen",
+    "noDeliveries": "Nog niets verstuurd.",
+    "attempts_one": "{{count}} poging",
+    "attempts_other": "{{count}} pogingen",
+    "event": {
+      "messagePosted": "Berichten in kanalen",
+      "runFinished": "Afgeronde agentruns",
+      "issueCreated": "Aangemaakte taken",
+      "ping": "Test"
+    },
+    "delivery": {
+      "delivered": "Bezorgd ({{status}})",
+      "sending": "Versturen…",
+      "retrying_one": "{{count}} keer mislukt. Wordt opnieuw geprobeerd",
+      "retrying_other": "{{count}} keer mislukt. Wordt opnieuw geprobeerd",
+      "retryingStatus_one": "{{count}} keer mislukt ({{status}}). Wordt opnieuw geprobeerd",
+      "retryingStatus_other": "{{count}} keer mislukt ({{status}}). Wordt opnieuw geprobeerd",
+      "refused": "Geweigerd door het adres ({{status}})",
+      "redirect": "Het adres stuurde door ({{status}}). Doorverwijzingen worden niet gevolgd",
+      "timeout": "Het adres antwoordde niet binnen 10 seconden",
+      "network": "Het adres was niet bereikbaar",
+      "addressRefused": "Adres geweigerd: het wijst naar een intern netwerk",
+      "webhookOff": "Niet verstuurd: de webhook stond uit",
+      "gone": "Niet verstuurd: waar ze over ging, is verwijderd",
+      "workspaceClosed": "Niet verstuurd: de werkruimte is geschorst of wordt verwijderd",
+      "failed": "Niet bezorgd"
+    },
+    "form": {
+      "newTitle": "Nieuwe webhook",
+      "editTitle": "Webhook bewerken",
+      "text": "Elke gebeurtenis gaat als POST naar het adres, ondertekend met het geheim.",
+      "name": "Naam",
+      "namePlaceholder": "Sales-CRM",
+      "nameRequired": "Geef de webhook een naam.",
+      "url": "Adres",
+      "urlExample": "https://voorbeeld.nl/agentes",
+      "urlHint": "Een https-adres op internet. Elk verzoek bevat X-Agentes-Webhook-Signature, de HMAC-SHA256 van de body met het geheim. Doorverwijzingen worden niet gevolgd.",
+      "urlHttps": "Gebruik een adres dat begint met https://",
+      "urlInternal": "Dit adres wijst naar een intern netwerk. Gebruik een openbaar adres.",
+      "events": "Gebeurtenissen",
+      "eventsHint": "Berichten: elk nieuw bericht in de gekozen kanalen. Runs: elke agentrun die eindigt, met de status en nooit het antwoord. Taken: elke nieuwe taak, behalve die alleen sommige mensen zien.",
+      "channels": "Kanalen",
+      "channelsHint": "Berichten gaan alleen uit deze kanalen, runs en taken ook. Directe berichten worden nooit verstuurd.",
+      "channelsOptionalHint": "Met gekozen kanalen gaan alleen hun runs en taken eruit. Directe berichten worden nooit verstuurd.",
+      "addChannel": "Kanaal toevoegen",
+      "everyChannel": "Alle kanalen",
+      "noChannel": "Geen kanaal met de naam {{query}}",
+      "noChannels": "Geen kanalen",
+      "create": "Webhook maken",
+      "created": "Webhook gemaakt",
+      "saved": "Wijzigingen opgeslagen"
+    },
+    "notice": {
+      "disabled": "Webhook {{name}} is uitgezet na 10 mislukte bezorgingen op rij"
     }
   },
   "widgets": {

@@ -15581,6 +15581,13 @@
       "invalidSecret": "Colle le Client Secret en entier, sans espaces.",
       "invalidRepo": "Écris le dépôt sous la forme propriétaire/nom."
     },
+    "outgoingWebhook": {
+      "noEvents": "Choisissez au moins un événement.",
+      "noChannels": "Choisissez les canaux dont il envoie les messages.",
+      "channel": "Choisissez uniquement des canaux de l'espace de travail. Les messages directs ne sont jamais envoyés.",
+      "disabled": "Activez le webhook avant de le tester.",
+      "limit": "Cet espace de travail a déjà le maximum de webhooks. Supprimez-en un d'abord."
+    },
     "githubEvent": {
       "answered": "Quelqu'un a déjà demandé cette réponse. L'agent s'en occupe."
     },
@@ -15967,15 +15974,6 @@
     "memory": {
       "invalidUntil": "Ce n'est pas une date. Choisissez le dernier jour où il est valable.",
       "pastUntil": "Ce jour est déjà passé. Choisissez-en un à venir."
-    },
-    "outgoingWebhook": {
-      "channel": "Choisissez uniquement des canaux de cet espace de travail, jamais un message direct.",
-      "disabled": "Activez d'abord le webhook.",
-      "event": "Cet événement n'existe pas. Choisissez-en un dans la liste.",
-      "limit": "Cet espace de travail a déjà tous les webhooks possibles. Supprimez-en un d'abord.",
-      "name": "Donnez un nom au webhook.",
-      "noChannels": "Choisissez les canaux dont il envoie les messages.",
-      "noEvents": "Choisissez au moins un événement."
     },
     "publishedPage": {
       "notAPage": "Seule une page peut être publiée, et ce fichier n'en est pas une.",
@@ -17512,6 +17510,7 @@
       "roles": "Rôles",
       "vault": "Vault",
       "access": "Agents et accès",
+      "webhooks": "Webhooks",
       "connectors": "Connecteurs et MCP",
       "skills": "Compétences",
       "storage": "Stockage",
@@ -17546,6 +17545,7 @@
       "roles": "Chaque rôle ajoute des autorisations, des canaux et des agents.",
       "vault": "Mots de passe, clés et contacts de vos agents. Ils ne voient jamais un mot de passe.",
       "access": "Ce que chaque agent peut utiliser : un niveau par connecteur.",
+      "webhooks": "Envoyez les événements de l'espace de travail, signés, à vos propres systèmes.",
       "connectors": "Services et serveurs MCP connectés une fois pour tout l'espace de travail.",
       "skills": "Instructions en Markdown que les agents ouvrent quand ils en ont besoin.",
       "storage": "Où sont stockés les fichiers de l'espace de travail.",
@@ -20542,6 +20542,95 @@
         "done": "Terminées aujourd'hui"
       },
       "none": "{{name}} est libre en ce moment."
+    }
+  },
+  "webhooks": {
+    "new": "Nouveau webhook",
+    "emptyTitle": "Aucun webhook pour l'instant",
+    "emptyText": "Envoyez les événements de cet espace de travail à une adresse à vous, signés avec un secret.",
+    "full": "Cet espace de travail a {{max}} webhooks, le maximum possible.",
+    "state": {
+      "on": "Activé",
+      "failures": "Désactivé après des échecs",
+      "off": "Désactivé"
+    },
+    "inChannels": "dans {{channels}}",
+    "lastSuccess": "Dernière livraison {{when}}",
+    "offByFailures_one": "Désactivé après {{count}} livraison échouée. Rien n'est envoyé tant qu'il n'est pas réactivé.",
+    "offByFailures_many": "Désactivé après {{count}} livraisons échouées d'affilée. Rien n'est envoyé tant qu'il n'est pas réactivé.",
+    "offByFailures_other": "Désactivé après {{count}} livraisons échouées d'affilée. Rien n'est envoyé tant qu'il n'est pas réactivé.",
+    "turnOn": "Réactiver",
+    "turnOnAgain": "Activer",
+    "turnOff": "Désactiver",
+    "turnedOn": "Webhook activé",
+    "turnedOff": "Webhook désactivé",
+    "test": "Tester",
+    "tested": "Test envoyé. Son résultat apparaît dans les livraisons.",
+    "edit": "Modifier",
+    "newSecret": "Nouveau secret",
+    "newSecretBody": "Le secret actuel cesse de signer maintenant. Ce qui vérifie la signature a besoin du nouveau.",
+    "secretOnce": "Copiez le secret de signature maintenant. Il ne s'affichera plus.",
+    "secretCopied": "Secret copié",
+    "delete": "Supprimer",
+    "deleteBody": "{{name}} et ses livraisons sont supprimés. Plus rien n'est envoyé à son adresse.",
+    "deleted": "Webhook supprimé",
+    "deliveries": "Dernières livraisons",
+    "noDeliveries": "Rien n'a encore été envoyé.",
+    "attempts_one": "{{count}} tentative",
+    "attempts_many": "{{count}} tentatives",
+    "attempts_other": "{{count}} tentatives",
+    "event": {
+      "messagePosted": "Messages dans les canaux",
+      "runFinished": "Exécutions d'agents terminées",
+      "issueCreated": "Tâches créées",
+      "ping": "Test"
+    },
+    "delivery": {
+      "delivered": "Livrée ({{status}})",
+      "sending": "Envoi…",
+      "retrying_one": "Échec {{count}} fois. Nouvel essai en cours",
+      "retrying_many": "Échec {{count}} fois. Nouvel essai en cours",
+      "retrying_other": "Échec {{count}} fois. Nouvel essai en cours",
+      "retryingStatus_one": "Échec {{count}} fois ({{status}}). Nouvel essai en cours",
+      "retryingStatus_many": "Échec {{count}} fois ({{status}}). Nouvel essai en cours",
+      "retryingStatus_other": "Échec {{count}} fois ({{status}}). Nouvel essai en cours",
+      "refused": "Refusée par l'adresse ({{status}})",
+      "redirect": "L'adresse a redirigé ({{status}}). Les redirections ne sont pas suivies",
+      "timeout": "L'adresse n'a pas répondu en 10 secondes",
+      "network": "Impossible de joindre l'adresse",
+      "addressRefused": "Adresse refusée : elle pointe vers un réseau interne",
+      "webhookOff": "Non envoyée : le webhook était désactivé",
+      "gone": "Non envoyée : ce qu'elle devait annoncer a été supprimé",
+      "workspaceClosed": "Non envoyée : l'espace de travail est suspendu ou en cours de suppression",
+      "failed": "Non livrée"
+    },
+    "form": {
+      "newTitle": "Nouveau webhook",
+      "editTitle": "Modifier le webhook",
+      "text": "Chaque événement part vers l'adresse en POST, signé avec son secret.",
+      "name": "Nom",
+      "namePlaceholder": "CRM commercial",
+      "nameRequired": "Donnez un nom au webhook.",
+      "url": "Adresse",
+      "urlExample": "https://exemple.com/agentes",
+      "urlHint": "Une adresse https sur internet. Chaque requête porte X-Agentes-Webhook-Signature, le HMAC-SHA256 du corps avec le secret. Les redirections ne sont pas suivies.",
+      "urlHttps": "Utilisez une adresse qui commence par https://",
+      "urlInternal": "Cette adresse pointe vers un réseau interne. Utilisez une adresse publique.",
+      "events": "Événements",
+      "eventsHint": "Messages : chaque nouveau message dans les canaux choisis. Exécutions : chaque exécution d'agent terminée, avec son statut et jamais sa réponse. Tâches : chaque nouvelle tâche, sauf celles que seules certaines personnes voient.",
+      "channels": "Canaux",
+      "channelsHint": "Les messages ne partent que de ces canaux, les exécutions et les tâches aussi. Les messages directs ne sont jamais envoyés.",
+      "channelsOptionalHint": "Avec des canaux choisis, seules leurs exécutions et tâches sont envoyées. Les messages directs ne sont jamais envoyés.",
+      "addChannel": "Ajouter un canal",
+      "everyChannel": "Tous les canaux",
+      "noChannel": "Aucun canal nommé {{query}}",
+      "noChannels": "Aucun canal",
+      "create": "Créer le webhook",
+      "created": "Webhook créé",
+      "saved": "Modifications enregistrées"
+    },
+    "notice": {
+      "disabled": "Le webhook {{name}} a été désactivé après 10 livraisons échouées d'affilée"
     }
   },
   "widgets": {

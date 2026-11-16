@@ -37034,6 +37034,21 @@
   "errors.webhook.invalidRepo": {
     "value": "Write the repository as owner/name."
   },
+  "errors.outgoingWebhook.noEvents": {
+    "value": "Choose at least one event."
+  },
+  "errors.outgoingWebhook.noChannels": {
+    "value": "Choose the channels whose messages it sends."
+  },
+  "errors.outgoingWebhook.channel": {
+    "value": "Choose only the workspace's channels. Direct messages are never sent."
+  },
+  "errors.outgoingWebhook.disabled": {
+    "value": "Turn the webhook on before testing it."
+  },
+  "errors.outgoingWebhook.limit": {
+    "value": "This workspace already has as many webhooks as it can. Delete one first."
+  },
   "errors.githubEvent.answered": {
     "value": "Someone already asked for this reply. The agent is on it."
   },
@@ -37951,27 +37966,6 @@
   },
   "errors.memory.pastUntil": {
     "value": "That day has already passed. Pick one still ahead."
-  },
-  "errors.outgoingWebhook.channel": {
-    "value": "Choose only channels of this workspace, never a direct message."
-  },
-  "errors.outgoingWebhook.disabled": {
-    "value": "Turn the webhook on first."
-  },
-  "errors.outgoingWebhook.event": {
-    "value": "That event doesn't exist. Choose one from the list."
-  },
-  "errors.outgoingWebhook.limit": {
-    "value": "This workspace already has all the webhooks it can have. Delete one first."
-  },
-  "errors.outgoingWebhook.name": {
-    "value": "Give the webhook a name."
-  },
-  "errors.outgoingWebhook.noChannels": {
-    "value": "Choose the channels whose messages it sends."
-  },
-  "errors.outgoingWebhook.noEvents": {
-    "value": "Choose at least one event."
   },
   "errors.publishedPage.notAPage": {
     "value": "Only a page can be published, and this file isn't one."
@@ -41773,6 +41767,9 @@
   "settings.section.access": {
     "value": "Agents and access"
   },
+  "settings.section.webhooks": {
+    "value": "Webhooks"
+  },
   "settings.section.connectors": {
     "value": "Connectors and MCPs"
   },
@@ -41862,6 +41859,9 @@
   },
   "settings.sectionText.access": {
     "value": "What each agent can use: one level per connector."
+  },
+  "settings.sectionText.webhooks": {
+    "value": "Send the workspace's events, signed, to your own systems."
   },
   "settings.sectionText.connectors": {
     "value": "Services and MCP servers connected once for the whole workspace."
@@ -48577,6 +48577,225 @@
   },
   "taskManager.agentPanel.none": {
     "value": "{{name}} is free now."
+  },
+  "webhooks.new": {
+    "value": "New webhook"
+  },
+  "webhooks.emptyTitle": {
+    "value": "No webhooks yet"
+  },
+  "webhooks.emptyText": {
+    "value": "Send this workspace's events to an address of yours, signed with a secret."
+  },
+  "webhooks.full": {
+    "value": "This workspace has {{max}} webhooks, the most it can have."
+  },
+  "webhooks.state.on": {
+    "value": "On"
+  },
+  "webhooks.state.failures": {
+    "value": "Off after failures"
+  },
+  "webhooks.state.off": {
+    "value": "Off"
+  },
+  "webhooks.inChannels": {
+    "value": "in {{channels}}"
+  },
+  "webhooks.lastSuccess": {
+    "value": "Last delivered {{when}}"
+  },
+  "webhooks.offByFailures": {
+    "value": {
+      "one": "Turned off after {{count}} failed delivery in a row. Nothing is sent until it's back on.",
+      "other": "Turned off after {{count}} failed deliveries in a row. Nothing is sent until it's back on."
+    }
+  },
+  "webhooks.turnOn": {
+    "value": "Turn back on"
+  },
+  "webhooks.turnOnAgain": {
+    "value": "Turn on"
+  },
+  "webhooks.turnOff": {
+    "value": "Turn off"
+  },
+  "webhooks.turnedOn": {
+    "value": "Webhook on"
+  },
+  "webhooks.turnedOff": {
+    "value": "Webhook off"
+  },
+  "webhooks.test": {
+    "value": "Test"
+  },
+  "webhooks.tested": {
+    "value": "Test sent. Its result shows in the deliveries."
+  },
+  "webhooks.edit": {
+    "value": "Edit"
+  },
+  "webhooks.newSecret": {
+    "value": "New secret"
+  },
+  "webhooks.newSecretBody": {
+    "value": "The current secret stops signing now. Whatever checks the signature needs the new one."
+  },
+  "webhooks.secretOnce": {
+    "value": "Copy the signing secret now. It won't be shown again."
+  },
+  "webhooks.secretCopied": {
+    "value": "Secret copied"
+  },
+  "webhooks.delete": {
+    "value": "Delete"
+  },
+  "webhooks.deleteBody": {
+    "value": "{{name}} and its deliveries are deleted. Nothing more goes to its address."
+  },
+  "webhooks.deleted": {
+    "value": "Webhook deleted"
+  },
+  "webhooks.deliveries": {
+    "value": "Latest deliveries"
+  },
+  "webhooks.noDeliveries": {
+    "value": "Nothing sent yet."
+  },
+  "webhooks.attempts": {
+    "value": {
+      "one": "{{count}} attempt",
+      "other": "{{count}} attempts"
+    }
+  },
+  "webhooks.event.messagePosted": {
+    "value": "Messages in channels"
+  },
+  "webhooks.event.runFinished": {
+    "value": "Agent runs finished"
+  },
+  "webhooks.event.issueCreated": {
+    "value": "Tasks created"
+  },
+  "webhooks.event.ping": {
+    "value": "Test"
+  },
+  "webhooks.delivery.delivered": {
+    "value": "Delivered ({{status}})"
+  },
+  "webhooks.delivery.sending": {
+    "value": "Sending…"
+  },
+  "webhooks.delivery.retrying": {
+    "value": {
+      "one": "Failed {{count}} time. Trying again",
+      "other": "Failed {{count}} times. Trying again"
+    }
+  },
+  "webhooks.delivery.retryingStatus": {
+    "value": {
+      "one": "Failed {{count}} time ({{status}}). Trying again",
+      "other": "Failed {{count}} times ({{status}}). Trying again"
+    }
+  },
+  "webhooks.delivery.refused": {
+    "value": "Refused by the address ({{status}})"
+  },
+  "webhooks.delivery.redirect": {
+    "value": "The address redirected ({{status}}). Redirects aren't followed"
+  },
+  "webhooks.delivery.timeout": {
+    "value": "The address didn't answer within 10 seconds"
+  },
+  "webhooks.delivery.network": {
+    "value": "Couldn't reach the address"
+  },
+  "webhooks.delivery.addressRefused": {
+    "value": "Address refused: it points to an internal network"
+  },
+  "webhooks.delivery.webhookOff": {
+    "value": "Not sent: the webhook was off"
+  },
+  "webhooks.delivery.gone": {
+    "value": "Not sent: what it would tell was deleted"
+  },
+  "webhooks.delivery.workspaceClosed": {
+    "value": "Not sent: the workspace is suspended or being deleted"
+  },
+  "webhooks.delivery.failed": {
+    "value": "Not delivered"
+  },
+  "webhooks.form.newTitle": {
+    "value": "New webhook"
+  },
+  "webhooks.form.editTitle": {
+    "value": "Edit webhook"
+  },
+  "webhooks.form.text": {
+    "value": "Each event goes to the address as a POST, signed with its secret."
+  },
+  "webhooks.form.name": {
+    "value": "Name"
+  },
+  "webhooks.form.namePlaceholder": {
+    "value": "Sales CRM"
+  },
+  "webhooks.form.nameRequired": {
+    "value": "Give the webhook a name."
+  },
+  "webhooks.form.url": {
+    "value": "Address"
+  },
+  "webhooks.form.urlExample": {
+    "value": "https://example.com/agentes"
+  },
+  "webhooks.form.urlHint": {
+    "value": "An https address on the internet. Each request carries X-Agentes-Webhook-Signature, the body's HMAC-SHA256 under the secret. Redirects aren't followed."
+  },
+  "webhooks.form.urlHttps": {
+    "value": "Use an address that starts with https://"
+  },
+  "webhooks.form.urlInternal": {
+    "value": "This address points to an internal network. Use a public one."
+  },
+  "webhooks.form.events": {
+    "value": "Events"
+  },
+  "webhooks.form.eventsHint": {
+    "value": "Messages: each new message in the channels chosen. Runs: each agent run that ends, with its status and never its reply. Tasks: each new task, except those only some people see."
+  },
+  "webhooks.form.channels": {
+    "value": "Channels"
+  },
+  "webhooks.form.channelsHint": {
+    "value": "Messages are sent only from these channels, and runs and tasks too. Direct messages are never sent."
+  },
+  "webhooks.form.channelsOptionalHint": {
+    "value": "With channels chosen, only their runs and tasks are sent. Direct messages are never sent."
+  },
+  "webhooks.form.addChannel": {
+    "value": "Add a channel"
+  },
+  "webhooks.form.everyChannel": {
+    "value": "Every channel"
+  },
+  "webhooks.form.noChannel": {
+    "value": "No channel called {{query}}"
+  },
+  "webhooks.form.noChannels": {
+    "value": "No channels"
+  },
+  "webhooks.form.create": {
+    "value": "Create webhook"
+  },
+  "webhooks.form.created": {
+    "value": "Webhook created"
+  },
+  "webhooks.form.saved": {
+    "value": "Changes saved"
+  },
+  "webhooks.notice.disabled": {
+    "value": "Webhook {{name}} was turned off after 10 failed deliveries in a row"
   },
   "widgets.kinds.auto": {
     "value": "Auto"

@@ -306,7 +306,8 @@
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
       "storage.connect.provider.b2",
-      "storage.connect.awsRegion.il-central-1"
+      "storage.connect.awsRegion.il-central-1",
+      "settings.section.webhooks"
     ],
     "es": [
       "browser.profiles.sitesCookies",
@@ -566,7 +567,8 @@
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
       "storage.connect.provider.b2",
-      "storage.connect.awsRegion.il-central-1"
+      "storage.connect.awsRegion.il-central-1",
+      "settings.section.webhooks"
     ],
     "fr": [
       "usage.kinds.routines",
@@ -1014,7 +1016,9 @@
       "storage.connect.awsRegion.eu-west-3",
       "storage.connect.awsRegion.eu-south-1",
       "storage.connect.awsRegion.eu-north-1",
-      "transcript.format"
+      "transcript.format",
+      "settings.section.webhooks",
+      "webhooks.event.ping"
     ],
     "de": [
       "members.domains.domain",
@@ -1484,7 +1488,12 @@
       "storage.connect.theirName.b2Key",
       "storage.connect.theirName.b2Secret",
       "storage.connect.awsRegion.il-central-1",
-      "transcript.format"
+      "transcript.format",
+      "settings.section.webhooks",
+      "webhooks.inChannels",
+      "webhooks.event.ping",
+      "webhooks.form.name",
+      "webhooks.form.urlExample"
     ],
     "it": [
       "settings.import.countSkills",
@@ -1864,7 +1873,8 @@
       "appsDownload.computer",
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
-      "storage.connect.provider.b2"
+      "storage.connect.provider.b2",
+      "webhooks.inChannels"
     ],
     "nl": [
       "usage.kinds.routines",
@@ -2486,7 +2496,10 @@
       "storage.connect.theirName.s3Key",
       "storage.connect.theirName.s3Secret",
       "storage.connect.theirName.b2Key",
-      "storage.connect.theirName.b2Secret"
+      "storage.connect.theirName.b2Secret",
+      "settings.section.webhooks",
+      "webhooks.inChannels",
+      "webhooks.event.ping"
     ],
     "ja": [
       "channel.tooLong.fileName",
@@ -2663,7 +2676,8 @@
       "appsDownload.googlePlay",
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
-      "storage.connect.provider.b2"
+      "storage.connect.provider.b2",
+      "webhooks.form.urlExample"
     ],
     "ko": [
       "channel.tooLong.fileName",
@@ -2834,7 +2848,8 @@
       "appsDownload.googlePlay",
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
-      "storage.connect.provider.b2"
+      "storage.connect.provider.b2",
+      "webhooks.form.urlExample"
     ],
     "zh-Hans": [
       "channel.tooLong.fileName",
@@ -2996,7 +3011,8 @@
       "appsDownload.googlePlay",
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
-      "storage.connect.provider.b2"
+      "storage.connect.provider.b2",
+      "webhooks.form.urlExample"
     ],
     "id": [
       "members.domains.domain",
@@ -3313,7 +3329,9 @@
       "storage.connect.provider.s3",
       "storage.connect.provider.b2",
       "storage.connect.awsRegion.il-central-1",
-      "transcript.format"
+      "transcript.format",
+      "webhooks.edit",
+      "webhooks.form.editTitle"
     ],
     "tr": [
       "brain.acp.models",
@@ -3510,7 +3528,8 @@
       "appsDownload.googlePlay",
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
-      "storage.connect.provider.b2"
+      "storage.connect.provider.b2",
+      "webhooks.event.ping"
     ],
     "pl": [
       "brain.acp.models",
@@ -3819,7 +3838,8 @@
       "storage.connect.provider.s3",
       "storage.connect.provider.b2",
       "storage.connect.region",
-      "transcript.format"
+      "transcript.format",
+      "webhooks.event.ping"
     ],
     "ru": [
       "channel.tooLong.fileName",
@@ -3981,7 +4001,8 @@
       "appsDownload.googlePlay",
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
-      "storage.connect.provider.b2"
+      "storage.connect.provider.b2",
+      "webhooks.form.urlExample"
     ]
   },
   "mobile-base": {

@@ -304,6 +304,13 @@ export const NOTIFICATION_KINDS = [
    * nothing of that cause is wrong.
    */
   "team_watch",
+  /**
+   * An outgoing webhook was turned off by ten failed deliveries in a row (ADR 0212 §7): every member with
+   * `administrator`, one row each time it goes off (`webhook-disabled:<webhookId>:<time>`), `source.webhookId` and its
+   * name in `source.label` and `latest.title`, the last failure's code in `latest.reason` (`timeout`, `http_<status>`…).
+   * Inbox only; done once it is turned back on or deleted.
+   */
+  "webhook_disabled",
 ] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
 
@@ -348,6 +355,8 @@ export interface NotificationSource {
   widgetId?: string;
   /** A skill of the library (`skill_update`). */
   skillId?: string;
+  /** An outgoing webhook (`webhook_disabled`, ADR 0212). */
+  webhookId?: string;
   /** A plan's account (`plan_lent`). */
   accountId?: string;
   /**

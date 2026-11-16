@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-11-15
 - Builds on: ADR 0005 (the Postgres outbox: deliveries are jobs, retried with its backoff), ADR 0007 (sealed secrets), ADR 0085 (permissions: `administrator`), ADR 0106 (routines started by a webhook: the incoming side and its `X-Agentes-Signature`), ADR 0151 (who sees what: administrators read every channel, never a DM)
-- Code: `packages/engine/src/outgoing-webhooks.ts`, `packages/db/src/schema/outgoing-webhooks.ts` (`outgoing_webhooks`, `outgoing_webhook_deliveries`), migration `0295_outgoing_webhooks`, the hooks in `messages.ts` (`insertMessageWithRuns`), `runs.ts` (`transitionRun`) and `issues.ts` (`createIssue`), job `webhooks.deliver` in `jobs.ts`, routes `apps/server/src/routes/app/outgoing-webhooks.ts`
+- Code: `packages/engine/src/outgoing-webhooks.ts`, `packages/db/src/schema/outgoing-webhooks.ts` (`outgoing_webhooks`, `outgoing_webhook_deliveries`), migration `0295_outgoing_webhooks`, the hooks in `messages.ts` (`insertMessageWithRuns`), `runs.ts` (`transitionRun`) and `issues.ts` (`createIssue`), job `webhooks.deliver` in `jobs.ts`, routes `apps/server/src/routes/app/outgoing-webhooks.ts`; the notice `webhook_disabled` (`notifyWebhookDisabled`, `resolveWebhookDisabled` in `notification-producers.ts`); the screen `apps/web/src/components/webhooks/OutgoingWebhooksSection.tsx`, its client `packages/client/src/webhooks/*` and words `packages/client/src/lib/outgoing-webhooks.ts`
 
 ## Context
 
@@ -20,6 +20,8 @@ agentes.chat takes events in (GitHub, Sentry, a routine's own address, ADR 0106)
 7. **Retries, then off.** Each attempt waits 10 seconds at most and reads no answer body. A 2xx is `delivered`. A timeout, a network failure, a 408, a 429 or a 5xx is retried by the outbox with its backoff (ADR 0005), six attempts in all over about 45 minutes, each retried one logged as a warning (the receiver's trouble, not the server's error to report); any other answer fails at once. A delivery that fails for good adds one to the webhook's `consecutive_failures` in one atomic update; ten in a row turn it off (`disabled_at`, `disabled_reason = "failures"`); a delivered one sets it back to zero. An admin turns it back on. A workspace suspended or being deleted sends nothing: its deliveries are `skipped` (`workspace_closed`), as a closed workspace's routine address answers nothing (ADR 0106 §4); one on a hold (its agents stopped) still sends. Every outcome is written with a `where status = 'pending'`, so a job that runs twice (a lost lease) neither sends twice after its first ending nor counts a failure twice.
 8. **The log and Testar.** `outgoing_webhook_deliveries` keeps per delivery: event, subject, status (`pending`, `delivered`, `failed`, `skipped`), attempts, the last HTTP status and a short error code, never a body. Each webhook keeps its newest 100. `POST …/outgoing-webhooks/{id}/test` queues a `ping` delivery through the same path.
 9. **API.** `GET|POST /api/app/organizations/{orgId}/outgoing-webhooks`, `PATCH|DELETE …/{id}` (name, URL, events, channels, `enabled`), `POST …/{id}/secret` (a new secret, shown once, like the first), `POST …/{id}/test`, `GET …/{id}/deliveries`. The secret is shown only when made.
+10. **The screen.** Configurações › Conectores › Webhooks, a tab beside the connectors and only for `administrator` (a member never gets it, and the server is never asked). One card per webhook: its name, its address, its state in words (on, off, off after failures), its events and channels, its last delivery; the actions Testar (only while it is on), Edit, New secret, Turn off or on, Delete, and its latest deliveries, each with its result in words. The form checks a name, an https address, at least one event and channels for `message.posted` before sending; the server's refusals (an internal address among them) are said under their field. A secret, the first or a new one, is shown once on its card with Copy and is never in the list's answer. A new secret and Delete ask first, in place. The desktop app shows the same page (ADR 0036). The phone has no screen for it yet.
+11. **Telling the administrators.** When ten failures in a row turn a webhook off, every administrator gets a `webhook_disabled` notification in the inbox (the webhook's name and the last error), no push and no email: it waits for someone to look, it asks nothing of them right now. One per time it is turned off (its group carries the moment), closed when it is turned back on or deleted. It opens this screen.
 
 ## Consequences
 
@@ -31,9 +33,9 @@ agentes.chat takes events in (GitHub, Sentry, a routine's own address, ADR 0106)
 
 ## Later
 
-- The screen: a card in Settings (list, form, the secret shown once, Testar, the latest deliveries) on the web, the desktop and the phone. This first slice is the API.
+- The screen on the phone.
 - More events (a message edited or deleted, a task updated or closed, an approval asked, a routine's report), and a filter by agent.
-- Telling the admins when a webhook is turned off (a notification and an email), and replaying a failed delivery by hand.
+- An email to the admins when a webhook is turned off (the notification is §11), and replaying a failed delivery by hand.
 - A signature that also covers a timestamp header, for receivers that don't read the body's `sentAt`.
 
 ## Alternatives considered

@@ -17,6 +17,8 @@ export const SETTINGS_PARTS: Readonly<Record<string, string>> = {
   skills: "connectors",
   vault: "connectors",
   access: "connectors",
+  // Outgoing webhooks (ADR 0212): where the workspace's integrations are.
+  webhooks: "connectors",
 };
 
 /** A team's entries, in order: Your account, Workspace, People, Roles, AI and usage, Connectors. */

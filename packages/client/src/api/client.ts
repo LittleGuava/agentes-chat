@@ -24,6 +24,12 @@ import type {
   VaultOverview,
   VaultScope,
 } from "../vault/types";
+import type {
+  OutgoingWebhook,
+  OutgoingWebhookDelivery,
+  OutgoingWebhookInput,
+  OutgoingWebhookPatch,
+} from "../webhooks/types";
 import type { UploadOptions } from "./http";
 import type {
   AccessInput,
@@ -2264,6 +2270,20 @@ export interface ApiClient {
     signOutSite(orgId: string, profileId: string, site: string): Promise<BrowserSiteSignOut>;
     /** The caller's own browser a run in their DM drives (null elsewhere); absent from older fakes. */
     runPersonal?(orgId: string, runId: string): Promise<BrowserProfile | null>;
+  };
+  /**
+   * A workspace's outgoing webhooks (ADR 0212), administrators only. A secret comes back only from `create` and
+   * `rotateSecret`. Optional so older fakes type-check (`createHttpApi` has it).
+   */
+  outgoingWebhooks?: {
+    list(orgId: string): Promise<OutgoingWebhook[]>;
+    create(orgId: string, input: OutgoingWebhookInput): Promise<{ webhook: OutgoingWebhook; secret: string }>;
+    /** `enabled: true` turns it back on with its failures from zero. */
+    update(orgId: string, id: string, patch: OutgoingWebhookPatch): Promise<OutgoingWebhook>;
+    remove(orgId: string, id: string): Promise<void>;
+    rotateSecret(orgId: string, id: string): Promise<{ secret: string }>;
+    test(orgId: string, id: string): Promise<{ deliveryId: string }>;
+    deliveries(orgId: string, id: string): Promise<OutgoingWebhookDelivery[]>;
   };
   /**
    * The Vault (ADR 0144): logins, keys and contacts agents use without seeing a password or a key. No answer carries
