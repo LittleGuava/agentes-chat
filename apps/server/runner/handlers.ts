@@ -549,7 +549,11 @@ async function doMcpStdio(
   secrets: Secrets,
 ): Promise<MachineReplies["mcp.stdio"]> {
   requireTool(ctx, "commands");
-  if (!req.agent) throw new RunnerError("bad_request", "An MCP program runs for an agent");
+  // `MCP_STDIO_LISTING_PROTOCOL`: registering lists the tools for no agent, in this runner's workspace (only outside
+  // system mode: there root sends every `agent` op to a worker, and one with no agent goes nowhere). A call is an agent's.
+  if (!req.agent && req.call?.method !== "tools/list") {
+    throw new RunnerError("bad_request", "An MCP program's tool runs for an agent");
+  }
   // From the wire: read as unknown and checked word by word.
   const raw: unknown = req.server;
   const server: Record<string, unknown> = isRecordLike(raw) ? raw : {};

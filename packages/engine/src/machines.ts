@@ -31,6 +31,7 @@ import { getAgent, workspaceHomeId } from "./agents";
 import { type AuditEntry, recordAudit } from "./audit";
 import { isSandboxedBrain } from "./brains/types";
 import { caches } from "./cache";
+import { dropComputerPrograms } from "./connectors/connections";
 import { ForbiddenError, NotFoundError, ValidationError } from "./errors";
 import { publishOrgEvent } from "./events";
 import { can, requireActiveMembership, requirePermission } from "./organizations";
@@ -900,6 +901,8 @@ export async function detachMachine(tx: Executor, machine: Pick<MachineRow, "id"
       updatedAt: now,
     })
     .where(eq(machines.id, machine.id));
+  // The programs registered on it (ADR 0215) can't run anywhere else: they are disconnected with it.
+  await dropComputerPrograms(tx, machine.orgId, machine.id);
   // Its phones keep their rows (names, rules) for a host that reports them again.
   await tx
     .update(schema.machinePhones)
@@ -917,6 +920,9 @@ export async function announceRemovedMachine(
 ) {
   const orgId = machine.orgId;
   for (const agentId of freed) caches.agents.delete(`${orgId}:${agentId}`);
+  // Its programs' connections were disconnected with it.
+  caches.connections.delete(`${orgId}:active`);
+  caches.scopes.deletePrefix(`${orgId}:`);
   await recordAudit(deps.db, {
     orgId,
     actor,

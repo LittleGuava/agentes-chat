@@ -13272,6 +13272,10 @@
     "connected": "Verbunden",
     "connectedAs": "Verbunden als {{account}}",
     "reconnectAdds": "Verbinde {{name}} neu, damit Agenten auch {{what}} können.",
+    "program": {
+      "on": "Läuft auf {{computer}}",
+      "variables": "Variablen: <names/>. Um sie zu ändern, füge das Programm neu hinzu."
+    },
     "sendsToo": "Sendet außerdem: <names/>. Zum Ändern nutze Erneut verbinden.",
     "adds": {
       "github_project": "GitHub Projects nutzen (Boards lesen und Karten verschieben)"
@@ -14362,10 +14366,34 @@
     "oauthHelp": "Du autorisierst auf der Seite von {{name}} und kommst hierher zurück.",
     "customText": "Jeder MCP-Server über seine https-Adresse. Unterstützt er OAuth, autorisierst du auf seiner Seite.",
     "urlHelp": "Die https-Adresse des Servers oder der Befehl claude mcp add oder der mcpServers-Block, den du bekommen hast.",
+    "way": {
+      "label": "Wie es läuft",
+      "address": "Per Adresse",
+      "program": "Programm auf diesem Computer"
+    },
+    "program": {
+      "text": "Ein MCP-Server, der als Befehl auf einem Computer startet, den du verbunden hast. Die Befehlsregeln dieses Computers entscheiden, was starten darf.",
+      "computer": "Computer",
+      "runsOn": "Läuft auf {{computer}}.",
+      "command": "Befehl",
+      "commandMissing": "Gib den Befehl ein, der das Programm startet.",
+      "commandQuote": "Im Befehl ist ein Anführungszeichen offen geblieben.",
+      "variablesHelp": "Variablen werden verschlüsselt gespeichert und gehen nur an diesen Computer, wenn das Programm startet. Niemand sieht ihre Werte wieder.",
+      "variable": "Variable",
+      "variableOf": "Name der Variable {{n}}",
+      "valueOf": "Wert der Variable {{n}}",
+      "removeVariable": "Variable {{n}} entfernen",
+      "addVariable": "Variable hinzufügen",
+      "add": "Programm hinzufügen",
+      "note": "Kein Agent nutzt es, bis du ihm Zugriff gibst.",
+      "starting": "Wird auf {{computer}} gestartet…"
+    },
     "paste": {
       "command": "Das ist ein Server, der als Befehl läuft (stdio). Agenten erreichen MCP-Server nur über ihre https-Adresse.",
       "urlAsked": "Ergänze {{names}} in der Adresse.",
-      "keyAsked": "Gib den Schlüssel ein, den der eingefügte Text aus {{names}} nahm."
+      "keyAsked": "Gib den Schlüssel ein, den der eingefügte Text aus {{names}} nahm.",
+      "program": "Das ist ein Server, der als Befehl läuft (stdio). Er kann auf einem Computer laufen, den du verbunden hast.",
+      "useProgram": "Als Programm nutzen"
     },
     "name": "Name",
     "namePlaceholder": "Z. B. Support",
@@ -14460,7 +14488,8 @@
       "asks_one": "{{count}} Aktion fragt im Chat nach Freigabe.",
       "asks_other": "{{count}} Aktionen fragen im Chat nach Freigabe.",
       "adjust": "Anpassen",
-      "ok": "Fertig"
+      "ok": "Fertig",
+      "program": "Noch nutzt es kein Agent. Wähle unter Anpassen, wer."
     }
   },
   "database": {
@@ -15166,7 +15195,10 @@
       "headerAndKey": "Der API-Schlüssel wird schon als Authorization gesendet. Lösch den Schlüssel oder entferne diesen Header.",
       "headersTooMany": "Ein Server nimmt höchstens {{max}} Header. Entferne einen, um einen weiteren hinzuzufügen.",
       "headersWithSignIn": "Dieser Server verlangt eine Anmeldung, und eine Anmeldung kann noch keine Header mitsenden. Entferne die Header, um dich anzumelden, oder verbinde ihn mit einem API-Schlüssel.",
-      "headersUnreadable": "Die gespeicherten Header konnten nicht gelesen werden. Gib sie neu ein oder entferne sie."
+      "headersUnreadable": "Die gespeicherten Header konnten nicht gelesen werden. Gib sie neu ein oder entferne sie.",
+      "programComputer": "{{computer}} kann gerade keine Programme ausführen. Es muss ein Computer sein, den du verbunden hast, außerhalb des Systemmodus, online und mit eingeschalteten Befehlen.",
+      "programInvalid": "Prüfe den Befehl und die Variablen. Ein Name besteht aus Buchstaben, Ziffern und _, jeder nur einmal. Variablen, die anderen Code laden (NODE_OPTIONS, LD_PRELOAD, PATH und ähnliche), werden nicht angenommen.",
+      "programFailed": "Das Programm ist auf {{computer}} nicht gestartet. Der Computer meldete: {{detail}}"
     },
     "wiki": {
       "githubNoNotes": "Unter diesem Link gibt es keine Markdown-Notizen.",

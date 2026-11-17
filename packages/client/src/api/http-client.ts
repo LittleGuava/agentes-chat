@@ -219,6 +219,7 @@ import type {
   PhoneTools,
   PlanServes,
   Poll,
+  ProgramComputer,
   Proposal,
   PublishedPage,
   ReactionCount,
@@ -2093,6 +2094,10 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         }),
       disconnect: (orgId, serverId) =>
         request<void>(`${org(orgId)}/connectors/custom/${enc(serverId)}`, { method: "DELETE" }),
+      programComputers: async (orgId) =>
+        (await request<{ computers: ProgramComputer[] }>(`${org(orgId)}/connectors/program-computers`)).computers,
+      connectProgram: (orgId, input) =>
+        request<CustomServer>(`${org(orgId)}/connectors/custom/program`, { json: input }),
     },
     questions: {
       answer: (orgId, questionId, input) =>

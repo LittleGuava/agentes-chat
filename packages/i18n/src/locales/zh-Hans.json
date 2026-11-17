@@ -12822,6 +12822,10 @@
     "connected": "已连接",
     "connectedAs": "已连接为 {{account}}",
     "reconnectAdds": "重新连接 {{name}}，让智能体也能{{what}}。",
+    "program": {
+      "on": "在 {{computer}} 上运行",
+      "variables": "变量：<names/>。要修改，请重新添加该程序。"
+    },
     "sendsToo": "还会发送：<names/>。要更改，请使用“重新连接”。",
     "adds": {
       "github_project": "使用 GitHub Projects（读取看板并移动卡片）"
@@ -13892,10 +13896,34 @@
     "oauthHelp": "你在 {{name}} 的页面上授权，然后回到这里。",
     "customText": "通过 https 地址连接任意 MCP 服务器。如果它支持 OAuth，你会在它的页面上授权。",
     "urlHelp": "服务器的 https 地址，或别人给你的 claude mcp add 命令或 mcpServers 配置块。",
+    "way": {
+      "label": "运行方式",
+      "address": "通过地址",
+      "program": "此电脑上的程序"
+    },
+    "program": {
+      "text": "在你连接的电脑上以命令启动的 MCP 服务器。能启动什么由那台电脑的命令规则决定。",
+      "computer": "电脑",
+      "runsOn": "在 {{computer}} 上运行。",
+      "command": "命令",
+      "commandMissing": "输入启动该程序的命令。",
+      "commandQuote": "命令中有未闭合的引号。",
+      "variablesHelp": "变量加密保存，只在程序启动时发送到那台电脑。之后没人能再看到它们的值。",
+      "variable": "变量",
+      "variableOf": "变量 {{n}} 的名称",
+      "valueOf": "变量 {{n}} 的值",
+      "removeVariable": "移除变量 {{n}}",
+      "addVariable": "添加变量",
+      "add": "添加程序",
+      "note": "在你授予访问权限之前，没有智能体会使用它。",
+      "starting": "正在 {{computer}} 上启动…"
+    },
     "paste": {
       "command": "这是以命令方式运行的服务器 (stdio)。智能体只能通过 https 地址连接 MCP 服务器。",
       "urlAsked": "请补全地址中的 {{names}}。",
-      "keyAsked": "请输入粘贴内容原本从 {{names}} 读取的密钥。"
+      "keyAsked": "请输入粘贴内容原本从 {{names}} 读取的密钥。",
+      "program": "这是以命令运行的服务器（stdio）。它可以在你连接的电脑上运行。",
+      "useProgram": "作为程序使用"
     },
     "name": "名称",
     "namePlaceholder": "例如：客服",
@@ -13984,7 +14012,8 @@
       "waiting": "继续后，智能体才会按我们建议的权限级别获得这些工具。",
       "asks_other": "{{count}} 项操作会在聊天中请求审批。",
       "adjust": "调整",
-      "ok": "完成"
+      "ok": "完成",
+      "program": "还没有智能体使用它。在“调整”中选择谁来用。"
     }
   },
   "database": {
@@ -14677,7 +14706,10 @@
       "headerAndKey": "API 密钥已作为 Authorization 发送。请清空密钥，或移除这个标头。",
       "headersTooMany": "一个服务器最多可设置 {{max}} 个标头。请先移除一个再添加。",
       "headersWithSignIn": "此服务器要求登录，而登录暂时无法携带标头。请移除标头后登录，或用 API 密钥连接。",
-      "headersUnreadable": "无法读取已保存的标头。请重新输入，或将其移除。"
+      "headersUnreadable": "无法读取已保存的标头。请重新输入，或将其移除。",
+      "programComputer": "{{computer}} 现在无法运行程序。它必须是你连接的电脑，不在系统模式下，在线，并且已开启命令。",
+      "programInvalid": "请检查命令和变量。名称只能包含字母、数字和 _，每个名称只出现一次。不接受会加载其他代码的变量（NODE_OPTIONS、LD_PRELOAD、PATH 等）。",
+      "programFailed": "程序未在 {{computer}} 上启动。电脑的回复：{{detail}}"
     },
     "wiki": {
       "githubNoNotes": "此链接中没有 Markdown 笔记。",

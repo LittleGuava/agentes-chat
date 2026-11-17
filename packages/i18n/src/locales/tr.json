@@ -13208,6 +13208,10 @@
     "connected": "Bağlı",
     "connectedAs": "{{account}} olarak bağlı",
     "reconnectAdds": "Ajanlar {{what}} diye {{name}} bağlantısını yeniden kurun.",
+    "program": {
+      "on": "{{computer}} üzerinde çalışır",
+      "variables": "Değişkenler: <names/>. Değiştirmek için programı yeniden ekle."
+    },
     "sendsToo": "Şunları da gönderir: <names/>. Değiştirmek için Yeniden bağla'yı kullanın.",
     "adds": {
       "github_project": "GitHub Projects'i de kullanabilsin (panoları okuyup kartları taşıyabilsin)"
@@ -14298,10 +14302,34 @@
     "oauthHelp": "{{name}} sayfasında yetki verip buraya dönersiniz.",
     "customText": "https adresiyle herhangi bir MCP sunucusu. OAuth destekliyorsa onun sayfasında yetki verirsiniz.",
     "urlHelp": "Sunucunun https adresi ya da sana verilen claude mcp add komutu veya mcpServers bloğu.",
+    "way": {
+      "label": "Nasıl çalışır",
+      "address": "Adresle",
+      "program": "Bu bilgisayarda program"
+    },
+    "program": {
+      "text": "Bağladığın bir bilgisayarda komut olarak başlayan bir MCP sunucusu. Neyin başlayabileceğine o bilgisayarın komut kuralları karar verir.",
+      "computer": "Bilgisayar",
+      "runsOn": "{{computer}} üzerinde çalışır.",
+      "command": "Komut",
+      "commandMissing": "Programı başlatan komutu yaz.",
+      "commandQuote": "Komutta açık kalan bir tırnak var.",
+      "variablesHelp": "Değişkenler şifreli saklanır ve yalnızca program başlarken o bilgisayara gider. Değerlerini bir daha kimse görmez.",
+      "variable": "Değişken",
+      "variableOf": "{{n}}. değişkenin adı",
+      "valueOf": "{{n}}. değişkenin değeri",
+      "removeVariable": "{{n}}. değişkeni kaldır",
+      "addVariable": "Değişken ekle",
+      "add": "Program ekle",
+      "note": "Sen erişim verene kadar hiçbir agent kullanmaz.",
+      "starting": "{{computer}} üzerinde başlatılıyor…"
+    },
     "paste": {
       "command": "Bu, komut olarak çalışan bir sunucu (stdio). Ajanlar MCP sunucularına yalnızca https adresinden ulaşır.",
       "urlAsked": "Adresteki {{names}} kısmını doldur.",
-      "keyAsked": "Yapıştırılan metnin {{names}} içinden aldığı anahtarı yaz."
+      "keyAsked": "Yapıştırılan metnin {{names}} içinden aldığı anahtarı yaz.",
+      "program": "Bu, komut olarak çalışan bir sunucu (stdio). Bağladığın bir bilgisayarda çalışabilir.",
+      "useProgram": "Program olarak kullan"
     },
     "name": "Ad",
     "namePlaceholder": "Örn. Destek",
@@ -14396,7 +14424,8 @@
       "asks_one": "{{count}} işlem sohbette onay ister.",
       "asks_other": "{{count}} işlem sohbette onay ister.",
       "adjust": "Ayarla",
-      "ok": "Tamam"
+      "ok": "Tamam",
+      "program": "Henüz hiçbir agent kullanmıyor. Kimin kullanacağını Ayarla'da seç."
     }
   },
   "database": {
@@ -15102,7 +15131,10 @@
       "headerAndKey": "API anahtarı zaten Authorization olarak gönderiliyor. Anahtarı silin ya da bu başlığı kaldırın.",
       "headersTooMany": "Bir sunucu en çok {{max}} başlık alır. Yenisini eklemek için birini kaldırın.",
       "headersWithSignIn": "Bu sunucu giriş istiyor ve giriş henüz başlık taşıyamıyor. Giriş yapmak için başlıkları kaldırın ya da API anahtarıyla bağlayın.",
-      "headersUnreadable": "Kayıtlı başlıklar okunamadı. Yeniden yazın ya da kaldırın."
+      "headersUnreadable": "Kayıtlı başlıklar okunamadı. Yeniden yazın ya da kaldırın.",
+      "programComputer": "{{computer}} şu anda program çalıştıramaz. Senin bağladığın, sistem modu dışında, çevrimiçi ve Komutlar açık bir bilgisayar olmalı.",
+      "programInvalid": "Komutu ve değişkenleri kontrol et. Bir ad harf, rakam ve _ içerir, her biri bir kez. Başka kod yükleyen değişkenler (NODE_OPTIONS, LD_PRELOAD, PATH ve benzerleri) kabul edilmez.",
+      "programFailed": "Program {{computer}} üzerinde başlamadı. Bilgisayarın yanıtı: {{detail}}"
     },
     "wiki": {
       "githubNoNotes": "Bu bağlantıda Markdown notu yok.",

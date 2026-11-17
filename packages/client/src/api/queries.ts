@@ -173,6 +173,7 @@ import type {
   PersonLimits,
   PhoneTool,
   PhoneTools,
+  ProgramInput,
   Proposal,
   ReactionCount,
   ReminderInput,
@@ -4137,8 +4138,24 @@ export function useCustomServerAction(orgId: string) {
       mutationFn: (id: string) => api.customConnectors.disconnect(orgId, id),
       onSuccess: done,
     }),
+    connectProgram: useMutation({
+      mutationFn: (input: ProgramInput) => api.customConnectors.connectProgram(orgId, input),
+      onSuccess: done,
+      // The form says its own failures.
+      meta: { silent: true },
+    }),
   };
 }
+
+/** The caller's own computers that can run a program (ADR 0215); only asked for a manager of connectors. */
+export const useProgramComputers = (orgId: string, enabled = true) => {
+  const api = useApi();
+  return useQuery({
+    queryKey: keys.programComputers(orgId),
+    queryFn: () => api.customConnectors.programComputers(orgId),
+    enabled,
+  });
+};
 
 // ── Memory and proposals (phase 5) ──────────────────────────────────────────
 

@@ -3088,12 +3088,15 @@ export interface CustomServer {
   label: string;
   /** The account as the provider names it ("Acme"), when it says. */
   accountLabel?: string | null;
-  authType: "oauth" | "api_key";
+  /** `computer`: a stdio program on a connected computer (ADR 0215), with `program`. */
+  authType: "oauth" | "api_key" | "computer";
   /**
-   * The request headers typed for it, by name (their values are never returned); empty when it has none, and for
-   * who doesn't manage connectors. Older servers leave it out.
+   * The request headers typed for it, or a program's variables, by name (their values are never returned); empty when
+   * it has none, and for who doesn't manage connectors. Older servers leave it out.
    */
   headerNames?: string[];
+  /** A program on a connected computer (ADR 0215): which computer runs it. */
+  program?: { machineId: string };
   /** The server's own icon, kept and served by the backend (`/api/app/connector-icons/…`); null = a monogram. */
   iconUrl?: string | null;
   /** A service through Composio (ADR 0107): its address means nothing to people. */
@@ -3114,6 +3117,22 @@ export interface CustomServer {
   /** Last time an admin saved the classification; null = never (nothing exposed). */
   reviewedAt: string | null;
   createdAt: string;
+}
+
+/** One of the caller's connected computers, and whether it can run a program now (ADR 0215). */
+export interface ProgramComputer {
+  id: string;
+  name: string;
+  available: boolean;
+}
+
+/** A stdio MCP program to register on a connected computer: its variables' values are sealed, never returned. */
+export interface ProgramInput {
+  machineId: string;
+  command: string;
+  args: string[];
+  env: RequestHeader[];
+  label?: string;
 }
 
 /** One's own account on a per-person connection (ADR 0195), as its owner sees it. */

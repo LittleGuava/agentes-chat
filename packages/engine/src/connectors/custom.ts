@@ -71,6 +71,7 @@ import {
   serverUrlShown,
   takesKey,
 } from "./presets";
+import { PROGRAM_AUTH, programMachineOf } from "./program-url";
 import { checkRequestHeaders, type RequestHeader } from "./request-headers";
 import { type McpServerInfo, refreshServerIcon } from "./server-icon";
 
@@ -189,12 +190,15 @@ export interface CustomServerView {
   label: string;
   /** The account as the provider names it ("Acme"), when it says; null otherwise. */
   accountLabel: string | null;
-  authType: "oauth" | "api_key";
+  /** `computer`: a stdio program on a connected computer (ADR 0215), with `program`. */
+  authType: "oauth" | "api_key" | typeof PROGRAM_AUTH;
   /**
-   * The request headers a person typed for it, by name and never by value (ADR 0186); empty when it has none, and
-   * for a reader who doesn't manage connectors.
+   * The request headers a person typed for it, by name and never by value (ADR 0186); a program's variables, the same
+   * way. Empty when it has none, and for a reader who doesn't manage connectors.
    */
   headerNames: string[];
+  /** A program on a connected computer: which one (ADR 0215, addendum 2026-11-17). */
+  program?: { machineId: string };
   /** The server's own icon, served by us (`/api/app/connector-icons/…`); null = a monogram. */
   iconUrl: string | null;
   /** A service through Composio (ADR 0107): its page signs in, and its address means nothing to people. */
@@ -287,13 +291,15 @@ function view(
 ): CustomServerView {
   const mine = tools.filter((t) => t.connectionId === c.id);
   const prefix = sharedPrefix(mine.map((t) => t.name));
+  const machineId = programMachineOf(c.serverUrl);
   return {
     id: c.id,
     serverUrl: whole ? c.serverUrl : serverUrlShown(c.serverUrl),
     label: c.label,
     accountLabel: c.accountLabel,
-    authType: c.authType === "oauth" ? "oauth" : "api_key",
+    authType: c.authType === "oauth" ? "oauth" : c.authType === PROGRAM_AUTH ? PROGRAM_AUTH : "api_key",
     headerNames: whole ? (c.headerNames ?? []) : [],
+    ...(machineId ? { program: { machineId } } : {}),
     iconUrl: c.icon,
     ...(composioToolkitOf(c.serverUrl) ? { via: "composio" as const } : {}),
     status: c.status === "needs_reconnect" ? "needs_reconnect" : "active",
@@ -443,12 +449,14 @@ export async function storeCustomConnection(
     serverUrl: string;
     /** The service's name ("Stripe", what the person typed): its first account's name, the others' base. */
     label: string;
-    authType: "oauth" | "api_key" | "none";
+    authType: "oauth" | "api_key" | "none" | typeof PROGRAM_AUTH;
     secret: ConnectionSecret | null;
     tokenExpiresAt?: Date | null;
     oauthClientId?: string | null;
     resource?: string | null;
     connectionId?: string | null;
+    /** A new connection is every agent's (`grantToEveryAgent`) unless false: a program on a person's computer is nobody's. */
+    grantEveryone?: boolean;
     /** Through Composio: its connected account, and the name Composio keeps for it when the entry can't ask. */
     composio?: { accountId: string; name: string | null };
   },
@@ -501,7 +509,12 @@ export async function storeCustomConnection(
     tokenExpiresAt: input.tokenExpiresAt ?? null,
     oauthClientId: input.oauthClientId ?? null,
     resource: input.resource ?? null,
-    headerNames: input.secret?.headers ? Object.keys(input.secret.headers) : null,
+    // A program's variables go by name as a server's headers do; their values stay in the secret.
+    headerNames: input.secret?.headers
+      ? Object.keys(input.secret.headers)
+      : input.secret?.program
+        ? Object.keys(input.secret.program.env ?? {})
+        : null,
     ...(account ? { accountId: account.id, accountLabel: named } : named ? { accountLabel: named } : {}),
     // New credentials: whatever stopped working before is behind it.
     status: "active",
@@ -579,10 +592,10 @@ export async function storeCustomConnection(
             authType: input.authType,
             label,
             account: named,
-            everyAgent: true,
+            everyAgent: input.grantEveryone !== false,
           },
         });
-        await grantToEveryAgent(tx, input.orgId, input.actorId, row);
+        if (input.grantEveryone !== false) await grantToEveryAgent(tx, input.orgId, input.actorId, row);
         return { twin: null, row };
       });
       if (!done.row) {
@@ -790,7 +803,7 @@ export async function syncCustomTools(deps: CustomDeps, c: ConnectorConnection) 
 }
 
 /** The server as stored now (a listing may have just changed its icon). */
-async function serverView(db: Database, orgId: string, id: string) {
+export async function serverView(db: Database, orgId: string, id: string) {
   return view(await loadCustom(db, orgId, id), await toolRows(db, [id]));
 }
 

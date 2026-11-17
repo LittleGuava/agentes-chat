@@ -79,6 +79,39 @@ test("system mode runs it in the agent's worker, as the agent's own user, like a
   expect(OP_ROUTES["mcp.stdio"]).toBe("agent");
 });
 
+test("a listing for no agent (registering the connector) runs in the computer's workspace, under the same rules", async () => {
+  const { ctx } = computer();
+  const listing = (server: Partial<Extract<MachineRequest, { op: "mcp.stdio" }>["server"]> = {}, c = ctx) =>
+    handleRequest(
+      c,
+      {
+        op: "mcp.stdio",
+        server: { command: process.execPath, args: [FAKE], ...server },
+        call: { method: "tools/list" },
+        timeoutSeconds: 20,
+      },
+      scope(),
+    ) as Promise<MachineReplies["mcp.stdio"]>;
+  expect((await listing()).tools?.map((t) => t.name)).toEqual(["echo", "read_text"]);
+  // The command policy and the Commands switch hold with no agent as with one.
+  expect(await errorCode(() => listing({ command: "npx", args: ["vercel", "deploy", "--prod"] }))).toBe(
+    "approval_needed",
+  );
+  expect(await errorCode(() => listing({}, computer({ commands: false }).ctx))).toBe("exec_disabled");
+  // A call is always an agent's: only a listing goes without one.
+  const call = handleRequest(
+    ctx,
+    {
+      op: "mcp.stdio",
+      server: { command: process.execPath, args: [FAKE] },
+      call: { method: "tools/call", name: "echo", arguments: {} },
+      timeoutSeconds: 20,
+    },
+    scope(),
+  );
+  expect(await errorCode(() => call)).toBe("bad_request");
+});
+
 test("a listing is every page, and the program's request of the client is refused, not left waiting", async () => {
   const { ctx } = computer();
   const reply = await ask(ctx, { method: "tools/list" });

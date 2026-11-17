@@ -40,6 +40,7 @@ import {
   monogram,
   needsKeyText,
   ownMarkUri,
+  programVariablesLine,
   searchConnectors,
   shownMailboxes,
   stateOf,
@@ -403,6 +404,25 @@ describe("GitHub through the agentes.chat app (ADR 0156), as the web shows it", 
     const [github] = connectedItems([appAlone], [], [def("github")]);
     expect(github?.viaGithubApp).toBe(true);
     expect(accountActions(github as NonNullable<typeof github>)).toEqual(["rename"]);
+  });
+
+  test("a program on a computer (ADR 0215) has no sign-in to renew: only its name, and its variables by name", async () => {
+    const program: CustomServer = {
+      ...server("computer://00000000-0000-4000-8000-000000000901/p-1"),
+      authType: "computer",
+      headerNames: ["NOTES_TOKEN"],
+      program: { machineId: "00000000-0000-4000-8000-000000000901" },
+    };
+    const byAddress: CustomServer = { ...server("https://mcp.acme.com/mcp"), id: "s-2", headerNames: ["X-Team"] };
+    const [item, other] = connectedItems([], [program, byAddress], []);
+    if (!item || !other) throw new Error("both servers are connected items");
+    expect(accountActions(item)).toEqual(["rename"]);
+    // Its variables are changed by adding it again: never "use Reconnect", which it doesn't have.
+    const pt = await translator("pt-BR");
+    expect(programVariablesLine(pt, item)).toBe("Variáveis: NOTES_TOKEN. Para mudar, adicione o programa de novo.");
+    // A server by address keeps its own line, its headers with Reconnect.
+    expect(accountActions(other)).toContain("reconnect");
+    expect(programVariablesLine(pt, other)).toBe("");
   });
 
   test("an app made without the events agents hear says which to tick, by GitHub's own names", async () => {

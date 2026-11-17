@@ -13678,6 +13678,10 @@
     "connected": "Conectado",
     "connectedAs": "Conectado como {{account}}",
     "reconnectAdds": "Vuelve a conectar {{name}} para que los agentes también puedan {{what}}.",
+    "program": {
+      "on": "Se ejecuta en {{computer}}",
+      "variables": "Variables: <names/>. Para cambiarlas, añade el programa de nuevo."
+    },
     "sendsToo": "También envía: <names/>. Para cambiarlo, usa Volver a conectar.",
     "adds": {
       "github_project": "usar GitHub Projects (leer tableros y mover tarjetas)"
@@ -14788,10 +14792,34 @@
     "oauthHelp": "Autorizas en la página de {{name}} y vuelves aquí.",
     "customText": "Cualquier servidor MCP por su dirección https. Si admite OAuth, autorizas en su página.",
     "urlHelp": "La dirección https del servidor, o el comando claude mcp add o el bloque mcpServers que te pasaron.",
+    "way": {
+      "label": "Cómo se ejecuta",
+      "address": "Por dirección",
+      "program": "Programa en esta computadora"
+    },
+    "program": {
+      "text": "Un servidor MCP que se inicia como comando en una computadora que conectaste. Las reglas de comandos de esa computadora deciden qué puede iniciarse.",
+      "computer": "Computadora",
+      "runsOn": "Se ejecuta en {{computer}}.",
+      "command": "Comando",
+      "commandMissing": "Escribe el comando que inicia el programa.",
+      "commandQuote": "Quedó una comilla abierta en el comando.",
+      "variablesHelp": "Las variables se guardan cifradas y solo van a esa computadora cuando el programa se inicia. Nadie vuelve a ver sus valores.",
+      "variable": "Variable",
+      "variableOf": "Nombre de la variable {{n}}",
+      "valueOf": "Valor de la variable {{n}}",
+      "removeVariable": "Quitar la variable {{n}}",
+      "addVariable": "Añadir variable",
+      "add": "Añadir programa",
+      "note": "Ningún agente lo usa hasta que le des acceso.",
+      "starting": "Iniciándolo en {{computer}}…"
+    },
     "paste": {
       "command": "Ese es un servidor que se ejecuta como comando (stdio). Los agentes solo llegan a los servidores MCP por su dirección https.",
       "urlAsked": "Completa {{names}} en la dirección.",
-      "keyAsked": "Escribe la clave que el texto pegado tomaba de {{names}}."
+      "keyAsked": "Escribe la clave que el texto pegado tomaba de {{names}}.",
+      "program": "Es un servidor que se ejecuta como comando (stdio). Puede ejecutarse en una computadora que conectaste.",
+      "useProgram": "Usar como programa"
     },
     "name": "Nombre",
     "namePlaceholder": "Ej.: Soporte",
@@ -14890,7 +14918,8 @@
       "asks_many": "{{count}} acciones piden aprobación en el chat.",
       "asks_other": "{{count}} acciones piden aprobación en el chat.",
       "adjust": "Ajustar",
-      "ok": "Listo"
+      "ok": "Listo",
+      "program": "Ningún agente lo usa todavía. Elige quién en Ajustar."
     }
   },
   "database": {
@@ -15609,7 +15638,10 @@
       "headerAndKey": "La clave de API ya se envía como Authorization. Borra la clave o quita este encabezado.",
       "headersTooMany": "Un servidor admite como máximo {{max}} encabezados. Quita uno para agregar otro.",
       "headersWithSignIn": "Este servidor pide iniciar sesión, y un inicio de sesión todavía no puede llevar encabezados. Quita los encabezados para iniciar sesión, o conéctalo con una clave de API.",
-      "headersUnreadable": "No se pudieron leer los encabezados guardados. Escríbelos de nuevo o quítalos."
+      "headersUnreadable": "No se pudieron leer los encabezados guardados. Escríbelos de nuevo o quítalos.",
+      "programComputer": "{{computer}} no puede ejecutar programas ahora. Tiene que ser una computadora que conectaste, fuera del modo sistema, en línea y con Comandos activado.",
+      "programInvalid": "Revisa el comando y las variables. Un nombre lleva letras, números y _, una vez cada uno. No se aceptan variables que cargan otro código (NODE_OPTIONS, LD_PRELOAD, PATH y similares).",
+      "programFailed": "El programa no se inició en {{computer}}. La computadora dijo: {{detail}}"
     },
     "wiki": {
       "githubNoNotes": "No hay notas en Markdown en este enlace.",

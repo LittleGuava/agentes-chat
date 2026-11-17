@@ -20,6 +20,7 @@ import type { ToolContext, ToolDefinition, ToolSource } from "../tools/types";
 import { CONNECTOR_CATALOG, type ConnectorTool, connectorScope, fillTitle } from "./catalog";
 import { sqlArgOf } from "./classify";
 import { composioFailure, composioServiceOf } from "./composio";
+import { callProgramTool, storedProgramTools } from "./computer-programs";
 import {
   activeConnections,
   type ConnectorConnection,
@@ -43,6 +44,7 @@ import { openHttpSession } from "./mcp-sse";
 import { markPersonalToReconnect, personalAccountFor, personalServiceLabel } from "./personal";
 import { applyToolPins } from "./pins";
 import { presetForServer, presetLocks, presetWithholds } from "./presets";
+import { isComputerProgram } from "./program-url";
 import type { McpServerInfo } from "./server-icon";
 
 /** A tool as an MCP server lists it. */
@@ -162,6 +164,15 @@ export function mcpCallResultOf(result: McpCallPayload): McpCallResult {
 const MASKED_FROM = 8;
 
 /**
+ * The ways a secret value shows in what a server says: as it is, and as a JSON text writes it (a quote, a backslash
+ * and a tab its own way, and some encoders a slash as `\/`).
+ */
+export function writtenForms(value: string): string[] {
+  const json = JSON.stringify(value).slice(1, -1);
+  return [...new Set([value, json, json.replaceAll("/", "\\/")])];
+}
+
+/**
  * Sessions over HTTP through `fetch`: Streamable HTTP, or the older HTTP+SSE transport for a server that has only it.
  * A session's failures hold none of the header values it was opened with, over either transport: a server may repeat
  * what it was sent in its refusal, and that text goes to the log, the connection's last error and the agent. The
@@ -177,11 +188,7 @@ export function connectOverHttpVia(fetch: FetchLike, options: { sseOpenMs?: numb
         name.toLowerCase() === "authorization" ? [value, value.slice(value.indexOf(" ") + 1)] : [value],
       )
       .filter((value) => value.length >= MASKED_FROM)
-      // A JSON body writes a quote, a backslash and a tab its own way, and some encoders a slash as `\/`.
-      .flatMap((value) => {
-        const json = JSON.stringify(value).slice(1, -1);
-        return [value, json, json.replaceAll("/", "\\/")];
-      });
+      .flatMap(writtenForms);
     const clean = (text: string) => maskValues(text, secrets);
     const masked = <T>(work: Promise<T>) =>
       work.catch((error: unknown) => {
@@ -363,6 +370,8 @@ export function createConnectorToolSource(
   }
 
   async function serverTools(connection: ConnectorConnection) {
+    // A program on a computer (ADR 0215): what its last listing stored, so a turn starts nothing there.
+    if (isComputerProgram(connection)) return storedProgramTools(deps.db, connection);
     // A change to the connection lists again at once; a token refresh isn't one (it leaves `updatedAt` as it was).
     const key = `${connection.id}:${connection.updatedAt.getTime()}`;
     const hit = cache.get(key);
@@ -559,6 +568,9 @@ export function createConnectorToolSource(
                   data: { code: said?.code ?? "connector.personal_needs_reconnect" },
                 };
               }
+            } else if (isComputerProgram(connection)) {
+              // On its computer, as this run's agent; a computer that can't take it now is the tool's answer.
+              result = await callProgramTool(deps, connection, ctx, tool.name, input);
             } else {
               try {
                 result = await withSession(connection, (s) => s.callTool(tool.name, input, meta));

@@ -1,4 +1,10 @@
-import { type AgentScope, MCP_STDIO_PROTOCOL, type McpStdioCall, type McpStdioServer } from "@agenteschat/adapters";
+import {
+  type AgentScope,
+  MCP_STDIO_LISTING_PROTOCOL,
+  MCP_STDIO_PROTOCOL,
+  type McpStdioCall,
+  type McpStdioServer,
+} from "@agenteschat/adapters";
 import type { MachineCaller } from "../machine-hub";
 import { runnerUpdateWay } from "../runner-update";
 import { type McpSession, mcpCallResultOf, mcpToolOf } from "./mcp";
@@ -14,24 +20,31 @@ const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "obj
  * A stdio MCP program on a connected computer as an ordinary `McpSession` (ADR 0215): each operation is one `mcp.stdio`
  * request, run there as `agent` under the computer's command policy, so the connector tool source, scopes, approvals
  * and the audit log apply unchanged behind the Tool Gateway. Nothing stays open between calls: `close` has nothing to
- * stop. A computer whose runner is older than `MCP_STDIO_PROTOCOL` is refused here, before any request.
+ * stop. A computer whose runner is older than `MCP_STDIO_PROTOCOL` is refused here, before any request. `agent` null:
+ * registering a program lists its tools for nobody, in the runner's own workspace (`MCP_STDIO_LISTING_PROTOCOL`).
  */
 export async function connectOnComputer(
   hub: MachineCaller,
   machineId: string,
-  agent: AgentScope,
+  agent: AgentScope | null,
   server: McpStdioServer,
   timeoutSeconds = COMPUTER_MCP_TIMEOUT_SECONDS,
 ): Promise<McpSession> {
   const status = await hub.status(machineId);
-  if (status && status.protocol < MCP_STDIO_PROTOCOL) {
+  if (status && status.protocol < (agent ? MCP_STDIO_PROTOCOL : MCP_STDIO_LISTING_PROTOCOL)) {
     throw new Error(
       `The runner on the computer ${status.name} is too old to run MCP programs. ${runnerUpdateWay(status)}`,
     );
   }
   let info: McpServerInfo | null = null;
   const ask = async (call: McpStdioCall) => {
-    const reply = await hub.call<"mcp.stdio">(machineId, { agent, op: "mcp.stdio", server, call, timeoutSeconds });
+    const reply = await hub.call<"mcp.stdio">(machineId, {
+      ...(agent ? { agent } : {}),
+      op: "mcp.stdio",
+      server,
+      call,
+      timeoutSeconds,
+    });
     const said = reply.serverInfo;
     info = said
       ? {

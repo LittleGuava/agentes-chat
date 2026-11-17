@@ -16,6 +16,7 @@ import {
   useGitHubApp,
   useGithubAccess,
   useInstallGitHubApp,
+  useProgramComputers,
   useRenameConnection,
   useStartOAuth,
 } from "@agenteschat/client";
@@ -45,7 +46,13 @@ import { humanize, isHttpsUrl, sameServer } from "@agenteschat/client/lib/custom
 import { errorText } from "@agenteschat/client/lib/errors";
 import { joinNames } from "@agenteschat/client/lib/format";
 import { useHeldWhile } from "@agenteschat/client/lib/hold";
-import { type McpPaste, parseMcpPaste, pasteForForm } from "@agenteschat/client/lib/mcp-paste";
+import {
+  type McpPaste,
+  type PastedProgram,
+  parseMcpPaste,
+  parseMcpProgram,
+  pasteForForm,
+} from "@agenteschat/client/lib/mcp-paste";
 import {
   BLANK_HEADER,
   connectsWithoutKey,
@@ -90,6 +97,7 @@ import { Trans, useTranslation } from "react-i18next";
 import { useApi } from "@/api/context";
 import { AgentAvatar } from "@/components/AgentAvatar";
 import { ConnectorIcon } from "@/components/ConnectorCatalog";
+import { ConnectProgram } from "@/components/ConnectProgram";
 import { FlowTitle } from "@/components/FlowTitle";
 import { LoadingList, useStepText } from "@/components/Loading";
 import { useOrg } from "@/components/org-context";
@@ -296,12 +304,17 @@ function ConnectStep({
   // The saved headers couldn't be read: kept until the form closes, so nothing brings "they stay" back.
   const [unreadable, setUnreadable] = useState<HeaderRefused | null>(null);
   const [pasted, setPasted] = useState<McpPaste | null>(null);
+  // A program on a computer the person connected (ADR 0215): offered while one of theirs can run it.
+  const [way, setWay] = useState<"address" | "program">("address");
+  const [pastedProgram, setPastedProgram] = useState<PastedProgram | null>(null);
 
   // An account of a server by address: its own address, whatever the catalog says.
   const fixed = item?.server?.serverUrl ?? null;
   // A server by address (any, or a vendor's official one) or our catalog connector.
   const byAddress = fixed !== null || def === null || def.kind === "remote_mcp";
   const askUrl = fixed === null && def === null;
+  const programs = useProgramComputers(org.id, askUrl);
+  const programReady = askUrl ? (programs.data ?? []).filter((c) => c.available) : [];
   const viaComposio = item ? item.viaComposio : def?.via === "composio";
   const canOAuth = byAddress || Boolean(def?.oauthConfigured && def.auth.includes("oauth"));
   // A one-click server the catalog lists without a key (Intercom on the Cloud) offers none, unless it answers that it
@@ -352,6 +365,7 @@ function ConnectStep({
     if (paste.kind === "none" || (paste.kind === "url" && paste.url === text.trim())) return setPasted(null);
     e.preventDefault();
     setPasted(paste);
+    setPastedProgram(parseMcpProgram(text));
     setNeedsKey(null);
     if (paste.kind !== "url") return;
     const form = pasteForForm(paste);
@@ -474,6 +488,30 @@ function ConnectStep({
     }
   };
 
+  const wayChoice = programReady.length > 0 && (
+    <Segmented
+      block
+      label={t("connectFlow.way.label")}
+      value={way}
+      onValueChange={setWay}
+      options={[
+        { value: "address", label: t("connectFlow.way.address") },
+        { value: "program", label: t("connectFlow.way.program") },
+      ]}
+    />
+  );
+  if (way === "program" && programReady.length > 0) {
+    return (
+      <ConnectProgram
+        computers={programReady}
+        pasted={pastedProgram}
+        choice={wayChoice}
+        onConnected={(next) => onConnected(next, false)}
+        onClose={onClose}
+      />
+    );
+  }
+
   const keyForm = (
     <form
       className="cflow__key"
@@ -529,7 +567,10 @@ function ConnectStep({
           ) : fixed ? (
             <p className="muted cflow__text">{fixed}</p>
           ) : (
-            <p className="muted cflow__text">{t("connectFlow.customText")}</p>
+            <>
+              {wayChoice}
+              <p className="muted cflow__text">{t("connectFlow.customText")}</p>
+            </>
           )}
           {askUrl && (
             <Field label={t("connectors.serverUrl")} id="cflow-url" example={t("connectFlow.urlHelp")} error={urlError}>
@@ -546,7 +587,18 @@ function ConnectStep({
               />
             </Field>
           )}
-          {askUrl && pasted?.kind === "command" && <Alert>{t("connectFlow.paste.command")}</Alert>}
+          {askUrl &&
+            pasted?.kind === "command" &&
+            (programReady.length > 0 ? (
+              <Alert tone="neutral">
+                {t("connectFlow.paste.program")}{" "}
+                <Button variant="link" onClick={() => setWay("program")}>
+                  {t("connectFlow.paste.useProgram")}
+                </Button>
+              </Alert>
+            ) : (
+              <Alert>{t("connectFlow.paste.command")}</Alert>
+            ))}
           {askUrl && pasteNotes.length > 0 && <Alert tone="neutral">{pasteNotes.join(" ")}</Alert>}
           {def === null && fixed === null && (
             <Field label={t("connectFlow.name")} id="cflow-name">

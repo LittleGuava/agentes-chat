@@ -13572,6 +13572,11 @@ export const en = {
     connectedAs: "Connected as {{account}}",
     /** A sign-in that lacks scopes the connector asks for now; `what` lists what reconnecting adds (`adds.*`). */
     reconnectAdds: "Reconnect {{name}} so agents can also {{what}}.",
+    /** A program on a connected computer (ADR 0215): where it runs, and its variables by name. */
+    program: {
+      on: "Runs on {{computer}}",
+      variables: "Variables: <names/>. To change them, add the program again.",
+    },
     /** On a connected server's row: the request headers it also sends (`<names/>`: X-API-Key). Reconnect is the menu item. */
     sendsToo: "Also sends: <names/>. To change that, use Reconnect.",
     adds: { github_project: "use GitHub Projects (read boards and move cards)" },
@@ -14679,11 +14684,38 @@ export const en = {
     oauthHelp: "You authorize on {{name}}'s page and come back here.",
     customText: "Any MCP server by its https address. If it supports OAuth, you authorize on its page.",
     urlHelp: "The server's https address, or the claude mcp add command or mcpServers block you were given.",
+    /** A server by address, or a stdio program on a computer the person connected (ADR 0215). */
+    way: {
+      label: "How it runs",
+      address: "By address",
+      program: "Program on this computer",
+    },
+    /** A stdio MCP program registered on a computer the person connected (ADR 0215). */
+    program: {
+      text: "An MCP server that starts as a command on a computer you connected. That computer's command rules decide what can start.",
+      computer: "Computer",
+      runsOn: "Runs on {{computer}}.",
+      command: "Command",
+      commandMissing: "Type the command that starts the program.",
+      commandQuote: "A quote is left open in the command.",
+      variablesHelp:
+        "Variables are kept encrypted and go only to that computer when the program starts. Nobody sees their values again.",
+      variable: "Variable",
+      variableOf: "Name of variable {{n}}",
+      valueOf: "Value of variable {{n}}",
+      removeVariable: "Remove variable {{n}}",
+      addVariable: "Add variable",
+      add: "Add program",
+      note: "No agent uses it until you give it access.",
+      starting: "Starting it on {{computer}}…",
+    },
     /** After pasting a `claude mcp add` line or an `mcpServers` block as the server's address. */
     paste: {
       command: "That's a server run as a command (stdio). Agents reach MCP servers only by their https address.",
       urlAsked: "Fill in {{names}} in the address.",
       keyAsked: "Type the key the paste took from {{names}}.",
+      program: "That's a server run as a command (stdio). It can run on a computer you connected.",
+      useProgram: "Use as a program",
     },
     name: "Name",
     namePlaceholder: "E.g. Support",
@@ -14797,6 +14829,8 @@ export const en = {
       asks_other: "{{count}} actions ask for approval in the chat.",
       adjust: "Adjust",
       ok: "Done",
+      /** A program on a person's computer (ADR 0215) starts with no agent. */
+      program: "No agent uses it yet. Choose who in Adjust.",
     },
   },
   database: {
@@ -15474,6 +15508,12 @@ export const en = {
         "This server asks for a sign-in, and a sign-in can't carry headers yet. Remove the headers to sign in, or connect with an API key.",
       /** Reconnecting an account whose saved headers, kept encrypted, could no longer be opened. */
       headersUnreadable: "The saved headers couldn't be read. Type them again, or remove them.",
+      /** Registering a program on a computer that can't take one now (ADR 0215). */
+      programComputer:
+        "{{computer}} can't run programs now. It must be a computer you connected, outside system mode, online, with Commands on.",
+      programInvalid:
+        "Check the command and the variables. A name takes letters, digits and _, once each. Variables that load other code (NODE_OPTIONS, LD_PRELOAD, PATH and the like) aren't accepted.",
+      programFailed: "The program didn't start on {{computer}}. The computer said: {{detail}}",
     },
     wiki: {
       githubNoNotes: "No Markdown notes in this link.",

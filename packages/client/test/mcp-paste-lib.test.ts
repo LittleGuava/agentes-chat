@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { parseMcpPaste, pasteForForm } from "../src/lib/mcp-paste";
+import { commandLine, commandWords, parseMcpPaste, parseMcpProgram, pasteForForm } from "../src/lib/mcp-paste";
 
 const header = (name: string, value: string, missing: string[] = []) => ({ name, value, missing });
 
@@ -236,5 +236,80 @@ describe("pasteForForm: what the connect form can use", () => {
       apiKey: null,
       headers: [{ name: "Authorization", value: "Token abc12345" }],
     });
+  });
+});
+
+describe("a program to run on a connected computer (ADR 0215)", () => {
+  test("its words stay apart, quotes and all, and its variables come by name", () => {
+    expect(
+      parseMcpProgram(
+        `claude mcp add notes -e NOTES_TOKEN=nt_1 -e ROOT="/srv/my notes" -- npx -y @acme/notes-mcp --dir "a b"`,
+      ),
+    ).toEqual({
+      name: "notes",
+      command: "npx",
+      args: ["-y", "@acme/notes-mcp", "--dir", "a b"],
+      env: [
+        { name: "NOTES_TOKEN", value: "nt_1" },
+        { name: "ROOT", value: "/srv/my notes" },
+      ],
+    });
+  });
+
+  test("an mcpServers entry: a value written with a placeholder comes empty, for the person to type", () => {
+    const block = JSON.stringify({
+      mcpServers: {
+        files: {
+          command: "uvx",
+          args: ["mcp-server-files", "--root", "/data"],
+          env: { FILES_KEY: "<your key>", MODE: "read" },
+        },
+      },
+    });
+    expect(parseMcpProgram(block)).toEqual({
+      name: "files",
+      command: "uvx",
+      args: ["mcp-server-files", "--root", "/data"],
+      env: [
+        { name: "FILES_KEY", value: "" },
+        { name: "MODE", value: "read" },
+      ],
+    });
+  });
+
+  test("a bare npx line is a program with no name; an address, or nothing it knows, is none", () => {
+    expect(parseMcpProgram("npx -y @acme/notes-mcp")).toEqual({
+      name: null,
+      command: "npx",
+      args: ["-y", "@acme/notes-mcp"],
+      env: [],
+    });
+    expect(parseMcpProgram("https://mcp.example.com/mcp")).toBeNull();
+    expect(parseMcpProgram("hello there")).toBeNull();
+    // A bridge to a server by address is that address, not a program.
+    expect(
+      parseMcpProgram(JSON.stringify({ command: "npx", args: ["-y", "mcp-remote", "https://mcp.example.com/mcp"] })),
+    ).toBeNull();
+  });
+});
+
+describe("a program's command line, typed and shown", () => {
+  test("split as a shell would; a quote left open is null", () => {
+    expect(commandWords(`npx -y "@acme/notes mcp" --root='/srv/a b' it\\'s`)).toEqual([
+      "npx",
+      "-y",
+      "@acme/notes mcp",
+      "--root=/srv/a b",
+      "it's",
+    ]);
+    expect(commandWords(`npx "open`)).toBeNull();
+    expect(commandWords("   ")).toEqual([]);
+  });
+
+  test("joined back so splitting it gives the same words", () => {
+    const words = ["npx", "-y", "@acme/notes mcp", "it's", "", "$HOME"];
+    const line = commandLine(words);
+    expect(line).toBe(`npx -y '@acme/notes mcp' 'it'\\''s' '' '$HOME'`);
+    expect(commandWords(line)).toEqual(words);
   });
 });

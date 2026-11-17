@@ -12,6 +12,7 @@ import {
   useDisconnect,
   useDisconnectMine,
   useGitHubApp,
+  useMachines,
   useMailAccounts,
   useMailAction,
   useMailProviders,
@@ -444,12 +445,18 @@ function ServiceRow({
   onPerPerson: (perPerson: boolean) => void;
 }) {
   const { t, i18n } = useTranslation();
+  const { org } = useOrg();
+  // A program on a computer (ADR 0215) says which computer runs it: the address means nothing to people.
+  const machines = useMachines(org.id, Boolean(item.computerId));
+  const computer = item.computerId ? machines.data?.find((m) => m.id === item.computerId)?.name : undefined;
   const meta = [
     item.viaGithubApp && item.account
       ? appAccountsText(t, item.account)
       : item.account
         ? t("connectors.connectedAs", { account: item.account })
-        : null,
+        : computer
+          ? t("connectors.program.on", { computer })
+          : null,
     relativeTime(t, i18n.language, item.createdAt),
     t("connectors.toolsCount", { count: item.tools }),
   ].filter(Boolean);
@@ -503,7 +510,12 @@ function ServiceRow({
         meta.join(" · "),
         personal,
         // The request headers a server by address is also sent, by name: their values are never shown.
-        sent.length > 0 && <Trans i18nKey="connectors.sendsToo" components={{ names: <HeaderNames names={sent} /> }} />,
+        sent.length > 0 && (
+          <Trans
+            i18nKey={item.computerId ? "connectors.program.variables" : "connectors.sendsToo"}
+            components={{ names: <HeaderNames names={sent} /> }}
+          />
+        ),
         !item.needsReconnect && adds,
       ]}
       actions={
@@ -548,12 +560,13 @@ function ServiceRow({
                 {t("connectors.rename")}
               </MenuItem>
               {/* GitHub through the app alone has no sign-in to renew: its accounts are on GitHub's side. */}
-              {!item.viaGithubApp && (
+              {/* A program has no sign-in to renew nor another account: it is registered again to change it. */}
+              {!item.viaGithubApp && !item.computerId && (
                 <MenuItem icon="refresh" onSelect={onReconnect}>
                   {t("connectors.detail.reconnect")}
                 </MenuItem>
               )}
-              {item.custom && (
+              {item.custom && !item.computerId && (
                 <MenuItem icon="plus" onSelect={onAddAccount}>
                   {t("connectors.detail.addAccount")}
                 </MenuItem>

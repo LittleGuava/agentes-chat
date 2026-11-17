@@ -13762,6 +13762,10 @@
     "connected": "Collegato",
     "connectedAs": "Collegato come {{account}}",
     "reconnectAdds": "Ricollega {{name}} così gli agenti possono anche {{what}}.",
+    "program": {
+      "on": "Gira su {{computer}}",
+      "variables": "Variabili: <names/>. Per cambiarle, aggiungi di nuovo il programma."
+    },
     "sendsToo": "Invia anche: <names/>. Per cambiare, usa Ricollega.",
     "adds": {
       "github_project": "usare GitHub Projects (leggere le board e spostare le schede)"
@@ -14872,10 +14876,34 @@
     "oauthHelp": "Autorizzi nella pagina di {{name}} e torni qui.",
     "customText": "Qualsiasi server MCP tramite il suo indirizzo https. Se supporta OAuth, autorizzi nella sua pagina.",
     "urlHelp": "L'indirizzo https del server, o il comando claude mcp add o il blocco mcpServers che ti hanno dato.",
+    "way": {
+      "label": "Come viene eseguito",
+      "address": "Tramite indirizzo",
+      "program": "Programma su questo computer"
+    },
+    "program": {
+      "text": "Un server MCP che si avvia come comando su un computer che hai collegato. Le regole dei comandi di quel computer decidono cosa può avviarsi.",
+      "computer": "Computer",
+      "runsOn": "Gira su {{computer}}.",
+      "command": "Comando",
+      "commandMissing": "Scrivi il comando che avvia il programma.",
+      "commandQuote": "Nel comando è rimasta aperta una virgoletta.",
+      "variablesHelp": "Le variabili sono conservate cifrate e vanno solo a quel computer quando il programma si avvia. Nessuno rivede i loro valori.",
+      "variable": "Variabile",
+      "variableOf": "Nome della variabile {{n}}",
+      "valueOf": "Valore della variabile {{n}}",
+      "removeVariable": "Rimuovi la variabile {{n}}",
+      "addVariable": "Aggiungi variabile",
+      "add": "Aggiungi programma",
+      "note": "Nessun agente lo usa finché non gli dai accesso.",
+      "starting": "Avvio su {{computer}}…"
+    },
     "paste": {
       "command": "Questo è un server che gira come comando (stdio). Gli agenti raggiungono i server MCP solo dal loro indirizzo https.",
       "urlAsked": "Completa {{names}} nell'indirizzo.",
-      "keyAsked": "Scrivi la chiave che il testo incollato prendeva da {{names}}."
+      "keyAsked": "Scrivi la chiave che il testo incollato prendeva da {{names}}.",
+      "program": "È un server che gira come comando (stdio). Può girare su un computer che hai collegato.",
+      "useProgram": "Usa come programma"
     },
     "name": "Nome",
     "namePlaceholder": "Es. Assistenza",
@@ -14974,7 +15002,8 @@
       "asks_many": "{{count}} azioni chiedono l'approvazione in chat.",
       "asks_other": "{{count}} azioni chiedono l'approvazione in chat.",
       "adjust": "Regola",
-      "ok": "Fatto"
+      "ok": "Fatto",
+      "program": "Nessun agente lo usa ancora. Scegli chi in Regola."
     }
   },
   "database": {
@@ -15693,7 +15722,10 @@
       "headerAndKey": "La chiave API viene già inviata come Authorization. Cancella la chiave, oppure rimuovi questa intestazione.",
       "headersTooMany": "Un server accetta al massimo {{max}} intestazioni. Rimuovine una per aggiungerne un'altra.",
       "headersWithSignIn": "Questo server chiede un accesso, e un accesso non può ancora portare intestazioni. Rimuovi le intestazioni per accedere, oppure collegalo con una chiave API.",
-      "headersUnreadable": "Non è stato possibile leggere le intestazioni salvate. Scrivile di nuovo oppure rimuovile."
+      "headersUnreadable": "Non è stato possibile leggere le intestazioni salvate. Scrivile di nuovo oppure rimuovile.",
+      "programComputer": "{{computer}} non può eseguire programmi adesso. Deve essere un computer che hai collegato, fuori dalla modalità sistema, online e con Comandi attivo.",
+      "programInvalid": "Controlla il comando e le variabili. Un nome contiene lettere, numeri e _, una volta ciascuno. Le variabili che caricano altro codice (NODE_OPTIONS, LD_PRELOAD, PATH e simili) non sono accettate.",
+      "programFailed": "Il programma non si è avviato su {{computer}}. Il computer ha detto: {{detail}}"
     },
     "wiki": {
       "githubNoNotes": "Nessuna nota Markdown in questo link.",
