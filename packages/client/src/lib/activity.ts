@@ -165,6 +165,11 @@ const BUILTIN: Record<string, ActivityKind> = {
   update_artifact: "writingDrive",
   publish_page: "publishingPage",
   generate_image: "creatingImage",
+  // A meeting is joined and left from the agent's own browser (ADR 0199).
+  join_meeting: "browsing",
+  leave_meeting: "browsing",
+  // A long answer it kept, read in parts (ADR 0015 addendum on long results).
+  query_result: "gettingContext",
   search_context: "searchingMemory",
   expand: "searchingMemory",
   get_summary: "searchingMemory",
