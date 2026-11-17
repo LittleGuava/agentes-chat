@@ -14645,7 +14645,8 @@
       "headersUnreadable": "保存済みのヘッダーを読み込めませんでした。もう一度入力するか、削除してください。",
       "programComputer": "{{computer}} は今プログラムを実行できません。あなたが接続した、システムモード外で、オンラインかつコマンドがオンのコンピューターである必要があります。",
       "programInvalid": "コマンドと変数を確認してください。名前に使えるのは英字、数字、_ で、同じ名前は一度だけです。別のコードを読み込む変数（NODE_OPTIONS、LD_PRELOAD、PATH など）は使えません。",
-      "programFailed": "{{computer}} でプログラムが起動しませんでした。コンピューターの応答：{{detail}}"
+      "programFailed": "{{computer}} でプログラムが起動しませんでした。コンピューターの応答：{{detail}}",
+      "programService": "プログラムからは {{service}} に接続できません。このサービスはアドレスで接続してください。そこでは呼び出しごとに実行前の確認があります。"
     },
     "wiki": {
       "githubNoNotes": "このリンクにMarkdownノートはありません。",

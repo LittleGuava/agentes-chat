@@ -14700,7 +14700,8 @@
       "headersUnreadable": "Header yang tersimpan tidak bisa dibaca. Ketik lagi, atau hapus.",
       "programComputer": "{{computer}} tidak bisa menjalankan program sekarang. Harus komputer yang kamu hubungkan, di luar mode sistem, online, dengan Perintah aktif.",
       "programInvalid": "Periksa perintah dan variabelnya. Nama berisi huruf, angka, dan _, masing-masing sekali. Variabel yang memuat kode lain (NODE_OPTIONS, LD_PRELOAD, PATH, dan sejenisnya) tidak diterima.",
-      "programFailed": "Program tidak berjalan di {{computer}}. Komputer menjawab: {{detail}}"
+      "programFailed": "Program tidak berjalan di {{computer}}. Komputer menjawab: {{detail}}",
+      "programService": "Program tidak bisa menjangkau {{service}}. Hubungkan layanan itu lewat alamatnya, di sana setiap panggilan bertanya sebelum berjalan."
     },
     "wiki": {
       "githubNoNotes": "Tidak ada catatan Markdown di tautan ini.",

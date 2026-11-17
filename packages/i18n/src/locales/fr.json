@@ -15712,7 +15712,8 @@
       "headersUnreadable": "Les en-têtes enregistrés n'ont pas pu être lus. Saisissez-les à nouveau ou retirez-les.",
       "programComputer": "{{computer}} ne peut pas exécuter de programmes maintenant. Ce doit être un ordinateur que vous avez connecté, hors du mode système, en ligne, avec Commandes activé.",
       "programInvalid": "Vérifiez la commande et les variables. Un nom contient des lettres, des chiffres et _, une seule fois chacun. Les variables qui chargent un autre code (NODE_OPTIONS, LD_PRELOAD, PATH et autres) ne sont pas acceptées.",
-      "programFailed": "Le programme n'a pas démarré sur {{computer}}. L'ordinateur a répondu : {{detail}}"
+      "programFailed": "Le programme n'a pas démarré sur {{computer}}. L'ordinateur a répondu : {{detail}}",
+      "programService": "Un programme ne peut pas joindre {{service}}. Connectez ce service par son adresse, où chaque appel demande avant de s'exécuter."
     },
     "wiki": {
       "githubNoNotes": "Aucune note Markdown dans ce lien.",

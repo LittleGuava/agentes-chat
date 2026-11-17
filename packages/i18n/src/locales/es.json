@@ -15641,7 +15641,8 @@
       "headersUnreadable": "No se pudieron leer los encabezados guardados. Escríbelos de nuevo o quítalos.",
       "programComputer": "{{computer}} no puede ejecutar programas ahora. Tiene que ser una computadora que conectaste, fuera del modo sistema, en línea y con Comandos activado.",
       "programInvalid": "Revisa el comando y las variables. Un nombre lleva letras, números y _, una vez cada uno. No se aceptan variables que cargan otro código (NODE_OPTIONS, LD_PRELOAD, PATH y similares).",
-      "programFailed": "El programa no se inició en {{computer}}. La computadora dijo: {{detail}}"
+      "programFailed": "El programa no se inició en {{computer}}. La computadora dijo: {{detail}}",
+      "programService": "Un programa no puede llegar a {{service}}. Conecta ese servicio por su dirección, donde cada llamada pregunta antes de ejecutarse."
     },
     "wiki": {
       "githubNoNotes": "No hay notas en Markdown en este enlace.",

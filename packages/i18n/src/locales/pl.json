@@ -16238,7 +16238,8 @@
       "headersUnreadable": "Nie udało się odczytać zapisanych nagłówków. Wpisz je ponownie albo usuń.",
       "programComputer": "{{computer}} nie może teraz uruchamiać programów. Musi to być komputer, który połączyłeś, poza trybem systemowym, online i z włączonymi Poleceniami.",
       "programInvalid": "Sprawdź polecenie i zmienne. Nazwa zawiera litery, cyfry i _, każda tylko raz. Zmienne, które ładują inny kod (NODE_OPTIONS, LD_PRELOAD, PATH i podobne), nie są przyjmowane.",
-      "programFailed": "Program nie uruchomił się na {{computer}}. Komputer odpowiedział: {{detail}}"
+      "programFailed": "Program nie uruchomił się na {{computer}}. Komputer odpowiedział: {{detail}}",
+      "programService": "Program nie może połączyć się z {{service}}. Połącz tę usługę przez jej adres, tam każde wywołanie pyta przed uruchomieniem."
     },
     "wiki": {
       "githubNoNotes": "Pod tym linkiem nie ma notatek Markdown.",

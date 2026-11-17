@@ -15262,7 +15262,8 @@
       "headersUnreadable": "De opgeslagen headers konden niet worden gelezen. Vul ze opnieuw in of verwijder ze.",
       "programComputer": "{{computer}} kan nu geen programma's draaien. Het moet een computer zijn die jij hebt gekoppeld, buiten de systeemmodus, online en met Opdrachten aan.",
       "programInvalid": "Controleer de opdracht en de variabelen. Een naam bestaat uit letters, cijfers en _, elk maar één keer. Variabelen die andere code laden (NODE_OPTIONS, LD_PRELOAD, PATH en dergelijke) worden niet geaccepteerd.",
-      "programFailed": "Het programma is niet gestart op {{computer}}. De computer meldde: {{detail}}"
+      "programFailed": "Het programma is niet gestart op {{computer}}. De computer meldde: {{detail}}",
+      "programService": "Een programma kan {{service}} niet bereiken. Verbind die dienst via zijn adres, waar elke aanroep eerst vraagt voordat hij loopt."
     },
     "wiki": {
       "githubNoNotes": "Geen Markdown-notities in deze link.",

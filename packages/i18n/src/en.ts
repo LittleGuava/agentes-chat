@@ -15514,6 +15514,9 @@ export const en = {
       programInvalid:
         "Check the command and the variables. A name takes letters, digits and _, once each. Variables that load other code (NODE_OPTIONS, LD_PRELOAD, PATH and the like) aren't accepted.",
       programFailed: "The program didn't start on {{computer}}. The computer said: {{detail}}",
+      /** `service`: the host a program's command names, of a service whose calls ask one at a time. */
+      programService:
+        "A program can't reach {{service}}. Connect that service by its address, where each call asks before it runs.",
     },
     wiki: {
       githubNoNotes: "No Markdown notes in this link.",

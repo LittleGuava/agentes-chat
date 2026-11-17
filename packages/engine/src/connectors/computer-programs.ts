@@ -11,6 +11,7 @@ import { connectOnComputer } from "./computer-mcp";
 import { type ConnectorDeps, openConnectionSecret } from "./connections";
 import { type CustomDeps, type CustomServerView, serverView, storeCustomConnection, syncCustomTools } from "./custom";
 import { type McpCallResult, type McpConnect, type McpSession, type McpTool, writtenForms } from "./mcp";
+import { presetLocks } from "./presets";
 import { PROGRAM_AUTH, programMachineOf, programServerUrl } from "./program-url";
 
 /*
@@ -131,6 +132,30 @@ export function checkProgram(input: Pick<ProgramInput, "command" | "args" | "env
   return { command, args, env };
 }
 
+/** An address written anywhere in a word: `https://host/…` alone or after `--url=`, up to what ends it there. */
+const ADDRESS = /https?:\/\/[^\s"'<>]+/gi;
+
+/**
+ * The service a program would stand in for: the host of an address in its command, arguments or variables that a
+ * preset locks (`presetLocks`: it signs in, every call asks, tools are withheld), else null. A program's own address
+ * is its computer's, so none of those locks would reach it: a bridge to that service (`mcp-remote` and the like)
+ * would call it with no question asked (ADR 0016, addendum 2026-11-17). Read from the program's words at each use, as
+ * the locks are, so a service locked later closes the programs that reach it. Only an address is read: a command
+ * that hides it (a script of the computer's own), or a program that reaches the service with no address in its
+ * words, is the computer's owner's own doing, as any command there is.
+ */
+export function programService(program: McpStdioServer): string | null {
+  for (const word of [program.command, ...(program.args ?? []), ...Object.values(program.env ?? {})]) {
+    for (const address of word.match(ADDRESS) ?? []) {
+      if (presetLocks(address)) return new URL(address).hostname.toLowerCase().replace(/\.$/, "");
+    }
+  }
+  return null;
+}
+
+const serviceRefusal = (service: string) =>
+  `A program can't reach ${service}. That service connects by its address, where its calls ask before they run.`;
+
 /** The person's own connected computers, and whether each can take a program now (managers of connectors only). */
 export async function programComputers(
   deps: Pick<ConnectorDeps, "db" | "machines">,
@@ -241,6 +266,8 @@ export async function connectComputerProgram(
 ): Promise<CustomServerView> {
   await requirePermission(deps.db, actorId, orgId, "manage_connectors");
   const program = checkProgram(input);
+  const service = programService(program);
+  if (service) throw new ValidationError(serviceRefusal(service), "connector.program_service", { service });
   const machine = await getMachine(deps.db, orgId, input.machineId);
   if (!machine || !deps.machines) throw new NotFoundError("Computer not found", "machine.not_found");
   const hub = deps.machines;
@@ -297,6 +324,8 @@ export function withComputerPrograms(
     const row = await storedProgram(deps.db, connection.orgId, connection.serverUrl);
     const program = row ? (await openConnectionSecret(deps.keyWrappers, row))?.program : undefined;
     if (!program || !deps.machines) throw new Error("This program isn't registered on a computer here.");
+    const service = programService(program);
+    if (service) throw new Error(serviceRefusal(service));
     const found = await eligible(deps.machines, machineId);
     if ("refused" in found) throw new Error(found.refused);
     return programSession(deps.machines, machineId, null, program);
@@ -367,6 +396,8 @@ export async function callProgramTool(
   if ("refused" in found) return refused(found.refused);
   const program = (await openConnectionSecret(deps.keyWrappers, connection).catch(() => null))?.program;
   if (!program) return refused("This program's settings can't be read. Its owner registers it again.");
+  const service = programService(program);
+  if (service) return refused(serviceRefusal(service));
   const agent = await getAgentCached(ctx.db, ctx.orgId, ctx.agentId);
   const scope: AgentScope = {
     id: ctx.agentId,

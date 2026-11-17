@@ -1534,7 +1534,8 @@ export interface ApiClient {
     /**
      * Registers a stdio MCP program on a computer the caller paired (ADR 0215): listed there once, then a custom server
      * whose tools wait for a level, given to no agent. Refusals: 409 `connector.program_computer`, 400
-     * `connector.program_invalid`, 400 `connector.program_failed` (the computer's words in `params.detail`).
+     * `connector.program_invalid`, 400 `connector.program_failed` (the computer's words in `params.detail`), 400
+     * `connector.program_service` (its words name a service whose calls ask one at a time, `params.service`).
      */
     connectProgram(orgId: string, input: ProgramInput): Promise<CustomServer>;
   };

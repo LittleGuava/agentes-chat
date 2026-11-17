@@ -15198,7 +15198,8 @@
       "headersUnreadable": "Die gespeicherten Header konnten nicht gelesen werden. Gib sie neu ein oder entferne sie.",
       "programComputer": "{{computer}} kann gerade keine Programme ausführen. Es muss ein Computer sein, den du verbunden hast, außerhalb des Systemmodus, online und mit eingeschalteten Befehlen.",
       "programInvalid": "Prüfe den Befehl und die Variablen. Ein Name besteht aus Buchstaben, Ziffern und _, jeder nur einmal. Variablen, die anderen Code laden (NODE_OPTIONS, LD_PRELOAD, PATH und ähnliche), werden nicht angenommen.",
-      "programFailed": "Das Programm ist auf {{computer}} nicht gestartet. Der Computer meldete: {{detail}}"
+      "programFailed": "Das Programm ist auf {{computer}} nicht gestartet. Der Computer meldete: {{detail}}",
+      "programService": "Ein Programm kann {{service}} nicht erreichen. Verbinde diesen Dienst über seine Adresse, dort fragt jeder Aufruf, bevor er läuft."
     },
     "wiki": {
       "githubNoNotes": "Unter diesem Link gibt es keine Markdown-Notizen.",

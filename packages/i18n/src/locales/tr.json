@@ -15134,7 +15134,8 @@
       "headersUnreadable": "Kayıtlı başlıklar okunamadı. Yeniden yazın ya da kaldırın.",
       "programComputer": "{{computer}} şu anda program çalıştıramaz. Senin bağladığın, sistem modu dışında, çevrimiçi ve Komutlar açık bir bilgisayar olmalı.",
       "programInvalid": "Komutu ve değişkenleri kontrol et. Bir ad harf, rakam ve _ içerir, her biri bir kez. Başka kod yükleyen değişkenler (NODE_OPTIONS, LD_PRELOAD, PATH ve benzerleri) kabul edilmez.",
-      "programFailed": "Program {{computer}} üzerinde başlamadı. Bilgisayarın yanıtı: {{detail}}"
+      "programFailed": "Program {{computer}} üzerinde başlamadı. Bilgisayarın yanıtı: {{detail}}",
+      "programService": "Bir program {{service}} hizmetine ulaşamaz. Bu hizmeti adresiyle bağlayın, orada her çağrı çalışmadan önce sorar."
     },
     "wiki": {
       "githubNoNotes": "Bu bağlantıda Markdown notu yok.",

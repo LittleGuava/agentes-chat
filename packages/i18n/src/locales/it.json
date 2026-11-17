@@ -15725,7 +15725,8 @@
       "headersUnreadable": "Non è stato possibile leggere le intestazioni salvate. Scrivile di nuovo oppure rimuovile.",
       "programComputer": "{{computer}} non può eseguire programmi adesso. Deve essere un computer che hai collegato, fuori dalla modalità sistema, online e con Comandi attivo.",
       "programInvalid": "Controlla il comando e le variabili. Un nome contiene lettere, numeri e _, una volta ciascuno. Le variabili che caricano altro codice (NODE_OPTIONS, LD_PRELOAD, PATH e simili) non sono accettate.",
-      "programFailed": "Il programma non si è avviato su {{computer}}. Il computer ha detto: {{detail}}"
+      "programFailed": "Il programma non si è avviato su {{computer}}. Il computer ha detto: {{detail}}",
+      "programService": "Un programma non può raggiungere {{service}}. Collega quel servizio dal suo indirizzo, dove ogni chiamata chiede prima di partire."
     },
     "wiki": {
       "githubNoNotes": "Nessuna nota Markdown in questo link.",

@@ -15433,6 +15433,8 @@ export const ptBR = {
       programInvalid:
         "Confira o comando e as variáveis. Um nome leva letras, números e _, uma vez cada. Variáveis que carregam outro código (NODE_OPTIONS, LD_PRELOAD, PATH e parecidas) não são aceitas.",
       programFailed: "O programa não iniciou em {{computer}}. O computador disse: {{detail}}",
+      programService:
+        "Um programa não pode alcançar {{service}}. Conecte esse serviço pelo endereço, onde cada chamada pergunta antes de rodar.",
     },
     /** Restricted wiki pages (ADR 0023). */
     wiki: {

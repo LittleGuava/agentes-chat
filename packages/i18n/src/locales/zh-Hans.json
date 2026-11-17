@@ -14709,7 +14709,8 @@
       "headersUnreadable": "无法读取已保存的标头。请重新输入，或将其移除。",
       "programComputer": "{{computer}} 现在无法运行程序。它必须是你连接的电脑，不在系统模式下，在线，并且已开启命令。",
       "programInvalid": "请检查命令和变量。名称只能包含字母、数字和 _，每个名称只出现一次。不接受会加载其他代码的变量（NODE_OPTIONS、LD_PRELOAD、PATH 等）。",
-      "programFailed": "程序未在 {{computer}} 上启动。电脑的回复：{{detail}}"
+      "programFailed": "程序未在 {{computer}} 上启动。电脑的回复：{{detail}}",
+      "programService": "程序无法访问 {{service}}。请通过地址连接该服务，在那里每次调用都会在运行前询问。"
     },
     "wiki": {
       "githubNoNotes": "此链接中没有 Markdown 笔记。",

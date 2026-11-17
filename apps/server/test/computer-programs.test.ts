@@ -244,3 +244,29 @@ test("a computer with Commands off takes no program, and nothing starts there", 
   });
   expect(pc.requests.filter((r) => r.op === "mcp.stdio")).toEqual([]);
 });
+
+test("a program can't stand in for a service whose calls ask one at a time: by an argument or a variable, however written", async () => {
+  const { api } = await workspace();
+  const mac = await pairComputer(t, api, { ...RUNNER, exec: true }, { name: "MacBook" });
+  const pc = computer(mac.token);
+  await pc.hello();
+  const bridged = [
+    // As a bridge is usually written, the address its last word.
+    { args: [FAKE, "mcp-remote", "https://MCP.Agentcard.sh/mcp?team=growth"], env: [] },
+    { args: [FAKE, "--url=https://api.telnyx.com./v2/mcp"], env: [] },
+    { args: [FAKE], env: [{ name: "MCP_URL", value: "https://mcp.agentcard.sh/mcp" }] },
+  ];
+  for (const { args, env } of bridged) {
+    const res = await api("/connectors/custom/program", { json: { ...program(mac.machineId), args, env } });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ error: { code: "connector.program_service" } });
+  }
+  // Nothing started there, and nothing was stored.
+  expect(pc.requests.filter((r) => r.op === "mcp.stdio")).toEqual([]);
+  expect(await (await api("/connectors/custom")).text()).not.toContain("Notas");
+  // Any other address in its words is the program's own business.
+  const other = await api("/connectors/custom/program", {
+    json: { ...program(mac.machineId), args: [FAKE, "https://notes.example.com/mcp"] },
+  });
+  expect([other.status, other.status === 200 ? "" : await other.text()]).toEqual([200, ""]);
+});

@@ -138,6 +138,17 @@ socket), `apps/web/test/connect-program.test.tsx`.
    (`accountActions`), and its variables by name where a server by address shows its headers
    (`programVariablesLine`); registering one is on the web.
 
+**Not as a bridge to a service whose calls a person decides.** A service's locks (ADR 0016, addendum 2026-11-17: it
+signs in, every call asks, tools are withheld) go by the host of a connection's address, and a program's address is
+its computer's. A bridge to such a service (`npx mcp-remote https://mcp.agentcard.sh/mcp`) would list every tool and
+call each with no question asked. So a program whose command, arguments or variables hold an address on a locked host
+is refused when it is registered (400 `connector.program_service`, the host in `params.service`), and again when it
+is listed or called (`programService`, read from its words each time, so a service locked later closes the programs
+that reach it). The guard reads an address, nothing else: it doesn't see one a script of the computer's own hides, nor
+a program that reaches the same service with no address in its words (a vendor's own stdio server, should one exist).
+Those are the computer's owner's own command, as any command there is, and their tools get only the levels a manager
+gives them.
+
 **Why it doesn't wait for the server-side stdio proposal.** That proposal runs a stdio program on the server's own
 machine, switched on by the operator, with its rows on a `stdio://` address. A program on a person's computer is a
 different decision: the person who owns the computer chooses, its command policy judges, nothing new runs on the

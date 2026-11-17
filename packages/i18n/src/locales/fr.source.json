@@ -37361,6 +37361,9 @@
   "errors.connector.programFailed": {
     "value": "The program didn't start on {{computer}}. The computer said: {{detail}}"
   },
+  "errors.connector.programService": {
+    "value": "A program can't reach {{service}}. Connect that service by its address, where each call asks before it runs."
+  },
   "errors.wiki.githubNoNotes": {
     "value": "No Markdown notes in this link."
   },
