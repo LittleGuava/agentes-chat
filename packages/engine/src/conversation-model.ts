@@ -1,4 +1,4 @@
-import { and, type Database, type Executor, eq, inArray, schema } from "@agenteschat/db";
+import { and, type Database, type Executor, eq, schema } from "@agenteschat/db";
 import { isAutoModel, isCustomModel, MODEL_CATALOG, modelProvider } from "@agenteschat/providers";
 import { planOf } from "@agenteschat/providers/plans";
 import { type Agent, getAgent } from "./agents";
@@ -6,6 +6,7 @@ import { recordAudit } from "./audit";
 import { autoProvider } from "./auto-model";
 import { agentBrainAccess, brainModelOptions, brainOf } from "./brain-settings";
 import type { BrainKind } from "./brains/types";
+import { caches } from "./cache";
 import { requireChannelAccess } from "./channels";
 import { modelInfoFor } from "./credentials";
 import { NotFoundError, ValidationError } from "./errors";
@@ -111,26 +112,37 @@ async function checkedModel(db: Database, agent: Agent, brain: BrainKind, value:
   return value;
 }
 
-/** The choice that applies to `run`: its thread's, else its channel's, for the brain the agent thinks with now. */
+const choicesKey = (orgId: string, agentId: string, channelId: string) => `${orgId}:${agentId}:${channelId}`;
+
+/**
+ * The choice that applies to `run`: its thread's, else its channel's, for the brain the agent thinks with now. Every
+ * run reads it before its model call, so the agent's choices in a channel (the channel's own and its threads', few)
+ * are kept in the process's cache: a run on a warm cache makes no statement for them.
+ */
 async function storedChoice(
   db: Executor,
   agent: Agent,
   channelId: string,
   threadId: string | null,
 ): Promise<{ own: string | null; inherited: string | null }> {
-  const ids = threadId ? [threadId, channelId] : [channelId];
-  const rows = await db
-    .select({ id: schema.conversationModels.conversationId, model: schema.conversationModels.model })
-    .from(schema.conversationModels)
-    .where(
-      and(
-        eq(schema.conversationModels.orgId, agent.orgId),
-        eq(schema.conversationModels.agentId, agent.id),
-        eq(schema.conversationModels.channelId, channelId),
-        eq(schema.conversationModels.brain, brainOf(agent.brain)),
-        inArray(schema.conversationModels.conversationId, ids),
+  const all = (await caches.conversationModels.getOrLoad(choicesKey(agent.orgId, agent.id, channelId), () =>
+    db
+      .select({
+        id: schema.conversationModels.conversationId,
+        model: schema.conversationModels.model,
+        brain: schema.conversationModels.brain,
+      })
+      .from(schema.conversationModels)
+      .where(
+        and(
+          eq(schema.conversationModels.orgId, agent.orgId),
+          eq(schema.conversationModels.agentId, agent.id),
+          eq(schema.conversationModels.channelId, channelId),
+        ),
       ),
-    );
+  )) as { id: string; model: string; brain: string }[];
+  const brain = brainOf(agent.brain);
+  const rows = all.filter((r) => r.brain === brain);
   const own = rows.find((r) => r.id === (threadId ?? channelId))?.model ?? null;
   const inherited = threadId ? (rows.find((r) => r.id === channelId)?.model ?? null) : null;
   return { own, inherited };
@@ -255,5 +267,6 @@ export async function setConversationModel(
       },
     });
   });
+  caches.conversationModels.delete(choicesKey(orgId, agent.id, input.channelId));
   return getConversationModel(db, userId, orgId, agentId, input);
 }

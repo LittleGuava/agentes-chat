@@ -2,6 +2,7 @@ import { createHmac } from "node:crypto";
 import { type KeyWrapper, OutboundAddressError } from "@agenteschat/adapters";
 import { and, type Database, desc, type Executor, eq, inArray, rowsOf, type SQL, schema, sql } from "@agenteschat/db";
 import { recordAudit } from "./audit";
+import { caches, cachesEnabled } from "./cache";
 import { openSecret, randomToken, sealSecret } from "./crypto";
 import { NotFoundError, ValidationError } from "./errors";
 import { readableBody } from "./message-preview";
@@ -183,6 +184,7 @@ export async function createOutgoingWebhook(
     })
     .returning();
   if (!row) throw new Error("webhook insert returned nothing");
+  caches.runEndPresence.delete(webhooksKey(orgId));
   await recordAudit(db, {
     orgId,
     actor: { type: "person", id: actorId },
@@ -399,10 +401,26 @@ export const webhookDeliveryJobsSelect = (cte: string) =>
     ${`${OUTGOING_WEBHOOK_JOB}:`}::text || d.id, ${DELIVERY_ATTEMPTS}::int from ${sql.raw(cte)} d`;
 
 /** Queues an event's deliveries in the caller's transaction: one statement, nothing written when nobody listens. */
+const webhooksKey = (orgId: string) => `${orgId}:webhooks`;
+
 export async function queueWebhookEvent(
   db: Executor,
   e: { orgId: string; event: OutgoingWebhookEvent; subjectId: string; channelId: string | null },
 ) {
+  // Every run's end and every new task come here, and most workspaces have no webhook: where this process keeps
+  // caches, one read says so and nothing is asked again until one is made (`createOutgoingWebhook` forgets the
+  // answer, in every process) or the answer's short life ends.
+  if (cachesEnabled()) {
+    const any = await caches.runEndPresence.getOrLoad(webhooksKey(e.orgId), async () => {
+      const [row] = await db
+        .select({ id: outgoingWebhooks.id })
+        .from(outgoingWebhooks)
+        .where(eq(outgoingWebhooks.orgId, e.orgId))
+        .limit(1);
+      return Boolean(row);
+    });
+    if (!any) return;
+  }
   await db.execute(sql`with hooked as (${webhookDeliveriesInsert({
     orgId: sql`${e.orgId}`,
     event: e.event,

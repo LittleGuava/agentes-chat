@@ -111,6 +111,17 @@ export const caches = {
   messageRoots: new TtlCache<unknown>(24 * 3600_000, 20_000),
   /** Runs that read outside content (`runReadOutside`): only `true` is kept, since it never turns false. */
   readOutsideRuns: new TtlCache<true>(3600_000, 20_000),
+  /**
+   * The models chosen for an agent's conversations in a channel (`conversation-model.ts`, `orgId:agentId:channelId`):
+   * every run there reads them before its model call.
+   */
+  conversationModels: new TtlCache<unknown>(TTL_MS),
+  /**
+   * What the end of every run would otherwise ask the database for nothing: whether an agent has a "no AI" notice
+   * still open (`resolveAgentNeedsAi`, `orgId:needs-ai:agentId`) and whether a workspace has any outgoing webhook
+   * (`queueWebhookEvent`, `orgId:webhooks`).
+   */
+  runEndPresence: new TtlCache<boolean>(TTL_MS),
   /** The workspace's devices by name (`deviceRoster`): a run's prompt and its tool lists read it once. */
   deviceRoster: new TtlCache<unknown>(5_000),
 };

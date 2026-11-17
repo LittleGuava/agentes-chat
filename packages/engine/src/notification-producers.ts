@@ -4,6 +4,7 @@ import type { PlanModel } from "@agenteschat/providers/plans";
 import { approvalCardThreads, approvalOriginOf, notifiedIds } from "./approvals";
 import { accountablePerson, runAuthorityById } from "./authority";
 import { autonomyNoteFor, proposalCardOf } from "./brakes";
+import { caches } from "./cache";
 import { readableChannelIds } from "./channels";
 import { isAgentKeyRoom } from "./dms";
 import { threadFollowChoices } from "./follows";
@@ -1214,11 +1215,21 @@ export async function notifyAgentNeedsAi(
     source: { agentId: run.agentId, label: a.name },
     latest: { reason },
   });
+  caches.runEndPresence.delete(needsAiKey(run.orgId, run.agentId));
 }
 
-/** The agent thought again: its "no AI" notices are done. */
+const needsAiKey = (orgId: string, agentId: string) => `${orgId}:needs-ai:${agentId}`;
+
+/**
+ * The agent thought again: its "no AI" notices are done. Every run that ends well comes here, and nearly none has such
+ * a notice: once this process closed them, it asks the database again only after one is told (`notifyAgentNeedsAi`
+ * forgets the answer, in every process) or the answer's short life ends.
+ */
 export async function resolveAgentNeedsAi(deps: NotificationDeps, orgId: string, agentId: string) {
-  await resolveNotifications(deps, orgId, { groupKeyPrefix: needsAiGroup(agentId) });
+  await caches.runEndPresence.getOrLoad(needsAiKey(orgId, agentId), async () => {
+    await resolveNotifications(deps, orgId, { groupKeyPrefix: needsAiGroup(agentId) });
+    return false;
+  });
 }
 
 /** A routine ran well again: its failure streak and computer outage notifications are done. */
