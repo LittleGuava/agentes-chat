@@ -851,6 +851,7 @@
   "activity": {
     "title": "アクティビティ",
     "chooseModel": "別のモデルを選ぶ",
+    "connectAi": "AIを接続",
     "filter": {
       "all": "すべて",
       "waiting": "リクエスト",
@@ -880,6 +881,7 @@
       "mission_stopped_other": "ミッションが停止しました",
       "routine_finished_other": "ルーティンが完了しました",
       "routine_failed_other": "ルーティンが失敗しました",
+      "routine_failed_retried_other": "再試行してもルーティンが失敗しました",
       "run_failed_other": "完了できませんでした",
       "admin_ask_channel_agent": "{{names}} が {{agent}} を #{{label}} に追加するよう求めています",
       "admin_ask_create_agents": "{{names}} がエージェントを作成できるよう求めています",
@@ -915,6 +917,7 @@
       "browser_profile_request_other": "{{names}}がブラウザプロフィールの追加を求めています",
       "desktop_taken_other": "{{names}}が{{agent}}のコンピューターの画面の操作を引き継ぎました",
       "desktop_taken_female_other": "{{names}}が{{agent}}のコンピューターの画面の操作を引き継ぎました",
+      "agent_needs_ai_other": "{{names}}が{{agent}}を呼びましたが、応答するためのAIが接続されていません",
       "plan_lent_other": "{{names}}があなたの {{plan}} プランを{{agent}}に接続しました",
       "plan_lent_female_other": "{{names}}があなたの {{plan}} プランを{{agent}}に接続しました",
       "plan_serves_other": "あなたの{{plan}}は workspace 全体で使えるようになりました",
@@ -2761,5 +2764,13 @@
       "title": "確認するものはありません",
       "text": "エージェントが会話の外で何かを行うと、ここに表示されます。"
     }
+  },
+  "phoneTools": {
+    "title": "スマホの連絡先",
+    "contacts": "エージェントが連絡先を検索できる",
+    "help": "このワークスペースとこのスマホだけが対象です。話しているエージェントが誰かの連絡先を必要とすると、連絡先を名前で検索します。エージェントに渡るのは最大5件で、それぞれ名前、電話番号、メールアドレスだけです。",
+    "deniedTitle": "連絡先へのアクセスがオフです",
+    "deniedSub": "スマホの設定で agentes.chat に許可してください。",
+    "failed": "保存できませんでした。もう一度お試しください。"
   }
 }

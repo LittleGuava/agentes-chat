@@ -21,7 +21,9 @@ export type SettingsSection =
   | "roles"
   | "vault"
   | "audit"
+  | "health"
   | "access"
+  | "webhooks"
   | "connectors"
   | "skills"
   | "storage"
@@ -77,12 +79,16 @@ export const SETTINGS_SECTIONS: {
   // Every member keeps their own logins, keys and contacts there; team items show to who they're shared with (ADR 0144).
   { id: "vault", icon: "lock", allowed: () => true },
   { id: "access", icon: "agent", allowed: (o) => can(o, "manage_agents") },
+  // Outgoing webhooks (ADR 0212): they send private channels' messages out, which only administrators read.
+  { id: "webhooks", icon: "send", allowed: (o) => can(o, "administrator") },
   // Every member sees the devices and can connect one (ADR 0025): computers and the phones they reach.
   { id: "devices", icon: "computer", allowed: (o) => can(o, "read") },
   { id: "storage", icon: "drive", allowed: (o) => can(o, "configure") },
   { id: "import", icon: "archiveBox", allowed: (o) => can(o, "create_agents") },
   // What agents did and people changed: only for who may see it (it shows everyone's work).
   { id: "audit", icon: "shield", allowed: (o) => can(o, "view_audit") },
+  // What keeps failing, grouped by cause (ADR 0214): for who reads the audit log, which already shows why calls failed.
+  { id: "health", icon: "alert", allowed: (o) => can(o, "view_audit") },
   // AGPL-3.0's legal notices and the license's required attribution: for everyone on a self-hosted server, never
   // hidden there; none on agentes.chat Cloud (`showsAbout`).
   { id: "about", icon: "info", allowed: (_o, server) => showsAbout(server) },

@@ -7,13 +7,14 @@ import type {
   AgentStatusLine,
   AgentUsage,
   Approval,
+  ApprovalsLevel,
   DirectMessage,
   MediaKind,
   Memory,
   OrgSummary,
   PreviewMeta,
 } from "@agenteschat/client";
-import { asksAt, levelOf, resourcesOf } from "@agenteschat/client/lib/access-levels";
+import { asksAt, levelOf, offAtNever, resourcesOf } from "@agenteschat/client/lib/access-levels";
 import { agentSections } from "@agenteschat/client/lib/agent-groups";
 import { planLabel, planOfAccount } from "@agenteschat/client/lib/no-ai";
 import { can } from "@agenteschat/client/lib/permissions";
@@ -446,21 +447,28 @@ export interface UseLine {
   /** The app's connection, for its mark (`ConnectorIcon`); null for built-in areas. */
   connectionId: string | null;
   level: "read" | "write" | "some";
+  /** Every call of its service asks a person and the agent never asks: none of it is the agent's (`offAtNever`). */
+  offAtNever: boolean;
 }
 
-export function usesOf(access: AgentAccess | null | undefined): { lines: UseLine[]; asks: boolean } {
+export function usesOf(
+  access: AgentAccess | null | undefined,
+  approvalsLevel?: ApprovalsLevel | null,
+): { lines: UseLine[]; asks: boolean } {
   if (!access) return { lines: [], asks: false };
   const lines: UseLine[] = [];
   let asks = false;
   for (const r of resourcesOf(access)) {
     const level = levelOf(r);
     if (level === "none") continue;
-    if (asksAt(r, level).length > 0) asks = true;
+    const off = offAtNever(r, approvalsLevel);
+    if (!off && asksAt(r, level).length > 0) asks = true;
     lines.push({
       key: r.id,
       label: r.kind === "connector" || !r.area ? { text: r.label } : { area: r.area },
       connectionId: r.connectionId,
       level: level === "custom" ? "some" : level,
+      offAtNever: off,
     });
   }
   return { lines, asks };
@@ -477,6 +485,10 @@ export function modelRow(t: TFunction, brain: AgentBrainLine | undefined, apiMod
   if (brain?.kind === "model" && brain.maker)
     return { value: providerLabel(brain.maker), valueNote: t("brain.auto.label") };
   if (!brain || brain.kind === "model") return { value: apiModel, valueNote: t("brain.foot.api") };
+  if (brain.kind === "acp") {
+    const engine = brain.engine || t("brain.acp.name");
+    return { value: brain.model ?? t("brain.acp.defaultModel", { engine }), valueNote: engine };
+  }
   return {
     value: isAuto(brain.model) ? t("brain.auto.label") : (brain.model ?? apiModel),
     valueNote: planLabel(t, planOfAccount({ kind: brain.kind, provider: brain.provider ?? null })),

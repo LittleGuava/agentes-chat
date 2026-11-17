@@ -3,7 +3,7 @@ import type { Approval, ApprovalCoverView, ApprovalRule, CardDelegate } from "..
 import { serviceKey } from "./activity";
 import { aheadPhase, approvalAction, emailTitleWords, sqlReadsTarget } from "./approval-kind";
 import { humanize } from "./custom-tools";
-import { formatShortDate, formatTime, isUuid, lowerFirst, relativeDay } from "./format";
+import { formatShortDate, formatTime, formatUsd, isUuid, lowerFirst, relativeDay } from "./format";
 import { agentGrammar } from "./grammar";
 import { catalogLabel, labelIsName, toolKey } from "./tool-labels";
 import { partsOf, toolName } from "./tool-review";
@@ -14,6 +14,9 @@ import { partsOf, toolName } from "./tool-review";
  */
 
 type Tt = (key: string, options?: Record<string, unknown>) => string;
+
+/** How much of what a call does a list shows before cutting it (`approvalValues`). */
+const DOES_CHARS = 200;
 
 /** The git tool whose grants "Aprovar sempre" keeps by target (`owner/repo:branch`, engine `git/branches.ts`). */
 const BRANCH_PUSH = "request_branch_push";
@@ -28,6 +31,7 @@ const OWN_TITLES = new Set([
   "delete_branches",
   BRANCH_PUSH,
   "vault_make_password",
+  "publish_page",
 ]);
 
 /** GitHub's actions whose server title says what they touch (engine `connectors/catalog.ts`), by their own name. */
@@ -87,6 +91,7 @@ function wordedTitle(t: TFunction, approval: TitledApproval): string | null {
       permission: permissionLabel(t, say(p.permission), approval.title),
       repo: say(p.repo),
       branch: say(p.branch),
+      version: say(p.version),
       ...(Array.isArray(p.branches) ? { count: p.branches.length } : {}),
       defaultValue: approval.title,
     });
@@ -243,10 +248,11 @@ export const approvalLetterTo = (t: TFunction, letter: NonNullable<ReturnType<ty
  * Its values in words, label and value ("Issue id", "ACME-177"), one level into objects, without the inner
  * tool's name. Lists keep them short (`long: false`, at most `max`): without ids (a UUID says nothing to a person) and,
  * for a message (`approvalLetter`), without its subject, recipients and text, which its card shows as the message. The details
- * show every one.
+ * show every one. A service that names what a call does and the amount it moves (`callArgs`) has them first, the one
+ * cut only past `DOES_CHARS`, the other as dollars from its cents.
  */
 export function approvalValues(
-  approval: Pick<Approval, "params" | "connector" | "email"> & Partial<Pick<Approval, "tool">>,
+  approval: Pick<Approval, "params" | "connector" | "email"> & Partial<Pick<Approval, "tool" | "callArgs">>,
   {
     max = Number.POSITIVE_INFINITY,
     long = false,
@@ -269,9 +275,24 @@ export function approvalValues(
   const letter = !long && approvalLetter(approval);
   const out: [string, string][] = [];
   const plain = (v: unknown) => typeof v === "string" || typeof v === "number" || typeof v === "boolean";
+  const params = approval.params ?? {};
+  const led = new Set<string>();
+  const does = approval.callArgs?.does;
+  const said = does && Object.hasOwn(params, does) ? params[does] : undefined;
+  if (does && typeof said === "string" && said.trim()) {
+    const text = said.trim();
+    out.push([humanize(does), long || text.length <= DOES_CHARS ? text : `${text.slice(0, DOES_CHARS - 1)}…`]);
+    led.add(does);
+  }
+  const cents = approval.callArgs?.usdCents;
+  const amount = cents && Object.hasOwn(params, cents) ? params[cents] : undefined;
+  if (cents && typeof amount === "number" && Number.isSafeInteger(amount)) {
+    out.push([humanize(cents.replace(/_cents$/, "")), formatUsd(locale ?? "en", amount / 100)]);
+    led.add(cents);
+  }
   const walk = (obj: Record<string, unknown>, top: boolean) => {
     for (const [k, v] of Object.entries(obj)) {
-      if (top && k === skip) continue;
+      if (top && (k === skip || led.has(k))) continue;
       if (letter && (k === "subject" || k === "to" || (BODY_KEYS as readonly string[]).includes(k))) continue;
       if (plain(v)) {
         const text = typeof v === "number" && formatNumber ? formatNumber(v) : String(v).trim();
@@ -283,7 +304,7 @@ export function approvalValues(
       } else if (top && v && typeof v === "object" && !Array.isArray(v)) walk(v as Record<string, unknown>, false);
     }
   };
-  walk(approval.params ?? {}, true);
+  walk(params, true);
   return out.slice(0, max);
 }
 
@@ -292,7 +313,7 @@ export function approvalValues(
  * for the same tool, on the card while it waits and on the line once decided. The raw call stays in the details.
  */
 export const approvalSummary = (
-  approval: Pick<Approval, "params" | "connector" | "email"> & Partial<Pick<Approval, "tool">>,
+  approval: Pick<Approval, "params" | "connector" | "email"> & Partial<Pick<Approval, "tool" | "callArgs">>,
   locale: string,
   max = 4,
 ) =>

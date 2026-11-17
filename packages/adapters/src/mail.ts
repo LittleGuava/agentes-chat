@@ -283,6 +283,16 @@ export interface ComposioClient {
     userId: string;
     query: string | null;
   }): Promise<{ triggerId: string }>;
+  /**
+   * Any trigger of a toolkit on the account (`slug`, e.g. `SLACK_CHANNEL_MESSAGE_RECEIVED`), with its `config`: a connector
+   * event's (ADR 0196). Composio posts its events to the project's one webhook as `trigger.event`.
+   */
+  createTrigger(input: {
+    slug: string;
+    connectedAccountId: string;
+    userId: string;
+    config: Record<string, unknown>;
+  }): Promise<{ triggerId: string }>;
   deleteTrigger(triggerId: string): Promise<void>;
   /** Checks a webhook's signature (Standard Webhooks HMAC) and parses it. */
   verifyWebhook(headers: Headers, rawBody: string): ComposioWebhookEvent;
@@ -292,6 +302,8 @@ export type ComposioWebhookEvent =
   | { type: "mail.received"; triggerId: string; connectedAccountId: string; message: MailSummary }
   | { type: "account.expired"; connectedAccountId: string }
   | { type: "trigger.disabled"; triggerId: string }
+  /** Any other trigger's event (ADR 0196): `slug` in capitals, `payload` the event's data as Composio sent it. */
+  | { type: "trigger.event"; triggerId: string; connectedAccountId: string; slug: string; payload: unknown }
   | { type: "other" };
 
 /** Composio refused this server's project key (401/403): nothing is wrong with the account it was called for. */

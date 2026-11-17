@@ -47,6 +47,7 @@ import { fileIdsOf, getMessage, insertMessage, type MessageView, messageView, po
 import { enqueueRunJob } from "./mission-runs";
 import { notifyIssueChanged } from "./notification-producers";
 import { can, getMembership, requireActiveMembership } from "./organizations";
+import { queueWebhookEvent } from "./outgoing-webhooks";
 import { membersWhoMaySql } from "./permissions";
 import { queueTaskCheck, queueTaskEnd, tellTaskEnd } from "./right-hand-follow";
 import { fireRoutineEvent } from "./routines";
@@ -965,6 +966,10 @@ export async function createIssue(
       ...(files.length ? { data: { attachments: files } } : {}),
     });
     await enqueueIndex(tx, { orgId, kind: "issue", sourceId: issue.id });
+    // Outgoing webhooks (ADR 0212 §3): never a task only some people see (one made in a DM included).
+    if (!issue.restricted) {
+      await queueWebhookEvent(tx, { orgId, event: "issue.created", subjectId: issue.id, channelId: issue.channelId });
+    }
     if (issue.description.includes("[[")) {
       await syncWikiLinks(tx, orgId, { type: "issue", id: issue.id, channelId: issue.channelId }, issue.description);
     }

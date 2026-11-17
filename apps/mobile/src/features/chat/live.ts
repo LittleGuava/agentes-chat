@@ -18,6 +18,7 @@ import {
   cacheDmRead,
   cacheMessage,
   cacheMessageActions,
+  cacheMessageEdited,
   cacheMessageMeta,
   cacheMessageWork,
   cachePinned,
@@ -268,6 +269,10 @@ function applyToCache(qc: QueryClient, orgId: string, channelId: string, event: 
     case "message.unpinned":
       cachePinned(qc, orgId, channelId, event.messageId, event.type === "message.pinned");
       void qc.invalidateQueries({ queryKey: keys.pins(orgId, channelId) });
+      break;
+    // Its author edited a message (ADR 0207): the new text, in place.
+    case "message.edited":
+      cacheMessageEdited(qc, orgId, channelId, event);
       break;
     case "agent.run":
     case "run.finished":

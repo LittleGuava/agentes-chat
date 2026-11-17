@@ -3,7 +3,7 @@ import type { BlobStore } from "@agenteschat/adapters";
 import { and, asc, type Database, type Executor, eq, inArray, isNull, like, schema, sql } from "@agenteschat/db";
 import { recordAudit } from "../audit";
 import { caches } from "../cache";
-import { type ConnectorEventId, connectorEventsOf } from "../connector-triggers";
+import { type ConnectorEventId, connectorEventsOf, isMeetingCalendar } from "../connector-triggers";
 import { randomToken, sealSecret, sha256 } from "../crypto";
 import { ConflictError, isUniqueViolation, NotFoundError, ValidationError } from "../errors";
 import type { Judge } from "../judge";
@@ -45,23 +45,33 @@ import {
 } from "./connections";
 import type { McpCallResult, McpConnect, McpSession, McpTool } from "./mcp";
 import {
+  type AdminOAuthApp,
+  adminOAuthApp,
+  adminOAuthAppFor,
   authServerMetadata,
   ensureOAuthClient,
   type McpOAuthDeps,
   oauthScope,
   probeMcpServer,
+  saveAdminOAuthApp,
   serverKey,
 } from "./oauth-mcp";
 import { oauthReturnTo } from "./oauth-return";
+import { myPersonalAccounts, type PersonalAccountView } from "./personal";
 import { seedToolPins } from "./pins";
 import {
   composioToolkitOf,
   composioToolkitTyped,
   composioToolName,
   type McpPreset,
+  presetAsks,
   presetForServer,
+  presetLocks,
+  presetWithholds,
   serverUrlShown,
+  takesKey,
 } from "./presets";
+import { PROGRAM_AUTH, programMachineOf } from "./program-url";
 import { checkRequestHeaders, type RequestHeader } from "./request-headers";
 import { type McpServerInfo, refreshServerIcon } from "./server-icon";
 
@@ -180,12 +190,15 @@ export interface CustomServerView {
   label: string;
   /** The account as the provider names it ("Acme"), when it says; null otherwise. */
   accountLabel: string | null;
-  authType: "oauth" | "api_key";
+  /** `computer`: a stdio program on a connected computer (ADR 0215), with `program`. */
+  authType: "oauth" | "api_key" | typeof PROGRAM_AUTH;
   /**
-   * The request headers a person typed for it, by name and never by value (ADR 0186); empty when it has none, and
-   * for a reader who doesn't manage connectors.
+   * The request headers a person typed for it, by name and never by value (ADR 0186); a program's variables, the same
+   * way. Empty when it has none, and for a reader who doesn't manage connectors.
    */
   headerNames: string[];
+  /** A program on a connected computer: which one (ADR 0215, addendum 2026-11-17). */
+  program?: { machineId: string };
   /** The server's own icon, served by us (`/api/app/connector-icons/…`); null = a monogram. */
   iconUrl: string | null;
   /** A service through Composio (ADR 0107): its page signs in, and its address means nothing to people. */
@@ -197,6 +210,12 @@ export interface CustomServerView {
   tools: CustomToolView[];
   /** What routines can wait on from it (ADR 0130): MillionSend's received email. */
   events: ConnectorEventId[];
+  /** Whether a meeting routine can watch it (ADR 0190): a Google Calendar. */
+  meetings: boolean;
+  /** Each person uses their own account here (ADR 0195). */
+  perPerson: boolean;
+  /** The caller's own account on it, when it is per person and they connected one (nobody else's). */
+  mine: PersonalAccountView | null;
   reviewedAt: string | null;
   createdAt: string;
 }
@@ -264,22 +283,32 @@ function toolView(t: ToolRow, prefix: string | null): CustomToolView {
 }
 
 /** `whole`: the reader manages connectors, so sees the address as it was typed and the names of its headers. */
-function view(c: ConnectorConnection, tools: ToolRow[], whole = true): CustomServerView {
+function view(
+  c: ConnectorConnection,
+  tools: ToolRow[],
+  whole = true,
+  own: ReadonlyMap<string, PersonalAccountView> = new Map(),
+): CustomServerView {
   const mine = tools.filter((t) => t.connectionId === c.id);
   const prefix = sharedPrefix(mine.map((t) => t.name));
+  const machineId = programMachineOf(c.serverUrl);
   return {
     id: c.id,
     serverUrl: whole ? c.serverUrl : serverUrlShown(c.serverUrl),
     label: c.label,
     accountLabel: c.accountLabel,
-    authType: c.authType === "oauth" ? "oauth" : "api_key",
+    authType: c.authType === "oauth" ? "oauth" : c.authType === PROGRAM_AUTH ? PROGRAM_AUTH : "api_key",
     headerNames: whole ? (c.headerNames ?? []) : [],
+    ...(machineId ? { program: { machineId } } : {}),
     iconUrl: c.icon,
     ...(composioToolkitOf(c.serverUrl) ? { via: "composio" as const } : {}),
     status: c.status === "needs_reconnect" ? "needs_reconnect" : "active",
     toolsError: c.status === "needs_reconnect" ? null : c.lastError,
     tools: mine.map((t) => toolView(t, prefix)),
     events: connectorEventsOf(c.serverUrl),
+    perPerson: c.perPerson,
+    mine: c.perPerson ? (own.get(c.id) ?? null) : null,
+    meetings: isMeetingCalendar(c.serverUrl),
     reviewedAt: c.reviewedAt ? c.reviewedAt.toISOString() : null,
     createdAt: c.createdAt.toISOString(),
   };
@@ -318,7 +347,8 @@ export async function listCustomServers(db: Database, actorId: string, orgId: st
     db,
     rows.map((r) => r.id),
   );
-  return rows.map((r) => view(r, tools, whole));
+  const mine = await myPersonalAccounts(db, actorId, orgId);
+  return rows.map((r) => view(r, tools, whole, mine));
 }
 
 type AccountSpec = NonNullable<McpPreset["account"]>;
@@ -368,8 +398,8 @@ async function askAccount(session: McpSession, spec: AccountSpec | undefined) {
 }
 
 /** The account a fresh sign-in, key or Composio account reached, asked before anything is stored. */
-async function providerAccount(
-  deps: CustomDeps,
+export async function providerAccount(
+  deps: Pick<CustomDeps, "connect">,
   spec: AccountSpec | undefined,
   connection: Parameters<McpConnect>[0],
   headers: Record<string, string>,
@@ -419,12 +449,14 @@ export async function storeCustomConnection(
     serverUrl: string;
     /** The service's name ("Stripe", what the person typed): its first account's name, the others' base. */
     label: string;
-    authType: "oauth" | "api_key" | "none";
+    authType: "oauth" | "api_key" | "none" | typeof PROGRAM_AUTH;
     secret: ConnectionSecret | null;
     tokenExpiresAt?: Date | null;
     oauthClientId?: string | null;
     resource?: string | null;
     connectionId?: string | null;
+    /** A new connection is every agent's (`grantToEveryAgent`) unless false: a program on a person's computer is nobody's. */
+    grantEveryone?: boolean;
     /** Through Composio: its connected account, and the name Composio keeps for it when the entry can't ask. */
     composio?: { accountId: string; name: string | null };
   },
@@ -477,7 +509,12 @@ export async function storeCustomConnection(
     tokenExpiresAt: input.tokenExpiresAt ?? null,
     oauthClientId: input.oauthClientId ?? null,
     resource: input.resource ?? null,
-    headerNames: input.secret?.headers ? Object.keys(input.secret.headers) : null,
+    // A program's variables go by name as a server's headers do; their values stay in the secret.
+    headerNames: input.secret?.headers
+      ? Object.keys(input.secret.headers)
+      : input.secret?.program
+        ? Object.keys(input.secret.program.env ?? {})
+        : null,
     ...(account ? { accountId: account.id, accountLabel: named } : named ? { accountLabel: named } : {}),
     // New credentials: whatever stopped working before is behind it.
     status: "active",
@@ -555,10 +592,10 @@ export async function storeCustomConnection(
             authType: input.authType,
             label,
             account: named,
-            everyAgent: true,
+            everyAgent: input.grantEveryone !== false,
           },
         });
-        await grantToEveryAgent(tx, input.orgId, input.actorId, row);
+        if (input.grantEveryone !== false) await grantToEveryAgent(tx, input.orgId, input.actorId, row);
         return { twin: null, row };
       });
       if (!done.row) {
@@ -638,6 +675,8 @@ export class ToolsUnreadable extends Error {}
  */
 export async function syncCustomTools(deps: CustomDeps, c: ConnectorConnection) {
   const preset = presetForServer(c.serverUrl);
+  // The locks go by the host: an address typed or stored another way is still that service (ADR 0016, 2026-11-17).
+  const locks = presetLocks(c.serverUrl);
   let listed: McpTool[];
   let info: McpServerInfo | null = null;
   let account: ProviderAccount | null = null;
@@ -645,7 +684,8 @@ export async function syncCustomTools(deps: CustomDeps, c: ConnectorConnection) 
     if (!deps.connect) throw new Error("no MCP connect configured");
     const session = await deps.connect(c, await connectionHeaders(deps, c));
     try {
-      listed = await session.listTools();
+      // A tool its preset withholds is as if the server never listed it: a row stored for it before is closed below.
+      listed = (await session.listTools()).filter((t) => !presetWithholds(locks, t.name));
       info = session.serverInfo?.() ?? null;
       if (listed.some((t) => t.name === preset?.account?.tool)) {
         account = await askAccount(session, preset?.account).catch(() => null);
@@ -686,12 +726,18 @@ export async function syncCustomTools(deps: CustomDeps, c: ConnectorConnection) 
       });
     }
   }
+  // A service whose every call asks names each tool it lists now, so none slips through as a read or a write.
+  const askTools = presetAsks(
+    locks ?? preset,
+    listed.map((t) => t.name),
+  );
   const classes = await classifyTools(listed, {
     orgId: c.orgId,
     server: c.label,
     judge: deps.judge,
     readTools: preset?.readTools,
     writeTools,
+    askTools,
     cached,
   });
   const seen = new Set<string>();
@@ -699,7 +745,8 @@ export async function syncCustomTools(deps: CustomDeps, c: ConnectorConnection) 
     seen.add(tool.name);
     const old = byName.get(tool.name);
     const description = (tool.description ?? "").slice(0, 2000);
-    const cls = classes.get(tool.name) ?? classifyByRules(tool, preset?.readTools, writeTools) ?? UNKNOWN_CLASS;
+    const cls =
+      classes.get(tool.name) ?? classifyByRules(tool, preset?.readTools, writeTools, askTools) ?? UNKNOWN_CLASS;
     const suggestion = {
       suggestedAccess: cls.level,
       suggestionSource: cls.source,
@@ -756,7 +803,7 @@ export async function syncCustomTools(deps: CustomDeps, c: ConnectorConnection) 
 }
 
 /** The server as stored now (a listing may have just changed its icon). */
-async function serverView(db: Database, orgId: string, id: string) {
+export async function serverView(db: Database, orgId: string, id: string) {
   return view(await loadCustom(db, orgId, id), await toolRows(db, [id]));
 }
 
@@ -778,7 +825,8 @@ async function savedHeaders(deps: CustomDeps, c: ConnectorConnection) {
 /**
  * Connects an https MCP server by URL (admins): a new account, or with `connectionId` a new sign-in for that one
  * ("Reconectar", same address only). With an API key: stored and connected. Without: if it answers openly,
- * connected; if it speaks MCP OAuth with dynamic registration, the authorize URL comes back; otherwise `needs_key`.
+ * connected; if it speaks MCP OAuth with dynamic registration, or `oauthClient` brings an app the admin registered
+ * with its authorization server, the authorize URL comes back; otherwise `needs_key`.
  * `headers` (ADR 0186) go with every request to the server, the key's `Authorization` on top; without a key the
  * server is asked with them, and one that answers is connected by them alone. Reconectar keeps the ones the account
  * has unless `headers` says otherwise (`[]` removes them), and is refused when it can't read them
@@ -795,10 +843,12 @@ export async function connectCustomServer(
     returnTo?: string;
     connectionId?: string;
     headers?: RequestHeader[];
+    oauthClient?: AdminOAuthApp;
   },
 ): Promise<CustomConnectStart> {
   await requirePermission(deps.db, actorId, orgId, "manage_connectors");
   const signInOnly = () => new ValidationError("This service connects by signing in", "connector.oauth_only");
+  const app = input.oauthClient ? adminOAuthApp(input.oauthClient) : undefined;
   // A service through Composio signs in on Composio's page: its address is never fetched.
   if (composioToolkitOf(input.serverUrl.trim())) {
     if (input.headers?.length) throw signInOnly();
@@ -811,7 +861,8 @@ export async function connectCustomServer(
   const target = input.connectionId ? await reconnectTarget(deps.db, orgId, input.connectionId, url.toString()) : null;
   // Reconectar asks at the account's own address, however it was typed again: what it keeps goes nowhere else.
   const serverUrl = target?.serverUrl ?? url.toString();
-  const label = input.label?.trim() || presetForServer(serverUrl)?.label || url.hostname;
+  const preset = presetForServer(serverUrl);
+  const label = input.label?.trim() || preset?.label || url.hostname;
   const apiKey = input.apiKey?.trim();
   // The account's own secret is opened only to carry its headers over; a list in the request replaces them unread.
   const saved = !input.headers && target?.headerNames?.length ? await savedHeaders(deps, target) : {};
@@ -836,12 +887,20 @@ export async function connectCustomServer(
     };
   };
   if (apiKey && apiKey.length < 8) throw new ValidationError("The key looks too short", "connector.key_too_short");
-  // The vendor's terms forbid asking for a token: on the Cloud it signs in only (ADR 0107).
-  if ((apiKey || headers) && presetForServer(serverUrl)?.cloudOAuthOnly && isAgentesCloud(deps.publicUrl)) {
+  // Its server takes no key, or on the Cloud the vendor's terms forbid asking for one (ADR 0016, ADR 0107): it
+  // signs in only, and takes no headers in a key's place either.
+  if ((apiKey || headers) && !takesKey(preset, isAgentesCloud(deps.publicUrl))) {
     throw signInOnly();
   }
   if (apiKey) return stored("api_key", { apiKey, ...(headers ? { headers } : {}) });
-  const probe = await probeMcpServer(deps, serverUrl, secretHeaders({ headers }, serverUrl));
+  // It documents a key alone and answers anyone until a tool runs: without one there is nothing to ask its server
+  // (ADR 0016, addendum 2026-11-17).
+  const signInRequired = presetLocks(serverUrl)?.signInRequired;
+  if (signInRequired === "key") return { status: "needs_key" };
+  const probe = await probeMcpServer(deps, serverUrl, secretHeaders({ headers }, serverUrl), {
+    ownApp: app !== undefined,
+    signInRequired: signInRequired !== undefined,
+  });
   // Headers a person typed are a secret of theirs, as a key is.
   if (probe.kind === "open") return headers ? stored("api_key", { headers }) : stored("none", null);
   if (probe.kind === "needs_key") return { status: "needs_key" };
@@ -861,14 +920,16 @@ export async function connectCustomServer(
     scopes: probe.scopes,
     returnTo: input.returnTo,
     connectionId: input.connectionId,
+    app,
   });
 }
 
 /**
  * Starts an MCP-native OAuth authorization: authorization server metadata,
- * a registered client (DCR), state + PKCE S256 + `resource`. `needs_key` when
- * the server can't do it, with `not_approved` when it only registers clients
- * it approved.
+ * a client (the admin's app: the one typed now, else the one this server
+ * already signs in with; otherwise ours by DCR), state + PKCE S256 +
+ * `resource`. `needs_key` when the server can't do it, with `not_approved`
+ * when it only registers clients it approved.
  */
 export async function beginMcpOAuth(
   deps: McpOAuthDeps,
@@ -884,15 +945,21 @@ export async function beginMcpOAuth(
     returnTo?: string;
     /** "Reconectar": the connection whose sign-in this replaces. */
     connectionId?: string;
+    /** An app the admin registered with the authorization server (checked by `adminOAuthApp`). */
+    app?: AdminOAuthApp;
   },
 ): Promise<Exclude<CustomConnectStart, { status: "connected" }>> {
   const meta = await authServerMetadata(deps, input.issuer);
   if (!meta) return { status: "needs_key" };
   const redirectUri = oauthRedirectUri(deps.publicUrl);
+  const own = input.app
+    ? await saveAdminOAuthApp(deps, orgId, input.issuer, meta, input.app)
+    : await adminOAuthAppFor(deps.db, orgId, input.issuer, input.serverUrl, input.connectionId);
+  if (input.app && !own) return { status: "needs_key" };
   // Worked out again each time: a client still in use keeps the scope it was registered with, maybe without
-  // offline_access.
-  const scope = oauthScope(meta, input.scopes);
-  const client = await ensureOAuthClient(deps, orgId, input.issuer, meta, { redirectUri, scope });
+  // offline_access. The admin's app asks for the scopes they typed instead of the server's.
+  const scope = oauthScope(meta, own?.scope ? own.scope.split(" ") : input.scopes);
+  const client = own ?? (await ensureOAuthClient(deps, orgId, input.issuer, meta, { redirectUri, scope }));
   if (client && "notApproved" in client) {
     return { status: "needs_key", reason: "not_approved", ...(client.detail ? { detail: client.detail } : {}) };
   }

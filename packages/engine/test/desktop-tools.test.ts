@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { DESKTOP_USE_PROTOCOL, type MachineRequest } from "@agenteschat/adapters";
+import { DESKTOP_USE_PROTOCOL, HOST_DESKTOP_PROTOCOL, type MachineRequest } from "@agenteschat/adapters";
 import { and, eq, schema } from "@agenteschat/db";
 import {
   ARTIFACT_LIMITS,
@@ -16,6 +16,7 @@ import {
   MachineOfflineError,
   MachineRequestError,
   type MachineStatus,
+  pngChunks,
   type RunAuthority,
   SANDBOX_SCOPE,
   startTakeover,
@@ -26,11 +27,12 @@ import {
   updateSandboxSettings,
 } from "../src";
 import { pickApp } from "../src/desktop/surface";
+import { postPersonMessage } from "../src/messages";
 import { APPS, fakeHub, lookOf } from "./desktop-fixtures";
-import { type Fixture, setup } from "./fixtures";
+import { addMember, type Fixture, setup } from "./fixtures";
 import { pairMachine, pushFromFolder } from "./machine-fixtures";
 import { runContext } from "./mail-fixtures";
-import { THUNAR } from "./screen-fixtures";
+import { jpegOf, THUNAR } from "./screen-fixtures";
 
 let f: Fixture;
 afterEach(async () => {
@@ -444,3 +446,192 @@ test("routines that only read can't use the desktop, a run nobody is behind can;
   expect(prompt).toContain("- Desktop: `desktop_do`, `desktop_read`, `desktop_screenshot`");
   expect(prompt).toContain("Web pages go to your browser (`browser_do`)");
 });
+
+test("desktop_do with record: the screen before and after each step, one animated PNG in the folder and the conversation", async () => {
+  const d = await desktopSetup();
+  await d.grant(DESKTOP_SCOPE, SANDBOX_SCOPE);
+  const folder = new Map<string, Uint8Array>();
+  const colors: [number, number, number][] = [
+    [200, 30, 30],
+    [30, 200, 30],
+    [30, 30, 200],
+  ];
+  let shots = 0;
+  d.s.respond = (r) => {
+    if (r.op === "write") folder.set(r.path, new Uint8Array(Buffer.from(r.base64, "base64")));
+    if (r.op === "push") return pushFromFolder(f, d.machineId, folder, r);
+    if (r.op === "desktop.capture") {
+      return jpegOf(colors[shots++ % colors.length] as [number, number, number], 1280, 800).then((bytes) => ({
+        data: Buffer.from(bytes).toString("base64"),
+        width: 1280,
+        height: 800,
+        screen: { width: 1280, height: 800 },
+        region: null,
+        marks: [],
+      }));
+    }
+    return undefined;
+  };
+  const out = await d.call("desktop_do", {
+    steps: [
+      { do: "click", target: "e25" },
+      { do: "press", key: "ctrl+s" },
+    ],
+    record: true,
+  });
+  expect(out.isError).toBeUndefined();
+  const path = String(out.data?.recording);
+  expect(path).toMatch(/^recordings\/.+\.png$/);
+  expect(out.content).toContain(`Recorded 3 pictures of the screen in ${path} (1280×800, `);
+  const [a] = await f.db.select().from(schema.artifacts);
+  expect(out.content).toContain(`It is shown in this conversation: its card goes with your reply ("${a?.title}"`);
+  expect(out.data?.desktopTrail).toBeDefined();
+  // Captured before the plan and after each step, written once into the folder.
+  expect(d.calls.filter((c) => c.op === "desktop.capture")).toHaveLength(3);
+  expect(d.calls.filter((c) => c.op === "write").map((c) => c.path)).toEqual([path]);
+  const actl = pngChunks(folder.get(path) as Uint8Array).find((c) => c.type === "acTL")?.data as Uint8Array;
+  expect(new DataView(actl.buffer, actl.byteOffset).getUint32(0)).toBe(3);
+});
+
+test("desktop_do with record, without Write files: the recording stays in the folder and the answer says how to ask", async () => {
+  const d = await desktopSetup();
+  await d.grant(DESKTOP_SCOPE, SANDBOX_SCOPE);
+  await f.db
+    .delete(schema.agentScopes)
+    .where(and(eq(schema.agentScopes.agentId, f.agent.id), eq(schema.agentScopes.scope, "drive:write")));
+  d.s.respond = (r) =>
+    r.op === "desktop.capture"
+      ? jpegOf([30, 30, 200], 640, 400).then((bytes) => ({
+          data: Buffer.from(bytes).toString("base64"),
+          width: 640,
+          height: 400,
+          screen: { width: 640, height: 400 },
+          region: null,
+          marks: [],
+        }))
+      : undefined;
+  const out = await d.call("desktop_do", { steps: [{ do: "press", key: "ctrl+s" }], record: true });
+  expect(out.isError).toBeUndefined();
+  // The same screen twice: one picture.
+  expect(out.content).toContain("Recorded 1 picture of the screen in recordings/");
+  expect(out.content).toContain(`It isn't shown in this conversation: that needs "Write files" (drive:write)`);
+  expect(d.calls.filter((c) => c.op === "write")).toHaveLength(1);
+  expect(d.calls.filter((c) => c.op === "push")).toEqual([]);
+});
+
+test("desktop_do keeps steps that went through under a name and runs them again; the browser's are not the desktop's", async () => {
+  // Opening a folder can be undone: kept steps may do it again.
+  const d = await desktopSetup({ judge: createFakeJudge((kind) => (kind === "screen_costly" ? 0.05 : undefined)) });
+  await d.grant(DESKTOP_SCOPE, SANDBOX_SCOPE);
+  const saved = await d.call("desktop_do", {
+    steps: [
+      { do: "open", app: "Files" },
+      { do: "double_click", target: "Documents" },
+    ],
+    save_as: "Open my documents",
+  });
+  expect(saved.content).toStartWith('Saved these steps as "Open my documents"');
+  // The same window, every element numbered otherwise.
+  d.s.look = lookOf(THUNAR.replaceAll("[ref=e", "[ref=e1"));
+  const sent = d.since();
+  const again = await d.call("desktop_do", { recipe: "Open my documents" });
+  expect(again.content).toStartWith('Ran your saved steps "Open my documents".');
+  expect(acts(sent()).map((a) => a.action)).toEqual([
+    { kind: "launch", app: "thunar.desktop" },
+    { kind: "double_click", at: { ref: "e132" } },
+  ]);
+  expect(again.data?.desktopTrail).toEqual([
+    { tool: "desktop_open", detail: "Files" },
+    { tool: "desktop_double_click" },
+  ]);
+  const unknown = await d.call("desktop_do", { recipe: "Sign in to Acme" });
+  expect(unknown.content).toBe(
+    'No saved steps are called "Sign in to Acme". Yours on the desktop: "Open my documents".',
+  );
+});
+
+// ADR 0201: the person's own screen on their own computer (protocol 81, `hello.hostDesktop`).
+test("on a person's own computer: its own switch, set there, and only in runs the person who paired it asked for", async () => {
+  const d = await desktopSetup();
+  await d.grant(DESKTOP_SCOPE, SANDBOX_SCOPE);
+  const host = (tools: Record<string, boolean>): Partial<MachineStatus> => ({
+    protocol: HOST_DESKTOP_PROTOCOL,
+    os: "win32",
+    pairedByUserId: f.owner.id,
+    // The agents' own desktops don't run on Windows: only the person's.
+    executors: { desktopUse: { available: false, reason: "Linux only" }, hostDesktop: { available: true } },
+    access: { folders: [], tools: { claude: false, codex: false, commands: true, ...tools } },
+  });
+  const status = (runId?: string) => agentDesktopUseStatus(f.db, d.hub, f.org.id, f.agent.id, runId);
+
+  // Its own switch, whatever the agents' desktop switch says.
+  d.s.status = host({ desktop: true });
+  expect(await d.names()).toEqual([]);
+  expect(await status(d.ctx.runId)).toMatchObject({ available: false, code: "host_switched_off" });
+  d.s.status = host({ hostDesktop: true, commands: false });
+  expect(await status(d.ctx.runId)).toMatchObject({ code: "commands_off" });
+  d.s.status = {
+    ...host({ hostDesktop: true }),
+    executors: { hostDesktop: { available: false, reason: "Only on Windows" } },
+  };
+  expect(await status(d.ctx.runId)).toMatchObject({ code: "not_ready", detail: "Only on Windows" });
+
+  // The pairer's own run: offered, and the call reaches the computer.
+  d.s.status = host({ hostDesktop: true });
+  expect(await d.names()).toEqual(TOOLS);
+  expect(await status(d.ctx.runId)).toMatchObject({ available: true, host: true });
+  let sent = d.since();
+  await d.call("desktop_read", {});
+  expect(sent().map((c) => c.op)).toContain("desktop.look");
+
+  // Someone else's run: not offered, and a call made anyway reaches nothing.
+  const bia = await addMember(f.db, f.org.id, "member", "Bia");
+  await f.db.insert(schema.channelMembers).values({ orgId: f.org.id, channelId: f.general.id, userId: bia.id });
+  const other = await runFrom(bia.id, false);
+  const tools = f.tools as NonNullable<Fixture["tools"]>;
+  expect((await tools.list(other)).filter((t) => t.name.startsWith("desktop_"))).toEqual([]);
+  sent = d.since();
+  const read = (await d.source.tools(d.ctx)).find((t) => t.name === "desktop_read") as ToolDefinition;
+  const refused = await read.execute({}, other);
+  expect(refused.isError).toBe(true);
+  expect(refused.content).toMatch(/owner asked you for/);
+  expect(sent()).toEqual([]);
+
+  // A routine's run, though the pairer set it up: never.
+  const routine = await runFrom(f.owner.id, true);
+  expect(await status(routine.runId)).toMatchObject({ code: "not_the_owner" });
+  expect((await tools.list(routine)).filter((t) => t.name.startsWith("desktop_"))).toEqual([]);
+
+  // The workspace's own computer is never a person's own.
+  d.s.status = { ...host({ hostDesktop: true }), kind: "managed" };
+  expect(await status(d.ctx.runId)).toMatchObject({ available: false, code: "switched_off" });
+});
+
+/** A run started by `personId`'s message in #general; `background`: a routine's run. */
+async function runFrom(personId: string, background: boolean) {
+  const msg = await postPersonMessage({ db: f.db, pubsub: f.pubsub }, personId, f.org.id, f.general.id, {
+    body: "look at my screen",
+  });
+  const [run] = await f.db
+    .insert(schema.agentRuns)
+    .values({
+      orgId: f.org.id,
+      agentId: f.agent.id,
+      channelId: f.general.id,
+      threadRootId: msg.id,
+      triggerMessageId: msg.id,
+      trigger: "mention",
+      hop: 1,
+      background,
+    })
+    .returning();
+  return {
+    db: f.db,
+    orgId: f.org.id,
+    agentId: f.agent.id,
+    runId: run?.id ?? "",
+    channelId: f.general.id,
+    threadRootId: msg.id,
+    triggerMessageId: msg.id,
+  };
+}

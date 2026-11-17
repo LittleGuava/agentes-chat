@@ -4,6 +4,7 @@ import { type ErrorBoundaryProps, Stack } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { NoticeIsland } from "@/features/island/NoticeIsland";
+import { usePhoneJobs } from "@/features/phone-tools/usePhoneJobs";
 import { ShareInbox } from "@/features/share/ShareInbox";
 import { useConnection, useRememberAgentLooks } from "@/features/shared/hooks";
 import { useAppIconBadge } from "@/features/shared/queries";
@@ -59,6 +60,8 @@ function AppStack() {
   useUserEvents();
   // The Vault's screens follow changes made anywhere (ADR 0144).
   useVaultEvents();
+  // What my agents ask of this phone (ADR 0205) is answered whatever screen is open.
+  usePhoneJobs();
   useVoiceOutbox();
   useAppIconBadge();
   // The app's sounds (ADR 0070): the player and its audio session.
@@ -197,7 +200,9 @@ function AppStack() {
       <Stack.Screen name="me/approvals" options={{ ...pushed, ...scrollUnder }} />
       <Stack.Screen name="me/start" options={{ ...pushed, ...scrollUnder }} />
       <Stack.Screen name="me/activity" options={{ ...pushed, ...scrollUnder }} />
+      <Stack.Screen name="me/own-order" options={{ ...pushed, ...scrollUnder }} />
       <Stack.Screen name="me/agent-style" options={{ ...pushed, ...scrollUnder }} />
+      <Stack.Screen name="me/phone-tools" options={{ ...pushed, ...scrollUnder }} />
       <Stack.Screen name="me/chat-look" options={{ ...pushed, ...scrollUnder }} />
       <Stack.Screen name="me/sounds" options={{ ...pushed, ...scrollUnder }} />
       <Stack.Screen name="me/appearance" options={{ ...pushed, ...scrollUnder }} />

@@ -16,6 +16,7 @@ import {
   useGitHubApp,
   useGithubAccess,
   useInstallGitHubApp,
+  useProgramComputers,
   useRenameConnection,
   useStartOAuth,
 } from "@agenteschat/client";
@@ -43,7 +44,15 @@ import {
 } from "@agenteschat/client/lib/connected";
 import { humanize, isHttpsUrl, sameServer } from "@agenteschat/client/lib/custom-tools";
 import { errorText } from "@agenteschat/client/lib/errors";
+import { joinNames } from "@agenteschat/client/lib/format";
 import { useHeldWhile } from "@agenteschat/client/lib/hold";
+import {
+  type McpPaste,
+  type PastedProgram,
+  parseMcpPaste,
+  parseMcpProgram,
+  pasteForForm,
+} from "@agenteschat/client/lib/mcp-paste";
 import {
   BLANK_HEADER,
   connectsWithoutKey,
@@ -83,11 +92,12 @@ import {
 } from "@agenteschat/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
-import { Fragment, type ReactNode, useEffect, useRef, useState } from "react";
+import { type ClipboardEvent, Fragment, type ReactNode, useEffect, useRef, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useApi } from "@/api/context";
 import { AgentAvatar } from "@/components/AgentAvatar";
 import { ConnectorIcon } from "@/components/ConnectorCatalog";
+import { ConnectProgram } from "@/components/ConnectProgram";
 import { FlowTitle } from "@/components/FlowTitle";
 import { LoadingList, useStepText } from "@/components/Loading";
 import { useOrg } from "@/components/org-context";
@@ -280,7 +290,11 @@ function ConnectStep({
   const [apiKey, setApiKey] = useState("");
   const [keyOpen, setKeyOpen] = useState(false);
   const [needsKey, setNeedsKey] = useState<Extract<CustomConnectStart, { status: "needs_key" }> | null>(null);
-  const [touched, setTouched] = useState<"oauth" | "key" | null>(null);
+  const [touched, setTouched] = useState<"oauth" | "key" | "app" | null>(null);
+  const [appOpen, setAppOpen] = useState(false);
+  const [clientId, setClientId] = useState("");
+  const [clientSecret, setClientSecret] = useState("");
+  const [scopes, setScopes] = useState("");
   // Reconectar: the headers the account has, by name. They stay unless new ones are typed or "Remover" drops them.
   const savedHeaders = (mode === "reconnect" && item?.server?.headerNames) || [];
   const [headerRows, setHeaderRows] = useState<HeaderRow[]>(savedHeaders.length > 0 ? [] : [BLANK_HEADER]);
@@ -289,12 +303,18 @@ function ConnectStep({
   const [refused, setRefused] = useState<HeaderRefused | null>(null);
   // The saved headers couldn't be read: kept until the form closes, so nothing brings "they stay" back.
   const [unreadable, setUnreadable] = useState<HeaderRefused | null>(null);
+  const [pasted, setPasted] = useState<McpPaste | null>(null);
+  // A program on a computer the person connected (ADR 0215): offered while one of theirs can run it.
+  const [way, setWay] = useState<"address" | "program">("address");
+  const [pastedProgram, setPastedProgram] = useState<PastedProgram | null>(null);
 
   // An account of a server by address: its own address, whatever the catalog says.
   const fixed = item?.server?.serverUrl ?? null;
   // A server by address (any, or a vendor's official one) or our catalog connector.
   const byAddress = fixed !== null || def === null || def.kind === "remote_mcp";
   const askUrl = fixed === null && def === null;
+  const programs = useProgramComputers(org.id, askUrl);
+  const programReady = askUrl ? (programs.data ?? []).filter((c) => c.available) : [];
   const viaComposio = item ? item.viaComposio : def?.via === "composio";
   const canOAuth = byAddress || Boolean(def?.oauthConfigured && def.auth.includes("oauth"));
   // A one-click server the catalog lists without a key (Intercom on the Cloud) offers none, unless it answers that it
@@ -338,8 +358,45 @@ function ConnectStep({
     t("connectFlow.almost"),
   ]);
 
+  // A `claude mcp add` line or an `mcpServers` block pasted as the address: what it says goes in the form's fields.
+  const pasteServer = (e: ClipboardEvent<HTMLInputElement>) => {
+    const text = e.clipboardData.getData("text");
+    const paste = parseMcpPaste(text);
+    if (paste.kind === "none" || (paste.kind === "url" && paste.url === text.trim())) return setPasted(null);
+    e.preventDefault();
+    setPasted(paste);
+    setPastedProgram(parseMcpProgram(text));
+    setNeedsKey(null);
+    if (paste.kind !== "url") return;
+    const form = pasteForForm(paste);
+    setUrl(form.url);
+    if (form.name && !label.trim()) setLabel(form.name);
+    if (form.apiKey) setApiKey(form.apiKey);
+    if (form.apiKey || form.keyAsked.length > 0) setKeyOpen(true);
+    // Any other header goes with the request headers (ADR 0186), where its value is typed or checked.
+    if (canHeaders && form.headers.length > 0) {
+      setHeaderRows(form.headers.map((header, i) => ({ id: i + 1, ...header })));
+      setRefused(null);
+      setHeadersOpen(true);
+    }
+  };
+  const pastedForm = pasted?.kind === "url" ? pasteForForm(pasted) : null;
+  const pasteNotes = pastedForm
+    ? [
+        pasted?.kind === "url" && pasted.missing.length > 0
+          ? t("connectFlow.paste.urlAsked", { names: joinNames(pasted.missing, t) })
+          : null,
+        pastedForm.keyAsked.length > 0
+          ? t("connectFlow.paste.keyAsked", { names: joinNames(pastedForm.keyAsked, t) })
+          : null,
+      ].filter((note): note is string => note !== null)
+    : [];
+
   const urlError = touched && askUrl && !isHttpsUrl(url) ? t("connectors.serverUrlInvalid") : undefined;
   const keyError = touched === "key" && apiKey.trim().length < 8 ? t("connectors.apiKeyInvalid") : undefined;
+  // A server that only lets in apps it approved (Entra ID, for one) takes an app the admin registered with it.
+  const ownAppOffered = byAddress && needsKey?.reason === "not_approved";
+  const clientIdError = touched === "app" && !clientId.trim() ? t("connectFlow.ownApp.clientIdMissing") : undefined;
 
   const done = (next: ConnectedItem, outcome: ConnectOutcome) => {
     // A new account's confirmation says it connected; any other ending is a toast.
@@ -354,6 +411,7 @@ function ConnectStep({
       setKeyOpen(true);
       // "Check their values": the headers it sent are in sight.
       if (sendsHeaders) setHeadersOpen(true);
+      setAppOpen(false);
       setTouched(null);
     } else done(fromServer(result.server, catalog.data?.connectors ?? []), result.outcome ?? "connected");
   };
@@ -390,6 +448,26 @@ function ConnectStep({
     }
   };
   const startApp = () => installApp.mutate(back, { onSuccess: (to) => navigateAway(to) });
+  const submitOwnApp = () => {
+    setTouched("app");
+    if (!clientId.trim()) return;
+    const secret = clientSecret.trim();
+    const scopeList = scopes.split(/\s+/).filter(Boolean);
+    connect.mutate(
+      {
+        serverUrl,
+        label: name,
+        returnTo: back,
+        connectionId,
+        oauthClient: {
+          clientId: clientId.trim(),
+          ...(secret ? { clientSecret: secret } : {}),
+          ...(scopeList.length > 0 ? { scopes: scopeList } : {}),
+        },
+      },
+      { onSuccess: byAddressResult },
+    );
+  };
   const submitKey = () => {
     setTouched("key");
     if ((askUrl && !isHttpsUrl(url)) || apiKey.trim().length < 8) return;
@@ -409,6 +487,30 @@ function ConnectStep({
       );
     }
   };
+
+  const wayChoice = programReady.length > 0 && (
+    <Segmented
+      block
+      label={t("connectFlow.way.label")}
+      value={way}
+      onValueChange={setWay}
+      options={[
+        { value: "address", label: t("connectFlow.way.address") },
+        { value: "program", label: t("connectFlow.way.program") },
+      ]}
+    />
+  );
+  if (way === "program" && programReady.length > 0) {
+    return (
+      <ConnectProgram
+        computers={programReady}
+        pasted={pastedProgram}
+        choice={wayChoice}
+        onConnected={(next) => onConnected(next, false)}
+        onClose={onClose}
+      />
+    );
+  }
 
   const keyForm = (
     <form
@@ -465,7 +567,10 @@ function ConnectStep({
           ) : fixed ? (
             <p className="muted cflow__text">{fixed}</p>
           ) : (
-            <p className="muted cflow__text">{t("connectFlow.customText")}</p>
+            <>
+              {wayChoice}
+              <p className="muted cflow__text">{t("connectFlow.customText")}</p>
+            </>
           )}
           {askUrl && (
             <Field label={t("connectors.serverUrl")} id="cflow-url" example={t("connectFlow.urlHelp")} error={urlError}>
@@ -474,12 +579,27 @@ function ConnectStep({
                 onChange={(e) => {
                   setUrl(e.target.value);
                   setNeedsKey(null);
+                  setPasted(null);
                 }}
+                onPaste={pasteServer}
                 placeholder="https://"
                 inputMode="url"
               />
             </Field>
           )}
+          {askUrl &&
+            pasted?.kind === "command" &&
+            (programReady.length > 0 ? (
+              <Alert tone="neutral">
+                {t("connectFlow.paste.program")}{" "}
+                <Button variant="link" onClick={() => setWay("program")}>
+                  {t("connectFlow.paste.useProgram")}
+                </Button>
+              </Alert>
+            ) : (
+              <Alert>{t("connectFlow.paste.command")}</Alert>
+            ))}
+          {askUrl && pasteNotes.length > 0 && <Alert tone="neutral">{pasteNotes.join(" ")}</Alert>}
           {def === null && fixed === null && (
             <Field label={t("connectFlow.name")} id="cflow-name">
               <Input
@@ -514,10 +634,74 @@ function ConnectStep({
             <details
               className="cflow__more"
               open={keyOpen}
-              onToggle={(e) => setKeyOpen((e.currentTarget as HTMLDetailsElement).open)}
+              onToggle={(e) => {
+                const open = (e.currentTarget as HTMLDetailsElement).open;
+                setKeyOpen(open);
+                if (open) setAppOpen(false);
+              }}
             >
               <summary>{t("connectFlow.withKey")}</summary>
               {keyForm}
+            </details>
+          )}
+          {!viaApp && ownAppOffered && (
+            <details
+              className="cflow__more"
+              open={appOpen}
+              onToggle={(e) => {
+                const open = (e.currentTarget as HTMLDetailsElement).open;
+                setAppOpen(open);
+                if (open) setKeyOpen(false);
+              }}
+            >
+              <summary>{t("connectFlow.ownApp.title")}</summary>
+              <form
+                className="cflow__key"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  submitOwnApp();
+                }}
+              >
+                <Field
+                  label={t("connectFlow.ownApp.redirectUri")}
+                  id="cflow-app-redirect"
+                  hint={{
+                    name: t("common.about", { label: t("connectFlow.ownApp.redirectUri") }),
+                    text: t("connectFlow.ownApp.redirectUriHelp"),
+                  }}
+                >
+                  <Input
+                    readOnly
+                    value={`${window.location.origin}/api/app/connectors/oauth/callback`}
+                    onFocus={(e) => e.currentTarget.select()}
+                  />
+                </Field>
+                <Field label={t("connectFlow.ownApp.clientId")} id="cflow-app-id" error={clientIdError}>
+                  <Input autoComplete="off" value={clientId} onChange={(e) => setClientId(e.target.value)} />
+                </Field>
+                <Field
+                  label={t("connectFlow.ownApp.clientSecret")}
+                  id="cflow-app-secret"
+                  hint={{
+                    name: t("common.about", { label: t("connectFlow.ownApp.clientSecret") }),
+                    text: t("connectFlow.ownApp.clientSecretHelp"),
+                  }}
+                >
+                  <Input
+                    type="password"
+                    autoComplete="off"
+                    value={clientSecret}
+                    onChange={(e) => setClientSecret(e.target.value)}
+                  />
+                </Field>
+                <Field
+                  label={t("connectFlow.ownApp.scopes")}
+                  id="cflow-app-scopes"
+                  example={t("connectFlow.ownApp.scopesExample")}
+                >
+                  <Input autoComplete="off" value={scopes} onChange={(e) => setScopes(e.target.value)} />
+                </Field>
+              </form>
             </details>
           )}
           {!viaApp && !canOAuth && canKey && keyForm}
@@ -562,6 +746,15 @@ function ConnectStep({
         {viaApp ? (
           <Button variant="primary" disabled={busy} loading={installApp.isPending} onClick={startApp}>
             {t("githubApp.install")}
+          </Button>
+        ) : ownAppOffered && appOpen ? (
+          <Button
+            variant="primary"
+            disabled={busy}
+            loading={connect.isPending && touched === "app"}
+            onClick={submitOwnApp}
+          >
+            {t("connectFlow.ownApp.signIn")}
           </Button>
         ) : keyed ? (
           <Button

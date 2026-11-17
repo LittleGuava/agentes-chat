@@ -1,4 +1,4 @@
-import { and, type Database, eq, isNull, schema } from "@agenteschat/db";
+import { and, type Database, desc, eq, isNull, schema } from "@agenteschat/db";
 import { openSecret, sealSecret } from "../crypto";
 import { ValidationError } from "../errors";
 import { oneLine } from "../mail/text";
@@ -12,8 +12,9 @@ const { oauthClients, connectorConnections } = schema;
  * `401` (`WWW-Authenticate: Bearer resource_metadata=…`) or its
  * `/.well-known/oauth-protected-resource`, the authorization server's
  * metadata (RFC 8414, then OpenID discovery), Dynamic Client Registration
- * (RFC 7591), and PKCE S256 with the `resource` indicator (RFC 8707). Every
- * URL we fetch passes the SSRF guard.
+ * (RFC 7591) or an app the admin registered there by hand, and PKCE S256
+ * with the `resource` indicator (RFC 8707). Every URL we fetch passes the
+ * SSRF guard.
  */
 export interface McpOAuthDeps extends ConnectorDeps {
   resolveHost?: ResolveHost;
@@ -77,12 +78,16 @@ export const serverKey = (serverUrl: string) => serverUrl.replace(/\/+$/, "").to
 
 /**
  * Asks the server who it is without credentials and reads where its OAuth lives. `headers`: what a person typed for
- * this server (ADR 0186), sent with this one request to it and never with the metadata reads that follow.
+ * this server (ADR 0186), sent with this one request to it and never with the metadata reads that follow. `ownApp`:
+ * the admin brought an app registered with its authorization server, so one at the server's origin needs no
+ * registration of ours. `signInRequired`: the server answers anyone and asks for credentials only when a tool runs
+ * (`McpPreset.signInRequired`), so no answer of its is "open": the sign-in its metadata names, else a key.
  */
 export async function probeMcpServer(
   deps: McpOAuthDeps,
   serverUrl: string,
   headers: Record<string, string> = {},
+  options: { ownApp?: boolean; signInRequired?: boolean } = {},
 ): Promise<ServerProbe> {
   await assertPublicHttpsUrl(serverUrl, deps.resolveHost);
   let res: Response;
@@ -102,9 +107,24 @@ export async function probeMcpServer(
   } catch {
     throw new ValidationError("Couldn't connect to the MCP server", "connector.mcp_unreachable");
   }
+  if (res.status === 404 || res.status === 405) {
+    // The older HTTP+SSE transport: the address is its stream's, which takes GET alone (ADR 0016, addendum 2026-11-15).
+    const stream = await openStream(deps, serverUrl, headers);
+    if (stream?.ok && (stream.headers.get("content-type") ?? "").includes("text/event-stream")) {
+      await stream.body?.cancel().catch(() => {});
+      if (!options.signInRequired) return { kind: "open" };
+      res = stream;
+    } else if (stream?.status === 401 || stream?.status === 403) res = stream;
+    else await stream?.body?.cancel().catch(() => {});
+  }
   if (res.status !== 401 && res.status !== 403) {
-    if (res.ok) return { kind: "open" };
-    throw new ValidationError(`The MCP server answered ${res.status}`, "connector.mcp_status", { status: res.status });
+    if (!res.ok) {
+      throw new ValidationError(`The MCP server answered ${res.status}`, "connector.mcp_status", {
+        status: res.status,
+      });
+    }
+    if (!options.signInRequired) return { kind: "open" };
+    await res.body?.cancel().catch(() => {});
   }
   const header = res.headers.get("www-authenticate") ?? "";
   const fromHeader = /resource_metadata="([^"]+)"/.exec(header)?.[1];
@@ -129,14 +149,34 @@ export async function probeMcpServer(
     }
   }
   // No protected-resource metadata (older servers, e.g. Atlassian or Zapier): the MCP spec's fallback
-  // is an authorization server at the server's own origin.
-  if (/^bearer\b/i.test(header)) {
+  // is an authorization server at the server's own origin. One that answered without a challenge has none to read.
+  if (/^bearer\b/i.test(header) || options.signInRequired) {
     const meta = await authServerMetadata(deps, base.origin).catch(() => null);
-    if (meta?.registration_endpoint) {
+    if (meta && (meta.registration_endpoint || options.ownApp)) {
       return { kind: "oauth", resource: canonicalResource(serverUrl), issuer: base.origin, scopes: [] };
     }
   }
   return { kind: "needs_key" };
+}
+
+/**
+ * The answer to a GET that opens an event stream at `serverUrl`, with the headers a person typed for the server
+ * (ADR 0186) as the POST before it had them; null when nothing answered.
+ */
+async function openStream(
+  deps: McpOAuthDeps,
+  serverUrl: string,
+  headers: Record<string, string>,
+): Promise<Response | null> {
+  try {
+    return await http(deps)(serverUrl, {
+      redirect: "error",
+      signal: waitMs(),
+      headers: { ...headers, accept: "text/event-stream" },
+    });
+  } catch {
+    return null;
+  }
 }
 
 /** Authorization server metadata: RFC 8414 (with path insertion), then OpenID discovery. */
@@ -215,10 +255,7 @@ export async function ensureOAuthClient(
   meta: AuthServerMetadata,
   input: { redirectUri: string; scope: string | null },
 ): Promise<OAuthClientRow | NotApproved | null> {
-  const [existing] = await deps.db
-    .select()
-    .from(oauthClients)
-    .where(and(eq(oauthClients.orgId, orgId), eq(oauthClients.issuer, issuer)));
+  const [existing] = await deps.db.select().from(oauthClients).where(registeredBy(orgId, issuer));
   if (existing) {
     const [inUse] = await deps.db
       .select({ id: connectorConnections.id })
@@ -315,14 +352,118 @@ export async function ensureOAuthClient(
     .onConflictDoNothing()
     .returning();
   if (row) return row;
-  const [raced] = await deps.db
-    .select()
-    .from(oauthClients)
-    .where(and(eq(oauthClients.orgId, orgId), eq(oauthClients.issuer, issuer)));
+  const [raced] = await deps.db.select().from(oauthClients).where(registeredBy(orgId, issuer));
   return raced ?? null;
 }
 
+/** The org's dynamic registration with this issuer (an admin's apps are never it). */
+const registeredBy = (orgId: string, issuer: string) =>
+  and(eq(oauthClients.orgId, orgId), eq(oauthClients.issuer, issuer), eq(oauthClients.preregistered, false));
+
 export type OAuthClientRow = typeof oauthClients.$inferSelect;
+
+/** An app the admin registered with the authorization server: its client id, secret (a confidential app) and scopes. */
+export interface AdminOAuthApp {
+  clientId: string;
+  clientSecret?: string;
+  /** Replace the scopes the server lists; none: the server's. */
+  scopes?: string[];
+}
+
+/** The app as typed, checked once: the id trimmed and required, the secret trimmed, scopes split on spaces. */
+export function adminOAuthApp(input: AdminOAuthApp): AdminOAuthApp {
+  const clientId = input.clientId.trim();
+  if (!clientId) throw new ValidationError("The app's client ID is missing", "connector.client_id_required");
+  const clientSecret = input.clientSecret?.trim();
+  const scopes = [...new Set((input.scopes ?? []).flatMap((s) => s.split(/\s+/)).filter(Boolean))];
+  return { clientId, ...(clientSecret ? { clientSecret } : {}), ...(scopes.length > 0 ? { scopes } : {}) };
+}
+
+/**
+ * Saves the admin's app for this issuer, the same client id again in place (a rotated secret, other scopes; a blank
+ * secret keeps the saved one). Its secret goes by HTTP Basic, the method every authorization server must take (RFC
+ * 6749 §2.3.1), unless the server lists only `client_secret_post`; without a secret it is a public client, PKCE alone.
+ * Null when the server doesn't offer PKCE S256.
+ */
+export async function saveAdminOAuthApp(
+  deps: McpOAuthDeps,
+  orgId: string,
+  issuer: string,
+  meta: AuthServerMetadata,
+  app: AdminOAuthApp,
+): Promise<OAuthClientRow | null> {
+  const methods = meta.code_challenge_methods_supported;
+  if (methods && !methods.includes("S256")) return null;
+  const same = and(
+    eq(oauthClients.orgId, orgId),
+    eq(oauthClients.issuer, issuer),
+    eq(oauthClients.clientId, app.clientId),
+    eq(oauthClients.preregistered, true),
+  );
+  const [existing] = await deps.db.select().from(oauthClients).where(same);
+  const id = existing?.id ?? crypto.randomUUID();
+  const wrapper = deps.keyWrappers[0];
+  if (!wrapper) throw new Error("no key wrapper");
+  const sealed = app.clientSecret ? await sealSecret(wrapper, app.clientSecret, clientAad(orgId, id)) : null;
+  const saved =
+    existing?.secretCiphertext && existing.wrappedDataKey && existing.kekId
+      ? { ciphertext: existing.secretCiphertext, wrappedDataKey: existing.wrappedDataKey, kekId: existing.kekId }
+      : null;
+  const kept = sealed ?? saved;
+  const supported = meta.token_endpoint_auth_methods_supported;
+  const onlyPost =
+    Array.isArray(supported) && supported.includes("client_secret_post") && !supported.includes("client_secret_basic");
+  const fields = {
+    authorizationEndpoint: meta.authorization_endpoint,
+    tokenEndpoint: meta.token_endpoint,
+    secretCiphertext: kept?.ciphertext ?? null,
+    wrappedDataKey: kept?.wrappedDataKey ?? null,
+    kekId: kept?.kekId ?? null,
+    scope: app.scopes?.join(" ") ?? null,
+    tokenAuthMethod: !kept ? "none" : onlyPost ? "client_secret_post" : "client_secret_basic",
+  };
+  if (existing) {
+    const [updated] = await deps.db.update(oauthClients).set(fields).where(eq(oauthClients.id, id)).returning();
+    return updated ?? null;
+  }
+  const [row] = await deps.db
+    .insert(oauthClients)
+    .values({ id, orgId, issuer, clientId: app.clientId, preregistered: true, ...fields })
+    .onConflictDoNothing()
+    .returning();
+  if (row) return row;
+  const [raced] = await deps.db.select().from(oauthClients).where(same);
+  return raced ?? null;
+}
+
+/**
+ * The admin's app a server already signs in with: the one "Reconectar"'s connection used, else the newest one an
+ * active connection to the same address uses. Null when none (every connection to it gone: the admin types it again).
+ */
+export async function adminOAuthAppFor(
+  db: Database,
+  orgId: string,
+  issuer: string,
+  serverUrl: string,
+  connectionId?: string,
+): Promise<OAuthClientRow | null> {
+  const used = await db
+    .select({ client: oauthClients, connectionId: connectorConnections.id, serverUrl: connectorConnections.serverUrl })
+    .from(connectorConnections)
+    .innerJoin(oauthClients, eq(oauthClients.id, connectorConnections.oauthClientId))
+    .where(
+      and(
+        eq(connectorConnections.orgId, orgId),
+        isNull(connectorConnections.revokedAt),
+        eq(oauthClients.issuer, issuer),
+        eq(oauthClients.preregistered, true),
+      ),
+    )
+    .orderBy(desc(connectorConnections.createdAt));
+  const own = used.find((u) => u.connectionId === connectionId);
+  const sameServer = used.find((u) => serverKey(u.serverUrl) === serverKey(serverUrl));
+  return (own ?? sameServer)?.client ?? null;
+}
 
 /**
  * How the token endpoint knows us, by the client's method (RFC 6749 §2.3.1): the form fields and headers to add.

@@ -1,4 +1,11 @@
-import { keys, useArchivedChannels, useChannelCategories, useChannels, useMuteChannel } from "@agenteschat/client";
+import {
+  keys,
+  useArchivedChannels,
+  useChannelCategories,
+  useChannels,
+  useMuteChannel,
+  useOwnOrder,
+} from "@agenteschat/client";
 import { canTalk } from "@agenteschat/client/lib/audience";
 import { waitingComputerByAgent } from "@agenteschat/client/lib/machine-outages";
 import { isRightHand, rightHandOf } from "@agenteschat/client/lib/right-hand";
@@ -145,13 +152,17 @@ function Home() {
     [dir.agents, hidden],
   );
   const pins = usePins();
+  // "Usar a minha ordem" (ADR 0080, addendum of 2026-11-16): on, each section in the person's order, not by activity.
+  const own = useOwnOrder(orgId);
   const sections = homeLayout(
     withoutQuietGeneral(pinned.rows, hideGeneral),
     categories.data ?? [],
     undefined,
     starters,
     pins.pins,
+    own.on ? own : undefined,
   );
+  menus.setLayout(sections);
   // A section's title: a fixed one by its key (a personal workspace's channels are its group conversations), a
   // category by its name.
   const sectionTitle = (b: HomeBlock) =>

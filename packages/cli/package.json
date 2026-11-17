@@ -1,0 +1,27 @@
+{
+  "name": "@agenteschat/cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The agentes command: send a task to an agentes.chat agent, wait for it and keep the conversation, from scripts and CI.",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "main": "./src/cli.ts",
+  "types": "./src/cli.ts",
+  "exports": {
+    ".": "./src/cli.ts"
+  },
+  "bin": {
+    "agentes": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18.3"
+  },
+  "scripts": {
+    "build": "bun build src/index.ts --target=node --outfile dist/index.js --banner '#!/usr/bin/env node'",
+    "typecheck": "tsc -p tsconfig.json"
+  }
+}

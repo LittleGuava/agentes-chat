@@ -296,6 +296,11 @@ export function createFakeComposioClient(
       string,
       { toolkit: ComposioMailToolkit; connectedAccountId: string; userId: string; query: string | null }
     >(),
+    /** Triggers of connector events (ADR 0196), by id. */
+    eventTriggers: new Map<
+      string,
+      { slug: string; connectedAccountId: string; userId: string; config: Record<string, unknown> }
+    >(),
     deletedTriggers: [] as string[],
     /** Tools by `toolkit@version`. */
     tools: new Map<string, ComposioTool[]>(),
@@ -372,9 +377,26 @@ export function createFakeComposioClient(
       state.triggers.set(triggerId, input);
       return { triggerId };
     },
+    async createTrigger(input) {
+      if (state.failWith) throw state.failWith;
+      const owner = state.accounts.get(input.connectedAccountId)?.userId;
+      if (!owner || input.userId !== owner) throw composioUserRefused(input.userId);
+      // An upsert, as Composio's: the same account, type and config give back the trigger it already has.
+      const same = [...state.eventTriggers].find(
+        ([, t]) =>
+          t.slug === input.slug &&
+          t.connectedAccountId === input.connectedAccountId &&
+          JSON.stringify(t.config) === JSON.stringify(input.config),
+      );
+      if (same) return { triggerId: same[0] };
+      const triggerId = `ti_${++seq}`;
+      state.eventTriggers.set(triggerId, input);
+      return { triggerId };
+    },
     async deleteTrigger(triggerId) {
       state.deletedTriggers.push(triggerId);
       state.triggers.delete(triggerId);
+      state.eventTriggers.delete(triggerId);
     },
     verifyWebhook(headers, rawBody) {
       if (headers.get("webhook-signature") !== FAKE_COMPOSIO_SIGNATURE) throw new ComposioSignatureError();

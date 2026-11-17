@@ -66,6 +66,7 @@ import { checkToolCall } from "./checks";
 import { connectorFirst } from "./connector-first";
 import { type BlockedTool, compactSchema, presentTools, resolveCall } from "./directory";
 import { canonicalJson, validateJson } from "./json-schema";
+import { createQueryResultToolSource, keepLongResult } from "./long-results";
 import { missingPermissions, REQUEST_PERMISSION_TOOL } from "./permission";
 import {
   type ApprovalsLevel,
@@ -163,6 +164,7 @@ export const highRisk = (tool: string, scope: string) =>
  *   by the tool itself, and that rule covers no command that has a kind.
  * - A tool that runs SQL (`sqlReads`) is kept by the reads of its project when the Postgres guard proves the call
  *   read-only, then by the tool itself.
+ * - A tool of a service whose every call a person decides on its own (`everyCall`: Telnyx, Agentcard) is never kept.
  * - Any other is kept by its name and, when it runs other actions, by each action (none: the tool itself).
  */
 export async function rememberKinds(
@@ -171,7 +173,7 @@ export async function rememberKinds(
   authority: RunAuthority | null,
   level: ApprovalsLevel,
 ): Promise<RememberedKind[]> {
-  if (!authority || level !== "risky" || tool.scope.startsWith("mail:")) return [];
+  if (!authority || level !== "risky" || tool.scope.startsWith("mail:") || tool.everyCall) return [];
   if (tool.rememberTarget && tool.connectionId) {
     const target = tool.rememberTarget(input);
     return target ? [{ tool: tool.name, actions: [target] }] : [];
@@ -294,6 +296,8 @@ export const AHEAD_REFUSED =
  */
 export function aheadRefusal(tool: ToolDefinition, input: Record<string, unknown>): string | null {
   if (!tool.ahead || !tool.connectionId) return "Only a connected app's own action can be approved ahead.";
+  if (tool.everyCall)
+    return "A person decides each call of this service when it is made, so it can't be approved ahead.";
   const actions = tool.actions ? tool.actions(input) : [];
   if (!actions) return "This call doesn't say which actions it runs, so it can't be approved ahead.";
   if ([tool.name, tool.rememberAs ?? "", tool.scope, ...actions].some((name) => name && alwaysAsks(name))) {
@@ -527,7 +531,14 @@ export type InvokeResult =
   | { type: "result"; output: ToolOutput; ran?: Approval; autoApproved?: { by: string | null; reads: boolean } }
   | { type: "approval"; approval: Approval }
   /** `ask_user`: the executor posts the question and suspends the run. */
-  | { type: "question"; text: string; choices: string[] | null; requestedForUserId: string | null; why: string }
+  | {
+      type: "question";
+      text: string;
+      choices: string[] | null;
+      requestedForUserId: string | null;
+      items?: schema.QuestionItem[] | null;
+      why: string;
+    }
   /** `request_secret`: the executor posts the card and suspends the run. */
   | { type: "secret"; requestId: string };
 
@@ -568,13 +579,21 @@ export function createToolGateway(deps: {
   faultHint?: string;
   /** Live events (the autonomy brakes' proposal card, ADR 0131). */
   pubsub?: PubSub;
+  /**
+   * A JSON answer past `MAX_RESULT_CHARS` is kept whole for the run and read in parts with `query_result`, which is
+   * then every agent's (ADR 0015, addendum on long results). Off: it is cut, like any other long text.
+   */
+  keepLongResults?: boolean;
 }) {
   const now = deps.now ?? (() => new Date());
+  const sources = deps.keepLongResults
+    ? [...deps.sources, createQueryResultToolSource({ now, maxChars: MAX_RESULT_CHARS })]
+    : deps.sources;
 
   async function allTools(ctx: ToolContext) {
     const byName = new Map<string, ToolDefinition>();
     const rightHand = isRightHand(await getAgentCached(ctx.db, ctx.orgId, ctx.agentId));
-    for (const source of deps.sources) {
+    for (const source of sources) {
       for (const tool of await source.tools(ctx)) {
         if (!TOOL_NAME.test(tool.name)) continue;
         if (rightHand && RIGHT_HAND_NOT_OFFERED.has(tool.name)) continue;
@@ -704,6 +723,12 @@ export function createToolGateway(deps: {
       }
       // A NUL or a lone surrogate (a binary printed by a command) would make every save of this result fail.
       const text = pgSafeText(output.content);
+      // Already framed when it came from outside: the id and how to read it stay out of the frame.
+      const kept =
+        deps.keepLongResults && text.length > MAX_RESULT_CHARS
+          ? await keepLongResult(ctx, tool, text, { now: now(), maxChars: MAX_RESULT_CHARS })
+          : null;
+      if (kept) return { ...output, content: kept };
       const capped = {
         ...output,
         content: text.length > MAX_RESULT_CHARS ? `${cutText(text, MAX_RESULT_CHARS)}\n[truncated]` : text,

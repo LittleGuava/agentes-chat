@@ -6,6 +6,8 @@ export const keys = {
   health: ["health"] as const,
   instance: ["instance"] as const,
   telemetry: ["telemetry"] as const,
+  serverUpdate: ["server-update"] as const,
+  serverUpdater: ["server-updater"] as const,
   jev: ["jev"] as const,
   /** The installation's GIPHY key (ADR 0091), not a workspace's: it stays when switching organizations. */
   gifKey: ["gif-key"] as const,
@@ -13,6 +15,7 @@ export const keys = {
   authConfig: ["auth-config"] as const,
   me: ["me"] as const,
   accountDeletion: ["account-deletion"] as const,
+  accountSessions: ["account-sessions"] as const,
   phoneSignIn: ["phone-sign-in"] as const,
   /** The server's Web Push key (ADR 0071); `null` = Web Push off on this server. */
   webPushKey: ["push", "web-key"] as const,
@@ -26,9 +29,13 @@ export const keys = {
   /** Under `members`: someone joining or leaving refreshes it too. */
   limits: (orgId: string) => ["org", orgId, "members", "limits"] as const,
   invitations: (orgId: string) => ["org", orgId, "invitations"] as const,
+  /** What the workspace brought from other apps, by source package (ADR 0055). */
+  importedSources: (orgId: string) => ["org", orgId, "imports"] as const,
   agents: (orgId: string) => ["org", orgId, "agents"] as const,
   /** Set whole by every change; read again on the `agent.groups` org event. */
   agentGroups: (orgId: string) => ["org", orgId, "agent-groups"] as const,
+  exportPreview: (orgId: string, agentIds: readonly string[], groupIds: readonly string[]) =>
+    ["org", orgId, "export-preview", agentIds, groupIds] as const,
   /** Under `agents`: archiving or deleting one refreshes both. */
   formerAgents: (orgId: string) => ["org", orgId, "agents", "former"] as const,
   /** An agent's proposal of a new agent, by its card's message (ADR 0081). */
@@ -65,6 +72,7 @@ export const keys = {
   agentRepos: (orgId: string, agentId: string) => ["org", orgId, "agent", agentId, "repositories"] as const,
   agentMergeRepos: (orgId: string, agentId: string) => ["org", orgId, "agent", agentId, "merge-repositories"] as const,
   customServers: (orgId: string) => ["org", orgId, "custom-servers"] as const,
+  programComputers: (orgId: string) => ["org", orgId, "program-computers"] as const,
   scopes: (orgId: string, agentId: string) => ["org", orgId, "agent", agentId, "scopes"] as const,
   /** What the agent runs without asking ("Aprovar sempre"). */
   approvalCovers: (orgId: string) => ["org", orgId, "approval-covers"] as const,
@@ -81,6 +89,11 @@ export const keys = {
     ["org", orgId, "channel", channelId, "consultations", consultationId] as const,
   agentDetail: (orgId: string, agentId: string) => ["org", orgId, "agent", agentId, "detail"] as const,
   agentBrain: (orgId: string, agentId: string) => ["org", orgId, "agent", agentId, "brain"] as const,
+  /** Every conversation's model of one agent: a change of its brain refreshes them (the picker's `refresh`). */
+  conversationModels: (orgId: string, agentId: string) =>
+    ["org", orgId, "agent", agentId, "conversation-model"] as const,
+  conversationModel: (orgId: string, agentId: string, channelId: string, threadId: string | null) =>
+    ["org", orgId, "agent", agentId, "conversation-model", channelId, threadId ?? ""] as const,
   /** Every single agent's reads (its page, its brain). */
   agentPages: (orgId: string) => ["org", orgId, "agent"] as const,
   aiAccounts: (orgId: string) => ["org", orgId, "ai-accounts"] as const,
@@ -98,9 +111,13 @@ export const keys = {
   joinRequests: (orgId: string) => ["org", orgId, "invitations", "join-requests"] as const,
   mySuggestions: (orgId: string) => ["org", orgId, "invitations", "suggestions"] as const,
   inviteLinks: (orgId: string) => ["org", orgId, "invitations", "links"] as const,
+  joinDomains: (orgId: string) => ["org", orgId, "invitations", "domains"] as const,
+  /** The account's own, not a workspace's; not under `me`, which a sign-out on the invitation page keeps. */
+  domainWorkspaces: ["domain-workspaces"] as const,
   usageReport: (orgId: string) => ["org", orgId, "usage-report"] as const,
   composioUsage: (orgId: string) => ["org", orgId, "usage-composio"] as const,
   audit: (orgId: string, query: object) => ["org", orgId, "audit", query] as const,
+  healthIssues: (orgId: string) => ["org", orgId, "health-issues"] as const,
   /** The usage views; an agent's sits under it, so one invalidation refreshes both. */
   planUsage: (orgId: string) => ["org", orgId, "plan-usage"] as const,
   agentPlanUsage: (orgId: string, agentId: string) => ["org", orgId, "plan-usage", "agent", agentId] as const,
@@ -109,6 +126,7 @@ export const keys = {
   personUsage: (orgId: string, userId: string) => ["org", orgId, "people-usage", "person", userId] as const,
   personLimits: (orgId: string) => ["org", orgId, "people-usage", "limits"] as const,
   teamWeek: (orgId: string) => ["org", orgId, "team-week"] as const,
+  announcements: (orgId: string) => ["org", orgId, "announcements"] as const,
   platformKey: (orgId: string) => ["org", orgId, "platform-key"] as const,
   roster: (orgId: string, channelId: string) => ["org", orgId, "channel", channelId, "roster"] as const,
   /** All the agents' memories, for the workspace's map. */
@@ -125,6 +143,9 @@ export const keys = {
   dmReads: (orgId: string, channelId: string) => ["org", orgId, "dmReads", channelId] as const,
   storage: (orgId: string) => ["org", orgId, "storage"] as const,
   artifacts: (orgId: string) => ["org", orgId, "artifacts"] as const,
+  /** Public pages (ADR 0211), one file's or every one: under `artifacts`, so a file's change refreshes them too. */
+  publishedPages: (orgId: string, artifactId?: string) =>
+    ["org", orgId, "artifacts", "published-pages", artifactId ?? "all"] as const,
   sandbox: (orgId: string) => ["org", orgId, "sandbox"] as const,
   sandboxSettings: (orgId: string) => ["org", orgId, "sandbox", "settings"] as const,
   computer: (orgId: string, agentId: string) => ["org", orgId, "sandbox", "computer", agentId] as const,
@@ -158,6 +179,8 @@ export const keys = {
   machineDevice: (userCode: string) => ["machine-device", userCode] as const,
   /** Settings → AI apps: mine, or the whole workspace's (`all`), both under `apps`. */
   apps: (orgId: string, all = false) => ["org", orgId, "apps", all ? "all" : "mine"] as const,
+  agentApiKeys: (orgId: string, agentId: string) => ["org", orgId, "agents", agentId, "api-keys"] as const,
+  agentKeyRoom: (orgId: string, channelId: string) => ["org", orgId, "agent-key-room", channelId] as const,
   /** An app's consent (`/autorizar?req=`): not under an organization, it is picked on that page. */
   appConsent: (requestId: string) => ["app-consent", requestId] as const,
   desktopLatest: (target: string, arch: string) => ["desktop-latest", target, arch] as const,
@@ -220,11 +243,15 @@ export const keys = {
   /** "Esperando você": under the notifications prefix, so whatever refreshes the inbox refreshes it. */
   waiting: (orgId: string) => ["org", orgId, "notifications", "waiting"] as const,
   noticePrefs: (orgId: string) => ["org", orgId, "notice-prefs"] as const,
+  /** What this person lets their agents use on their phone here (ADR 0205). */
+  phoneTools: (orgId: string) => ["org", orgId, "phone-tools"] as const,
   sidebarItems: (orgId: string) => ["org", orgId, "sidebar-items"] as const,
   sidebarOrder: (orgId: string) => ["org", orgId, "sidebar-order"] as const,
   issuesView: (orgId: string) => ["org", orgId, "issues-view"] as const,
   sidebarToolOrder: (orgId: string) => ["org", orgId, "sidebar-tool-order"] as const,
   sidebarView: (orgId: string) => ["org", orgId, "sidebar-view"] as const,
+  sidebarLinks: (orgId: string) => ["org", orgId, "sidebar-links"] as const,
+  ownOrder: (orgId: string) => ["org", orgId, "own-order"] as const,
   wiki: (orgId: string) => ["org", orgId, "wiki"] as const,
   wikiTree: (orgId: string) => ["org", orgId, "wiki", "tree"] as const,
   wikiPage: (orgId: string, slug: string) => ["org", orgId, "wiki", "page", slug] as const,
@@ -233,6 +260,9 @@ export const keys = {
   wikiReads: (orgId: string) => ["org", orgId, "wiki", "reads"] as const,
   wikiTrash: (orgId: string) => ["org", orgId, "wiki", "trash"] as const,
   pins: (orgId: string, channelId: string) => ["org", orgId, "channel", channelId, "pins"] as const,
+  /** Who else has a conversation open; `anyViewers` is every conversation's. */
+  viewers: (orgId: string, channelId: string) => ["org", orgId, "viewers", channelId] as const,
+  anyViewers: (orgId: string) => ["org", orgId, "viewers"] as const,
   followUps: (orgId: string, channelId: string) => ["org", orgId, "channel", channelId, "follow-ups"] as const,
   /** Every GIF search (prefix): the workspace's rating or its GIFs switch changing refreshes them all (ADR 0091). */
   gifs: (orgId: string) => ["org", orgId, "gifs"] as const,
@@ -263,6 +293,15 @@ export const keys = {
   agentBrowser: (orgId: string, agentId: string) => ["org", orgId, "browser", "agent", agentId] as const,
   /** The workspace's browser profiles (ADR 0110). */
   browserProfiles: (orgId: string) => ["org", orgId, "browser", "profiles"] as const,
+  /** One profile's signed-in sites (ADR 0110, addendum 2026-11-15). */
+  browserProfileSites: (orgId: string, profileId: string) =>
+    ["org", orgId, "browser", "profile-sites", profileId] as const,
+  runPersonalBrowser: (orgId: string, runId: string) => ["org", orgId, "browser", "personal", runId] as const,
+  /** A workspace's outgoing webhooks (ADR 0212): the prefix, the list, one webhook's latest deliveries. */
+  outgoingWebhooks: (orgId: string) => ["org", orgId, "outgoing-webhooks"] as const,
+  outgoingWebhookList: (orgId: string) => ["org", orgId, "outgoing-webhooks", "list"] as const,
+  outgoingWebhookDeliveries: (orgId: string, id: string) =>
+    ["org", orgId, "outgoing-webhooks", "deliveries", id] as const,
   /** Everything of the Vault (ADR 0144), the prefix `vault.changed` refreshes. */
   vault: (orgId: string) => ["org", orgId, "vault"] as const,
   /** The Vault as this person sees it: items (never a value), connections, sources. */

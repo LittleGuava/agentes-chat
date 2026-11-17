@@ -2079,6 +2079,9 @@
   "activity.chooseModel": {
     "value": "Choose another model"
   },
+  "activity.connectAi": {
+    "value": "Connect an AI"
+  },
   "activity.filter.all": {
     "value": "All"
   },
@@ -2194,6 +2197,12 @@
     "value": {
       "one": "Routine failed",
       "other": "Routine failed"
+    }
+  },
+  "activity.kind.routine_failed_retried": {
+    "value": {
+      "one": "Routine failed after one more try",
+      "other": "Routine failed after one more try"
     }
   },
   "activity.kind.run_failed": {
@@ -2375,6 +2384,16 @@
     "female": {
       "one": "{{names}} took control of the screen of {{agent}}'s computer",
       "other": "{{names}} took control of the screen of {{agent}}'s computer"
+    }
+  },
+  "activity.kind.agent_needs_ai": {
+    "value": {
+      "one": "{{names}} called {{agent}}, who has no AI connected to answer",
+      "other": "{{names}} called {{agent}}, who has no AI connected to answer"
+    },
+    "female": {
+      "one": "{{names}} called {{agent}}, who has no AI connected to answer",
+      "other": "{{names}} called {{agent}}, who has no AI connected to answer"
     }
   },
   "activity.kind.plan_lent": {
@@ -6995,5 +7014,23 @@
   },
   "empty.audit.text": {
     "value": "When an agent does something outside the conversation, it shows up here."
+  },
+  "phoneTools.title": {
+    "value": "Phone contacts"
+  },
+  "phoneTools.contacts": {
+    "value": "Agents can search my contacts"
+  },
+  "phoneTools.help": {
+    "value": "Only in this workspace and only on this phone. When an agent you talk to needs someone's details, it searches your contacts by name: up to 5 matches go to the agent, each with just a name, phone numbers and emails."
+  },
+  "phoneTools.deniedTitle": {
+    "value": "Contacts access is off"
+  },
+  "phoneTools.deniedSub": {
+    "value": "Allow it for agentes.chat in the phone's Settings."
+  },
+  "phoneTools.failed": {
+    "value": "Couldn't save. Try again."
   }
 }

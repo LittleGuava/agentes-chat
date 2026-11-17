@@ -23,6 +23,7 @@ import {
   PASSWORD_LENGTH,
   type PubSub,
   sealSecret,
+  VAULT_CODE_PROTOCOL,
   VAULT_PROTOCOL,
   VAULT_TYPE_REFUSALS,
   vaultAad,
@@ -38,10 +39,17 @@ import { MachineOfflineError, MachinePausedError } from "../machines";
 import { missionOfRun } from "../mission-context";
 import { isRightHand } from "../right-hand";
 import { machineScope, screenKey } from "../right-hand-seats";
-import { getSandboxSettings, SANDBOX_SCOPE, SandboxUnavailableError, withConnectedMachine } from "../sandbox";
+import {
+  type ComputerHandle,
+  getSandboxSettings,
+  SANDBOX_SCOPE,
+  SandboxUnavailableError,
+  withConnectedMachine,
+} from "../sandbox";
 import {
   actsBeforeOpening,
   createLookMemory,
+  createScreenRecorder,
   createTargetCache,
   FRESH_LOOK_MS,
   findInPage,
@@ -50,6 +58,7 @@ import {
   MAX_CODE_BOXES,
   MAX_WAIT_MS,
   type PlanReport,
+  recordedSurface,
   resolveTarget,
   runPlan,
   type ScreenImage,
@@ -59,6 +68,8 @@ import {
   screenStepOf,
   type TargetCache,
 } from "../screen";
+import { afterPlanAsk, planAskOf, recipeProperties } from "../screen-recipes";
+import { keepRecording, RECORD_INPUT, screenHeld } from "../screen-recordings";
 import { requestSecretTool } from "../secret-request-tool";
 import { REQUEST_SECRET_TOOL, SITE_SECRET_TTL_TEXT, siteSecretGone } from "../secrets";
 import { toolDetail } from "../tool-detail";
@@ -78,6 +89,7 @@ import {
   checkVaultLogin,
   deleteVaultItemByAgent,
   recordVaultUse,
+  releaseVaultCode,
   releaseVaultLogin,
   restoreMadePassword,
   saveMadePassword,
@@ -106,6 +118,8 @@ import {
   getBrowserProfile,
   holderOf,
   PROFILE_WAIT_MS,
+  personalBrowserProfile,
+  personalBrowserReader,
   profileGrantees,
   profileMachineProblem,
   runBrowserProfile,
@@ -361,6 +375,12 @@ const profileData = (profile: { id: string; name: string } | null) => (profile ?
  * screenshot to keep would cross between them. ponytail: refused in phase 1; the runner can copy the one file when
  * people ask.
  */
+/** Each picture of a recording, in the agent's folder, written over at every step. */
+const RECORDING_FRAME = "recordings/.frame.jpg";
+
+export const PROFILE_RECORDING_TEXT =
+  'Recording doesn\'t work in shared browser profiles yet: run the steps without record, or switch to your own browser (browser_profile with "own").';
+
 export const PROFILE_FILES_TEXT =
   'Sending files and screenshots don\'t work in shared browser profiles yet. Read the page instead (browser_read), or switch to your own browser (browser_profile with "own").';
 
@@ -466,6 +486,10 @@ function pageOrigin(url: string | null): string | null {
 }
 
 /** A login id the run can't use: the same words whether it exists or not (ADR 0144). */
+/** `type_secret`'s `code`, as the agent reads it (ADR 0144, addendum of 2026-11-15). */
+const CODE_DESCRIPTION =
+  "With `login`: type the login's current one-time code (an authenticator's code) instead of its password, when the site asks for one. Only a login kept in a connected password manager that keeps its authenticator has one; you never see it. A code split in one box per character: give `targets`.";
+
 const NO_SUCH_LOGIN =
   "No Vault login like that is shared with you for this request. Look with vault_list, or ask the person for the password with request_secret.";
 
@@ -477,13 +501,16 @@ const vaultErrorText = (error: unknown) =>
  * The runner's refusals of `agentes:type_vault` (ADR 0144), as the agent reads them; any other failure (a stale
  * number, a covered field) as the browser said it, so the plan finds the field again as for any step.
  */
-export function vaultTypingRefusal(text: string, site: string): string {
-  const code = /\b(wrong_site|in_frame|not_password_field|get_form|key_expired)\b/.exec(text)?.[1];
+export function vaultTypingRefusal(text: string, site: string, what: "login" | "code" = "login"): string {
+  const code = /\b(wrong_site|in_frame|not_password_field|not_code_field|get_form|key_expired)\b/.exec(text)?.[1];
+  const it = what === "code" ? "the login's one-time code" : "the login";
   switch (code) {
     case "wrong_site":
-      return `The field isn't on ${site} (the page, or the frame that holds the field, is on another site), so the login wasn't typed. Open the sign-in page of ${site} and try again.`;
+      return `The field isn't on ${site} (the page, or the frame that holds the field, is on another site), so ${it} wasn't typed. Open the sign-in page of ${site} and try again.`;
     case "in_frame":
-      return `That field is inside an embedded frame, where a Vault login can't be typed, so it wasn't typed. Ask the person to sign in to ${site} themselves with ${ASK_PERSON_TOOL}.`;
+      return `That field is inside an embedded frame, where a Vault ${what === "code" ? "login's code" : "login"} can't be typed, so it wasn't typed. Ask the person to sign in to ${site} themselves with ${ASK_PERSON_TOOL}.`;
+    case "not_code_field":
+      return "That field isn't a text, number or one-time-code field, so the code wasn't typed. Give the code's field as `target` (its number from the page), or every box in order as `targets`.";
     case "not_password_field":
       return "That field isn't a password field, so the login wasn't typed. Give the password field as `target` (its number from the page); type the username yourself with a `fill` step.";
     case "get_form":
@@ -688,6 +715,10 @@ const STEP_SCHEMA: JsonSchema = {
         "`type_secret`: a Vault login's id (from vault_list) instead of `secret`: its password, typed only on its site. Type its username yourself with a `fill` step.",
       maxLength: 64,
     },
+    code: {
+      type: "boolean",
+      description: CODE_DESCRIPTION,
+    },
     targets: {
       type: "array",
       minItems: 2,
@@ -749,7 +780,21 @@ const NO_JUDGE: Judge = {
  * are typed by the runner from what `request_secret` delivered: the value
  * never reaches the server.
  */
-export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { readPage: BrowserPageReader } {
+export interface BrowserPlanOptions {
+  own?: boolean;
+  onReport?: (report: PlanReport) => void;
+}
+
+/** `browser_do`'s plan for another tool of ours (`join_meeting`, ADR 0199): the same checks, holds and report. */
+export type BrowserPlanner = (
+  ctx: ToolContext,
+  steps: ScreenStep[],
+  options?: BrowserPlanOptions,
+) => Promise<ToolOutput>;
+
+export function createBrowserToolSource(
+  deps: BrowserToolDeps,
+): ToolSource & { readPage: BrowserPageReader; plan: BrowserPlanner } {
   const hub = deps.machines?.hub;
   const judge = deps.judge ?? NO_JUDGE;
   const targets = deps.targets ?? createTargetCache();
@@ -814,6 +859,28 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
   }
 
   /**
+   * Where this run's browser commands go: a workspace profile it switched to or the agent's default, else in a
+   * person's DM with a shared agent that person's own browser (ADR 0110 addendum 2026-11-15), made on the computer
+   * the agent's own would run on; null for the agent's own browser.
+   */
+  async function profileOfRun(ctx: ToolContext): Promise<{ id: string; personal: boolean } | null> {
+    const named = await runBrowserProfile(ctx.db, ctx);
+    if (named) return { id: named, personal: false };
+    if (!hub || !ctx.channelId) return null;
+    const person = await personalBrowserReader(ctx.db, ctx);
+    if (!person) return null;
+    const own = await machineOf(ctx);
+    if (!own.available) return null;
+    const mine = await personalBrowserProfile(ctx.db, hub, {
+      orgId: ctx.orgId,
+      agentId: ctx.agentId,
+      personUserId: person,
+      machineId: own.machineId,
+    });
+    return mine ? { id: mine.id, personal: true } : null;
+  }
+
+  /**
    * The agent's browser for this call: its computer, the agent, its sites (or why it can't be used), and what the
    * runner's answers say their commands waited on, summed (`setup`, protocol 27).
    */
@@ -838,7 +905,12 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
     if (!hub) return { ok: false, text: "Connected computers are not available on this server." };
     const caller = hub;
     // `own`: a web search's page never goes to a shared, signed-in profile, nor takes its turn.
-    const profileId = opts.own ? null : await runBrowserProfile(ctx.db, ctx);
+    const inProfile = opts.own ? null : await profileOfRun(ctx);
+    const profileId = inProfile?.id ?? null;
+    // A person's own browser keeps the agent's files in its folder (protocol 70), as the agent's own browser does.
+    const profileRef = inProfile
+      ? { id: inProfile.id, ...(inProfile.personal ? { personal: true as const } : {}) }
+      : null;
     let status: Extract<AgentBrowserStatus, { available: true }>;
     let turn: Extract<TurnResult, { ok: true }> | null = null;
     if (profileId) {
@@ -896,7 +968,7 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
       // The computer's tray opens this conversation ("Ver").
       link: `/org/${ctx.orgId}/c/${ctx.channelId}`,
       ...(desktop ? { desktop: true } : {}),
-      ...(profileId ? { profile: { id: profileId } } : {}),
+      ...(profileRef ? { profile: profileRef } : {}),
     };
     /**
      * Every command renews the turn (with the grant, uncached): a revoke, a delete or a person taking control between
@@ -1007,7 +1079,7 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
               op: "browser.capture",
               agent: scope,
               ...(domains ? { allowedDomains: domains } : {}),
-              ...(profileId ? { profile: { id: profileId } } : {}),
+              ...(profileRef ? { profile: profileRef } : {}),
             },
             { signal: ctx.signal, timeoutMs: 45_000 },
           );
@@ -1069,6 +1141,8 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
     profile: { id: string; name: string } | null,
   ): Promise<VaultBrowserProfile | null> {
     if (!profile) return null;
+    // A person's own browser is like the agent's own here: what the person may type in it, nobody else reaches.
+    if ((await getBrowserProfile(ctx.db, ctx.orgId, profile.id))?.personUserId) return null;
     return { name: profile.name, agentIds: await profileGrantees(ctx.db, ctx.orgId, profile.id) };
   }
 
@@ -1118,6 +1192,7 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
     id: string,
     field: string,
     url: string | null,
+    code?: { more: string[] },
   ): Promise<VaultTyping | string> {
     const vault = deps.vault;
     if (!vault || !hub) return "The Vault isn't available on this server.";
@@ -1126,14 +1201,21 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
     let sealed: { box: unknown; keyId: string; rule: string; site: string };
     try {
       // The profile's grants are read again here: one given meanwhile counts before the value is read.
-      const released = await releaseVaultLogin(vault, run, id, origin, await vaultProfile(ctx, profile));
+      const browserProfile = await vaultProfile(ctx, profile);
+      // A one-time code is asked of its password manager only now, at the step that types it (ADR 0144 addendum).
+      const released = code
+        ? await releaseVaultCode(vault, run, id, origin, browserProfile).then((r) => ({ rule: r.rule, value: r.code }))
+        : await releaseVaultLogin(vault, run, id, origin, browserProfile).then((r) => ({
+            rule: r.rule,
+            value: r.password,
+          }));
       const rule = formatVaultRule(released.rule);
       const agent = await machineScope(hub, ctx, status.machineId);
       const key = await requestVaultKey(hub, status.machineId, agent, "type Vault logins", ctx.signal);
       const box = await sealSecret(
         key.publicKey,
-        released.password,
-        vaultAad({ keyId: key.keyId, agentId: agent.id, use: { kind: "fill", rule } }),
+        released.value,
+        vaultAad({ keyId: key.keyId, agentId: agent.id, use: { kind: code ? "code" : "fill", rule } }),
       ).catch(() => {
         // Never the sealing's own words (they could name the value's size), nor the login's title (ADR 0144 §4).
         throw new Error(`The Vault login ${id} couldn't be prepared for your computer.`);
@@ -1142,16 +1224,19 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
     } catch (error) {
       return vaultErrorText(error);
     }
+    const boxJson = JSON.stringify({ keyId: sealed.keyId, box: sealed.box });
     return {
-      command: {
-        command: "agentes:type_vault",
-        args: [field, sealed.rule, JSON.stringify({ keyId: sealed.keyId, box: sealed.box })],
-        timeoutSeconds: COMMAND_SECONDS,
-      },
+      command: code
+        ? {
+            command: "agentes:type_vault_code",
+            args: [field, sealed.rule, boxJson, ...code.more],
+            timeoutSeconds: COMMAND_SECONDS,
+          }
+        : { command: "agentes:type_vault", args: [field, sealed.rule, boxJson], timeoutSeconds: COMMAND_SECONDS },
       // The site of its rule, which the engine read from the saved address: never its title (ADR 0144 §4).
       label: sealed.site,
       typed: () => recordVaultUse(vault, run, id, { action: "fill", ...(origin ? { origin } : {}) }),
-      refused: (text) => vaultTypingRefusal(text, sealed.site),
+      refused: (text) => vaultTypingRefusal(text, sealed.site, code ? "code" : "login"),
     };
   }
 
@@ -1159,18 +1244,20 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
    * Runs steps on the agent's browser (`runPlan`) and answers with the report:
    * what was done, where it stopped, and the page at the end. `trail`: the
    * steps go to the chat's trail from here (a `browser_do`; single tools are
-   * on it by their own name).
+   * on it by their own name). `own`: the agent's own browser, never a shared,
+   * signed-in profile the run switched to (a meeting is joined as the agent,
+   * ADR 0199).
    */
   async function plan(
     ctx: ToolContext,
     steps: ScreenStep[],
-    options: { trail?: boolean; made?: boolean; onReport?: (report: PlanReport) => void } = {},
+    options: BrowserPlanOptions & { trail?: boolean; made?: boolean; record?: boolean; keep?: boolean } = {},
   ): Promise<ToolOutput> {
     for (const s of steps) {
       const refused = s.do === "open" && s.url ? await outboundRefusal(ctx, s.url) : null;
       if (refused) return refused;
     }
-    const linked = await linkFor(ctx);
+    const linked = await linkFor(ctx, { own: options.own === true });
     if (!linked.ok) return { content: linked.text, isError: true };
     // A secret is typed only on the site the person gave it for: found before anything runs.
     const sites = new Map<string, string>();
@@ -1189,6 +1276,15 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
         };
       }
       const login = s.login?.trim();
+      if (login && s.code && linked.status.protocol < VAULT_CODE_PROTOCOL) {
+        return {
+          content: vaultUpdateText(
+            { name: linked.status.machineName, kind: linked.status.kind },
+            "type a login's one-time code",
+          ),
+          isError: true,
+        };
+      }
       if (login) {
         if (logins.has(login)) continue;
         const refused = await loginRefusal(ctx, login, linked.status, linked.profile, options.made === true);
@@ -1202,23 +1298,35 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
       if (!held?.site || held.gone) return { content: secretMissingText(name, held), isError: true };
       sites.set(name, held.site);
     }
+    // A recording's pictures go through the agent's own folder, which a shared profile isn't.
+    if (options.record && linked.profile) return { content: PROFILE_RECORDING_TEXT, isError: true };
     const key = await seenKey(ctx);
     let paused: ToolOutput | null = null;
     // A take over that begins and ends within one step leaves no open handoff to see: it is checked too.
     const started = new Date();
     let handedBack = false;
+    const machineId = linked.status.machineId;
+    const recorder = options.record
+      ? createScreenRecorder({
+          held: screenHeld(ctx, "browser", started),
+          grab: () => recordingFrame(ctx, machineId, linked.link),
+        })
+      : null;
+    // The page before the plan, unless the plan opens one first.
+    if (recorder && steps[0]?.do !== "open") await recorder.frame();
+    const surface = browserSurface({
+      link: linked.link,
+      secretSite: (name) => sites.get(name) ?? null,
+      vaultLogin: (login, field, url, code) => vaultLogin(ctx, linked.status, linked.profile, login, field, url, code),
+      onLook: (o) => seen.remember(key, o),
+    });
     const report = await runPlan(
       {
         judge,
         orgId: ctx.orgId,
         agentId: ctx.agentId,
         runId: ctx.runId,
-        surface: browserSurface({
-          link: linked.link,
-          secretSite: (name) => sites.get(name) ?? null,
-          vaultLogin: (login, field, url) => vaultLogin(ctx, linked.status, linked.profile, login, field, url),
-          onLook: (o) => seen.remember(key, o),
-        }),
+        surface: recorder ? recordedSurface(surface, recorder) : surface,
         cache: targets,
         scope: key,
         signal: ctx.signal,
@@ -1238,6 +1346,7 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
         last: seen.within(key, FRESH_LOOK_MS),
         before: seen.within(key, KNOWN_LOOK_MS),
         vision: deps.vision?.() === true && linked.status.protocol >= BROWSER_FAST_PROTOCOL,
+        ...(options.keep ? { keep: true } : {}),
         now,
       },
       steps,
@@ -1265,16 +1374,52 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
       timing,
     };
     const waiting = paused as ToolOutput | null;
-    if (waiting) {
-      return {
-        content: `${content}\n${waiting.content}`,
-        ...(waiting.isError ? { isError: true } : {}),
-        data: { ...data, ...(waiting.data ?? {}) },
-      };
-    }
     // A step that ran and only failed its check was done: not an error (it must not be done again).
     const nothingDone = report.steps.every((s) => s.status !== "done" && !s.ran);
-    return { content, ...(f.failed && nothingDone ? { isError: true } : {}), data };
+    const out: ToolOutput = waiting
+      ? {
+          content: `${content}\n${waiting.content}`,
+          ...(waiting.isError ? { isError: true } : {}),
+          data: { ...data, ...(waiting.data ?? {}) },
+        }
+      : { content, ...(f.failed && nothingDone ? { isError: true } : {}), data };
+    if (!recorder) return out;
+    return keepRecording(deps, ctx, {
+      machineId,
+      recorder,
+      out,
+      write: (path, bytes) => onComputer(ctx, machineId, (c) => c.provider.writeFile(c.id, path, bytes)),
+    });
+  }
+
+  /** The agent's folder on its browser's computer, reached as `shareSavedFile` reaches it. */
+  async function onComputer<T>(
+    ctx: ToolContext,
+    machineId: string,
+    fn: (computer: ComputerHandle) => Promise<T>,
+  ): Promise<T> {
+    if (!hub) throw new Error("Connected computers are not available on this server.");
+    const agent = await getAgentCached(ctx.db, ctx.orgId, ctx.agentId);
+    return withConnectedMachine(
+      hub,
+      ctx,
+      { machineId, handle: agent?.handle ?? "agent", ...(agent?.name ? { name: agent.name } : {}) },
+      fn,
+    );
+  }
+
+  /**
+   * A picture of the page for a recording: a plain screenshot (no numbered elements, unlike a judge's capture),
+   * written over the same hidden file in the agent's folder and read back. Null when the browser couldn't take it.
+   */
+  async function recordingFrame(ctx: ToolContext, machineId: string, link: BrowserLink): Promise<Uint8Array | null> {
+    const shot = await link.act({
+      command: "screenshot",
+      args: [RECORDING_FRAME, "--screenshot-format", "jpeg", "--screenshot-quality", "70"],
+      timeoutSeconds: COMMAND_SECONDS,
+    });
+    if (!shot.ok) return null;
+    return onComputer(ctx, machineId, (c) => c.provider.readFile(c.id, RECORDING_FRAME));
   }
 
   /**
@@ -1492,22 +1637,30 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
       `${BROWSER_TOOL_INFO.browser_do.description} The fastest way to use the browser: write the whole task as \`steps\` in one call, from the \`open\` to the last click and wait, the way you'd do it by hand. You don't need to have seen a page to plan on it: name each target in words (\`the Email field\`, \`Export\`) and it is found on the page as it is at that step, even pages the plan reaches on its way. Give \`expect\` on steps whose result matters (\`signed in\`, \`the order is confirmed\`): it's checked, and the plan stops at the first step that fails or doesn't show what you expected, telling you why and what's on the page then, so you can go on from there. To report what the page says at the end, finish with a \`read\` step and \`find\` (\`the status message\`). ${changes}`,
       {
         type: "object",
-        properties: { steps: { type: "array", minItems: 1, maxItems: MAX_PLAN_STEPS, items: STEP_SCHEMA } },
-        required: ["steps"],
+        properties: {
+          steps: { type: "array", minItems: 1, maxItems: MAX_PLAN_STEPS, items: STEP_SCHEMA },
+          record: RECORD_INPUT,
+          ...recipeProperties("browser"),
+        },
         additionalProperties: false,
       },
       async (input, ctx) => {
-        const raw = Array.isArray(input.steps) ? input.steps : [];
-        const steps = raw.map(stepOf);
-        if (steps.length === 0 || steps.some((s) => s === null)) {
-          return { content: "Give `steps`, each with a known `do`.", isError: true };
-        }
-        const valid = steps as ScreenStep[];
-        if (actsBeforeOpening(valid)) {
+        const ask = await planAskOf(ctx, "browser", input, stepOf, VERBS);
+        if ("error" in ask) return { content: ask.error, isError: true };
+        if (actsBeforeOpening(ask.steps)) {
           const stale = await requirePageRead(ctx.db, ctx);
           if (stale) return stale;
         }
-        return plan(ctx, valid, { trail: true });
+        let report: PlanReport | null = null;
+        const out = await plan(ctx, ask.steps, {
+          trail: true,
+          record: input.record === true,
+          ...(ask.saveAs ? { keep: true } : {}),
+          onReport: (r) => {
+            report = r;
+          },
+        });
+        return afterPlanAsk(ctx, "browser", ask, report, out);
       },
     ),
     tool(
@@ -1752,9 +1905,8 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
       async (input, ctx) => {
         const path = agentFolderPath(str(input.path));
         if (!path) return { content: "Give a path inside your own folder (relative, without `..`).", isError: true };
-        if (await runBrowserProfile(ctx.db, ctx)) {
-          return { content: PROFILE_FILES_TEXT, isError: true };
-        }
+        const inProfile = await profileOfRun(ctx);
+        if (inProfile && !inProfile.personal) return { content: PROFILE_FILES_TEXT, isError: true };
         const linked = await linkFor(ctx);
         if (!linked.ok) return { content: linked.text, isError: true };
         const field = await selectorFor(ctx, str(input.target), linked.link, "upload");
@@ -1789,6 +1941,7 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
             description: "A Vault login's id (from vault_list), instead of `secret`.",
             maxLength: 64,
           },
+          code: { type: "boolean", description: CODE_DESCRIPTION },
         },
         additionalProperties: false,
       },
@@ -1807,7 +1960,7 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
           do: "type_secret",
           ...(target ? { target } : {}),
           ...(targets.length > 0 ? { targets } : {}),
-          ...(login ? { login } : { secret }),
+          ...(login ? { login, ...(input.code === true ? { code: true } : {}) } : { secret }),
         };
       },
       {
@@ -1931,7 +2084,8 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
         // The image is a PNG, whatever the name asked for; and agent-browser's `screenshot [selector] [path]` reads a
         // lone name without a slash or an image extension (`notes.txt`, `code`) as a selector, not where to save it.
         const path = /\.png$/i.test(chosen) ? chosen : `${chosen.replace(/\.[^./]*$/, "")}.png`;
-        if (await runBrowserProfile(ctx.db, ctx)) return { content: PROFILE_FILES_TEXT, isError: true };
+        const inProfile = await profileOfRun(ctx);
+        if (inProfile && !inProfile.personal) return { content: PROFILE_FILES_TEXT, isError: true };
         const linked = await linkFor(ctx);
         if (!linked.ok) return { content: linked.text, isError: true };
         const r = await linked.link.act({
@@ -2057,6 +2211,7 @@ export function createBrowserToolSource(deps: BrowserToolDeps): ToolSource & { r
   return {
     name: "browser",
     readPage,
+    plan: (ctx, steps, options) => plan(ctx, steps, { own: options?.own, onReport: options?.onReport }),
     async tools(ctx) {
       if (!hub) return [];
       // Most agents have no browser: the cached grants decide before any machine lookup. Without them the

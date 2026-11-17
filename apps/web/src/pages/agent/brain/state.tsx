@@ -1,4 +1,11 @@
-import type { AgentBrain, BrainKind, MachineAccount, MachineAccountKind, PlanUsage } from "@agenteschat/client";
+import type {
+  AcpEngine,
+  AgentBrain,
+  BrainKind,
+  MachineAccount,
+  MachineAccountKind,
+  PlanUsage,
+} from "@agenteschat/client";
 import {
   useAiAccounts,
   useAiStatus,
@@ -8,6 +15,7 @@ import {
   usePlatformKey,
   useSettings,
 } from "@agenteschat/client";
+import { acpEngineOf, acpEngines, acpModelRows } from "@agenteschat/client/lib/acp";
 import {
   type AccountChoice,
   accountAbout,
@@ -23,6 +31,7 @@ import {
 import { advancedContents, effortOf, viewSpeedFits } from "@agenteschat/client/lib/brain-advanced";
 import { computerNameOf, setupView } from "@agenteschat/client/lib/computer";
 import { contextChoices, isContextLimit } from "@agenteschat/client/lib/context-limits";
+import { credentialMark } from "@agenteschat/client/lib/endpoints";
 import { holdText } from "@agenteschat/client/lib/errors";
 import { firstName, namesText } from "@agenteschat/client/lib/format";
 import {
@@ -35,6 +44,7 @@ import {
   planMark,
   planOfAccount,
   planOfKind,
+  type ThinkChoice,
   unsupportedGate,
 } from "@agenteschat/client/lib/no-ai";
 import { can as canDo } from "@agenteschat/client/lib/permissions";
@@ -46,7 +56,7 @@ import {
   planModel as planModelOf,
   planOf,
 } from "@agenteschat/client/lib/plans";
-import { apiProviderOf, isAuto, keyLine, keySource, modelChoices } from "@agenteschat/client/lib/providers";
+import { apiMarkOf, isAuto, keyLine, keySource, modelChoices } from "@agenteschat/client/lib/providers";
 import { isPersonal, modeKey } from "@agenteschat/client/lib/workspace-mode";
 import { Icon, type IconName, ProviderLogo, planState } from "@agenteschat/ui";
 import { useTranslation } from "react-i18next";
@@ -82,9 +92,12 @@ export type RowAct = "current" | "use" | "move" | "also" | "again" | "locked";
 
 /** One way the agent can think, as the account lists draw it (`HaveItem`) with what saving it needs. */
 export interface BrainRow extends HaveItem {
-  kind: "account" | "own" | "key" | "plan";
-  choice: AiChoice;
+  /** `engine`: an ACP agent its computer declares (ADR 0216). */
+  kind: "account" | "own" | "key" | "plan" | "engine";
+  choice: ThinkChoice;
   brain: BrainKind;
+  /** An engine row's ACP agent id. */
+  engine?: string;
   /** An account row's login. */
   account?: MachineAccount;
   /** A key row's credential, or `DEFAULT_KEY`; none: whatever key the agent has. */
@@ -121,22 +134,24 @@ export function useBrainState(view: AgentBrain, opts: { added: readonly MachineA
   const nameOf = (name: string) => computerNameOf(t, org.name, name, isPersonal(org));
   const computerName = nameOf(view.computer?.name ?? "");
 
-  // A coding plan thinks through Claude Code on the agent's computer, where its key is: it never moves.
-  const homeOf = (c: AiChoice) => {
+  // A coding plan thinks through Claude Code on the agent's computer, where its key is: it never moves. An ACP agent is
+  // the agent's computer's own (ADR 0216): it thinks there.
+  const homeOf = (c: ThinkChoice) => {
     if (c === "key") return null;
+    if (c === "acp") return machines.find((m) => m.machineId === work.machineId) ?? null;
     if (!isPlanId(c)) return homeFor(kindOf(c), work.machineId, machines);
     const here = machines.find((m) => m.machineId === work.machineId);
     return here?.options.some((o) => o.kind === "claude_code" && o.available) ? here : null;
   };
-  const movesOf = (c: AiChoice) => {
+  const movesOf = (c: ThinkChoice) => {
     const where = homeOf(c);
     return where && where.machineId !== work.machineId ? where : null;
   };
-  const runsHere = (c: AiChoice) => homeOf(c)?.machineId === work.machineId;
+  const runsHere = (c: ThinkChoice) => homeOf(c)?.machineId === work.machineId;
   // Accounts live on the agent's computer: none for a plan that would move it elsewhere, or where the app is old.
   const accountsOn = (c: AiChoice) => c !== "key" && view.accountsSupported && view.computer !== null && !movesOf(c);
   // While a sign-in is under way on the agent's computer, no brain there reads as offline.
-  const away = (c: AiChoice) => {
+  const away = (c: ThinkChoice) => {
     const where = homeOf(c);
     return !where?.online && !(opts.signingIn && where?.machineId === view.computer?.machineId);
   };
@@ -171,7 +186,7 @@ export function useBrainState(view: AgentBrain, opts: { added: readonly MachineA
   ];
 
   /** Where a plan would think, when that says something: none there, its computer off, or the agent moving. */
-  const side = (c: AiChoice): { icon: IconName; text: string } | null => {
+  const side = (c: ThinkChoice): { icon: IconName; text: string } | null => {
     if (c === "key" || hold) return null;
     const where = homeOf(c);
     if (!where) return isPlanId(c) ? null : { icon: "block", text: t("agentPage.work.brain.none") };
@@ -187,8 +202,8 @@ export function useBrainState(view: AgentBrain, opts: { added: readonly MachineA
     return { icon: "computer", text: t("agentPage.work.brain.moves", { computer: nameOf(where.name) }) };
   };
   /** Why a plan can't think on the agent's computer now, in the words of its panel. */
-  const reason = (c: AiChoice) => {
-    if (c === "key") return null;
+  const reason = (c: ThinkChoice) => {
+    if (c === "key" || c === "acp") return null;
     if (hold) return t("connectAi.billing");
     const k = kindOf(c);
     const o = view.options.find((x) => x.kind === k);
@@ -296,7 +311,7 @@ export function useBrainState(view: AgentBrain, opts: { added: readonly MachineA
 
   // The workspace's keys, for whoever may pick one (admins); anyone else gets the API as the agent has it.
   const all = models.data?.models ?? [];
-  const apiProvider = apiProviderOf(saved.model, all);
+  const apiMark = apiMarkOf(saved.model, all);
   const keyMark = (provider: string | undefined) =>
     provider ? <ProviderLogo id={provider} size="xs" /> : <Icon name="key" size={20} className="arrival-have__mark" />;
   const keysGroup = { key: "keys", label: t("connectAi.chat.keys") };
@@ -337,11 +352,11 @@ export function useBrainState(view: AgentBrain, opts: { added: readonly MachineA
             def
               ? t("newAgent.defaultKeyDesc", { provider: keySource(def), hint: def.keyHint })
               : t("agentPage.work.brain.modelText", g),
-            def?.provider ?? apiProvider,
+            def ? credentialMark(def) : apiMark,
           ),
-          ...live.filter((c) => c.id !== defaultId).map((c) => keyRow(c.id, c.label, keyLine(t, c), c.provider)),
+          ...live.filter((c) => c.id !== defaultId).map((c) => keyRow(c.id, c.label, keyLine(t, c), credentialMark(c))),
         ]
-      : [keyRow(undefined, t("agentPage.work.brain.model"), t("agentPage.work.brain.modelText", g), apiProvider)];
+      : [keyRow(undefined, t("agentPage.work.brain.model"), t("agentPage.work.brain.modelText", g), apiMark)];
 
   // A plan whose accounts aren't listed here (it would move the agent, or the app there is too old): the plan itself.
   const planRow = (c: AiChoice, about?: string | null): BrainRow => ({
@@ -362,7 +377,7 @@ export function useBrainState(view: AgentBrain, opts: { added: readonly MachineA
           : t("agentPage.work.brain.planText", { plan: planLabel(t, c) })),
     whose: ownersWhose,
     group: ownersGroup,
-    mark: c === "key" ? keyMark(apiProvider) : <ProviderLogo id={planMark(c)} size="xs" />,
+    mark: c === "key" ? keyMark(apiMark) : <ProviderLogo id={planMark(c)} size="xs" />,
     usage: null,
     off: savedCard !== c && !homeOf(c),
     lends: false,
@@ -370,17 +385,55 @@ export function useBrainState(view: AgentBrain, opts: { added: readonly MachineA
   });
   const planRows = cards.filter((c) => c !== "key" && !accountsOn(c) && homeOf(c)).map((c) => planRow(c));
 
+  // The ACP agents its computer declares (ADR 0216), by the names its owner gave them, never as a plan of ours. The one
+  // in use keeps its row when its computer stops declaring it.
+  const acpGroup = { key: "acp", label: t("brain.acp.group") };
+  const engineRow = (e: AcpEngine): BrainRow => {
+    const current = kind === "acp" && view.engine === e.id;
+    return {
+      id: `engine:${e.id}`,
+      kind: "engine",
+      choice: "acp",
+      brain: "acp",
+      engine: e.id,
+      act: current ? "current" : "use",
+      current,
+      title: e.name,
+      about: e.models.length > 0 ? t("brain.acp.models", { count: e.models.length }) : t("brain.acp.ownDefault"),
+      whose: acpGroup.label,
+      group: acpGroup,
+      mark: <Icon name="plug" size={20} className="arrival-have__mark" />,
+      usage: null,
+      off: !current && (!can("brain") || away("acp")),
+      lends: false,
+      moves: null,
+    };
+  };
+  const inUse = acpEngineOf(view);
+  const engineRows = [
+    ...acpEngines(view),
+    ...(inUse && !acpEngines(view).some((e) => e.id === inUse.id) ? [inUse] : []),
+  ].map(engineRow);
+
   // Its AI, for the switch screen's groups ("Trocar a conta" by AI, not by person): a plan by its name, keys together.
   const apiKeys = { key: "keys", label: t("connectAi.chat.apiKeys") };
-  const every = [...accountRows, ...ownRows, ...keyRows, ...planRows].map(
-    (r): BrainRow => ({ ...r, ai: r.choice === "key" ? apiKeys : { key: r.choice, label: planLabel(t, r.choice) } }),
-  );
+  const every = [
+    ...[...accountRows, ...ownRows, ...keyRows, ...planRows].map(
+      (r): BrainRow => ({
+        ...r,
+        ai: r.choice === "key" || r.choice === "acp" ? apiKeys : { key: r.choice, label: planLabel(t, r.choice) },
+      }),
+    ),
+    ...engineRows.map((r): BrainRow => ({ ...r, ai: acpGroup })),
+  ];
   // What it thinks with now always has its row, even when nothing of that plan is listed (no sign-in there yet).
   const currentRow =
     every.find((r) => r.current) ??
     (savedCard === "key"
-      ? keyRow(undefined, t("agentPage.work.brain.model"), t("agentPage.work.brain.modelText", g), apiProvider)
-      : planRow(savedCard, reason(savedCard) ?? side(savedCard)?.text ?? null));
+      ? keyRow(undefined, t("agentPage.work.brain.model"), t("agentPage.work.brain.modelText", g), apiMark)
+      : savedCard === "acp"
+        ? undefined
+        : planRow(savedCard, reason(savedCard) ?? side(savedCard)?.text ?? null));
   const rows = every.filter((r) => !r.current);
 
   // ── the account in use ──
@@ -418,19 +471,24 @@ export function useBrainState(view: AgentBrain, opts: { added: readonly MachineA
   const keyModels = apiModelOptions(
     t,
     i18n.language,
-    modelChoices(all, credentials.data ?? [], platform.data ?? false),
+    modelChoices(all, credentials.data ?? [], platform.data ?? false, settings.data?.allowedBrains),
   );
   const modelNow = kind === "model" ? saved.model : view.effectiveModel;
-  const modelName = isAuto(modelNow)
-    ? t("brain.auto.label")
-    : kind === "model"
-      ? (all.find((m) => m.id === saved.model)?.label ?? saved.model)
-      : (planModels.find((m) => m.value === shownModel)?.label ?? view.effectiveModel ?? "");
+  // An ACP agent's models are those it offered, after its own default (ADR 0216).
+  const acpModels = kind === "acp" ? acpModelRows(t, view) : [];
+  const modelName =
+    kind === "acp"
+      ? (acpModels.find((m) => m.checked)?.label ?? "")
+      : isAuto(modelNow)
+        ? t("brain.auto.label")
+        : kind === "model"
+          ? (all.find((m) => m.id === saved.model)?.label ?? saved.model)
+          : (planModels.find((m) => m.value === shownModel)?.label ?? view.effectiveModel ?? "");
   const modelMaker =
     kind === "model"
-      ? apiProvider
+      ? apiMark
       : (planModels.find((m) => m.value === shownModel)?.maker ??
-        (savedCard === "key" ? undefined : planMark(savedCard)));
+        (savedCard === "key" || savedCard === "acp" ? undefined : planMark(savedCard)));
 
   // ── how it thinks ──
   const speedOn = viewSpeedFits(view);
@@ -484,9 +542,10 @@ export function useBrainState(view: AgentBrain, opts: { added: readonly MachineA
     shownModel,
     keyModels,
     modelNow,
+    acpModels,
     modelName,
     modelMaker,
-    apiProvider,
+    apiMark,
     speedOn,
     savedContext,
     shownContext,

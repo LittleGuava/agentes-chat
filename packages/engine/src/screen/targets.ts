@@ -59,6 +59,8 @@ export type TargetFound = {
   element: ScreenElement | null;
   via: "ref" | "exact" | "cache" | "judge";
   confidence: number;
+  /** The judge found acting on it can't be undone (only on its pick: a name or a number given isn't judged). */
+  costly?: true;
 };
 export type TargetMissing = {
   found: false;
@@ -182,7 +184,7 @@ function exactMatch(words: string, use: TargetUse, o: ScreenObservation): Screen
 }
 
 /** The one element with the remembered role, name and place; none or several: the judge decides again. */
-function fromMemory(memory: TargetMemory, o: ScreenObservation): ScreenElement | null {
+export function fromMemory(memory: TargetMemory, o: ScreenObservation): ScreenElement | null {
   const place = memory.context.join(" › ");
   const same = o.elements.filter(
     (e) => e.role === memory.role && e.name === memory.name && e.context.join(" › ") === place,
@@ -190,7 +192,7 @@ function fromMemory(memory: TargetMemory, o: ScreenObservation): ScreenElement |
   return same.length === 1 ? (same[0] as ScreenElement) : null;
 }
 
-const memoryOf = (e: ScreenElement): TargetMemory => ({ role: e.role, name: e.name, context: e.context });
+export const memoryOf = (e: ScreenElement): TargetMemory => ({ role: e.role, name: e.name, context: e.context });
 
 /** Most options one Choice offers (Jev takes 255, one is "none"). */
 const MAX_OPTIONS = 200;
@@ -216,6 +218,35 @@ const COSTLY: JudgeQuestion = {
   },
 };
 const costlyOf = (answers: Record<string, JudgeAnswer>) => (answers.costly?.noul ?? 1) >= 0.5;
+/**
+ * Whether acting on an element can't be undone, asked of the judge alone: for a target found without it (a name, a
+ * number) that saved steps would act on again. No answer is a yes.
+ */
+export async function costlyTarget(input: {
+  judge: Judge;
+  orgId: string;
+  agentId?: string | null;
+  runId?: string;
+  element: ScreenElement;
+  use: TargetUse;
+  url: string | null;
+}): Promise<boolean> {
+  try {
+    const answers = await input.judge.ask({
+      orgId: input.orgId,
+      agentId: input.agentId,
+      runId: input.runId,
+      kind: "screen_costly",
+      calibrated: true,
+      state: { target: describeElement(input.element), action: input.use, screen: { address: input.url } },
+      questions: { costly: COSTLY },
+    });
+    return costlyOf(answers);
+  } catch {
+    return true;
+  }
+}
+
 /** Below this, nothing on the screen is it. */
 const ABSENT_BELOW = 0.3;
 
@@ -354,7 +385,14 @@ function decide(
   const costly = costlyOf(answers);
   if (picked && p >= (costly ? COSTLY_PICK_AT : PICK_AT) && p - next >= PICK_MARGIN && present >= ABSENT_BELOW) {
     remember(picked, costly);
-    return { found: true, ref: picked.ref, element: picked, via: "judge", confidence: p };
+    return {
+      found: true,
+      ref: picked.ref,
+      element: picked,
+      via: "judge",
+      confidence: p,
+      ...(costly ? { costly: true } : {}),
+    };
   }
   const top = ranked.slice(0, 3).map((r) => r.e);
   if (present < ABSENT_BELOW || (choice === "none" && p >= PICK_AT)) {

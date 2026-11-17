@@ -1,0 +1,1 @@
+ALTER TABLE "channel_reads" ADD COLUMN "marked_unread" boolean DEFAULT false NOT NULL;

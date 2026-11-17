@@ -32,6 +32,7 @@ import { CommandCopy, OrgTile } from "../../ui/bits";
 import { CardTitle, hintFor, PrefCard, PrefHead, PrefRow } from "../../ui/settings";
 import { useToast } from "../../ui/Toast";
 import { ToolAccounts } from "./Accounts";
+import { LendChrome } from "./LendChrome";
 
 type Cli = "claude" | "codex" | "cursor" | "opencode" | "grok" | "antigravity" | "copilot";
 
@@ -175,6 +176,12 @@ export function Tools() {
             ? t("desktop.tools.cantStart", { message: said })
             : null;
     const checkLabel = t("desktop.tools.checkAgain");
+    // A binary of the computer's own instead of the PATH's (`agentes-runner binaries`, ADR 0218).
+    const ownBinary = info?.binary && (
+      <p className="dk-help">
+        {t("desktop.tools.ownBinary")} <span className="dk-path">{info.binary}</span>
+      </p>
+    );
     return (
       <PrefRow
         key={cli}
@@ -209,8 +216,11 @@ export function Tools() {
           />
         }
         under={
-          (!info || cli === "codex") && (
+          info && cli !== "codex" ? (
+            ownBinary
+          ) : (
             <>
+              {ownBinary}
               {!info && command && <CommandCopy command={command} />}
               {note && (
                 <p className="dk-help" role="status">
@@ -271,6 +281,8 @@ export function Tools() {
   );
   // One organization: its switch on the Commands row itself. Several: a row of their own each.
   const only = homes.length === 1 ? homes[0] : undefined;
+  // The person's own screen (ADR 0201): only where a runner serves it (Windows, for now). Set here only.
+  const screenHere = homes.some((h) => h.screen);
 
   return (
     <>
@@ -315,9 +327,28 @@ export function Tools() {
             />
           }
         />
+        {screenHere && (
+          <PrefRow
+            lead={logo("eye")}
+            htmlFor="tool-screen"
+            title={t("desktop.tools.screenName")}
+            hint={hintFor(t, t("desktop.tools.screenName"), t("desktop.tools.screenDesc"))}
+            end={
+              <Switch
+                id="tool-screen"
+                aria-describedby="tool-screen-hint"
+                checked={tools.hostDesktop === true}
+                disabled={homes.length === 0 || pending !== null}
+                onCheckedChange={(on) => void set("hostDesktop", on)}
+              />
+            }
+          />
+        )}
       </PrefCard>
 
       <ToolAccounts homes={homes} executors={executors} />
+
+      <LendChrome homes={homes} />
 
       <CardTitle>{t("desktop.prefs.tools.protection")}</CardTitle>
       <PrefCard>

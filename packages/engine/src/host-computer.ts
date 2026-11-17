@@ -224,7 +224,7 @@ async function joined(deps: HostDeps, row: MachineRow, now: Date) {
   const { db, pubsub } = deps;
   const moved = await db
     .update(agents)
-    .set({ machineId: row.id, brainAccountId: null, updatedAt: now })
+    .set({ machineId: row.id, brainAccountId: null, brainEngine: null, updatedAt: now })
     .where(
       and(eq(agents.orgId, row.orgId), isNull(agents.machineId), isNull(agents.archivedAt), isNull(agents.builtin)),
     )

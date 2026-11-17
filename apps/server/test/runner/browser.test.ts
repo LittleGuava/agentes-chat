@@ -1,3 +1,4 @@
+import { Database } from "bun:sqlite";
 import { afterEach, describe, expect, test } from "bun:test";
 import {
   chmodSync,
@@ -1945,6 +1946,22 @@ test.if(posix)("the first screenshot works: its folder is made before", async ()
   expect(existsSync(path.join(await t.folder(), "downloads"))).toBe(true);
 });
 
+test.if(posix)("a recording's picture (ADR 0054 addendum 2026-11-15): a plain JPEG in the agent's folder", async () => {
+  const t = setup();
+  await t.act("open", ["https://shop.example.com"]);
+  const args = ["recordings/.frame.jpg", "--screenshot-format", "jpeg", "--screenshot-quality", "70"];
+  expect(await t.act("screenshot", args)).toMatchObject({ success: true });
+  const frame = path.join(await t.folder(), "recordings", ".frame.jpg");
+  expect(existsSync(frame)).toBe(true);
+  // Into the folder, as asked, and without the numbered elements a judge's capture has.
+  const call = t
+    .logged()
+    .filter((c) => c.args.includes("screenshot"))
+    .at(-1);
+  expect(call?.args).toContain(frame);
+  expect(call?.args).not.toContain("--annotate");
+});
+
 test.if(posix)("the allowlist stops navigations before they go and pages that wander off after an action", async () => {
   const t = setup();
   const allowedDomains = ["shop.example.com"];
@@ -3764,6 +3781,39 @@ test.if(posix)(
 );
 
 test.if(posix)(
+  "a person's own browser of an agent: Chrome in the profile's folder, files in the agent's as in its own browser",
+  async () => {
+    const t = setup();
+    const ctx = { workspaceReal: t.ws, exec: true, token: "agm_x", access: browserOn, browser: t.manager };
+    const personal = { id: PROFILE, personal: true as const };
+    const act = (command: string, args: string[], profile: MachineRequest["profile"] = personal) =>
+      handleRequest(ctx, { agent: dev, profile, op: "browser.act", command, args, timeoutSeconds: 5 }, profileScope);
+    // A person's "Fazer login" opened it first (no agent, no personal): the agent's files still go to its folder.
+    await handleRequest(ctx, { agent: dev, profile: { id: PROFILE }, op: "browser.warm" }, profileScope);
+    await act("open", ["https://shop.example.com"]);
+    expect(t.chromes).toHaveLength(1);
+    expect((t.chromes[0] as FakeChrome).profile).toBe(
+      path.join(t.home, "browser-profiles", PROFILE, ".agentes", "browser"),
+    );
+    const folder = await t.folder(dev);
+    writeFileSync(path.join(folder, "logo.png"), "x");
+    expect(await act("upload", ["@e2", "logo.png"])).toMatchObject({
+      success: true,
+      data: { files: [path.join(folder, "logo.png")] },
+    });
+    expect(await act("screenshot", ["screenshots/2026/inbox.png"])).toMatchObject({ success: true });
+    expect(existsSync(path.join(folder, "screenshots", "2026", "inbox.png"))).toBe(true);
+    // Downloads land in the agent's folder too; nothing of the agent's goes to the profile's.
+    const last = t.logged().at(-1)?.args ?? [];
+    expect(last[last.indexOf("--download-path") + 1]).toBe(path.join(folder, "downloads"));
+    expect(existsSync(path.join(t.home, "browser-profiles", PROFILE, "screenshots", "2026"))).toBe(false);
+    expect(await errorCode(() => act("upload", ["@e2", "../../etc/passwd"]))).toBe("outside_workspace");
+    // One session throughout: the same Chrome, signed in where the person left it.
+    expect(t.chromes).toHaveLength(1);
+  },
+);
+
+test.if(posix)(
   "a stale Chrome lock (a restore onto another computer) is cleared before the profile's Chrome starts",
   async () => {
     const t = setup();
@@ -4265,6 +4315,165 @@ test.if(posix)("deleting a profile stops its Chrome and removes its folder; syst
   ).toBe("not_allowed");
 });
 
+/**
+ * A profile's Chrome whose DevTools answer as Chrome 157 did: its cookies (values included) from `Storage.getCookies`
+ * on the browser's target, `Network.deleteCookies` and `Storage.clearDataForOrigin` only on a tab's session (the
+ * latter drops the origin's row from the quota database, as Chrome does once all its data is cleared).
+ */
+function profileWithSites(cookies: Record<string, unknown>[], storageKeys: string[]) {
+  const devtools: FakeSocket[] = [];
+  const jar = [...cookies];
+  let quota = "";
+  const db = () => {
+    const sqlite = new Database(quota);
+    sqlite.run("CREATE TABLE IF NOT EXISTS buckets (id INTEGER PRIMARY KEY, storage_key TEXT NOT NULL)");
+    return sqlite;
+  };
+  const answer = (s: FakeSocket, m: Record<string, unknown>) => {
+    const params = (m.params ?? {}) as Record<string, unknown>;
+    const onTab = m.sessionId === "tab-1";
+    const reply = (result: unknown) => s.push({ id: m.id, ...(m.sessionId ? { sessionId: m.sessionId } : {}), result });
+    const refuse = () => s.push({ id: m.id, error: { code: -32603, message: "Internal error" } });
+    switch (m.method) {
+      // Chrome tells of its tab and attaches it when asked: the runner never auto-attaches at the browser's level.
+      case "Target.setDiscoverTargets":
+        s.push({ method: "Target.targetCreated", params: { targetInfo: { type: "page", targetId: "t1" } } });
+        return reply({});
+      case "Target.attachToTarget":
+        s.push({
+          method: "Target.attachedToTarget",
+          params: { sessionId: "tab-1", targetInfo: { type: "page", targetId: "t1" } },
+        });
+        return reply({ sessionId: "tab-1" });
+      case "Storage.getCookies":
+        return m.sessionId ? refuse() : reply({ cookies: jar });
+      case "Network.deleteCookies": {
+        if (!onTab) return refuse();
+        const i = jar.findIndex((c) => c.name === params.name && c.domain === params.domain && c.path === params.path);
+        if (i >= 0) jar.splice(i, 1);
+        return reply({});
+      }
+      case "Storage.clearDataForOrigin": {
+        if (!onTab || params.storageTypes !== "all") return refuse();
+        const sqlite = db();
+        sqlite.run("DELETE FROM buckets WHERE storage_key = ?", [`${String(params.origin)}/`]);
+        sqlite.close();
+        return reply({});
+      }
+      default:
+        return reply({});
+    }
+  };
+  const chromes = fakeChromes();
+  const t = setup({
+    startChrome: async (exe, args, profile) => {
+      quota = path.join(profile, "Default", "WebStorage", "QuotaManager");
+      mkdirSync(path.dirname(quota), { recursive: true });
+      const sqlite = db();
+      for (const key of storageKeys) sqlite.run("INSERT INTO buckets (storage_key) VALUES (?)", [key]);
+      sqlite.close();
+      return { ...(await chromes.start(exe, args, profile)), wsPath: "/devtools/browser/sites" };
+    },
+    connectDevtools: (url) => {
+      const s = new FakeSocket(url);
+      const send = s.send.bind(s);
+      s.send = (data: string) => {
+        send(data);
+        const m = JSON.parse(data) as Record<string, unknown>;
+        queueMicrotask(() => answer(s, m));
+      };
+      devtools.push(s);
+      queueMicrotask(() => s.onopen?.());
+      return s;
+    },
+  });
+  return { t, devtools, jar, chromes: chromes.started };
+}
+
+test("a profile lists its signed-in sites without a value, and signs out of one: its cookies and its stored data", async () => {
+  const { t, devtools, jar, chromes } = profileWithSites(
+    [
+      { name: "SID", value: "google-secret", domain: ".google.com", path: "/" },
+      { name: "LSID", value: "accounts-secret", domain: "accounts.google.com", path: "/" },
+      { name: "wa_ul", value: "whatsapp-secret", domain: "web.whatsapp.com", path: "/" },
+    ],
+    ["https://mail.google.com/", "https://web.whatsapp.com/", "chrome-extension://nkeimhogjdpnpccoofpliimaahmaaome/"],
+  );
+  const ctx = { workspaceReal: t.ws, exec: true, token: "agm_x", access: browserOn, browser: t.manager };
+  const listed = await handleRequest(ctx, { agent: dev, profile: { id: PROFILE }, op: "browser.sites" }, profileScope);
+  expect(listed).toEqual({
+    sites: [
+      { site: "google.com", cookies: 2, storage: 1 },
+      { site: "web.whatsapp.com", cookies: 1, storage: 1 },
+    ],
+  });
+  expect(JSON.stringify(listed)).not.toContain("secret");
+  // Its Chrome started for it, in the profile's own folder, headless.
+  expect(chromes).toHaveLength(1);
+  expect(chromes[0]?.profile).toBe(path.join(t.home, "browser-profiles", PROFILE, ".agentes", "browser"));
+
+  const out = await handleRequest(
+    ctx,
+    { agent: dev, profile: { id: PROFILE }, op: "browser.sites.forget", site: "google.com" },
+    profileScope,
+  );
+  expect(out).toEqual({ cookies: 2, storage: 1, sites: [{ site: "web.whatsapp.com", cookies: 1, storage: 1 }] });
+  expect(jar.map((c) => c.name)).toEqual(["wa_ul"]);
+  const sent = devtools[0]?.sent ?? [];
+  expect(sent.filter((m) => m.method === "Network.deleteCookies")).toEqual([
+    expect.objectContaining({ sessionId: "tab-1", params: { name: "SID", domain: ".google.com", path: "/" } }),
+    expect.objectContaining({ sessionId: "tab-1", params: { name: "LSID", domain: "accounts.google.com", path: "/" } }),
+  ]);
+  expect(sent.filter((m) => m.method === "Storage.clearDataForOrigin")).toEqual([
+    expect.objectContaining({ sessionId: "tab-1", params: { origin: "https://mail.google.com", storageTypes: "all" } }),
+  ]);
+  // A site that isn't there removes nothing.
+  expect(
+    await handleRequest(
+      ctx,
+      { agent: dev, profile: { id: PROFILE }, op: "browser.sites.forget", site: "accounts.google.com" },
+      profileScope,
+    ),
+  ).toMatchObject({ cookies: 0, storage: 0 });
+});
+
+test("signed-in sites are a profile's only: the agent's own browser, a site that isn't a host, the browser off and system mode are refused", async () => {
+  const { t, chromes } = profileWithSites([], []);
+  const ctx = { workspaceReal: t.ws, exec: true, token: "agm_x", access: browserOn, browser: t.manager };
+  expect(await errorCode(() => handleRequest(ctx, { agent: dev, op: "browser.sites" }, profileScope))).toBe(
+    "bad_request",
+  );
+  for (const site of ["https://google.com", "Google.com", "", 42]) {
+    expect(
+      await errorCode(() =>
+        handleRequest(
+          ctx,
+          { agent: dev, profile: { id: PROFILE }, op: "browser.sites.forget", site } as MachineRequest,
+          profileScope,
+        ),
+      ),
+    ).toBe("bad_request");
+  }
+  const off = (): RunnerAccess => ({ folders: [], tools: { claude: false, codex: false, commands: true } });
+  expect(
+    await errorCode(() =>
+      handleRequest(
+        { ...ctx, access: off },
+        { agent: dev, profile: { id: PROFILE }, op: "browser.sites" },
+        profileScope,
+      ),
+    ),
+  ).toBe("not_allowed");
+  const system = { ...ctx, systemMode: () => true, workers: { run: async () => ({}) } };
+  expect(
+    await errorCode(() =>
+      handleRequest(system, { agent: dev, profile: { id: PROFILE }, op: "browser.sites" }, profileScope),
+    ),
+  ).toBe("not_allowed");
+  // Nothing started for any of them.
+  expect(chromes).toHaveLength(0);
+});
+
 // ── The Vault (ADR 0144) ─────────────────────────────────────────────────────
 
 /** An agent of these tests only: what it arms in this process's Vault stays its own. */
@@ -4438,6 +4647,60 @@ test.if(posix)("in a profile's session a login opens for the agent whose turn it
   )) as { url?: string };
   expect(shot.url).not.toContain(password);
   expect(shot.url).toContain("[secret:VAULT_PASSWORD]");
+});
+
+/** A login's one-time code sealed as the server does: to a one-use key of the agent, for codes on one rule. */
+async function sealCode(agentId: string, rule: string, code: string) {
+  const { keyId, publicKey } = await runnerVault.issueKey(agentId);
+  const box = await sealSecret(publicKey, code, vaultAad({ keyId, agentId, use: { kind: "code", rule } }));
+  return JSON.stringify({ keyId, box });
+}
+
+test.if(posix)("a login's one-time code is typed on its site into code fields only, whole or one per box", async () => {
+  const t = setup();
+  const code = "482913";
+  const act = (command: string, args: string[]) => t.act(command, args, { agent: keeper });
+  await act("open", ["https://shop.example.com/verify"]);
+  t.page({ attrs: { "@e4": { type: "text", autocomplete: "one-time-code" } } });
+  const typed = await act("agentes:type_vault_code", ["e4", SHOP_RULE, await sealCode(keeper.id, SHOP_RULE, code)]);
+  expect(typed).toEqual({
+    success: true,
+    data: { typed: "vault_code", into: "@e4", fields: ["@e4"], origin: "https://shop.example.com" },
+  });
+  const commands = JSON.parse(batchesOf(t).at(-1)?.stdin ?? "[]") as string[][];
+  expect(commands.map((c) => c[0])).toEqual(["focus", "eval", "fill", "eval"]);
+  expect(commands[2]?.[2]).toBe(code);
+  expect(t.logged().some((c) => c.args.join(" ").includes(code))).toBe(false);
+  // Split in one box per character: each box checked and filled with its own.
+  const refs = ["@e1", "@e2", "@e3", "@e4", "@e5", "@e6"];
+  t.page({ attrs: Object.fromEntries(refs.map((r) => [r, { type: "tel" }])) });
+  const boxes = await act("agentes:type_vault_code", [
+    "e1",
+    SHOP_RULE,
+    await sealCode(keeper.id, SHOP_RULE, code),
+    ...refs.slice(1),
+  ]);
+  expect(boxes).toMatchObject({ success: true, data: { fields: refs } });
+  const fills = (JSON.parse(batchesOf(t).at(-1)?.stdin ?? "[]") as string[][]).filter((c) => c[0] === "fill");
+  expect(fills.map((c) => c[2])).toEqual(Array.from(code));
+  // Not as many boxes as characters: nothing typed.
+  expect(
+    await act("agentes:type_vault_code", ["e1", SHOP_RULE, await sealCode(keeper.id, SHOP_RULE, code), "e2"]),
+  ).toMatchObject({ success: false, error: expect.stringContaining("one character for each") });
+  // Never into a password field, nor off the login's site.
+  t.page({ attrs: { "@e4": { type: "password" } } });
+  expect(
+    await act("agentes:type_vault_code", ["e4", SHOP_RULE, await sealCode(keeper.id, SHOP_RULE, code)]),
+  ).toMatchObject({ success: false, code: "not_code_field" });
+  await act("open", ["https://evil.test/verify"]);
+  expect(
+    await act("agentes:type_vault_code", ["e4", SHOP_RULE, await sealCode(keeper.id, SHOP_RULE, code)]),
+  ).toMatchObject({ success: false, code: "wrong_site" });
+  // A password's box doesn't open as a code.
+  await act("open", ["https://shop.example.com/verify"]);
+  t.page({ attrs: { "@e4": { type: "text", autocomplete: "one-time-code" } } });
+  const password = await sealLogin(keeper.id, SHOP_RULE, code);
+  expect(await errorCode(() => act("agentes:type_vault_code", ["e4", SHOP_RULE, password]))).toBe("bad_request");
 });
 
 test.if(posix)("a code goes one character per field, each field checked where it is typed", async () => {
@@ -4913,4 +5176,22 @@ describe("one deadline for a whole command", () => {
       }
     },
   );
+});
+
+test("a person's lent Chrome: no agent's own browser opens its debugging port, with a site list or without (ADR 0202)", async () => {
+  const lent = new Set([9222]);
+  const t = setup({ lentPorts: () => lent });
+  for (const url of ["http://127.0.0.1:9222/json/list", "localhost:9222/json", "http://[::1]:9222/json/version"]) {
+    expect(await errorCode(() => t.act("open", [url]))).toBe("not_allowed");
+    expect(await errorCode(() => t.act("tab", ["new", url], { allowedDomains: ["*.example.com"] }))).toBe(
+      "not_allowed",
+    );
+  }
+  expect(t.logged().some((c) => c.args.some((a) => a.includes(":9222")))).toBe(false);
+  // Once it is given back, the port is like any other address.
+  lent.clear();
+  expect(await errorCode(() => t.act("open", ["http://127.0.0.1:9222/json/list"]))).not.toBe("not_allowed");
+  expect(
+    await errorCode(() => t.act("open", ["http://127.0.0.1:9222/json/list"], { allowedDomains: ["example.com"] })),
+  ).toBe("not_allowed");
 });

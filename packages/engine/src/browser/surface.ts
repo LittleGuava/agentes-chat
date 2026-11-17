@@ -165,7 +165,10 @@ export function observationOf(data: unknown): ScreenObservation | null {
 
 /** A Vault login made ready to type once (ADR 0144): the runner's command and what follows its answer. */
 export interface VaultTyping {
-  /** `agentes:type_vault [ref, rule, box]`: the password sealed to a one-use key of the agent's computer. */
+  /**
+   * `agentes:type_vault [ref, rule, box]`: the password sealed to a one-use key of the agent's computer; or
+   * `agentes:type_vault_code [ref, rule, box, ...moreRefs]`, its one-time code (protocol 86).
+   */
   command: BrowserBatchCommand;
   /** What the report names it by: the site of its rule (`github.com`), never its title (ADR 0144 §4) nor a value. */
   label: string;
@@ -181,9 +184,15 @@ export interface BrowserSurfaceOptions {
   secretSite?: (name: string) => string | null;
   /**
    * A Vault login (ADR 0144), released and sealed at the step that types it, for the field `ref` on the page at `url`
-   * (where it was found); or why it can't be typed. Without it a login step fails.
+   * (where it was found); or why it can't be typed. Without it a login step fails. With `code`, its one-time code
+   * instead of its password, `more` the other boxes it is split in.
    */
-  vaultLogin?: (login: string, ref: string, url: string | null) => Promise<VaultTyping | string>;
+  vaultLogin?: (
+    login: string,
+    ref: string,
+    url: string | null,
+    code?: { more: string[] },
+  ) => Promise<VaultTyping | string>;
   /** Every look, as it happens (the caller keeps the last one). */
   onLook?: (o: ScreenObservation) => void;
 }
@@ -210,7 +219,12 @@ export function browserSurface(options: BrowserSurfaceOptions): ScreenSurface {
         // Released only now, on the page it goes into: a one-use key lives two minutes on the computer.
         const ready = options.vaultLogin
           ? await options
-              .vaultLogin(action.login, ref(action.at), action.url)
+              .vaultLogin(
+                action.login,
+                ref(action.at),
+                action.url,
+                action.code ? { more: (action.more ?? []).map(ref) } : undefined,
+              )
               .catch((error: unknown) => (error instanceof Error ? error.message : String(error)))
           : "this browser can't type Vault logins";
         if (typeof ready === "string") return { ok: false, error: ready };

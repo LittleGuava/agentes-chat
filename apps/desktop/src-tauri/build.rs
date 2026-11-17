@@ -74,6 +74,10 @@ const COMMANDS: &[&str] = &[
     "privacy_open",
     "setup_state_get",
     "setup_state_set",
+    "folder_sync_list",
+    "folder_sync_root",
+    "folder_sync_scan",
+    "folder_sync_fetch",
 ];
 
 fn main() {

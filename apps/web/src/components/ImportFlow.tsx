@@ -1,8 +1,10 @@
 import type {
   BundleTodo,
+  ImportedSource,
   ImportItemKind,
   ImportItemResult,
   ImportSkipReason,
+  ImportUndoItem,
   MigrationBundle,
 } from "@agenteschat/client";
 import { keys, useAgents, useApps, useMe } from "@agenteschat/client";
@@ -22,8 +24,12 @@ import {
   Chip,
   type ChipTone,
   CountChip,
+  Dialog,
+  DialogBody,
+  DialogFooter,
   driveFolder,
   Field,
+  GroupHeading,
   HintLine,
   Icon,
   type IconName,
@@ -37,7 +43,7 @@ import {
   Switch,
   Textarea,
 } from "@agenteschat/ui";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import type { TFunction } from "i18next";
 import {
@@ -58,6 +64,7 @@ import { ClientSteps } from "@/components/AiApps";
 import { HelpLink } from "@/components/HelpLink";
 import { ImportFailureNote } from "@/components/ImportFailure";
 import { useOrg } from "@/components/org-context";
+import { ExportCard } from "@/components/WorkspaceExport";
 import {
   type AgentFile,
   EXPORT_PROMPT,
@@ -78,6 +85,7 @@ import {
   choosable,
   copyAgentFiles,
   defaultMethod,
+  defaultPicks,
   droppedFiles,
   type FileLeft,
   type FilesCopy,
@@ -92,10 +100,12 @@ import {
   isGithubLink,
   isRequestCard,
   itemId,
+  keptHere,
   kindsLine,
   MANY_FILES,
   mcpClient,
   NOT_GITHUB,
+  overwritesOf,
   picksOf,
   type RequestCard,
   todoLine,
@@ -103,7 +113,6 @@ import {
 import { hasFiles } from "@/lib/obsidian";
 import { useTheme } from "@/lib/theme";
 import { useToast } from "@/lib/toast";
-import { saveExport } from "@/lib/workspace-export";
 import "./import-flow.css";
 
 const KIND_ICON: Record<ImportItemKind, IconName> = {
@@ -140,7 +149,12 @@ const SHOWN = 6;
 /** How often the MCP step reads the agents again while it waits. */
 export const WATCH_POLL_MS = 5_000;
 
-type ReadInput = { files: PickedFile[] | Promise<PickedFile[]> } | { url: string } | { text: string };
+/** `bundle`: one already in our format (a computer's own skills, `machines.localConfig`): only planned here. */
+type ReadInput =
+  | { files: PickedFile[] | Promise<PickedFile[]> }
+  | { url: string }
+  | { text: string }
+  | { bundle: MigrationBundle };
 type Focus = "preview" | "report" | "drop" | null;
 
 /**
@@ -247,11 +261,13 @@ export function useImportFlow(orgId: string | null) {
     setFailure(null);
     setBusy("reading");
     try {
-      let files: ImportFile[];
+      let files: ImportFile[] = [];
       let root: string | null = null;
       let junk: string[] = [];
       let skipped: string[] = [];
-      if ("url" in input) {
+      if ("bundle" in input) {
+        // Already a bundle: nothing to read or parse.
+      } else if ("url" in input) {
         if (!isGithubLink(input.url)) throw NOT_GITHUB;
         const res = await api.agents.importFromGithub(orgId, input.url);
         files = res.files.map((f) => ({ name: f.path, text: f.text }));
@@ -263,10 +279,14 @@ export function useImportFlow(orgId: string | null) {
         ({ files, root, junk } = await readImportFiles(await input.files));
       }
       if (!current()) return;
-      step = "plan";
-      const list = await qc.fetchQuery({ queryKey: keys.models, queryFn: () => api.agents.models() });
-      step = "parse";
-      const parsed = parsePackage(files, { models: list.models.map((m) => m.id), root, junk });
+      let parsed: { bundle: MigrationBundle; files: AgentFile[] };
+      if ("bundle" in input) parsed = { bundle: input.bundle, files: [] };
+      else {
+        step = "plan";
+        const list = await qc.fetchQuery({ queryKey: keys.models, queryFn: () => api.agents.models() });
+        step = "parse";
+        parsed = parsePackage(files, { models: list.models.map((m) => m.id), root, junk });
+      }
       const { bundle } = parsed;
       if (!current()) return;
       step = "plan";
@@ -276,9 +296,10 @@ export function useImportFlow(orgId: string | null) {
       done.current = new Map();
       agentIds.current = new Map();
       sent.current = new Set();
-      focus.current = "preview";
+      // A page that brought its own bundle keeps focus where the person is (above the preview).
+      focus.current = "bundle" in input ? null : "preview";
       setPlanned({ bundle, items: plan.items, skipped, files: parsed.files, junk: junk.length });
-      setPick(new Set(plan.items.filter(choosable).map(itemId)));
+      setPick(defaultPicks(plan.items));
       setReport(null);
       setCopyFiles(parsed.files.filter((f) => !f.skip).length <= MANY_FILES);
       setCopy(null);
@@ -344,7 +365,11 @@ export function useImportFlow(orgId: string | null) {
       const items = await applyInChunks(
         api,
         orgId,
-        { bundle: prepare ? prepare(planned.bundle) : planned.bundle, pick: ids },
+        {
+          bundle: prepare ? prepare(planned.bundle) : planned.bundle,
+          pick: ids,
+          overwrite: overwritesOf(planned.items, ids),
+        },
         done.current,
         (n) => setProgress({ done: n, total: ids.length }),
       );
@@ -1016,11 +1041,14 @@ export function Preview({
   orgId,
   standalone,
   level,
+  fixed = false,
 }: {
   flow: ImportFlowState;
   orgId: string;
   standalone: boolean;
   level: 2 | 3;
+  /** A bundle the page itself brought (a computer's skills): no Trocar, there is nothing else to pick. */
+  fixed?: boolean;
 }) {
   const { t } = useTranslation();
   const heading = useFocusOn<HTMLHeadingElement>(flow, "preview");
@@ -1049,11 +1077,13 @@ export function Preview({
             {bundle.source.name}
           </Heading>
         </div>
-        <span className="ac-mediarow__end">
-          <Button variant="ghost" size="sm" onClick={flow.reset} disabled={applying}>
-            {t("onboarding.import.change")}
-          </Button>
-        </span>
+        {!fixed && (
+          <span className="ac-mediarow__end">
+            <Button variant="ghost" size="sm" onClick={flow.reset} disabled={applying}>
+              {t("onboarding.import.change")}
+            </Button>
+          </span>
+        )}
         <div className="ac-mediarow__body">
           <p className="imp-head__sub">
             {[origin.app ? t("onboarding.import.from", { app: origin.app }) : t("onboarding.import.fromOther"), summary]
@@ -1168,7 +1198,8 @@ function Group({
   const { t } = useTranslation();
   const long = rows.length > SHOWN + 2;
   const [open, setOpen] = useState(!long);
-  const free = rows.filter((i) => choosable(i) && !blocked.has(itemId(i))).map(itemId);
+  // What was changed here is overwritten one row at a time, never by checking the whole group.
+  const free = rows.filter((i) => choosable(i) && !keptHere(i) && !blocked.has(itemId(i))).map(itemId);
   const on = free.filter((id) => flow.pick.has(id)).length;
   const title = t(`onboarding.import.groups.${kind}`);
   return (
@@ -1195,7 +1226,7 @@ function Group({
             rowId={`imp-${kind}-${i}`}
             item={item}
             flow={flow}
-            reason={item.action === "skip" ? item.reason : blocked.get(itemId(item))}
+            reason={item.action === "skip" && !keptHere(item) ? item.reason : blocked.get(itemId(item))}
             index={index}
           />
         ))}
@@ -1305,11 +1336,14 @@ function FilesLeft({ left }: { left: FilesCopy["left"] }) {
 function statusOf(
   item: ImportItemResult,
   reason: ImportSkipReason | undefined,
+  checked: boolean,
 ): {
   icon: IconName;
   tone?: ChipTone;
-  key: "update" | "unchanged" | "skip" | "join";
+  key: "update" | "unchanged" | "skip" | "join" | "keptHere";
 } | null {
+  if (keptHere(item) && !reason)
+    return checked ? { icon: "refresh", key: "update" } : { icon: "edit", key: "keptHere" };
   if (item.action === "skip" || reason) return { icon: "block", key: "skip" };
   if (item.action === "update" && item.reason === "exists") return { icon: "link", key: "join" };
   if (item.action === "update") return { icon: "refresh", key: "update" };
@@ -1336,7 +1370,7 @@ function Row({
   const id = itemId(item);
   const pickable = choosable(item) && !reason;
   const checked = pickable && flow.pick.has(id);
-  const status = statusOf(item, reason);
+  const status = statusOf(item, reason, checked);
   const names = (list: string[]) => joinNames(list, t);
 
   let title = item.label;
@@ -1387,6 +1421,7 @@ function Row({
   // A channel's update only brings agents in: its name and topic stay as people here left them.
   else if (item.action === "update" && (item.reason === "exists" || item.kind === "channel"))
     notes.push(t("onboarding.import.joins", { name: item.label }));
+  else if (keptHere(item)) notes.push(t(checked ? "onboarding.import.overwrites" : "onboarding.import.keptHere"));
   else {
     if (item.reason === "model_not_in_catalog") notes.push(t("onboarding.import.why.model_not_in_catalog"));
     if (item.action === "update") notes.push(t("onboarding.import.updates"));
@@ -1545,6 +1580,8 @@ export function ImportReport({
     (i) => i.action === "unchanged",
   ).length;
   const capped = made.filter((i) => i.reason === "too_many_routines").length;
+  // Changed here and left unchecked: never sent, they stay as people here left them.
+  const keptHereCount = (flow.planned?.items ?? []).filter((i) => keptHere(i) && !sent.has(itemId(i))).length;
   const agentId = new Map(report.filter((i) => i.kind === "agent" && i.targetId).map((i) => [i.key, i.targetId]));
   const sub = (level + 1) as 3 | 4;
 
@@ -1697,6 +1734,9 @@ export function ImportReport({
       </ul>
       {kept > 0 && <p className="small muted">{t("onboarding.import.report.kept", { count: kept })}</p>}
       {capped > 0 && <p className="small muted">{t("onboarding.import.report.capped", { count: capped })}</p>}
+      {keptHereCount > 0 && (
+        <p className="small muted">{t("onboarding.import.report.keptHere", { count: keptHereCount })}</p>
+      )}
 
       {copy?.result && copy.result.left.length > 0 && (
         <section className="imp-block" aria-labelledby="imp-files-left-title">
@@ -1760,10 +1800,8 @@ export function ImportReport({
 export function ImportExportSection() {
   const { t } = useTranslation();
   const { org } = useOrg();
-  const api = useApi();
   const flow = useImportFlow(org.id);
   if (!can(org, "create_agents")) return null;
-  const download = () => saveExport(api, org.id);
   return (
     <>
       {makesAgents(org) && (
@@ -1772,27 +1810,139 @@ export function ImportExportSection() {
           <ImportFlow flow={flow} orgId={org.id} standalone level={3} />
         </Card>
       )}
-      <Card aria-labelledby="imp-export-title">
-        <CardHeader
-          icon="download"
-          id="imp-export-title"
-          title={t("settings.import.exportTitle")}
-          action={
-            <Button icon="download" onClick={download}>
-              {t("settings.import.download")}
-            </Button>
-          }
-        />
-        <p className="imp-note ac-iconline">
-          <Icon name="lock" size={16} />
-          <span>{t("settings.import.neverLine")}</span>
-        </p>
-        <p className="imp-help">
-          <HelpLink slug="import" section="export">
-            {t("settings.import.whatsIn")}
-          </HelpLink>
-        </p>
-      </Card>
+      {can(org, "manage_agents") && <ImportedPackages orgId={org.id} />}
+      <ExportCard />
     </>
+  );
+}
+
+/** A package's name: the app it came from, and its own id when that reads as a name (never a bare UUID). */
+function packageName(source: ImportedSource) {
+  const app = bundleOrigin({ source }).app;
+  const ref = source.ref.replace(/^agenteschat:/, "");
+  const named = !/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(ref);
+  if (!app) return ref;
+  return named && ref !== source.app ? `${app} · ${ref}` : app;
+}
+
+/**
+ * Configurações → Importar: what this person brought from other apps, one package a row, each with Desfazer. The
+ * dialog shows what goes and what stays (changed here since, a channel people talked in) before anything changes.
+ * Who manages agents only, as the server checks.
+ */
+function ImportedPackages({ orgId }: { orgId: string }) {
+  const { t } = useTranslation();
+  const api = useApi();
+  const sources = useQuery({ queryKey: keys.importedSources(orgId), queryFn: () => api.imports.sources(orgId) });
+  const [undoing, setUndoing] = useState<ImportedSource | null>(null);
+  const mine = (sources.data ?? []).filter((s) => s.mine && IMPORT_KINDS.some((k) => s.counts[k] > 0));
+  if (mine.length === 0) return null;
+  return (
+    <Card aria-labelledby="imp-undo-title">
+      <CardHeader icon="undo" id="imp-undo-title" title={t("settings.import.undo.title")} />
+      <ul className="imp-made">
+        {mine.map((source) => (
+          <li key={`${source.app}:${source.ref}`} className="ac-mediarow ac-mediarow--row">
+            <span className="ac-mediarow__face">
+              <span className="imp-made__icon" aria-hidden="true">
+                <Icon name="upload" size={16} />
+              </span>
+            </span>
+            <span className="ac-mediarow__head">
+              <b>{packageName(source)}</b>
+            </span>
+            <span className="ac-mediarow__end">
+              <Button size="sm" onClick={() => setUndoing(source)}>
+                {t("settings.import.undo.action")}
+              </Button>
+            </span>
+            <span className="ac-mediarow__body">{kindsLine(t, (kind) => source.counts[kind])}</span>
+          </li>
+        ))}
+      </ul>
+      {undoing && <UndoImportDialog orgId={orgId} source={undoing} onClose={() => setUndoing(null)} />}
+    </Card>
+  );
+}
+
+function UndoImportDialog({ orgId, source, onClose }: { orgId: string; source: ImportedSource; onClose: () => void }) {
+  const { t } = useTranslation();
+  const api = useApi();
+  const qc = useQueryClient();
+  const toast = useToast();
+  const which = { app: source.app, ref: source.ref };
+  const preview = useQuery({
+    queryKey: [...keys.importedSources(orgId), "undo", source.app, source.ref],
+    queryFn: () => api.imports.undo(orgId, { ...which, dryRun: true }),
+    staleTime: 0,
+  });
+  const undo = useMutation({
+    mutationFn: () => api.imports.undo(orgId, { ...which, dryRun: false }),
+    meta: { silent: true },
+    onSuccess: ({ items }) => {
+      toast.show(t("settings.import.undo.done", { count: items.filter((i) => i.action === "remove").length }));
+      onClose();
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: keys.org(orgId) }),
+  });
+  const items = preview.data?.items ?? [];
+  const goes = items.filter((i) => i.action === "remove");
+  const stays = items.filter((i) => i.action === "keep");
+  const row = (item: ImportUndoItem) => (
+    <li key={`${item.kind}:${item.key}`} className="imp-row">
+      <span className="imp-row__mark" aria-hidden="true">
+        <Icon name={KIND_ICON[item.kind]} size={14} />
+      </span>
+      <span className="imp-row__text">
+        <span className="imp-row__title">{item.kind === "channel" ? `#${item.label}` : item.label}</span>
+        {item.reason && <span className="imp-row__note">{t(`settings.import.undo.why.${item.reason}`)}</span>}
+      </span>
+    </li>
+  );
+  return (
+    <Dialog
+      open
+      onOpenChange={(open) => !open && onClose()}
+      title={t("settings.import.undo.dialogTitle", { name: packageName(source) })}
+      closeLabel={t("common.close")}
+    >
+      <DialogBody>
+        {undo.isError && <Alert>{t("settings.import.undo.failed")}</Alert>}
+        {preview.isPending ? (
+          <Spinner />
+        ) : preview.isError ? (
+          <Alert>{t("settings.import.undo.failed")}</Alert>
+        ) : goes.length === 0 ? (
+          <p>{t("settings.import.undo.nothing")}</p>
+        ) : (
+          <p className="imp-help">{t("settings.import.undo.back")}</p>
+        )}
+        {goes.length > 0 && (
+          <section className="imp-group" aria-labelledby="imp-undo-goes">
+            <GroupHeading level={3} id="imp-undo-goes" title={t("settings.import.undo.goes")} count={goes.length} />
+            <ul className="imp-rows">{goes.map(row)}</ul>
+          </section>
+        )}
+        {stays.length > 0 && (
+          <section className="imp-group" aria-labelledby="imp-undo-stays">
+            <GroupHeading level={3} id="imp-undo-stays" title={t("settings.import.undo.stays")} count={stays.length} />
+            <ul className="imp-rows">{stays.map(row)}</ul>
+          </section>
+        )}
+      </DialogBody>
+      <DialogFooter>
+        <Button type="button" onClick={onClose}>
+          {t("common.cancel")}
+        </Button>
+        <Button
+          variant="danger"
+          onClick={() => undo.mutate()}
+          disabled={goes.length === 0 || undo.isPending}
+          loading={undo.isPending}
+        >
+          {t("settings.import.undo.confirm")}
+        </Button>
+      </DialogFooter>
+    </Dialog>
   );
 }

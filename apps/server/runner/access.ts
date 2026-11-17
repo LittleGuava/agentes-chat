@@ -4,12 +4,16 @@ import os from "node:os";
 import path from "node:path";
 import {
   ACCESS_LIMITS,
+  ALL_AGENTS,
   grantedTo,
   isAccountId,
   type MachineAgent,
+  RELAY_LIMITS,
   type RunnerAccess,
   type RunnerFolderGrant,
+  type RunnerRelayGrant,
   type RunnerTools,
+  relaySite,
 } from "@agenteschat/adapters/machine-protocol";
 import type { ControlAccessRequest, ControlErrorCode } from "@agenteschat/adapters/runner-control";
 import { expandHome } from "./config";
@@ -48,7 +52,14 @@ export const TOOL_NAMES: readonly (keyof RunnerTools)[] = [
   "browser",
   "desktop",
   "terminal",
+  "hostDesktop",
 ];
+
+/**
+ * Switches the person turns on only in the desktop app on this computer (ADR 0201 §3): never `access.allow` from
+ * the server, never `agentes-runner tools enable`, which an agent's own commands could run here.
+ */
+export const APP_ONLY_TOOLS: ReadonlySet<keyof RunnerTools> = new Set(["hostDesktop"]);
 
 /** What each tool is, as the CLI names it (`tools list`, `doctor`). */
 export const TOOL_LABELS: Record<keyof RunnerTools, string> = {
@@ -63,6 +74,7 @@ export const TOOL_LABELS: Record<keyof RunnerTools, string> = {
   browser: "Browser",
   desktop: "Desktops (each agent's own screen, watched and controlled from the app)",
   terminal: "Terminal (a shell as the agent, opened from the app)",
+  hostDesktop: "Your screen (agents ask you, in the app, to use it; turned on there only)",
 };
 
 const caseless = process.platform === "win32" || process.platform === "darwin";
@@ -170,6 +182,7 @@ const uniq = (ids: string[]) =>
 const copy = (access: RunnerAccess): RunnerAccess => ({
   folders: access.folders.map((f) => ({ path: f.path, agents: [...f.agents] })),
   tools: { ...access.tools },
+  ...(access.relay ? { relay: access.relay.map((g) => ({ site: g.site, agents: [...g.agents] })) } : {}),
 });
 
 /** Allows `folder` (a checked real path) for `agents` too (merged with whoever already had it). */
@@ -219,6 +232,72 @@ export function setTool(access: RunnerAccess, tool: keyof RunnerTools, on: boole
 }
 
 /**
+ * Lends this computer's connection for `input` (a site as the person typed it) to `agents` too (ADR 0203), merged
+ * with whoever already had it. Refuses what names no public site.
+ */
+export function allowRelaySite(access: RunnerAccess, input: string, agents: string[]): RunnerAccess {
+  const site = relaySite(input);
+  if (!site) {
+    throw new ControlError("invalid_site", `${input} isn't a public site's name (like example.com)`);
+  }
+  const next = copy(access);
+  const relay = next.relay ?? [];
+  const found = relay.find((g) => g.site === site);
+  if (found) {
+    found.agents = uniq([...found.agents, ...agents]).slice(0, RELAY_LIMITS.agentsPerSite);
+  } else {
+    if (relay.length >= RELAY_LIMITS.sites) {
+      throw new ControlError("bad_request", `At most ${RELAY_LIMITS.sites} sites can go through this computer`);
+    }
+    relay.push({ site, agents: uniq(agents).slice(0, RELAY_LIMITS.agentsPerSite) });
+  }
+  return { ...next, relay };
+}
+
+const AGENT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Who a site is lent to, as the person named them: the agents that lend it work on another computer, so this one
+ * mostly doesn't list them. A handle of an agent listed here, an agent's id (as its page on the site shows it), or
+ * `every` for every agent of the workspace (`ALL_AGENTS`). `unknown` is the first name it can't tell.
+ */
+export function relayAgentIds(
+  agents: MachineAgent[],
+  given: string[],
+  every = false,
+): { ids: string[] } | { unknown: string } {
+  if (every) return { ids: [ALL_AGENTS] };
+  const ids: string[] = [];
+  for (const g of given) {
+    const id = resolveAgentHandle(agents, g)?.id ?? (AGENT_ID.test(g.trim()) ? g.trim().toLowerCase() : null);
+    if (!id) return { unknown: g };
+    if (!ids.includes(id)) ids.push(id);
+  }
+  return { ids };
+}
+
+/** Which agents a site already lent goes to from now on (ids, or `ALL_AGENTS`); `not_found` for a site not lent. */
+export function setRelayAgents(access: RunnerAccess, input: string, agents: string[]): RunnerAccess {
+  const site = relaySite(input) ?? input;
+  const next = copy(access);
+  const found = next.relay?.find((g) => g.site === site);
+  if (!found) throw new ControlError("not_found", `${input} isn't a site this computer lends`);
+  found.agents = uniq(agents).slice(0, RELAY_LIMITS.agentsPerSite);
+  return next;
+}
+
+/** Stops lending `input` to everyone, or only to `agentId` (the site stays listed for the others). */
+export function removeRelaySite(access: RunnerAccess, input: string, agentId?: string): RunnerAccess {
+  const site = relaySite(input) ?? input;
+  const next = copy(access);
+  const relay = next.relay ?? [];
+  const found = relay.find((g) => g.site === site);
+  if (!found) return next;
+  if (agentId) found.agents = found.agents.filter((a) => a !== agentId);
+  return { ...next, relay: agentId ? relay : relay.filter((g) => g !== found) };
+}
+
+/**
  * `access.reduce` from the server: removes a folder (for everyone or one
  * agent) or turns a tool off. Never widens: whatever the frame says, the
  * result allows no more than `access` did.
@@ -248,6 +327,11 @@ export function widens(a: RunnerAccess, b: RunnerAccess): boolean {
     const g = b.folders.find((x) => samePath(x.path, f.path));
     if (!g) return true;
     if (f.agents.some((id) => !g.agents.includes(id))) return true;
+  }
+  for (const r of a.relay ?? []) {
+    const g: RunnerRelayGrant | undefined = b.relay?.find((x) => x.site === r.site);
+    if (!g) return true;
+    if (r.agents.some((id) => !g.agents.includes(id))) return true;
   }
   return false;
 }
@@ -439,6 +523,15 @@ export function writeAgents(home: string, agents: MachineAgent[]) {
 }
 
 /** The `agents` frame's list, checked and cut. */
+/** The sites another computer lends an agent (ADR 0203), as the server said them: only names `relaySite` keeps. */
+function relayOf(v: unknown): { relay?: string[] } {
+  if (!Array.isArray(v)) return {};
+  const sites = [
+    ...new Set(v.map((s) => (typeof s === "string" ? relaySite(s) : null)).filter((s): s is string => !!s)),
+  ];
+  return sites.length > 0 ? { relay: sites.slice(0, RELAY_LIMITS.sites) } : {};
+}
+
 export function parseAgents(v: unknown): MachineAgent[] {
   if (!Array.isArray(v)) return [];
   const str = (x: unknown, max: number) => (typeof x === "string" ? x.slice(0, max) : "");
@@ -467,6 +560,7 @@ export function parseAgents(v: unknown): MachineAgent[] {
         : {}),
       ...(str(o.locale, 32) ? { locale: str(o.locale, 32) } : {}),
       ...(o.containers === true ? { containers: true } : {}),
+      ...relayOf(o.relay),
     });
   }
   return out;

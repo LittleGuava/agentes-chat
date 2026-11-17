@@ -851,6 +851,7 @@
   "activity": {
     "title": "Aktivitas",
     "chooseModel": "Pilih model lain",
+    "connectAi": "Hubungkan AI",
     "filter": {
       "all": "Semua",
       "waiting": "Permintaan",
@@ -880,6 +881,7 @@
       "mission_stopped_other": "Misi dihentikan",
       "routine_finished_other": "Rutinitas selesai",
       "routine_failed_other": "Rutinitas gagal",
+      "routine_failed_retried_other": "Rutinitas gagal setelah dicoba lagi",
       "run_failed_other": "Tidak bisa selesai",
       "admin_ask_channel_agent": "{{names}} memintamu menambahkan {{agent}} ke #{{label}}",
       "admin_ask_create_agents": "{{names}} meminta izin membuat agen",
@@ -915,6 +917,7 @@
       "browser_profile_request_other": "{{names}} meminta satu profil browser lagi",
       "desktop_taken_other": "{{names}} mengambil alih layar komputer {{agent}}",
       "desktop_taken_female_other": "{{names}} mengambil alih layar komputer {{agent}}",
+      "agent_needs_ai_other": "{{names}} memanggil {{agent}}, tetapi belum ada AI yang terhubung untuk menjawab",
       "plan_lent_other": "{{names}} menghubungkan paket {{plan}} kamu ke {{agent}}",
       "plan_lent_female_other": "{{names}} menghubungkan paket {{plan}} kamu ke {{agent}}",
       "plan_serves_other": "{{plan}} kamu sekarang melayani seluruh workspace",
@@ -2761,5 +2764,13 @@
       "title": "Tidak ada yang perlu ditinjau",
       "text": "Saat agen melakukan sesuatu di luar percakapan, itu muncul di sini."
     }
+  },
+  "phoneTools": {
+    "title": "Kontak di ponsel",
+    "contacts": "Agen boleh mencari di kontak saya",
+    "help": "Hanya di ruang kerja ini dan hanya di ponsel ini. Saat agen yang kamu ajak bicara butuh data seseorang, agen mencari namanya di kontakmu: paling banyak 5 hasil dikirim ke agen, masing-masing hanya berisi nama, nomor telepon, dan email.",
+    "deniedTitle": "Akses kontak nonaktif",
+    "deniedSub": "Izinkan untuk agentes.chat di Pengaturan ponsel.",
+    "failed": "Gagal menyimpan. Coba lagi."
   }
 }

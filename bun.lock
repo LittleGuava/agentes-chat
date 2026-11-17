@@ -12,7 +12,7 @@
     },
     "apps/desktop": {
       "name": "@agenteschat/desktop",
-      "version": "0.8.6",
+      "version": "0.8.11",
       "dependencies": {
         "@agenteschat/adapters": "workspace:*",
         "@agenteschat/client": "workspace:*",
@@ -60,6 +60,7 @@
         "expo-camera": "~58.0.10",
         "expo-clipboard": "~58.0.3",
         "expo-constants": "~58.0.12",
+        "expo-contacts": "~58.0.9",
         "expo-crypto": "~58.0.7",
         "expo-dev-client": "~58.0.14",
         "expo-device": "~58.0.5",
@@ -107,7 +108,7 @@
     },
     "apps/server": {
       "name": "@agenteschat/server",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@agenteschat/adapters": "workspace:*",
         "@agenteschat/client": "workspace:*",
@@ -128,6 +129,7 @@
         "zod": "^4.6.5",
       },
       "devDependencies": {
+        "@agenteschat/cli": "workspace:*",
         "@electric-sql/pglite": "0.5.8",
         "@modelcontextprotocol/sdk": "^1.32.1",
       },
@@ -191,6 +193,13 @@
         "@types/nodemailer": "^8.0.2",
       },
     },
+    "packages/cli": {
+      "name": "@agenteschat/cli",
+      "version": "0.1.0",
+      "bin": {
+        "agentes": "dist/index.js",
+      },
+    },
     "packages/client": {
       "name": "@agenteschat/client",
       "version": "0.0.0",
@@ -245,6 +254,7 @@
         "@agenteschat/providers": "workspace:*",
         "@agenteschat/tokens": "workspace:*",
         "@agenteschat/ui": "workspace:*",
+        "@jmespath-community/jmespath": "1.3.0",
         "@modelcontextprotocol/sdk": "^1.32.1",
         "@modelcontextprotocol/server": "2.3.1",
         "libpg-query": "17",
@@ -328,6 +338,8 @@
     "@1password/sdk-core": ["@1password/sdk-core@0.5.0", "", {}, "sha512-9g7LWOKRKdePZ85evVgE9xEom3DAg3hRIyQdOwLPvpL/F7KpDXmUHMi72rsqJxKaDbWApXmrYjDExMSPqUg7xw=="],
 
     "@agenteschat/adapters": ["@agenteschat/adapters@workspace:packages/adapters"],
+
+    "@agenteschat/cli": ["@agenteschat/cli@workspace:packages/cli"],
 
     "@agenteschat/client": ["@agenteschat/client@workspace:packages/client"],
 
@@ -712,6 +724,8 @@
     "@jest/schemas": ["@jest/schemas@29.6.3", "", { "dependencies": { "@sinclair/typebox": "^0.27.8" } }, "sha512-mo5j5X+jIZmJQveBKeS/clAueipV7KgiX1vMgCxam1RNYiqE1w62n0/tJJnHtjW8ZHcQco5gY85jA3mi0L+nSA=="],
 
     "@jest/types": ["@jest/types@29.6.3", "", { "dependencies": { "@jest/schemas": "^29.6.3", "@types/istanbul-lib-coverage": "^2.0.0", "@types/istanbul-reports": "^3.0.0", "@types/node": "*", "@types/yargs": "^17.0.8", "chalk": "^4.0.0" } }, "sha512-u3UPsIilWKOM3F9CXtrG8LEJmNxwoCQC/XVj4IKYXvvpx7QIi/Kg1LI5uDmDpKlac62NUtX7eLjRh+jVZcLOzw=="],
+
+    "@jmespath-community/jmespath": ["@jmespath-community/jmespath@1.3.0", "", { "bin": { "jp": "dist/cli.mjs" } }, "sha512-nzOrEdWKNpognj6CT+1Atr7gw0bqUC1KTBRyasBXS9NjFpz+og7LeFZrIQqV81GRcCzKa5H+DNipvv7NQK3GzA=="],
 
     "@jridgewell/gen-mapping": ["@jridgewell/gen-mapping@0.3.13", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.0", "@jridgewell/trace-mapping": "^0.3.24" } }, "sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA=="],
 
@@ -1530,6 +1544,8 @@
     "expo-clipboard": ["expo-clipboard@58.0.3", "", { "peerDependencies": { "expo": "*", "react": "*", "react-native": "*" } }, "sha512-OglmYYTXecF9dti5sOYJS9lXAJpk6VDNqFvOLTm9fRdUjQj2D6UQV7q00jNZbRpf0ztMxlQSassUnzngn9wmvQ=="],
 
     "expo-constants": ["expo-constants@58.0.12", "", { "dependencies": { "@expo/env": "~2.5.2", "@expo/require-utils": "^58.0.4" }, "peerDependencies": { "expo": "*", "react-native": "*" } }, "sha512-d3/dsps32nU4m6YJQbXQ1dIfn58GxfmJjTnZ0WtnhdSHTdG/oVsOakLqYRlX/FaLUKkQOSHXMf7hyCx+2a/HSQ=="],
+
+    "expo-contacts": ["expo-contacts@58.0.11", "", { "peerDependencies": { "expo": "*", "react": "*", "react-native": "*" } }, "sha512-SwkEnlaWi9VRF1d682fp52Xes5jIJbZE5seo3kiQltlFCJE8rIhmWQTGryFH86fSdqz4sdRPm8jPL/s7T8iAzg=="],
 
     "expo-crypto": ["expo-crypto@58.0.7", "", { "peerDependencies": { "expo": "*" } }, "sha512-g+4i4UpqQ5jNy1VPRvVVvr9aIdh8WwvxbpwL2ntiSESDRsXyVSeb8JM6tHVdC3b9J2nGxjtrhrsaWOo0jbSxlA=="],
 

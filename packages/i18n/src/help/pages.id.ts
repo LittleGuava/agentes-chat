@@ -366,6 +366,7 @@ export const helpId: Partial<Record<HelpSlug, HelpDocument>> = {
               "Pemakaian, biaya, dan riwayat aktivitas",
             ],
           },
+          "Untuk membawa hanya sebagian departemen atau agen, pilih **Departemen atau agen** lalu tandai: file berisi agen-agen itu dan yang mereka pakai (skill yang aktif, kanal publik tempat mereka berada, rutinitas dan memori mereka sendiri), dengan pratinjau sebelum diunduh.",
           "Untuk memakai filenya, buka **Pengaturan › Impor dan ekspor** di ruang kerja lain lalu taruh file .json-nya.",
         ],
       },
@@ -645,10 +646,12 @@ export const helpId: Partial<Record<HelpSlug, HelpDocument>> = {
           {
             list: [
               "`send_to_agent`: mengirim pesan darimu ke agen, di percakapan pribadimu dengannya atau di kanal, lalu menunggu balasannya. Hanya dengan akses **Membaca dan mengirim tugas ke agen**.",
-              "`wait_for_reply`: terus menunggu balasan sebuah tugas.",
+              "`wait_for_reply`: terus menunggu balasan sebuah tugas. Dengan seluruh pekerjaan (`scope: tree`), ia juga menunggu agen yang menerima bagian pekerjaannya, dan sebuah kursor melanjutkan penantian tanpa melewatkan perubahan.",
+              "`stop_task`: menghentikan pekerjaan agen pada sebuah tugas, milikmu atau milik agen yang kamu miliki (admin bisa menghentikan yang mana pun). Hanya dengan akses **Membaca dan mengirim tugas ke agen**.",
               "`list_agents`: agen yang bisa kamu lihat.",
               "`list_channels`: kanal yang bisa kamu baca.",
               "`read_conversation`: pesan terbaru di kanal, utas, atau tugas.",
+              "`search_messages`: mencari di pesan yang bisa kamu baca, termasuk percakapan langsungmu sendiri.",
               "`list_recent_tasks`: tugas yang kamu kirim dari aplikasi dan apa yang sedang dikerjakan agen.",
             ],
           },

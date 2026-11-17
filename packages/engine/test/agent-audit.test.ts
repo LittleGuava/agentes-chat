@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { eq, schema } from "@agenteschat/db";
 import {
   archiveAgent,
+  auditCsv,
   auditInput,
   auditsCall,
   changeMemberRole,
@@ -400,5 +401,125 @@ describe("people's changes in the audit log", () => {
     expect(JSON.stringify(byAction("agent.updated")?.details)).not.toContain("Be brief");
     expect(byAction("credential.key_changed")?.details).toMatchObject({ keyHint: "1234" });
     expect(JSON.stringify(rows)).not.toContain("sk-new-abcdefgh");
+  });
+});
+
+/** A CSV's rows as a spreadsheet reads them: quoted cells may hold commas, quotes and line breaks. */
+function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted) {
+      if (c === '"' && text[i + 1] === '"') {
+        cell += '"';
+        i++;
+      } else if (c === '"') quoted = false;
+      else cell += c;
+    } else if (c === '"') quoted = true;
+    else if (c === ",") {
+      row.push(cell);
+      cell = "";
+    } else if (c === "\n") {
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = "";
+    } else cell += c;
+  }
+  return rows;
+}
+
+describe("the audit log as CSV", () => {
+  test("every row the list shows, newest first, with the list's filters; cells a spreadsheet won't run", async () => {
+    f = await setup();
+    await updateAgent(f.db, f.owner.id, f.org.id, f.agent.id, { name: "=HYPERLINK(1)" });
+    await recordAudit(f.db, {
+      orgId: f.org.id,
+      actor: { type: "person", id: f.owner.id },
+      action: "storage.activated",
+      target: { type: "storage", id: null },
+      details: { note: 'a "quoted", two-line\nnote', apiKey: "sk-ant-api-secret-9876" },
+    });
+    await recordToolCall(f.db, {
+      orgId: f.org.id,
+      agentId: f.agent.id,
+      runId: null,
+      channelId: f.general.id,
+      authority: { kind: "person", personId: f.owner.id },
+      tool: "mail_sales_send",
+      kind: "external",
+      connector: "Gmail",
+      input: { to: "joao@acme.com", password: "hunter2" },
+      outcome: "refused",
+    });
+
+    const csv = await auditCsv(f.db, f.owner.id, f.org.id);
+    expect(csv).not.toContain("sk-ant-api-secret-9876");
+    expect(csv).not.toContain("hunter2");
+    const [header, ...rows] = parseCsv(csv);
+    expect(header).toEqual([
+      "at",
+      "actor_type",
+      "actor_id",
+      "actor",
+      "action",
+      "target_type",
+      "target_id",
+      "outcome",
+      "channel_id",
+      "channel",
+      "on_behalf_of",
+      "approval",
+      "approval_decided_by",
+      "secret",
+      "run_id",
+      "details",
+    ]);
+    const listed = (await listAudit(f.db, f.owner.id, f.org.id)).rows;
+    expect(rows.map((r) => r[4])).toEqual(listed.map((r) => r.action));
+    const col = (row: string[] | undefined, name: string) => row?.[header?.indexOf(name) ?? -1];
+    const [call, change] = rows;
+    expect(col(call, "actor")).toBe("'=HYPERLINK(1)");
+    expect(col(call, "outcome")).toBe("refused");
+    expect(col(call, "channel")).toBe(f.general.name);
+    expect(col(call, "on_behalf_of")).toBe(listed[0]?.onBehalfOf?.name ?? "");
+    expect(JSON.parse(col(call, "details") ?? "{}")).toMatchObject({
+      connector: "Gmail",
+      input: { to: "joao@acme.com" },
+    });
+    expect(JSON.parse(col(change, "details") ?? "{}")).toMatchObject({ note: 'a "quoted", two-line\nnote' });
+
+    const onlyChanges = parseCsv(await auditCsv(f.db, f.owner.id, f.org.id, { kind: "change" })).slice(1);
+    expect(onlyChanges.length).toBe(listed.length - 1);
+    expect(onlyChanges.some((r) => r[4] === "tool.call")).toBe(false);
+    const problems = parseCsv(await auditCsv(f.db, f.owner.id, f.org.id, { outcome: ["refused", "failed"] }));
+    expect(problems.slice(1).map((r) => r[4])).toEqual(["tool.call"]);
+
+    const member = await addMember(f.db, f.org.id, "member", "bia");
+    await expect(auditCsv(f.db, member.id, f.org.id)).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  test("past one page of the list, every row once, up to the cap", async () => {
+    f = await setup();
+    for (let i = 0; i < 230; i++) {
+      await recordAudit(f.db, {
+        orgId: f.org.id,
+        actor: { type: "person", id: f.owner.id },
+        action: "test.row",
+        target: { type: "test", id: String(i) },
+      });
+    }
+    const ids = (csv: string) =>
+      parseCsv(csv)
+        .slice(1)
+        .filter((r) => r[4] === "test.row")
+        .map((r) => r[6]);
+    const all = ids(await auditCsv(f.db, f.owner.id, f.org.id));
+    expect(all).toEqual(Array.from({ length: 230 }, (_, i) => String(229 - i)));
+    const capped = ids(await auditCsv(f.db, f.owner.id, f.org.id, {}, 210));
+    expect(capped).toEqual(all.slice(0, 210));
   });
 });

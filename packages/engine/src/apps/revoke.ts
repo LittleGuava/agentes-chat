@@ -1,7 +1,7 @@
 import { and, type Executor, eq, inArray, isNull, type SQL, schema } from "@agenteschat/db";
 import { recordAudit } from "../audit";
 
-const { appGrants, appTokens } = schema;
+const { agentApiKeys, appGrants, appTokens } = schema;
 
 /** Who ended a connection: a person in Settings, or the server (`reason` says why). */
 export type RevokedBy = { type: "person"; id: string } | { type: "system"; reason: string };
@@ -47,15 +47,45 @@ export async function revokeGrantTokens(tx: Executor, grantIds: string[]) {
 }
 
 /**
- * A new password, or an email change undone ("This wasn't me"): every app and token of the person, in every
- * workspace, stops now. `reason` goes into the audit log.
+ * Revokes the agent API keys matching `where` (ADR 0210) and audits each one: the one way a key ends early, whoever
+ * ends it.
  */
-export const revokeUserApps = (db: Executor, userId: string, reason = "password_reset") =>
-  revokeAppGrants(db, eq(appGrants.userId, userId), { type: "system", reason });
+export async function revokeAgentApiKeys(tx: Executor, where: SQL | undefined, by: RevokedBy) {
+  const revoked = await tx
+    .update(agentApiKeys)
+    .set({ revokedAt: new Date(), revokedBy: by.type === "person" ? by.id : null })
+    .where(and(where, isNull(agentApiKeys.revokedAt)))
+    .returning();
+  for (const key of revoked) {
+    await recordAudit(tx, {
+      orgId: key.orgId,
+      actor: by.type === "person" ? { type: "person", id: by.id } : { type: "system", id: null },
+      action: "agent_api.key_revoked",
+      target: { type: "agent_api_key", id: key.id },
+      details: {
+        app: key.name,
+        agentId: key.agentId,
+        keyId: key.id,
+        ...(by.type === "system" ? { reason: by.reason } : {}),
+        ...(by.type !== "person" || key.createdByUserId !== by.id ? { personId: key.createdByUserId } : {}),
+      },
+    });
+  }
+  return revoked.length;
+}
 
-/** A person removed from (or leaving) a workspace: their apps and tokens there stop now. */
-export const revokeMemberApps = (db: Executor, orgId: string, userId: string) =>
-  revokeAppGrants(db, and(eq(appGrants.orgId, orgId), eq(appGrants.userId, userId)), {
-    type: "system",
-    reason: "left_workspace",
-  });
+/**
+ * A new password, or an email change undone ("This wasn't me"): every app, token and agent API key of the person, in
+ * every workspace, stops now. `reason` goes into the audit log.
+ */
+export async function revokeUserApps(db: Executor, userId: string, reason = "password_reset") {
+  await revokeAgentApiKeys(db, eq(agentApiKeys.createdByUserId, userId), { type: "system", reason });
+  return revokeAppGrants(db, eq(appGrants.userId, userId), { type: "system", reason });
+}
+
+/** A person removed from (or leaving) a workspace: their apps, tokens and agent API keys there stop now. */
+export async function revokeMemberApps(db: Executor, orgId: string, userId: string) {
+  const by = { type: "system", reason: "left_workspace" } as const;
+  await revokeAgentApiKeys(db, and(eq(agentApiKeys.orgId, orgId), eq(agentApiKeys.createdByUserId, userId)), by);
+  return revokeAppGrants(db, and(eq(appGrants.orgId, orgId), eq(appGrants.userId, userId)), by);
+}

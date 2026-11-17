@@ -256,6 +256,11 @@ export const routines = pgTable(
     pausedReason: text(),
     /** Failed runs in a row since its last good one: after a few it pauses itself. */
     failuresInRow: integer().notNull().default(0),
+    /**
+     * "Tentar de novo uma vez se falhar" (ADR 0177 addendum 2026-11-16): a scheduled run that fails for a cause
+     * outside the routine is tried once more shortly after, with or without the right hand. Off by default.
+     */
+    retryOnce: boolean().notNull().default(false),
     nextRunAt: timestamp({ withTimezone: true }),
     lastRunAt: timestamp({ withTimezone: true }),
     createdByUserId: text().references(() => users.id, { onDelete: "set null" }),
@@ -358,6 +363,35 @@ export const routineHookCalls = pgTable(
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index().on(t.routineId, t.createdAt), index().on(t.routineId, t.idempotencyKey)],
+);
+
+/**
+ * A routine that fires before each meeting of a connected calendar (ADR 0190): stored as the event
+ * `meeting.upcoming` plus this row. The worker looks at the calendar when `next_check_at` comes, by code, and fires
+ * a run for each meeting whose moment (`lead_minutes` before its start) came. No foreign key to the connection: a
+ * connection gone leaves the watch in `error`, never a routine that silently stops.
+ */
+export const meetingWatches = pgTable(
+  "meeting_watches",
+  {
+    routineId: uuid()
+      .primaryKey()
+      .references(() => routines.id, { onDelete: "cascade" }),
+    orgId: uuid()
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    connectionId: uuid().notNull(),
+    leadMinutes: integer().notNull().default(15),
+    /** When the worker looks again: the next meeting's moment, or the next regular look, whichever is first. */
+    nextCheckAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    lastCheckedAt: timestamp({ withTimezone: true }),
+    /** `active` or `error` (`last_error` says why; it is looked at again later and clears on a good look). */
+    status: text().notNull().default("active"),
+    lastError: text(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index().on(t.orgId), index().on(t.nextCheckAt), index().on(t.connectionId)],
 );
 
 /**

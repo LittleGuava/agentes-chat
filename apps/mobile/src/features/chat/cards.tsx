@@ -1,6 +1,7 @@
 import {
   type AgentQuestion,
   type Approval,
+  type QuestionAnswerInput,
   type ThreadInfo,
   useApi,
   useApproval,
@@ -9,7 +10,14 @@ import {
   useDecideApproval,
   useDecideApprovals,
 } from "@agenteschat/client";
-import { questionWaitsOn } from "@agenteschat/client/lib/agent-questions";
+import {
+  answeredLines,
+  draftAnswers,
+  emptyQuestionDraft,
+  questionItems,
+  questionWaitsOn,
+  unansweredCount,
+} from "@agenteschat/client/lib/agent-questions";
 import {
   threadWorkState,
   threadWorkTone,
@@ -85,6 +93,7 @@ import { useSheet } from "../shared/SheetHost";
 import { type AskAnswer, AskCard, AskFoot, ExpiryLine, useAskStore } from "./asks";
 import { markName, parseInline, threadFaces } from "./logic";
 import { Spans } from "./MessageSpans";
+import { QuestionItems, QuestionLines } from "./QuestionItems";
 import { WaitMark } from "./WaitMark";
 
 /**
@@ -720,7 +729,8 @@ function ApprovalAsk({ approval: a }: { approval: Approval }) {
  * An agent's question (`ask_user`, `meta.question`) as the request card: the question, then the choices as
  * full-width rows and "Outra resposta" for a free answer beside them; with no choices, just Responder. Once
  * answered, the same card with the answer where the choices were. Anyone in the conversation may answer, unless it is for one person: then
- * everyone else reads who it waits for, and nothing to press.
+ * everyone else reads who it waits for, and nothing to press. A card of several questions, or of one where several may
+ * be picked, stacks them (`QuestionItems`) and sends every answer at once with "Enviar respostas".
  */
 export function QuestionCard({ question }: { question: AgentQuestion }) {
   const { t, i18n } = useTranslation();
@@ -736,6 +746,13 @@ export function QuestionCard({ question }: { question: AgentQuestion }) {
   const [picking, setPicking] = useState<string | null>(null);
   const q = answered ?? question;
   const choices = q.choices ?? [];
+  // Several questions, or several picks: one draft for the card, sent once every question has its answer.
+  const several = Boolean(question.items?.length);
+  const items = questionItems(question);
+  const [draft, setDraft] = useState(() => emptyQuestionDraft(items));
+  const ready = several ? draftAnswers(items, draft) : null;
+  const left = unansweredCount(items, draft);
+  const title = items.length > 1 ? t("question.several", { count: items.length }) : q.text;
   // Refused because it ended (someone answered, its run stopped): the card closes here, even if no event came.
   const [ended, setEnded] = useState(false);
   const refused = (err: unknown, failed: string) => {
@@ -745,14 +762,15 @@ export function QuestionCard({ question }: { question: AgentQuestion }) {
     setAnswered({ ...q, status: "answered", answer: null, answeredByUserId: null });
   };
 
-  const answer = (input: { choice: string } | { text: string }) => {
-    setPicking("choice" in input ? input.choice : null);
+  const answer = (input: QuestionAnswerInput) => {
+    // The card's own send marks it busy as a pick does.
+    setPicking(input.choice ?? (input.answers ? "" : null));
     return api.questions
       .answer(orgId, q.id, input)
       .then((res) => {
         tapHaptic();
         asks?.settle(q.id);
-        setAnswered({ ...res, answer: res.answer ?? ("choice" in input ? input.choice : input.text) });
+        setAnswered({ ...res, answer: res.answer ?? input.choice ?? input.text ?? null });
       })
       .catch((err: unknown) => refused(err, t("mobile.app.failed")))
       .finally(() => setPicking(null));
@@ -776,13 +794,16 @@ export function QuestionCard({ question }: { question: AgentQuestion }) {
   if (q.status === "answered") {
     const who = q.answeredByUserId && q.answeredByUserId !== meId ? dir.memberById.get(q.answeredByUserId)?.name : null;
     const said = markName(q.answer ?? "");
+    // Answered from a card of several questions: each question with what was said, under a title of its own.
+    const lines = answeredLines(q);
     return (
       <AskCard
         id={q.id}
         kind="question"
         agentId={q.agentId}
         waitsFor={null}
-        lead={q.text}
+        lead={lines ? title : q.text}
+        body={lines ? <QuestionLines lines={lines} /> : undefined}
         answer={{
           done: q.answer !== null && !q.withdrawn && !q.dismissed,
           words: q.withdrawn
@@ -793,9 +814,13 @@ export function QuestionCard({ question }: { question: AgentQuestion }) {
                 : t("question.dismissedByYou")
               : q.answer === null
                 ? t(ended ? "mobile.chat.question.taken" : "mobile.chat.question.closed")
-                : who
-                  ? t("mobile.chat.question.answered", { name: who, answer: said })
-                  : t("mobile.chat.question.answeredByYou", { answer: said }),
+                : lines
+                  ? who
+                    ? t("question.answeredCard", { name: who })
+                    : t("question.answeredCardByYou")
+                  : who
+                    ? t("mobile.chat.question.answered", { name: who, answer: said })
+                    : t("mobile.chat.question.answeredByYou", { answer: said }),
           time: q.answeredAt ? whenAt(t, i18n.language, q.answeredAt) : undefined,
         }}
       />
@@ -821,6 +846,41 @@ export function QuestionCard({ question }: { question: AgentQuestion }) {
         agentId={q.agentId}
         waitsFor={t("ask.waitingFor", { name: person })}
         lead={q.text}
+      />
+    );
+  }
+  if (several) {
+    return (
+      <AskCard
+        id={q.id}
+        kind="question"
+        agentId={q.agentId}
+        waitsFor="you"
+        lead={title}
+        body={<QuestionItems items={items} draft={draft} onChange={setDraft} disabled={busy} />}
+        foot={
+          <AskFoot>
+            <Button
+              variant="primary"
+              size="card"
+              wide
+              label={t("question.sendAll")}
+              loading={picking !== null}
+              disabled={!ready || skipping}
+              onPress={() => ready && void answer({ answers: ready })}
+            />
+            {left > 0 && <Text variant="footnote">{t("question.left", { count: left })}</Text>}
+            <Button
+              variant="ghost"
+              size="card"
+              wide
+              label={t("question.skip")}
+              loading={skipping}
+              disabled={picking !== null}
+              onPress={skip}
+            />
+          </AskFoot>
+        }
       />
     );
   }

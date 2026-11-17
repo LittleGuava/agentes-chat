@@ -1101,6 +1101,12 @@
     "personal": {
       "name": "個人"
     },
+    "domainJoin": {
+      "title": "チームはもうここにいます",
+      "lead": "メールのドメインで、招待なしで参加できます。",
+      "join": "参加",
+      "joinName": "{{name}} に参加"
+    },
     "workspace": {
       "title": "ワークスペースの名前は？",
       "lead": "チームとエージェントが会話する場所です。",
@@ -1241,7 +1247,8 @@
         "update": "更新されます",
         "unchanged": "すでにあります",
         "skip": "スキップ",
-        "join": "すでに存在します"
+        "join": "すでに存在します",
+        "keptHere": "ここで変更済み"
       },
       "why": {
         "exists": "同じ名前のものがすでにここにあるため、そのまま残ります。",
@@ -1254,7 +1261,8 @@
         "channel_not_picked": "そのチャンネルが移行されません。",
         "invalid": "不完全か、ここでは使えない形式です。",
         "failed": "今は作成できませんでした。もう一度お試しください。",
-        "too_many_routines": "一時停止した状態で届きます。そのエージェントは有効なルーティンの上限に達しています。"
+        "too_many_routines": "一時停止した状態で届きます。そのエージェントは有効なルーティンの上限に達しています。",
+        "edited_here": "インポート後にここで変更されています。このまま残ります。"
       },
       "whyExists": {
         "skill": "同じ名前のスキルがすでにここにあります。そのまま残ります。",
@@ -1263,6 +1271,8 @@
       "renamed": "@{{handle}}になります。@{{wanted}}はすでにここにあります。",
       "joins": "エージェントは既存の#{{name}}に参加します。",
       "updates": "前回のインポート以降、もう一方のアプリで変更されています。ここにあるバージョンは新しいものに置き換わります。",
+      "keptHere": "インポート後にここで変更され、もう一方のアプリでも変更されています。このまま残ります。新しいバージョンにするにはチェックしてください。",
+      "overwrites": "ここで変更された内容を新しいバージョンに置き換えます。",
       "trimmed": "収まるように短縮: {{fields}}。",
       "fields": {
         "name": "名前",
@@ -1345,6 +1355,7 @@
         "openSkills": "スキルを開く",
         "kept_other": "{{count}}件はすでにここにあったため、そのまま残ります。",
         "capped_other": "{{count}}件のルーティンが一時停止した状態で届きました。エージェントが有効なルーティンの上限に達していました。",
+        "keptHere_other": "ここで変更された{{count}}件はそのまま残りました。",
         "notCame": "移行されなかったもの",
         "another": "別のファイルをインポート"
       },
@@ -1590,6 +1601,7 @@
     "lookOurs": "agentes.chat",
     "lookSystem": "システム",
     "markRead": "既読にする",
+    "markUnread": "未読にする",
     "muteChannel": "チャンネルをミュート",
     "unmuteChannel": "ミュートを解除",
     "mention": "メンション",
@@ -1598,6 +1610,10 @@
     "copyId": "IDをコピー",
     "idCopied": "IDをコピーしました。",
     "editAgent": "エージェントを編集",
+    "duplicateAgent": "複製",
+    "agentCopyName": "{{name}}（コピー）",
+    "agentDuplicated": "コピーを作成しました：{{name}}。",
+    "agentDuplicatedPartly": "コピーを作成しました：{{name}}。あなたがエージェントに与えられない設定はコピーされていません。",
     "openPage": "ページ全体を開く",
     "moveUp": "上へ移動",
     "moveDown": "下へ移動",
@@ -1825,6 +1841,15 @@
     "on": "オン",
     "failed": "保存できませんでした。もう一度お試しください。",
     "loadFailed": "今は設定を読み込めませんでした。",
+    "away": {
+      "title": "不在時のメール",
+      "label": "見逃したものをメールで受け取る",
+      "help": "見ていないメンション、ダイレクトメッセージ、完了した作業を、このワークスペースをこの時間離れたらメールで送ります。その後はこの間隔より多くは送りません。",
+      "off": "送らない",
+      "m15": "15分後",
+      "m60": "1時間後",
+      "m1440": "1日後"
+    },
     "category": {
       "waiting": {
         "title": "あなたの対応待ち",
@@ -1910,6 +1935,7 @@
       "homePersonal": "あなたの一日：待っていることとエージェントが今していること"
     },
     "customizeSidebar": "サイドバーをカスタマイズ",
+    "opensInNewTab": "新しいタブで開きます",
     "sidebarMenu": {
       "title": "サイドバー",
       "newChannel": "新しいチャンネル",
@@ -1933,7 +1959,16 @@
       "order": "セクションの順序",
       "orderHint": "ドラッグするか矢印を使ってください。たとえばエージェントを先頭にできます。",
       "moveSection": "ドラッグして{{name}}セクションを移動、クリックでオプションを表示",
-      "moveTool": "ドラッグして{{name}}を移動"
+      "moveTool": "ドラッグして{{name}}を移動",
+      "ownOrder": "自分の並び順を使う",
+      "ownOrderHint": "チャンネル、エージェント、会話を各セクションの中で好きな順に並べられます。ほかの人のリストは変わりません。",
+      "links": "リンク",
+      "linksHint": "ツールの下に置いて、すぐ開きたいページ。新しいタブで開きます。",
+      "linkTitle": "名前",
+      "linkUrl": "アドレス",
+      "linkUrlExample": "例: https://crm.example.com",
+      "addLink": "リンクを追加",
+      "removeLink": "{{name}}を削除"
     },
     "inviteHint": "メールまたはリンクで",
     "profileHint": "名前、写真、@",
@@ -2101,6 +2136,8 @@
     "pin": "上部に固定",
     "unpin": "固定を解除",
     "pinned": "上部に固定済み",
+    "moveUp": "上へ移動",
+    "moveDown": "下へ移動",
     "full": {
       "agents": "すでにエージェントを 5 件固定しています。固定するには 1 件解除してください。",
       "channels": "すでにチャンネルを 5 件固定しています。固定するには 1 件解除してください。",
@@ -2342,6 +2379,7 @@
       "hideMembers": "メンバーを隠す"
     },
     "membersButton_other": "チャンネルのメンバー（{{count}}）",
+    "viewers": "今ここにいる人: {{names}}",
     "membersAgents": "エージェント",
     "you": "あなた",
     "agentState": {
@@ -2360,6 +2398,17 @@
     "replyingTo": "{{name}} に返信中",
     "cancelReply": "返信をキャンセル",
     "jumpMissing": "ここではそのメッセージまで移動できません。削除されたか、古すぎる可能性があります。",
+    "find": {
+      "label": "この会話内を検索",
+      "searching": "検索中…",
+      "none": "結果なし",
+      "failed": "検索できませんでした",
+      "position": "{{at}} / {{total}}",
+      "positionMore": "{{at}} / {{total}}+",
+      "older": "古い結果",
+      "newer": "新しい結果",
+      "close": "検索を閉じる"
+    },
     "emoji": "絵文字",
     "uploading": "アップロード中…",
     "uploadFailed": "アップロードされませんでした",
@@ -2403,6 +2452,9 @@
     "topicLabel": "チャンネルの説明",
     "topicPlaceholder": "このチャンネルは何についてのものですか？",
     "noTopic": "説明なし",
+    "instructionsLabel": "エージェントへの指示",
+    "instructionsHelp": "このチャンネルで働くすべてのエージェントが、自分の指示に加えてこれに従います。",
+    "instructionsPlaceholder": "例: 英語で答え、チケットのリンクを付ける",
     "nameLabel": "名前",
     "nameHelp": "全員に対して変更されます。古いリンクも引き続き使えます。",
     "nameTaken": "#{{name}}はすでにあります。",
@@ -2443,6 +2495,11 @@
     "correctPlaceholder": "例: トークンの有効期限は1時間ではなく15分です。",
     "sendCorrection": "修正を送信",
     "correctionSent": "修正を送信しました。{{name}}はここから学びます。",
+    "editMessage": "メッセージを編集",
+    "editLabel": "メッセージ",
+    "editRedoHint": "すでに返信した人が新しい本文にもう一度返信します。前の返信は残ります。",
+    "editSave": "保存",
+    "editRedo": "編集して返信をやり直す",
     "sending": "送信中…",
     "notSentWhy": "未送信。{{why}}",
     "notSentUnknown": "問題が発生しました。",
@@ -2475,6 +2532,19 @@
     "sendingOffline": "接続が戻ると送信されます",
     "endOfReply": "返信の終わり",
     "mentionSuggestions": "メンションの候補"
+  },
+  "readAloud": {
+    "listen": "聞く",
+    "stop": "停止",
+    "failed": "今は読み上げできませんでした。",
+    "limit": "今日の返信の読み上げ上限に達しました。",
+    "auto": "返信を読み上げる",
+    "autoHint": "開いている会話に届いたエージェントの返信を、このデバイスで読み上げます。",
+    "voice": "声",
+    "voiceHint": "返信を読み上げる声：ElevenLabs の声の ID、または音声サーバーが知っている声の名前。",
+    "voiceDefault": "既定の声",
+    "voiceInvalid": "英数字、ピリオド、ハイフン、アンダースコアのみ使えます。",
+    "voiceSaved": "声を保存しました"
   },
   "receipts": {
     "picked_other": "{{names}}が回答します",
@@ -2619,7 +2689,9 @@
         "teamWatch": "チームを見守る",
         "teamWatchHelp": "{{name}}は、AI のログイン切れや再接続が必要なアプリなど、チームを止めているものに気づき、直せる人に知らせます。",
         "welcome": "参加した人を迎える",
-        "welcomeHelp": "{{name}}は参加した人ひとりひとりにあいさつし、最初のエージェントの設定を手伝います。"
+        "welcomeHelp": "{{name}}は参加した人ひとりひとりにあいさつし、最初のエージェントの設定を手伝います。",
+        "incidents": "失敗したタスクに対応する",
+        "incidentsHelp": "AIの障害など一時的な原因でエージェントのタスクが失敗すると、{{name}}が確認し、最大2回までエージェントに再試行を頼むことがあります。"
       },
       "audit": "{{name}}がしたことを見る",
       "planHelp": "料金はプランの持ち主が払います。そのコンピューターが使えないときは、会話でそう伝え、APIキーを提案します。",
@@ -2832,6 +2904,7 @@
     "workedTasks_other": "{{name}} がタスクを {{count}} 件完了しました",
     "improve": "改善できること",
     "needsYou": "あなたの対応が必要",
+    "aiWritten": "AI が作成",
     "approvals": {
       "title_other": "{{name}} の依頼 {{count}} 件があなたを待っています",
       "line": "{{since}} から待っています。",
@@ -2878,6 +2951,16 @@
       "line_other": "{{since}} から待っています。",
       "action": "開く",
       "done": "待っているものはありません"
+    },
+    "today": {
+      "title": "今日: {{what}}",
+      "meetings_other": "会議 {{count}} 件",
+      "routines_other": "ルーティン {{count}} 件",
+      "deadlines_other": "期限のタスク {{count}} 件",
+      "first": "最初: {{time}} の {{title}}。",
+      "firstAllDay": "終日: {{title}}。",
+      "noMeeting": "今日は会議がありません。",
+      "action": "カレンダーを開く"
     },
     "stuck": {
       "title_other": "{{name}} がエラーで {{count}} 回止まりました",
@@ -2937,7 +3020,11 @@
       "label": "チームの1週間",
       "help": "毎週 {{name}} があなたの DM で、チームの様子と改善できることを伝えます。管理者だけが受け取ります。",
       "dayLabel": "今日のまとめ",
-      "dayHelp": "毎日 {{name}} があなたの DM で、あなたを待っていること、あなたのエージェントが終えたこと、止まっていることを伝えます。新しいことがある日だけです。"
+      "dayHelp": "毎日 {{name}} があなたの DM で、あなたを待っていること、あなたのエージェントが終えたこと、止まっていることを伝えます。新しいことがある日だけです。",
+      "agendaLabel": "今日の予定",
+      "agendaHelp": "日次サマリーの冒頭に今日の会議、エージェントのルーティン、期限のタスクを表示します。予定がある日は、ほかに新しいことがなくても毎日届きます。",
+      "aiSummaryLabel": "AI が書く要約",
+      "aiSummaryHelp": "日次サマリーの冒頭に、{{name}} の AI がカードの内容から書く短い段落が入ります。費用は {{name}} の予算から出ます。AI や予算がないときは、段落なしで届きます。"
     }
   },
   "routing": {
@@ -2958,6 +3045,17 @@
       "auto": "自動",
       "autoWith": "自動 · {{model}}",
       "saved": "モデルを保存しました。"
+    },
+    "picked": {
+      "jev": "Jevが選択",
+      "model": "{{model}}が選択",
+      "planYours": "あなたの{{brand}}プランが選択",
+      "planOf": "{{person}}の{{brand}}プランが選択",
+      "hint": "誰もメンションされなかったので、返信する相手を選ぶAIがこのエージェントを呼びました。管理者は設定 › AIと使用量でこの行を非表示にできます。"
+    },
+    "caption": {
+      "title": "エージェントを選んだ相手を表示",
+      "hint": "誰もメンションしなかったエージェントの返信の下に、それを選んだAIを控えめな1行で表示します。"
     }
   },
   "noAi": {
@@ -3309,6 +3407,7 @@
       "title": "確認しない",
       "text": "マージ、デプロイ、支払い、ルーティンを含め、一切確認しません。"
     },
+    "changed": "承認: {{value}}",
     "change": "確認するタイミングを変更",
     "now": "{{name}} は今後：{{level}}。",
     "nowEveryAgent": "すべてのエージェントは今後：{{level}}。",
@@ -3482,6 +3581,37 @@
     "opening": "会話を開いています…",
     "title": "{{name}}とのダイレクトメッセージ"
   },
+  "dmShare": {
+    "action": "会話を共有",
+    "title": "{{name}}との会話を共有",
+    "description": "現在の会話の読み取り専用コピーです。会話そのものはあなただけのものです。",
+    "where": "共有先",
+    "wherePlaceholder": "チャンネルまたはメンバーを選択",
+    "search": "チャンネルとメンバーを検索",
+    "noResults": "見つかりません",
+    "channels": "チャンネル",
+    "people": "メンバー",
+    "note": "メッセージ",
+    "noteDefault": "{{name}}との会話",
+    "readersChannel": "#{{name}}の全員が読めます。",
+    "readersPrivate": "#{{name}}のメンバーと管理者が読めます。",
+    "readersPerson": "{{name}}とあなただけが読めます。",
+    "submit": "共有",
+    "sharedIn": "#{{name}}に共有しました",
+    "sharedWith": "{{name}}と共有しました",
+    "card": "{{name}}との会話",
+    "open": "読む",
+    "lines_other": "{{count}}件のメッセージ",
+    "omitted_other": "それ以前の{{count}}件のメッセージはコピーに含まれていません。",
+    "copyNote": "共有した時点のコピーです。",
+    "inThread": "スレッド内",
+    "errors": {
+      "notAgentDm": "共有できるのはエージェントとの会話だけです。",
+      "target": "参加しているチャンネルか、メンバーと共有してください。",
+      "empty": "この会話にはまだ共有できる内容がありません。",
+      "note": "{{max}}文字以内でメモを書いてください。"
+    }
+  },
   "memoryCard": {
     "remembered": "{{name}}が覚えました",
     "forgot": "{{name}}が忘れました",
@@ -3625,6 +3755,10 @@
       "changed_invite_people": "<b>{{invited}}</b>をワークスペースに招待しました",
       "changed_remove_ai_key": "APIキー<b>{{name}}</b>を削除しました"
     },
+    "files": {
+      "changed": "コンピューター上の<b>{{count}}個のファイル</b>を変更しました：{{files}}",
+      "changed_single": "コンピューター上の<b>{{file}}</b>を変更しました"
+    },
     "other": "変更を加えました",
     "copyWebhook": "Webhook のアドレスをコピー",
     "issueFields": {
@@ -3701,7 +3835,8 @@
       "not_allowed": "元に戻せるのは、依頼した人、エージェントのオーナー、管理者だけです。",
       "not_found": "この変更はもう存在しません。",
       "target_gone": "変更対象はもう存在しません。",
-      "generic": "元に戻せませんでした。もう一度お試しください。"
+      "generic": "元に戻せませんでした。もう一度お試しください。",
+      "busy": "エージェントが今そのフォルダーで作業中です。終わってからもう一度お試しください。"
     }
   },
   "inlineProposal": {
@@ -3974,7 +4109,13 @@
     "laterShort": "フォローアップ",
     "plan": "プランのリセット待ち",
     "budget": "予算のリセット待ち",
-    "stopping": "停止しています…"
+    "stopping": "停止しています…",
+    "queue": {
+      "of_other": "順番待ち: {{names}}からの依頼{{count}}件",
+      "yours_other": "順番待ち: あなたの依頼{{count}}件",
+      "some_other": "順番待ち: 依頼{{count}}件",
+      "you": "あなた"
+    }
   },
   "followUps": {
     "when": {
@@ -4508,7 +4649,13 @@
     "skip": "スキップ",
     "skipFailed": "質問をスキップできませんでした。もう一度お試しください。",
     "dismissed": "{{name}}がこの質問をスキップしました。",
-    "dismissedByYou": "この質問をスキップしました。"
+    "dismissedByYou": "この質問をスキップしました。",
+    "several_other": "{{count}} 件の質問",
+    "pickSeveral": "1つ以上選んでください",
+    "sendAll": "回答を送信",
+    "left_other": "残り {{count}} 件",
+    "answeredCard": "{{name}} さんが回答しました",
+    "answeredCardByYou": "あなたが回答しました"
   },
   "ask": {
     "kindOther": {
@@ -4698,6 +4845,7 @@
         "draft": "下書きを保存"
       },
       "vault_make_password": "パスワードを作成",
+      "publish_page": "ページをインターネットに公開(バージョン {{version}})",
       "pg_query": "{{target}}を照会",
       "request_approval": {
         "merge": "{{target}}をマージ",
@@ -4776,6 +4924,9 @@
     },
     "planModelDropped": {
       "choose": "別のモデルを選ぶ"
+    },
+    "agentNeedsAi": {
+      "connect": "AIを接続"
     },
     "planServes": {
       "onlyMe": "自分だけに変更",
@@ -4878,7 +5029,9 @@
       "missionStopped": "<b>{{name}}</b>がミッションを停止しました",
       "routineFinished": "<b>{{name}}</b>がルーティンを完了しました",
       "routineFailed": "<b>{{name}}</b>はルーティンを実行できませんでした",
+      "routineFailedRetried": "<b>{{name}}</b> が再試行してもルーティンを実行できませんでした",
       "runFailed": "<b>{{name}}</b>は最後まで完了できませんでした",
+      "agentNeedsAi": "<b>{{name}}</b>が<b>{{agent}}</b>を呼びましたが、応答するためのAIが接続されていません",
       "runFailedMany_other": "<b>{{count}}人のエージェント</b>が続けられませんでした：{{cause}}",
       "runFailedManyAny_other": "<b>{{count}}人のエージェント</b>が続けられませんでした",
       "routinePaused": "<b>{{name}}</b>のルーティンが一時停止されました",
@@ -5317,6 +5470,19 @@
         "addAccount": "アカウントを追加",
         "signInAgain": "もう一度ログイン",
         "connectPlan": "別のプランを接続",
+        "reserves": {
+          "title": "予備のAI",
+          "none": "なし",
+          "text": "プランが上限に達したかサインアウトしているときは、応答できる最初の予備が代わりに答えます。上限がリセットされるとプランに戻ります。",
+          "list": "予備のAI（順番どおり）",
+          "others": "このコンピューターのほかのアカウント",
+          "add": "追加",
+          "addName": "{{name}}を追加",
+          "up": "{{name}}を上へ",
+          "down": "{{name}}を下へ",
+          "remove": "{{name}}を予備から外す",
+          "full": "予備は最大3つまでです。"
+        },
         "fallbackTitle": "{{computer}}が応答しなくなったら、API経由で返信する",
         "fallbackHint": "API経由で返信し、{{name}}の予算から差し引かれます。オフにすると、{{name}}は依頼した人に知らせて、コンピューターが戻るのを待ちます。",
         "effort": "思考レベル",
@@ -5397,6 +5563,9 @@
           "autonomy": "自律性: {{from}} → {{to}}",
           "withAutonomy": "自律性も含める",
           "withAutonomyLine": "このエージェントと同じ{{value}}にします。オフにすると、それぞれの設定のままです。",
+          "approvals": "承認: {{from}} → {{to}}",
+          "withApprovals": "承認も含める",
+          "withApprovalsLine": "このエージェントと同じ{{value}}にします。{{text}} オフにすると、それぞれの設定のままです。",
           "reasons": {
             "not_allowed": "変更できるのは管理者と{{owner}}だけです",
             "not_allowedNobody": "変更できるのは管理者だけです",
@@ -5415,6 +5584,7 @@
           "use_other": "{{count}}体のエージェントに適用",
           "done_other": "{{count}}体のエージェントが{{setup}}で考えるようになりました。",
           "autonomyOnly_other": "{{count}}体のエージェントは自律性だけが変更されました。",
+          "approvalsOnly_other": "{{count}}体のエージェントはAIはそのままで、承認だけが変更されました。",
           "missed_other": "{{count}}体のエージェントは変更されませんでした。"
         },
         "add": {
@@ -5895,7 +6065,12 @@
       "foldersMore_female": "自分のフォルダに加えて、次のフォルダを使います:",
       "foldersUnknown": "{{machine}}はまだ許可フォルダを報告していません。",
       "foldersHidden": "許可フォルダを見られるのは、管理者と{{machine}}を接続した人だけです。",
-      "foldersHint": "別のフォルダを許可するには、接続した人がそのコンピューター本体で操作します。"
+      "foldersHint": "別のフォルダを許可するには、接続した人がそのコンピューター本体で操作します。",
+      "sites": "誰かのコンピューター経由のサイト",
+      "sitesHint": "サーバーをブロックするサイトは、ある人のコンピューターの接続経由で開きます。その人がそのコンピューターの agentes.chat の環境設定 › サイトで貸し出します。",
+      "siteVia": "{{machine}} 経由、接続した人: {{name}}",
+      "siteViaMachine": "{{machine}} 経由",
+      "siteAway": "現在オフライン。戻るまではこのエージェントのコンピューターから開きます"
     },
     "settings": {
       "sections": "設定のセクション",
@@ -6012,6 +6187,14 @@
     "unverifiedTitle": "エージェントが言っただけの情報です。印付きのヒントとしてコンテキストに入ります。",
     "pinned": "常にコンテキストに含める",
     "lowTrust": "外部の情報源で、信頼されていません",
+    "until": "{{date}}まで有効",
+    "untilTitle": "エージェントはこの日まで使い、その後は使いません。",
+    "ended": "{{date}}に期限切れ",
+    "endedTitle": "期限切れ：エージェントはもう使いません。新しい日付を設定すると元に戻ります。",
+    "validUntil": "有効期限",
+    "validUntilHelp": "この日を過ぎるとエージェントは使わなくなります。ここには印付きで残ります。期限なしなら空欄のままに。",
+    "noEnd": "期限なし",
+    "clearEnd": "期限を外す",
     "confirm": "確認する",
     "confirmTitle": "正しいと伝えると、エージェントは信頼できる情報として使います。",
     "confirmed": "確認しました",
@@ -7044,6 +7227,20 @@
       "roleText": "参加時に付与される内容が変わります。リンクは変わりません。",
       "roleSaved": "{{email}}は{{roles}}として参加します。"
     },
+    "domains": {
+      "title": "メールのドメインで参加",
+      "lead": "これらのドメインの確認済みメールを持つ人は {{org}} を見つけて、招待なしで参加できます。",
+      "domain": "ドメイン",
+      "placeholder": "company.co.jp",
+      "hint": "ご自身の確認済みメールのドメインだけです。gmail.com などの公開プロバイダーは使えません。",
+      "role": "参加時のロール",
+      "add": "ドメインを追加",
+      "added": "{{domain}} の人が参加できるようになりました。",
+      "removeShort": "削除",
+      "remove": "{{domain}} を削除",
+      "removed": "{{domain}} からはもう誰も参加できません。",
+      "rolesOf": "{{roles}} として参加"
+    },
     "suggest": {
       "title": "{{org}}に誰かを招きたいですか？",
       "lead_other": "ここでは{{names}}が人を招待します。誰かを提案すると、提案が届き、ワンクリックで承認されます。",
@@ -7863,6 +8060,14 @@
     "notFound": "このルーティンは存在しないか、アクセス権がありません。",
     "copyWebhook": "Webhook URLをコピー",
     "webhookCopied": "Webhook URLをコピーしました。",
+    "meeting": {
+      "when": "各ミーティングの{{minutes}}分前",
+      "calendar": "カレンダー",
+      "lead": "何分前",
+      "leadExample": "5〜240。",
+      "every": "15分ごとにカレンダーを確認し、ほかの人との会議の前に1回ずつ実行します。",
+      "waiting": "次の会議を待っています"
+    },
     "webhook": {
       "when": "Webhookが呼ばれたとき",
       "waiting": "次の呼び出しを待機中",
@@ -8311,7 +8516,9 @@
         "event": "イベント",
         "email": "メール",
         "webhook": "Webhook",
-        "connector": "MillionSend のメール"
+        "connector": "MillionSend のメール",
+        "meeting": "会議の前",
+        "connectorSlack": "Slack のメッセージ"
       },
       "frequency": "頻度",
       "frequencyPlaceholder": "例: 毎週月曜の9時",
@@ -8324,6 +8531,8 @@
       "required": "エージェントにやってほしいことを入力してください。",
       "noAgents": "ルーティンを作成する前に、エージェントを作成してください。",
       "report": "投稿するとき",
+      "retryOnce": "失敗したら1回だけ再試行",
+      "retryOnceHint": "一時的な理由（AIプロバイダー、コンピューター、再起動）で実行が失敗した場合、2分後にもう一度だけ実行します。それも失敗したときだけ通知されます。",
       "parseError": {
         "schedule_unreadable": "期間を読み取れませんでした。「2週間ごとの月曜9時」のように入力してみてください。",
         "schedule_never": "このスケジュールは一度も発生しません。",
@@ -10120,6 +10329,7 @@
     "pc": "/pc",
     "pcText": "{{name}}のPCで実行",
     "pcInsert": "これをあなたのPCで実行して:",
+    "skillInsert": "スキル「{{name}}」を使って: ",
     "format": {
       "toolbar": "書式",
       "bold": "太字",
@@ -10200,6 +10410,15 @@
     "failed": "マイクを開けませんでした。もう一度試してください。",
     "noPlayback": "今は再生できません。このまま送信するか、録音を続けられます。",
     "cantPlay": "音声を再生できませんでした。",
+    "dictation": {
+      "toggle": "テキストにする",
+      "send": "テキストを入力欄に入れる",
+      "transcribing": "文字に起こしています…",
+      "keys": "Enter でテキストに · Esc で削除",
+      "keysHold": "離すとテキストに · Esc で削除",
+      "keysPaused": "一時停止中 · スペースで再生 · Enter でテキストに · Esc で削除",
+      "failed": "今は音声をテキストにできませんでした。もう一度試してください。"
+    },
     "settings": {
       "title": "ボイスメッセージ",
       "on": "ボイスメッセージ",
@@ -10217,6 +10436,17 @@
       "leaves": "ボイスメッセージの音声は、テキストにするために{{name}}に送られます。",
       "invalid": "保存されたキーはこのサーバーでは開けません。もう一度貼り付けてください。"
     }
+  },
+  "voiceCall": {
+    "start": "{{name}}に通話",
+    "region": "{{name}}との音声通話",
+    "listening": "聞いています…",
+    "sending": "送信中…",
+    "waiting": "{{name}}が考えています…",
+    "speaking": "{{name}}が話しています…",
+    "done": "完了",
+    "interrupt": "中断",
+    "hangUp": "通話を終了"
   },
   "media": {
     "word": {
@@ -11065,6 +11295,11 @@
     "inProgress": "進行中",
     "quiet": "{{minutes}}分間更新なし",
     "refresh": "更新",
+    "rescue": {
+      "silent": "AI がまだ応答していません",
+      "switchAi": "AI を切り替える",
+      "status": "状態を見る"
+    },
     "stop": "停止",
     "stopping": "停止中…",
     "stopHint": "タスクを停止 · Esc",
@@ -11125,7 +11360,17 @@
       "more": "その他のオプション",
       "undo": "元に戻す",
       "saved": "{{agent}}は{{model}}で考えるようになりました。",
-      "readOnly": "モデルを変更できるのは管理者とエージェントの所有者だけです。"
+      "readOnly": "モデルを変更できるのは管理者とエージェントの所有者だけです。",
+      "conversation": {
+        "title": "この会話だけ",
+        "default": "エージェントの既定",
+        "line": "この会話では{{model}}",
+        "saved": "この会話では、{{agent}}は{{model}}で考えます。",
+        "reset": "この会話では、{{agent}}はいつものモデルに戻りました。",
+        "button": "この会話のモデル",
+        "of": "この会話での{{agent}}のモデル",
+        "inherited": "チャンネルと同じ（{{model}}）"
+      }
     },
     "title": "考えるAI",
     "auto": {
@@ -11166,6 +11411,7 @@
       "geminiAutoOf": "{{owner}}のGeminiプラン",
       "zenAutoOf": "{{owner}}のOpenCode",
       "codingAutoOf": "{{owner}}の{{plan}}",
+      "acp": "{{engine}}の{{model}}",
       "on": "{{computer}}上の{{line}}"
     },
     "model": "モデル（API）",
@@ -11178,7 +11424,16 @@
       "opencode": "OpenCode",
       "grok": "Grok Build",
       "copilot": "Copilot CLI",
-      "antigravity": "Antigravity CLI"
+      "antigravity": "Antigravity CLI",
+      "acp": "ACPエージェント"
+    },
+    "acp": {
+      "name": "ACPエージェント",
+      "group": "ACPエージェント",
+      "defaultModel": "{{engine}}のデフォルト",
+      "defaultModelHint": "誰も選ばないときに使うモデルです",
+      "models_other": "{{count}}個のモデル",
+      "ownDefault": "独自のデフォルトモデルを使います"
     },
     "foot": {
       "api": "API経由",
@@ -11197,6 +11452,7 @@
       "inPlan": "Cursorプランに含まれます",
       "apiPrice": "CursorからAPI料金で請求されます"
     },
+    "ruledOut": "このワークスペースでは許可されていません",
     "reasons": {
       "no_computer": "使うには「コンピューター」で接続済みのコンピューターを選んでください。",
       "exec_off": "このコンピューターは、プログラムの実行を許可せずに接続されています。",
@@ -11211,6 +11467,7 @@
       "codexRecheckHere": "更新後、環境設定 › ツールの Codex の行で「もう一度確認」を選びます。",
       "codexRecheckThere": "{{computer}} で Codex CLI を更新してください。デスクトップアプリがある場合は、環境設定 › ツールの Codex の行で「もう一度確認」を選びます。",
       "system": "{{program}}は{{computer}}のシステムではまだ動きません。",
+      "not_allowed": "このワークスペースのルールでは{{program}}は許可されていません。管理者が設定 › AIで変更できます。",
       "no_computerCloud": "{{computer}}の準備ができ次第使えます。"
     },
     "notAvailableNow": "選択済みですが、現在は利用できません。",
@@ -11374,6 +11631,9 @@
     "asksList": "承認が必要: {{tools}}",
     "asksMore_other": "ほか{{count}}件",
     "asksLegend": "承認が必要",
+    "everyCallNever": "確認しないでは使えません：どの操作にも人の承認が必要です",
+    "cellNever": "{{resource}}の{{agent}}：{{level}}、確認しないでは使えません",
+    "neverLegend": "確認しないでは使えません",
     "customText": "ツールごとに許可されています。レベルを選ぶとシンプルにできます。",
     "noTools": "ツールはまだありません。",
     "toolsMore_other": "{{tools}}ほか{{count}}件",
@@ -12064,6 +12324,17 @@
     "soon": "近日公開",
     "connectName": "{{name}}を接続",
     "reconnectName": "{{name}}を再接続",
+    "personal": {
+      "perPerson": "各メンバーが自分のアカウントを使います",
+      "mine": "あなたのアカウント: {{account}}",
+      "mineNone": "まだアカウントを接続していません",
+      "mineBroken": "アカウントが使えなくなりました",
+      "connectMine": "自分のアカウントを接続",
+      "connectMineName": "{{name}} に自分のアカウントを接続",
+      "disconnectMine": "自分のアカウントの接続を解除",
+      "turnOn": "各メンバーのアカウントを使う",
+      "turnOff": "全員で 1 つのアカウントを使う"
+    },
     "addAccountName": "{{name}}の別アカウントを追加",
     "other": "見つかりませんか？",
     "otherText": "アドレスで、どのサービスでも接続できます。",
@@ -12444,6 +12715,39 @@
         "2": "メッセージテンプレートを作成する",
         "ask": "メッセージの送信は常にあなたの承認を求めます"
       },
+      "agentmail": {
+        "1": "受信箱、スレッド、メッセージを読む",
+        "2": "受信箱を作成し、下書きを書く",
+        "ask": "メールの送信・返信・転送は常にあなたの承認を求めます"
+      },
+      "agentphone": {
+        "1": "通話、SMS、会話を見る",
+        "2": "音声エージェントとWebhookを設定する",
+        "ask": "SMSの送信・発信・番号の購入は常にあなたの承認を求めます"
+      },
+      "vapi": {
+        "1": "アシスタント、通話、電話番号を見る",
+        "2": "アシスタントとツールを作成・編集する",
+        "ask": "発信は常にあなたの承認を求めます"
+      },
+      "whop": {
+        "1": "支払い、メンバーシップ、商品を見る",
+        "2": "商品、価格、メンバーシップを管理する"
+      },
+      "youcom": {
+        "1": "Webを検索する",
+        "2": "ページ全体を読み、出典付きで調べる"
+      },
+      "telnyx": {
+        "1": "番号、通話、メッセージ、利用状況を見る",
+        "2": "Telnyx API の任意のエンドポイントを呼び出す",
+        "ask": "どの操作も常にあなたの承認を求めます"
+      },
+      "agentcard": {
+        "1": "カード、残高、取引を見る",
+        "2": "カードを作成し、残高を追加して購入する",
+        "ask": "どの操作も常にあなたの承認を求め、金額があれば表示します"
+      },
       "database": {
         "1": "テーブルを見る",
         "2": "データにクエリして答える",
@@ -12454,6 +12758,10 @@
     "connected": "接続済み",
     "connectedAs": "{{account}}として接続済み",
     "reconnectAdds": "{{name}}を再接続すると、エージェントは{{what}}こともできます。",
+    "program": {
+      "on": "{{computer}} で動作",
+      "variables": "変数：<names/>。変更するには、プログラムをもう一度追加してください。"
+    },
     "sendsToo": "追加で送信: <names/>。変更するには「再接続」を使ってください。",
     "adds": {
       "github_project": "GitHub Projects を使う（ボードを読み、カードを移動する）"
@@ -12590,7 +12898,14 @@
       "youtube": "YouTubeチャンネルの動画、コメント、再生リスト、アナリティクス。",
       "pinterest": "Pinterestのピン、ボード、アナリティクス。",
       "reddit": "Redditの投稿、コメント、コミュニティ。",
-      "whatsapp": "WhatsApp Businessのメッセージとテンプレート。"
+      "whatsapp": "WhatsApp Businessのメッセージとテンプレート。",
+      "agentmail": "エージェント用のメール受信箱：メッセージ、スレッド、下書き。",
+      "agentphone": "エージェント用の電話番号、SMS、通話。",
+      "vapi": "音声アシスタント、通話、電話番号。",
+      "whop": "支払い、メンバーシップ、商品。",
+      "youcom": "Web検索、ページの内容、リサーチ。",
+      "telnyx": "電話番号、通話、メッセージ、そのほかの Telnyx API。",
+      "agentcard": "エージェント用のバーチャルカード、残高、購入。"
     }
   },
   "toolNames": {
@@ -13325,6 +13640,8 @@
       "desktop_read": "画面を読み取り",
       "desktop_screenshot": "スクリーンショットを撮影",
       "desktop_ask_person": "コンピューターの操作を依頼",
+      "my_chrome_open": "相手の Chrome でページを開く",
+      "my_chrome_read": "相手の Chrome のページを読む",
       "computer_use": "コンピューターを操作",
       "computer_status": "コンピューターを確認",
       "left_click": "クリック",
@@ -13345,6 +13662,7 @@
       "request_folder_access": "フォルダへのアクセスを依頼",
       "create_artifact": "Driveにファイルを作成",
       "update_artifact": "Driveのファイルを更新",
+      "publish_page": "ページをインターネットに公開",
       "read_artifact": "Driveのファイルを読み取り",
       "list_artifacts": "Driveのファイルを一覧表示",
       "share_artifact": "ファイルを共有",
@@ -13491,7 +13809,8 @@
       "verb_read": "名前から、閲覧のみと判断したため",
       "verb_write": "名前から、作成や編集を行うと判断したため",
       "verb_sensitive": "名前から、削除、送信、支出を行うと判断したため",
-      "preset_read": "サービスが閲覧しか許可していないため"
+      "preset_read": "サービスが閲覧しか許可していないため",
+      "every_call": "このサービスはお金を使うか人に届くため、操作ごとに承認を求めます"
     },
     "asks_other": "{{count}}件のアクションは先にあなたの承認を求めます",
     "see": "見る",
@@ -13512,7 +13831,36 @@
     "whoTitle": "{{name}}を使える人",
     "oauthHelp": "{{name}}のページで承認して、ここに戻ってきます。",
     "customText": "httpsアドレスで、どのMCPサーバーでも接続できます。OAuthに対応していれば、そのページで承認します。",
-    "urlHelp": "サーバーのhttpsアドレス。",
+    "urlHelp": "サーバーの https アドレス、または受け取った claude mcp add コマンドや mcpServers ブロック。",
+    "way": {
+      "label": "実行方法",
+      "address": "アドレスで",
+      "program": "このコンピューターのプログラム"
+    },
+    "program": {
+      "text": "あなたが接続したコンピューターでコマンドとして起動する MCP サーバーです。何を起動できるかは、そのコンピューターのコマンドのルールが決めます。",
+      "computer": "コンピューター",
+      "runsOn": "{{computer}} で動作します。",
+      "command": "コマンド",
+      "commandMissing": "プログラムを起動するコマンドを入力してください。",
+      "commandQuote": "コマンドの引用符が閉じていません。",
+      "variablesHelp": "変数は暗号化して保存され、プログラムの起動時にそのコンピューターにだけ送られます。値は二度と表示されません。",
+      "variable": "変数",
+      "variableOf": "変数 {{n}} の名前",
+      "valueOf": "変数 {{n}} の値",
+      "removeVariable": "変数 {{n}} を削除",
+      "addVariable": "変数を追加",
+      "add": "プログラムを追加",
+      "note": "アクセスを与えるまで、どのエージェントも使いません。",
+      "starting": "{{computer}} で起動中…"
+    },
+    "paste": {
+      "command": "これはコマンドとして動くサーバー (stdio) です。エージェントは https アドレスでしか MCP サーバーに届きません。",
+      "urlAsked": "アドレスの {{names}} を埋めてください。",
+      "keyAsked": "貼り付けたテキストが {{names}} から取っていたキーを入力してください。",
+      "program": "これはコマンドとして動くサーバー（stdio）です。あなたが接続したコンピューターで動かせます。",
+      "useProgram": "プログラムとして使う"
+    },
     "name": "名前",
     "namePlaceholder": "例: サポート",
     "continueIn": "{{name}}で続ける",
@@ -13543,6 +13891,18 @@
     "needsKey": "このサーバーはOAuthに対応していません。APIキーで接続してください。",
     "notApproved": "{{name}}は承認済みのアプリしかログインを許可しておらず、agentes.chatはまだ承認されていません。APIキーが発行されれば、それで接続できます。",
     "serverSaid": "サーバーの応答: {{detail}}",
+    "ownApp": {
+      "title": "自分で登録したアプリでサインイン",
+      "redirectUri": "リダイレクト URI",
+      "redirectUriHelp": "サーバーのサインインに登録したアプリにこのアドレスを追加してください (Microsoft Entra ID など)。",
+      "clientId": "クライアント ID",
+      "clientIdMissing": "アプリのクライアント ID を入力してください",
+      "clientSecret": "クライアントシークレット (任意)",
+      "clientSecretHelp": "機密アプリの場合のみ。暗号化して保存され、二度と表示されません。空欄なら保存済みのものが残ります。",
+      "scopes": "スコープ (任意)",
+      "scopesExample": "スペース区切り。例: api://my-server/.default。空欄ならサーバーのスコープ。",
+      "signIn": "このアプリでサインイン"
+    },
     "headers": {
       "title": "リクエストヘッダー",
       "help": "キーを別のヘッダーで送る場合や、サーバーの前にゲートウェイがある場合に使います。ほとんどのサーバーでは不要です。",
@@ -13588,7 +13948,8 @@
       "waiting": "続けると、提案したレベルでエージェントがツールを使えるようになります。それまでは使えません。",
       "asks_other": "{{count}}件の操作は、チャットで承認を求めます。",
       "adjust": "調整",
-      "ok": "完了"
+      "ok": "完了",
+      "program": "まだどのエージェントも使っていません。調整で使う人を選んでください。"
     }
   },
   "database": {
@@ -13918,6 +14279,19 @@
       "later": "あとで「アドレス」で変更できます。",
       "saved": "{{address}}のアドレスを保存しました。"
     },
+    "triage": {
+      "button": "仕分け",
+      "buttonName": "{{name}}の仕分け",
+      "title": "{{address}}の仕分け",
+      "label": "新着メールを仕分ける",
+      "help": "新着メールごとに送信者、件名、プレビューだけを読む簡単なチェックです。無視したメールではルーティンが起動せず、どのルーティンも扱わない重要なメールはお知らせします。",
+      "scope": "このメールボックスのルーティンが見ているフォルダのメールを、重要、返信が必要、無視に仕分けます。エージェントのターンは始めません。",
+      "on": "仕分けオン",
+      "savedOn": "{{address}}の仕分けをオンにしました。",
+      "savedOff": "{{address}}の仕分けをオフにしました。",
+      "failed": "{{address}}の仕分けを変更できませんでした。",
+      "notice": "{{name}}に重要なメール"
+    },
     "agent": {
       "title": "メール",
       "none": "{{org}}はまだメールを接続していません。",
@@ -13992,8 +14366,12 @@
       "when": "{{address}}にメールが届いたとき",
       "whenFolder": "{{address}}（{{folder}}）にメールが届いたとき",
       "whenMillionSend": "MillionSend にメールが届いたとき",
+      "whenSlack": "Slack にメッセージが届いたとき",
       "inboxAddress": "メールボックスのアドレス",
       "inboxAddressHelp": "空欄の場合は MillionSend のどのメールボックスでも。",
+      "connection": "接続",
+      "slackChannel": "チャンネル ID",
+      "slackChannelHelp": "空欄 = すべてのチャンネル。ID はチャンネルの詳細にあります（例: C0123ABC）。",
       "unknownMailbox": "メールボックス",
       "waiting": "メールを待っています",
       "thisWeek_other": "今週のメール {{count}}件",
@@ -14152,8 +14530,16 @@
     }
   },
   "errors": {
+    "agentApi": {
+      "keyLimit": "このエージェントにはすでに 10 個のキーがあります。1 つ無効にしてから作成してください。"
+    },
     "tooLarge": "サーバーが受け付けるサイズを超えています。",
     "tooLargeMax": "サーバーが受け付けるサイズを超えています。上限は{{max}} MBです。",
+    "sidebarLink": {
+      "url": "https のアドレスを使ってください(例: https://crm.example.com)。",
+      "title": "リンクの名前は{{max}}文字までにしてください。",
+      "full": "リンクはすでに{{max}}件あります。別のリンクを追加するには1件削除してください。"
+    },
     "passwordLink": {
       "email": "このサーバーはメールを送ります。本人が「パスワードを忘れた」から自分のリンクを依頼します。",
       "serverOwner": "このサーバーをインストールした人は、サーバーが動いているコンピューターからリンクなしで入ります。",
@@ -14186,6 +14572,7 @@
       "blockSpec": "このブロックのパーツか数式に誤りがあるため、表示できません。直してからもう一度お試しください。",
       "takeControl": "先にプロフィールの操作権を取ってください。",
       "profileBusy": "別の人がこのプロフィールを使用中です。",
+      "agentWorkingHere": "エージェントが今そのフォルダーで作業中です。終わってからもう一度お試しください。",
       "nameTaken": "その名前はすでに使われています。別の名前を選んでください。",
       "deleteName": "削除するにはチャンネル名を入力してください。",
       "generalKept": "#generalは削除できません。",
@@ -14200,6 +14587,7 @@
       "createRefused": "今はワークスペースを作成できません。",
       "noAgentToRemind": "この会話には、リマインドできるエージェントがいません。",
       "agentCantRead": "先にエージェントのアクセス設定で、これを読めるようにしてください。",
+      "meetingLead": "5〜240分で選んでください。",
       "neverHappens": "このスケジュールは実行されません。",
       "soleOwner": "他のメンバーがいるワークスペースのオーナーはあなただけです。先に別の人をオーナーにするか、ワークスペースを削除してください。",
       "testFirst": "オンにする前に、この設定で接続をテストしてください。",
@@ -14215,6 +14603,13 @@
       "githubFailed": "GitHubは{{repo}}にWebhookを作成しませんでした（{{status}}）。下の手順で手動で作成してください。",
       "invalidSecret": "Client Secretを空白なしで全部貼り付けてください。",
       "invalidRepo": "リポジトリは オーナー/名前 の形で書いてください。"
+    },
+    "outgoingWebhook": {
+      "noEvents": "イベントを1つ以上選んでください。",
+      "noChannels": "メッセージを送るチャンネルを選んでください。",
+      "channel": "ワークスペースのチャンネルだけを選んでください。ダイレクトメッセージは送られません。",
+      "disabled": "テストする前に Webhook をオンにしてください。",
+      "limit": "このワークスペースの Webhook は上限に達しています。先に1つ削除してください。"
     },
     "githubEvent": {
       "answered": "この返信はすでに誰かが頼んでいます。エージェントが対応しています。"
@@ -14238,6 +14633,8 @@
       "unfinished": "Composioでのログインが完了しませんでした。もう一度お試しください。",
       "unavailable": "このサービスはここでは接続できません。",
       "misconfigured": "サーバーで{{provider}}との接続が正しく設定されていないため、接続を完了できません。サーバーの運用者がアプリの設定でキーを差し替える必要があります。",
+      "notPerPerson": "この接続は現在、全員で1つのアカウントを使っています。ページを再読み込みしてください。",
+      "perPersonUnsupported": "各自のアカウントを使えるのは、Composio 経由で接続したサービスだけです。",
       "headerName": "ヘッダーの名前には、X-API-Keyのように英数字とハイフンだけを使ってください。",
       "headerValue": "{{header}}の値を入力してください。1行で2,000文字まで、半角の英数字と記号だけが使えます。",
       "headerReserved": "{{header}}はすべてのリクエストで自動的に送信されるため、変更できません。このヘッダーを削除してください。",
@@ -14245,7 +14642,11 @@
       "headerAndKey": "APIキーはすでにAuthorizationとして送信されます。キーを消すか、このヘッダーを削除してください。",
       "headersTooMany": "1つのサーバーに設定できるヘッダーは{{max}}個までです。追加するには、どれかを削除してください。",
       "headersWithSignIn": "このサーバーはログインを求めていますが、ログインではまだヘッダーを送れません。ヘッダーを削除してログインするか、APIキーで接続してください。",
-      "headersUnreadable": "保存済みのヘッダーを読み込めませんでした。もう一度入力するか、削除してください。"
+      "headersUnreadable": "保存済みのヘッダーを読み込めませんでした。もう一度入力するか、削除してください。",
+      "programComputer": "{{computer}} は今プログラムを実行できません。あなたが接続した、システムモード外で、オンラインかつコマンドがオンのコンピューターである必要があります。",
+      "programInvalid": "コマンドと変数を確認してください。名前に使えるのは英字、数字、_ で、同じ名前は一度だけです。別のコードを読み込む変数（NODE_OPTIONS、LD_PRELOAD、PATH など）は使えません。",
+      "programFailed": "{{computer}} でプログラムが起動しませんでした。コンピューターの応答：{{detail}}",
+      "programService": "プログラムからは {{service}} に接続できません。このサービスはアドレスで接続してください。そこでは呼び出しごとに実行前の確認があります。"
     },
     "wiki": {
       "githubNoNotes": "このリンクにMarkdownノートはありません。",
@@ -14264,11 +14665,28 @@
       "lockAdminsOnly": "ページをロックできるのは管理者だけです。"
     },
     "replyGone": "返信先のメッセージはもうありません。",
+    "messageEdit": {
+      "notYours": "メッセージを書いた人だけが編集できます。",
+      "expired": "メッセージは送信から1日以内しか編集できません。",
+      "notEditable": "このメッセージは編集できません。",
+      "answered": "このメッセージにはすでにエージェントが返信しています。「編集して返信をやり直す」を使ってください。",
+      "notLatest": "別の返信をもらえるのは会話の最後のメッセージだけです。新しいメッセージを送ってください。"
+    },
     "media": {
       "off": "このワークスペースではGIFとステッカーがオフになっています。",
       "notFound": "そのGIFはもう利用できません。別のものを選んでください。",
       "gifsOff": "このワークスペースではGIFがオフになっています。",
       "gifsUnavailable": "GIF検索が応答しませんでした。少し待ってからお試しください。"
+    },
+    "burst": {
+      "attempts": "/burst は {{min}}〜{{max}} 回試します。例: /burst 3 @agent やること",
+      "noRequest": "/burst のあとに試す内容を書いてください。",
+      "needsAgent": "試すエージェントを1つメンションしてください（@名前）。",
+      "agentUnreachable": "{{agentName}} とは話せません。",
+      "computerBrain": "{{agentName}} はコンピューターで考えています。今のところ /burst は頭脳がモデルのエージェントだけを実行します。",
+      "overBudget": "{{agentName}} の今月の予算の残りは US$ {{leftUsd}} です。{{attempts}} 回の試行と比較には約 US$ {{neededUsd}} かかります。",
+      "plainOnly": "/burst はテキストだけです。ファイル、引用、GIF なしで送ってください。",
+      "missionThread": "/burst はミッションのスレッドでは使えません。スレッドの外で送ってください。"
     },
     "role": {
       "nameRequired": "ロールには名前が必要です。",
@@ -14311,6 +14729,13 @@
       "answered": "このリクエストにはすでに誰かが対応しました。",
       "expired": "このリクエストは期限切れです。14日以内に誰も対応しませんでした。",
       "codeNeeded": "先にメールアドレスを確認してください。"
+    },
+    "joinDomain": {
+      "invalid": "ドメインではありません。company.co.jp のように入力してください。",
+      "public": "{{domain}} のメールは誰でも作れます。会社のドメインを使ってください。",
+      "notYours": "追加できるのはご自身の確認済みメールのドメインだけです。",
+      "tooMany": "ワークスペースのドメインは {{max}} 個までです。",
+      "notAllowed": "このワークスペースはあなたのメールのドメインをもう受け付けていません。メンバーに招待を頼んでください。"
     },
     "code": {
       "wrong": "コードが違います。もう一度お試しください。",
@@ -14400,7 +14825,8 @@
       "continueExtraUsedUp": "このプランの利用枠を使い切り、有料の追加利用も使い切ったか利用できません。リセット後に再開します。",
       "actionsNeedApprover": "ルーティンに自動で実行させられるのは、エージェントのオーナーか、そのアクションを承認する人だけです。",
       "editorOnly": "変更できるのは、ルーティンを作成した人、エージェントのオーナー、または管理者だけです。",
-      "widgetFixed": "このルーティンはウィジェットを最新に保っています。ウィジェットから変更してください。"
+      "widgetFixed": "このルーティンはウィジェットを最新に保っています。ウィジェットから変更してください。",
+      "connectorChannelInvalid": "これはSlackチャンネルのIDではありません。Slackのチャンネル詳細からコピーしてください。"
     },
     "run": {
       "notContinuable": "この回答はもう続けられません。",
@@ -14447,6 +14873,7 @@
       "pausePast": "未来の時刻を選んでください。",
       "notOwner": "このコンピューターのツールをオンにできるのは、接続した人だけです。その人に頼んでください。",
       "askSelf": "あなたのコンピューターです。ボタンでオンにしてください。",
+      "localConfigUnsupported": "このコンピューターは、エージェントをあなたではなく各エージェントのユーザーとして実行しています。あなたの設定は読めません。",
       "adminAskSelf": "ここで自分で行えます。",
       "accountMethodUnsupported": "このコンピューターでは、まだこの方法でClaudeを接続できません。コンピューターのagentes.chatプログラムを更新するか、APIキーを使ってください。",
       "offline": "{{name}}は現在オフラインです。戻ったらもう一度お試しください。",
@@ -14493,8 +14920,13 @@
       "ownerOrAdmin": "これができるのは、エージェントのオーナーか管理者だけです。",
       "detailsHidden": "仕組みを見られるのは、{{agentName}} と話す人だけです。",
       "extraOwnerOnly": "プランの有料の追加使用量をオンまたはオフにできるのは、エージェントのオーナーだけです。",
+      "brainNotAllowed": "このワークスペースのルールでは、その頭脳やモデルは許可されていません。管理者に頼むか、別のものを選んでください。",
+      "brainPolicyInvalid": "このルールは保存できません。各リストで少なくとも1つ選び、許可したプロバイダーのモデルだけにしてください。",
       "undoForbidden": "元に戻せるのは、エージェントが作業した相手、そのオーナー、または管理者だけです。",
-      "undoSkillsAdmins": "エージェントのスキルの変更を元に戻したりやり直したりできるのは管理者だけです。"
+      "undoSkillsAdmins": "エージェントのスキルの変更を元に戻したりやり直したりできるのは管理者だけです。",
+      "acpEngine": "このエージェントのコンピューターにあるACPエージェントを選んでください。",
+      "reserveInvalid": "予備のAIを確認してください。アカウントはそれぞれ一度だけで、エージェントがすでに使っているものは入れられません。",
+      "rightHandModel": "右腕は各メンバー自身のAIで考えるため、会話ごとのモデルは設定できません。"
     },
     "account": {
       "notRestorable": "このアカウントはもう復元できません。",
@@ -14507,6 +14939,10 @@
       "invalid": "@は小文字、数字、-、_ で{{min}}〜{{max}}文字にしてください。",
       "taken": "@{{handle}}はほかの人が使っています。",
       "takenByAgent": "@{{handle}}はエージェントが使っています。"
+    },
+    "phone": {
+      "jobClosed": "このエージェントからのリクエストはすでに終了しています。",
+      "jobNotFound": "このエージェントからのリクエストはもうありません。"
     },
     "vault": {
       "invalid": "この項目に正しくないところがあります。確認して、もう一度お試しください。",
@@ -14555,9 +14991,64 @@
     "feedback": {
       "filesGone": "追加したファイルがなくなりました。もう一度追加してください。",
       "filesPending": "送信待ちのファイルが多すぎます。いくつか送信するか外してから、もう一度お試しください。"
+    },
+    "announcement": {
+      "period": "終了は開始より後にしてください。"
+    },
+    "images": {
+      "perDay": "このワークスペースのエージェントは、24時間で作成できる画像の上限に達しました。明日もう一度お試しください。",
+      "perRun": "1つの返信に入れられる画像はこれが上限です。"
+    },
+    "memory": {
+      "invalidUntil": "これは日付ではありません。有効な最後の日を選んでください。",
+      "pastUntil": "その日はもう過ぎています。これから先の日を選んでください。"
+    },
+    "publishedPage": {
+      "notAPage": "公開できるのはページだけで、このファイルはページではありません。",
+      "personCannotRead": "依頼した人はこのファイルを開けないため、公開されませんでした。見られる人に頼んでください。",
+      "tooMany": "このワークスペースの公開ページは上限に達しています。先に1つ公開をやめてください。"
+    },
+    "readAloud": {
+      "noWords": "このメッセージには読み上げる内容がありません。",
+      "notAgent": "読み上げできるのはエージェントの返信だけです。"
+    },
+    "voice": {
+      "busy": "今は録音をテキストにできませんでした。少ししてからもう一度お試しください。",
+      "noWords": "言葉を聞き取れませんでした。もう一度録音してください。"
     }
   },
   "machines": {
+    "local": {
+      "title": "このコンピューターのMCPとスキル",
+      "intro": "Claude Code、Cursor、Codexで設定したMCPサーバーとスキルです。見えるのはあなただけで、キーはコンピューターの外に出ません。",
+      "look": "探す",
+      "lookAgain": "もう一度探す",
+      "outdated": "MCPとスキルを取り込むには、このコンピューターのアプリを更新してください。",
+      "offline": "探すにはコンピューターをオンにしてください。",
+      "nothing": "Claude Code、Cursor、Codexには何も見つかりませんでした。",
+      "servers": "MCPサーバー",
+      "skills": "スキル",
+      "connect": "接続",
+      "connectLabel": "{{name}}を接続",
+      "connected": "接続済み",
+      "needs": "接続時に{{names}}が必要です",
+      "state": {
+        "private": "このアドレスに届くのは、このコンピューターかそのネットワークだけです。",
+        "sse": "SSEを使っています。agentes.chatが対応していない古い方式です。",
+        "stdio": "このコンピューターで動くプログラムです（{{command}}）。サーバーでは実行できません。",
+        "key_in_address": "アドレスにキーが含まれていて、キーはコンピューターに残りました。接続時にアドレス全体を貼り付けてください。"
+      },
+      "masked": "{{names}}では、キーに見えた部分を***にしました。",
+      "noImport": "スキルを取り込むには、エージェントを作成する権限が必要です。",
+      "notRead": "読み込めなかったもの：{{list}}",
+      "why": {
+        "big": "大きすぎる",
+        "unreadable": "読み込めない",
+        "link": "リンク",
+        "capped": "上限超過",
+        "noSkill": "SKILL.mdなし"
+      }
+    },
     "reasons": {
       "browser_unsupported": "このコンピューターのシステムでは、エージェントのブラウザは動きません。",
       "browser_download": "エージェントのブラウザをダウンロードできませんでした。このコンピューターの接続を確認してください。次に使うときにもう一度試します。",
@@ -14744,6 +15235,12 @@
       "remove": "削除",
       "removed": "{{folder}}を削除しました。",
       "removedAgent": "{{name}}は{{folder}}を使わなくなりました。",
+      "sites": "このコンピューター経由のサイト",
+      "sitesHint": "ほかのコンピューターのエージェントが、このコンピューターの接続経由でこれらのサイトを開きます。サイトを貸し出せるのは接続した人だけで、そのコンピューターの agentes.chat の環境設定 › サイトで行います。",
+      "noSites": "サイトはありません。エージェントは作業しているコンピューターからすべてのサイトを開きます。",
+      "everyAgent": "すべてのエージェント",
+      "siteUsedBy": "このコンピューター経由で {{site}} を開く人",
+      "formerAgent": "もういないエージェント",
       "tools": "ツール",
       "tool": {
         "claude": "Claude Code",
@@ -15382,6 +15879,11 @@
     "how": "コンピューターのしくみ",
     "hostMissing": "このサーバーもエージェントのコンピューターにできます。<guide>やり方を見る</guide>"
   },
+  "announcement": {
+    "region": "お知らせ",
+    "dismiss": "お知らせを閉じる",
+    "open": "詳しく見る"
+  },
   "outage": {
     "region": "オフラインのコンピューター",
     "title": "{{name}}が{{ago}}にオフラインになりました",
@@ -15475,6 +15977,33 @@
     "deniedTitle": "接続されていません",
     "denied": "コンピューターは接続されませんでした。開いたのがあなたでなければ、誰もアクセスしていません。",
     "home": "agentesへ移動"
+  },
+  "agentApi": {
+    "title": "エージェント API",
+    "subtitle": "スクリプトはキーを使って HTTP で {{name}} と話せます。",
+    "help": "各キーで開けるのは {{name}} だけです。スクリプトが送る内容はあなたの名前で、キー専用の会話に、あなたのアクセス権で送られます。キーを持つ人は、エージェントがあなたの代わりに読めるものを返信を通じて読めます。",
+    "empty": "まだキーはありません。",
+    "create": "キーを作成",
+    "namePlaceholder": "例: デプロイパイプライン",
+    "createdTitle": "キーを作成しました",
+    "once": "今すぐコピーしてください。二度と表示されません。",
+    "copy": "キーをコピー",
+    "copied": "キーをコピーしました",
+    "leaveText": "コピーせずに閉じますか？キーは二度と表示されず、使うには新しいキーを作る必要があります。",
+    "example": "例",
+    "copyExample": "コマンドをコピー",
+    "exampleCopied": "コマンドをコピーしました",
+    "sampleMessage": "今日変わったことを要約して",
+    "revokeText": "今すぐ使えなくなります。このキーを使うスクリプトはメッセージを送れなくなります。",
+    "revoked": "キーを無効にしました",
+    "created": "{{date}} に {{name}} が作成",
+    "createdByYou": "{{date}} にあなたが作成",
+    "usedAt": "{{when}}に使用",
+    "neverUsed": "未使用",
+    "openRoom": "会話を開く",
+    "reauth": "期限なしのキーには最近のサインインが必要です。もう一度サインインして作成するか、期限を選んでください。",
+    "roomLine": "API キー {{name}} の会話",
+    "roomLineGone": "API キーの会話"
   },
   "apps": {
     "connect": "アプリを接続",
@@ -15730,6 +16259,26 @@
     "via": "{{name}}経由",
     "viaTip": "{{person}}が接続済みアプリ{{name}}から送信"
   },
+  "health": {
+    "emptyTitle": "繰り返し失敗しているものはありません",
+    "empty": "ツール、実行、キューの処理が失敗すると、原因ごとにまとめてここに表示されます。",
+    "kind": {
+      "tool_error": "ツールのエラー",
+      "timeout": "タイムアウト",
+      "run_failed": "実行の失敗",
+      "queue_stalled": "キューで停止中",
+      "job_failed": "キューで失敗",
+      "cost_spike": "高コストの実行"
+    },
+    "runFailed": "エージェントの作業がエラーで止まりました。",
+    "stalled": "開始予定から 5 分以上待っています。",
+    "jobFailed": "最後の再試行のあと、あきらめました。",
+    "costSpike": "{{agent}} の 1 回の実行で、ワークスペースに US$ 5 を超える費用がかかりました。",
+    "costSpikeNoName": "1 回の実行で、ワークスペースに US$ 5 を超える費用がかかりました。",
+    "count": "発生回数: {{count}}",
+    "since": "初回 {{first}}、最終 {{last}}",
+    "latest": "最新:"
+  },
   "audit": {
     "filters": "表示",
     "filter": {
@@ -15744,6 +16293,7 @@
     "emptyTitle": "エージェントの行動はすべて記録されます",
     "emptyFiltered": "この絞り込みに該当するものはありません。",
     "loadMore": "さらに読み込む",
+    "export": "CSVを書き出す",
     "outcome": {
       "done": "完了",
       "failed": "失敗",
@@ -15775,6 +16325,11 @@
     "removed": "削除済み",
     "change": {
       "mergedWithoutAsking": "{{repo}}で確認なしでマージしました",
+      "joinDomain": {
+        "added": "{{domain}} の人が招待なしで参加できるようにしました",
+        "removed": "{{domain}} の人の参加を止めました"
+      },
+      "dmShared": "エージェントとの会話のコピーを共有しました",
       "pattern": "{{verb}}: {{area}}",
       "approval": {
         "approved": "リクエストを承認",
@@ -15799,6 +16354,11 @@
         "token_revoked": "個人トークン{{app}}を無効化",
         "message_sent": "{{app}}経由でメッセージを送信"
       },
+      "agent_api": {
+        "key_created": "APIキー{{app}}を作成",
+        "key_revoked": "APIキー{{app}}を無効化",
+        "message_sent": "APIキー{{app}}経由でメッセージを送信"
+      },
       "vault": {
         "item_created": "Vaultに項目を保存",
         "item_changed": "Vaultの項目を変更",
@@ -15811,11 +16371,16 @@
         "connection_changed": "パスワードマネージャーの接続を変更",
         "connection_removed": "Vaultからパスワードマネージャーを切断"
       },
+      "artifact": {
+        "page_published": "ページをインターネットに公開しました(バージョン {{version}})",
+        "page_unpublished": "ページの公開を停止しました(バージョン {{version}})"
+      },
       "verb": {
         "created": "作成",
         "deleted": "削除",
         "updated": "更新",
         "changed": "変更",
+        "edited": "編集しました",
         "connected": "接続",
         "disconnected": "接続解除",
         "reconnected": "再接続",
@@ -15846,6 +16411,7 @@
         "shown": "表示",
         "copied": "コピー",
         "used": "使用",
+        "exported": "エクスポート",
         "other": "変更"
       },
       "area": {
@@ -15878,6 +16444,7 @@
         "invitation": "招待",
         "credential": "AIキー",
         "vault": "Vault",
+        "conversation": "会話",
         "other": "ワークスペース"
       }
     },
@@ -15941,6 +16508,7 @@
       "roles": "ロール",
       "vault": "Vault",
       "access": "エージェントとアクセス",
+      "webhooks": "Webhook",
       "connectors": "コネクタとMCP",
       "skills": "スキル",
       "storage": "ストレージ",
@@ -15948,6 +16516,7 @@
       "devices": "デバイス",
       "usage": "AIと使用量",
       "audit": "監査ログ",
+      "health": "ヘルス",
       "import": "インポートとエクスポート",
       "billing": "プランと請求",
       "media": "GIFとステッカー",
@@ -15974,11 +16543,13 @@
       "roles": "各ロールは権限、チャンネル、エージェントを追加します。",
       "vault": "エージェントのパスワード、キー、連絡先。パスワードを見ることはありません。",
       "access": "各エージェントが使えるもの。コネクタごとに1つのレベル。",
+      "webhooks": "ワークスペースのイベントを、署名付きで自分のシステムに送ります。",
       "connectors": "ワークスペース全体で一度だけ接続するサービスとMCPサーバー。",
       "skills": "エージェントが必要なときに開くMarkdownの指示。",
       "storage": "ワークスペースのファイルの保存先。",
       "usage": "ワークスペースのAIアカウントと、各メンバーと各エージェントの利用量。",
       "audit": "会話の外でエージェントが行ったことと、人が変更したこと。",
+      "health": "ワークスペースで繰り返し失敗していることを、原因ごとにまとめて表示します。",
       "import": "他のアプリやワークスペースからエージェントを取り込み、ここから持ち出すこともできます。",
       "billing": "プラン、カード、請求書は、アプリ外の当社ページにあります。",
       "media": "会話で送れるものと、エージェントのGIFやステッカー。",
@@ -16006,6 +16577,20 @@
       "activity": "各回答の下にエージェントの作業内容を表示",
       "activityHelp": "使ったツールとかかった時間。作業中は、何をしているかが引き続き表示されます。",
       "activityFailed": "保存できませんでした。もう一度お試しください。",
+      "sessions": {
+        "title": "アクティブなセッション",
+        "help": "アカウントにログインしているブラウザとスマートフォンの一覧です。ログアウトするとそのセッションはすぐに終わります。最終使用日は1日に1回更新されます。",
+        "current": "このセッション",
+        "lastUsed": "最終使用: {{day}}",
+        "browserOn": "{{os}} の {{browser}}",
+        "phoneApp": "スマートフォンアプリ",
+        "phoneAppOn": "{{os}} のスマートフォンアプリ",
+        "unknown": "不明なデバイス",
+        "signOut": "ログアウト",
+        "signOutOthers": "ほかのすべてからログアウト",
+        "signedOutOthers": "ほかのセッションからログアウトしました。",
+        "failed": "ログアウトできませんでした。もう一度お試しください。"
+      },
       "chat": {
         "title": "会話",
         "density": "会話の密度",
@@ -16085,6 +16670,8 @@
     "actionCheckPersonal": "エージェントがすでに済んだことを確認する",
     "actionCheckHelp": "メール、メッセージ、プルリクエストの前に、過去30日以内にチームの誰かが同じ相手や場所に同じことをしていないかを確認し、重複を避けます。",
     "actionCheckHelpPersonal": "メールやメッセージを送る前に、過去30日以内にあなたやほかのエージェントが同じ相手や場所にすでに送っていないかを確認し、重複して送りません。",
+    "meetingNotes": "エージェントが会議のメモを取る",
+    "meetingNotesHelp": "エージェントは依頼があれば Google Meet と Jitsi の通話に参加し、聞き始める前に通話のチャットで知らせます。地域によっては、録音に参加者全員の同意が必要です。エージェントを送った人が責任を持ち、主催者に伝える必要があります。",
     "mode": {
       "label": "ワークスペースのモード",
       "team": "チーム",
@@ -16105,6 +16692,31 @@
       "dialogTitle": "送信内容",
       "dialogText": "1日1回送信します。次回のレポートは以下のとおりです。"
     },
+    "serverUpdater": {
+      "title": "サーバーの更新",
+      "label": "このサーバーを最新バージョンに更新",
+      "help": "サーバーは数分間止まり、その前にデータのコピーが作られます。新しいバージョンが起動しない場合は、前のバージョンとそのデータが自動で戻ります。",
+      "button": "サーバーを更新",
+      "confirmTitle": "サーバーを更新しますか？",
+      "confirmText": "サーバーは数分間止まり、エージェントが行っている作業も一緒に止まります。サーバーが戻るとアプリは自動で再接続します。",
+      "confirm": "今すぐ更新",
+      "absent": "このサーバーでは更新用サービスが動いていません。updater プロファイルで起動してください (docker compose --profile updater up -d)。",
+      "requested": "更新を依頼しました。数分以内に始まります。",
+      "running": "サーバーを更新しています…",
+      "updated": "最新バージョンに更新しました。",
+      "current": "このサーバーはすでに最新バージョンです。",
+      "pinned": "このサーバーは1つのバージョンに固定されている（.env の AGENTES_IMAGE）ため、ここからは更新されません。",
+      "rolledBack": "新しいバージョンが起動しなかったため、前のバージョンとそのデータが戻りました。",
+      "failed": "前回の更新は完了しませんでした。理由は更新用サービスのログにあります: docker compose logs updater",
+      "interrupted": "前回の更新は中断され、前のバージョンが戻りました。"
+    },
+    "serverUpdate": {
+      "title": "agentes.chat {{version}} が利用可能です",
+      "current": "このサーバーは {{version}} で動いています。",
+      "notes": "リリースノート",
+      "docker": "更新するには、docker-compose.yml のあるフォルダーで次を実行します:",
+      "native": "更新するには、新しいパッケージを今のものの隣に展開してから次を実行します:"
+    },
     "tileState": {
       "members_other": "メンバー{{count}}人"
     },
@@ -16113,7 +16725,41 @@
       "exportTitle": "エクスポート",
       "download": "ファイルをダウンロード",
       "neverLine": "キー、パスワード、ログイン情報、会話は含まれません。",
-      "whatsIn": "ファイルの内容"
+      "whatsIn": "ファイルの内容",
+      "undo": {
+        "title": "あなたのインポート",
+        "action": "元に戻す",
+        "dialogTitle": "{{name}}からのインポートを元に戻す",
+        "back": "エージェントとチャンネルはアーカイブされ、スキルは削除されます。もう一度インポートすると戻ります。",
+        "goes": "削除されるもの",
+        "stays": "残るもの",
+        "why": {
+          "edited_here": "インポート後にここで変更されています。",
+          "in_use": "会話があります。",
+          "failed": "元に戻せませんでした。もう一度お試しください。"
+        },
+        "nothing": "元に戻すものはありません。届いたものはここで変更されています。",
+        "confirm": "インポートを元に戻す",
+        "done_other": "{{count}}件を元に戻しました。",
+        "failed": "インポートを元に戻せませんでした。もう一度お試しください。"
+      },
+      "exportWhat": "エクスポートする内容",
+      "exportAll": "ワークスペース全体",
+      "exportPart": "部署またはエージェント",
+      "partLabel": "部署とエージェント",
+      "partPlaceholder": "部署またはエージェントを選択",
+      "partNoMatch": "「{{query}}」に一致する部署やエージェントはありません",
+      "partNothing": "部署やエージェントはまだありません",
+      "setores": "部署",
+      "agents": "エージェント",
+      "setorAgents_other": "エージェント{{count}}件",
+      "partAgentsLine_other": "ファイルに含まれるエージェント{{count}}件: {{names}}。",
+      "partRestLine": "あわせて{{what}}。",
+      "partNobody": "選んだ中にエージェントがいません。ファイルは空になります。",
+      "countSkills_other": "スキル{{count}}件",
+      "countChannels_other": "{{count}}個のチャンネル",
+      "countRoutines_other": "ルーティン{{count}}件",
+      "countNotes_other": "メモリのノート{{count}}件"
     },
     "readOnly": "設定を変更できるのは管理者だけです。",
     "default": "ワークスペースのデフォルト",
@@ -16176,6 +16822,16 @@
     "usageAgentMeter": "{{name}}の予算使用量",
     "defaultBudgetTitle": "エージェントのデフォルト予算",
     "defaultBudgetSaved": "デフォルト予算を保存しました。",
+    "allowedBrains": {
+      "title": "エージェントが使えるもの",
+      "hint": "ここのすべてのエージェント（管理者のものも含む）が考えるのに使える頭脳、プロバイダー、モデルです。除外したものは選択肢でグレー表示になり、すでに使っているエージェントは誰かが別のものを選ぶまで止まります。",
+      "brains": "頭脳",
+      "providers": "APIプロバイダー",
+      "onlySome": "一部のモデルのみ",
+      "models": "モデル",
+      "empty": "各リストで少なくとも1つは選んでください。",
+      "saved": "ルールを保存しました。"
+    },
     "defaultBudget": "エージェントごとの月間予算（US$）",
     "defaultBudgetHelp": "独自の予算がないエージェントはこれを使います。エージェント個別の予算は、そのエージェントのページで変更できます。管理者には金額、メンバーには割合が表示されます。",
     "usageTotal": "{{since}}から合計{{amount}}",
@@ -16633,6 +17289,10 @@
       "useAll": "すべてで{{model}}を使う",
       "pick": "モデルを選ぶ"
     },
+    "brainReserve": {
+      "limit": "{{from}} が上限に達したため、{{to}} で回答しました。リセットされたら {{from}} に戻ります。",
+      "signedOut": "{{from}} にサインインしていないため、{{to}} で回答しました。"
+    },
     "usageWhen": {
       "at": "{{time}}",
       "on": "{{day}} {{time}}",
@@ -16722,9 +17382,15 @@
       "agentNote": "{{from}}からのメモ",
       "agentNoteAnon": "別のエージェントからのメモ",
       "waitResult": "{{name}}が待っていたものが届きました",
+      "meetingEnded": "{{name}} がメモを取っていた会議が終了しました",
+      "meetingJoined": "{{name}}が会議のメモを取っています",
+      "leaveMeeting": "会議から退出",
+      "runRetry": "{{by}}が{{name}}に再試行を頼みました",
+      "runRetryAnon": "{{name}}が再試行しています",
       "other": "{{name}}へのお知らせ",
       "wakeSkipped": "{{name}}のメンションは{{agents}}に届きませんでした",
       "wakeSkippedAnon": "{{name}} のメンションはほかのエージェントに届きませんでした",
+      "messageEdited": "{{person}}がメッセージを編集し、{{name}}に別の返信を頼みました",
       "wakeSkippedAudience": "{{agents}} を呼べるのは一部の人だけで、{{name}} のこの作業はその誰からの依頼でもありません。{{agents}} を呼べる人が依頼を引き継げます。",
       "wakeSkippedCallable": "{{name}} の設定では {{agents}} を呼べません（別のプロジェクト、または呼べるエージェントの一覧にない）。{{name}} の担当者がエージェントのページで変更できます。",
       "github": {
@@ -16748,6 +17414,10 @@
       "talkerTip": "進行中のタスクを止めずに返信しました。",
       "talkerWaiting": "待機中に",
       "talkerWaitingTip": "タスクが待っている間に返信しました。"
+    },
+    "edited": {
+      "label": "編集済み",
+      "tip": "編集済み · {{date}}"
     },
     "joined": {
       "label": "自ら参加",
@@ -16807,6 +17477,7 @@
         "readingIssues": "タスクを確認しました",
         "readingDrive": "Driveを読みました",
         "writingDrive": "Driveに書き込みました",
+        "publishingPage": "ページを公開しました",
         "searchingMemory": "履歴を検索しました",
         "updatingMemory": "メモリに記録しました",
         "checkingCalendar": "カレンダーを確認しました",
@@ -16848,6 +17519,7 @@
         "checkingComputer": "PCを確認しました",
         "checkingUsage": "使用量を確認しました",
         "findingAgent": "仲間を探しました",
+        "searchingContacts": "スマホの連絡先を検索しました",
         "writingWiki": "Wikiに書き込みました",
         "readingWiki": "Wikiを読みました",
         "linkingWiki": "Wikiページをリンクしました",
@@ -16927,6 +17599,7 @@
       "readingIssues": "タスクを確認中",
       "readingDrive": "Driveを読み込み中",
       "writingDrive": "Driveに書き込み中",
+      "publishingPage": "ページを公開中",
       "searchingMemory": "履歴を検索中",
       "updatingMemory": "メモを取っています",
       "checkingCalendar": "カレンダーを確認中",
@@ -16968,6 +17641,7 @@
       "checkingComputer": "PCを確認中",
       "checkingUsage": "使用量を確認中",
       "findingAgent": "仲間を探しています",
+      "searchingContacts": "スマホの連絡先を検索中",
       "writingWiki": "Wikiに書き込み中",
       "readingWiki": "Wikiを読み込み中",
       "linkingWiki": "Wikiページをリンク中",
@@ -17275,6 +17949,14 @@
       "label": "ファイルを更新",
       "description": "ファイルの新しいバージョンを保存します。"
     },
+    "generate_image": {
+      "label": "画像を生成",
+      "description": "説明から画像を作成し、ワークスペースの OpenAI または Gemini のキーで生成して Drive に保存します。"
+    },
+    "publish_page": {
+      "label": "ページを公開",
+      "description": "作ったページを、リンクを知っている人なら誰でも開ける公開アドレスに置きます。人の承認後のみ。ページを公開するサーバーでのみ使えます。"
+    },
     "list_issues": {
       "label": "タスクを見る",
       "description": "タスクを一覧表示して開きます。"
@@ -17558,6 +18240,14 @@
     "desktop_screenshot": {
       "label": "デスクトップのスクリーンショットを撮る",
       "description": "エージェントのデスクトップの画像を自分のフォルダに保存します。"
+    },
+    "my_chrome_open": {
+      "label": "相手の Chrome でページを開く",
+      "description": "人が貸した Chrome の中の、エージェント専用のタブでページを開きます。その人としてログインした状態です。"
+    },
+    "my_chrome_read": {
+      "label": "相手の Chrome のページを読む",
+      "description": "人が貸した Chrome の中の、エージェント専用のタブのページを読みます。"
     }
   },
   "browser": {
@@ -17614,6 +18304,16 @@
       "deleted": "プロファイル「{{name}}」を削除しました。",
       "sameUser": "このコンピューターではエージェントが同じユーザーとして動くため、ターミナルを持つエージェントならどれでもプロファイルにアクセスできます。",
       "outdated": "ブラウザのプロファイルを使うには、このコンピューターをアップデートしてください。",
+      "sites": "ログイン中のサイト",
+      "sitesTitle": "{{name}} のログイン中のサイト",
+      "sitesEmpty": "このプロファイルはどのサイトにもログインしていません。",
+      "sitesCookies_other": "Cookie {{count}} 件",
+      "sitesStorage": "保存データ",
+      "sitesNote": "ログアウトすると、このプロファイルにあるサイトの Cookie と保存データが削除されます。",
+      "sitesOutdated": "プロファイルのログイン中のサイトを見るには、このコンピューターを更新してください。",
+      "signOut": "ログアウト",
+      "signOutOf": "{{site}} からログアウト",
+      "signedOut": "{{site}} からログアウトしました。",
       "nameTaken": "この名前のプロファイルはすでにあります。",
       "busy": "このプロファイルは現在ほかの人が使っています。",
       "failed": "うまくいきませんでした。もう一度お試しください。",
@@ -18396,6 +19096,10 @@
     },
     "closeAsk": "{{name}}はあなたが戻るのを2分間待ちます。",
     "openAccess": "「ツールとアクセス」を開く",
+    "myChrome": {
+      "title": "借りているブラウザ",
+      "line": "{{name}} さんのブラウザ（{{name}} さんのアカウントでログイン中）、{{time}}まで"
+    },
     "kept": {
       "title": "実行を維持中",
       "meta": "{{name}} · {{since}}から · {{until}}",
@@ -18611,6 +19315,87 @@
         "done": "今日完了"
       },
       "none": "{{name}}は今、手が空いています。"
+    }
+  },
+  "webhooks": {
+    "new": "新しい Webhook",
+    "emptyTitle": "Webhook はまだありません",
+    "emptyText": "このワークスペースのイベントを、シークレットで署名して自分のアドレスに送ります。",
+    "full": "このワークスペースの Webhook は {{max}} 個で、上限です。",
+    "state": {
+      "on": "オン",
+      "failures": "失敗が続いたためオフ",
+      "off": "オフ"
+    },
+    "inChannels": "({{channels}})",
+    "lastSuccess": "最終配信 {{when}}",
+    "offByFailures_other": "{{count}}回続けて配信に失敗したためオフになりました。再びオンにするまで何も送られません。",
+    "turnOn": "再びオンにする",
+    "turnOnAgain": "オンにする",
+    "turnOff": "オフにする",
+    "turnedOn": "Webhook をオンにしました",
+    "turnedOff": "Webhook をオフにしました",
+    "test": "テスト",
+    "tested": "テストを送りました。結果は配信履歴に表示されます。",
+    "edit": "編集",
+    "newSecret": "新しいシークレット",
+    "newSecretBody": "今のシークレットはすぐに署名に使われなくなります。署名を確認する側には新しいものが必要です。",
+    "secretOnce": "今すぐ署名シークレットをコピーしてください。再表示されません。",
+    "secretCopied": "シークレットをコピーしました",
+    "delete": "削除",
+    "deleteBody": "{{name}} とその配信履歴を削除します。このアドレスには何も送られなくなります。",
+    "deleted": "Webhook を削除しました",
+    "deliveries": "最近の配信",
+    "noDeliveries": "まだ何も送っていません。",
+    "attempts_other": "{{count}}回試行",
+    "event": {
+      "messagePosted": "チャンネルのメッセージ",
+      "runFinished": "エージェントの実行の終了",
+      "issueCreated": "作成されたタスク",
+      "ping": "テスト"
+    },
+    "delivery": {
+      "delivered": "配信済み ({{status}})",
+      "sending": "送信中…",
+      "retrying_other": "{{count}}回失敗しました。再試行します",
+      "retryingStatus_other": "{{count}}回失敗しました ({{status}})。再試行します",
+      "refused": "送信先に拒否されました ({{status}})",
+      "redirect": "送信先がリダイレクトしました ({{status}})。リダイレクトはたどりません",
+      "timeout": "送信先が10秒以内に応答しませんでした",
+      "network": "送信先に接続できませんでした",
+      "addressRefused": "アドレスを拒否しました: 内部ネットワークを指しています",
+      "webhookOff": "未送信: Webhook がオフでした",
+      "gone": "未送信: 伝える内容が削除されました",
+      "workspaceClosed": "未送信: ワークスペースが停止中か削除中です",
+      "failed": "未配信"
+    },
+    "form": {
+      "newTitle": "新しい Webhook",
+      "editTitle": "Webhook を編集",
+      "text": "各イベントはシークレットで署名され、POST でアドレスに送られます。",
+      "name": "名前",
+      "namePlaceholder": "営業 CRM",
+      "nameRequired": "Webhook に名前を付けてください。",
+      "url": "アドレス",
+      "urlExample": "https://example.com/agentes",
+      "urlHint": "インターネット上の https アドレス。各リクエストには、本文をシークレットで計算した HMAC-SHA256 である X-Agentes-Webhook-Signature が付きます。リダイレクトはたどりません。",
+      "urlHttps": "https:// で始まるアドレスを使ってください",
+      "urlInternal": "このアドレスは内部ネットワークを指しています。公開アドレスを使ってください。",
+      "events": "イベント",
+      "eventsHint": "メッセージ: 選んだチャンネルの新しいメッセージ。実行: 終了したエージェントの実行ごとに状態を送り、返答は送りません。タスク: 新しいタスク。一部の人だけが見られるものは除きます。",
+      "channels": "チャンネル",
+      "channelsHint": "メッセージはこれらのチャンネルからだけ送られ、実行とタスクも同じです。ダイレクトメッセージは送られません。",
+      "channelsOptionalHint": "チャンネルを選ぶと、そのチャンネルの実行とタスクだけが送られます。ダイレクトメッセージは送られません。",
+      "addChannel": "チャンネルを追加",
+      "everyChannel": "すべてのチャンネル",
+      "noChannel": "{{query}} というチャンネルはありません",
+      "noChannels": "チャンネルがありません",
+      "create": "Webhook を作成",
+      "created": "Webhook を作成しました",
+      "saved": "変更を保存しました"
+    },
+    "notice": {
+      "disabled": "Webhook {{name}} は10回続けて配信に失敗したためオフになりました"
     }
   },
   "widgets": {
@@ -19219,6 +20004,12 @@
     "onlyHere": "この会話にいない人はリンクを開けません。",
     "choosePeople": "人を選ぶ",
     "readOnly": "閲覧できる人を変えられるのは、会話にいる人だけです。",
+    "publicPage": "公開ページ",
+    "publicVersion": "バージョン {{version}}",
+    "publicNote": "このリンクを知っている人は誰でも、アカウントなしでページを開けます。",
+    "copyPublicLink": "公開リンクをコピー",
+    "unpublish": "公開を停止",
+    "unpublished": "ページの公開を停止しました。リンクはもう開けません。",
     "open": "ワークスペース全体がこのファイルを見られます。",
     "openPersonal": "ここにいる全員がこのファイルを見られます。",
     "savedEveryone": "ワークスペース全体がファイルを見られるようになりました。",
@@ -19580,5 +20371,15 @@
       "alwaysOn": "今後、このような報告は確認なしで送信されます。",
       "askFirst": "送信前に確認する"
     }
+  },
+  "transcript": {
+    "menu": "会話をエクスポート",
+    "menuThread": "スレッドをエクスポート",
+    "title": "会話をエクスポート",
+    "titleThread": "スレッドをエクスポート",
+    "format": "形式",
+    "files": "ファイルを含める",
+    "filesHelp": "会話と、あなたが開けるファイルをまとめた .zip(最大 50 MB)。",
+    "download": "ダウンロード"
   }
 }

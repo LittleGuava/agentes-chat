@@ -1,8 +1,8 @@
 # 0083. Groups of agents
 
-- Status: Accepted. Amended 2026-10-30: §4 and §5 (a person's lists show only the agents that answer them, unless they manage agents). Amended 2026-11-03: §4 and §5 (the sidebar's AGENTES part comes back with the groups, "Fixar no topo" in every section, §7). Amended 2026-11-04: groups are shown as setores with a color, an icon, a lead and a substitute, managed on Equipe › Setores (ADR 0148). Amended 2026-11-10: §5 and §7 (a pin keeps an agent in its setor, a setor's menu on its header, stale pins hold no place)
+- Status: Accepted. Amended 2026-10-30: §4 and §5 (a person's lists show only the agents that answer them, unless they manage agents). Amended 2026-11-03: §4 and §5 (the sidebar's AGENTES part comes back with the groups, "Fixar no topo" in every section, §7). Amended 2026-11-04: groups are shown as setores with a color, an icon, a lead and a substitute, managed on Equipe › Setores (ADR 0148). Amended 2026-11-10: §5 and §7 (a pin keeps an agent in its setor, a setor's menu on its header, stale pins hold no place). Amended 2026-11-15: §7 (each person orders their own pinned rows). Amended 2026-11-15: a person's own links in the sidebar. Amended 2026-11-16: §7 (an order of every row of one's own, ADR 0080's amendment of that day)
 - Date: 2026-10-30
-- Code: `packages/db/src/schema/agents.ts` (`agent_groups`, `agents.group_id`, `agents.group_position`), `packages/engine/src/agent-groups.ts`, `apps/server/src/routes/app/agents.ts`, `packages/client/src/lib/agent-groups.ts`, `apps/web/src/components/AgentGroups.tsx`, `apps/web/src/components/team/TeamSectors.tsx`, `apps/mobile/src/features/agents/AgentsScreen.tsx`; sidebar view and pins: `packages/engine/src/sidebar-items.ts` (`SidebarView`), `packages/client/src/lib/sidebar-view.ts`, `apps/web/src/components/Sidebar.tsx`, `apps/web/src/hooks/useSidebarPins.ts`, `apps/mobile/src/features/chats/pins.ts`
+- Code: `packages/db/src/schema/agents.ts` (`agent_groups`, `agents.group_id`, `agents.group_position`), `packages/engine/src/agent-groups.ts`, `apps/server/src/routes/app/agents.ts`, `packages/client/src/lib/agent-groups.ts`, `apps/web/src/components/AgentGroups.tsx`, `apps/web/src/components/team/TeamSectors.tsx`, `apps/mobile/src/features/agents/AgentsScreen.tsx`; sidebar view and pins: `packages/engine/src/sidebar-items.ts` (`SidebarView`), `packages/client/src/lib/sidebar-view.ts`, `apps/web/src/components/Sidebar.tsx`, `apps/web/src/hooks/useSidebarPins.ts`, `apps/web/src/hooks/useRowOrderDrag.ts`, `apps/mobile/src/features/chats/pins.ts`
 
 ## Context
 
@@ -54,3 +54,38 @@ People said the setores didn't stay organized in the sidebar, that pinning an ag
 - **A pin of something gone holds no place.** The apps leave out the pins of agents, channels and people no longer in their lists before counting the five and when they save (`pinsOf` with `known`); a list not loaded yet keeps its pins. This replaces the consequence above that a stale pin costs a place until it is unpinned.
 - **A setor's menu on its header.** Who manages agents gets a "…" on each setor's header in the sidebar, and the same choices on the header's right click: Editar (name, color and icon), Mover para cima or para baixo, Excluir setor after a question. It is Equipe › Setores' menu (`useGroupEntries`). On the phone, each setor's header in Agentes has a "…" and a long press with Editar, which opens the setor's page, where who manages agents now renames it, and Excluir setor. The phone's channel category headers show the same "…" for their long press menu. "Organizar setores na Equipe" in AGENTES' "…" opens Equipe on Setores.
 
+
+## Amendment (2026-11-15): each person orders their own pinned rows
+
+### Context
+
+People asked to arrange their own conversations in the sidebar, each in their own order, without changing anyone else's. Pins already were each person's, saved on the server and the same on every device (§7), but their order was only the order they were pinned in: the newest first, and the only way to change it was to unpin and pin again. Everything else in the sidebar is the workspace's layout: the channels' order and categories are the organization's, the same for everyone (ADR 0080 §1 and §3), and the agents' order inside a setor is the workspace's or the person's sort (§7).
+
+### Decision
+
+- **The pinned rows are the person's own order.** A pinned row moves among the pinned rows of its section: "Mover para cima" and "Mover para baixo" in its right click, the cards' ⋯ and the channel header's menu on the web, and in a row's long press on the phone (one step at a time, as the phone moves channels, ADR 0080 §7). On the web, the pinned channels and the pinned people under Mensagens diretas also drag among themselves (`useRowOrderDrag`), with the same line the sidebar's other drags show. A pinned agent moves only from its menu: who manages agents drags an agent to another setor, and one drag can't mean both.
+- **Among the rows shown with it.** A pinned agent moves among the pinned agents of its own setor, as they show (`splitPinned`), trading places with its neighbor (`stepPin`), so the pins of other setores keep theirs. A drag lands before another pinned row or last (`placePin`).
+- **Saved with the pins.** The order is the order of the ids in `pins` (`PUT …/me/sidebar/view`), which the server already keeps as sent (`sidebarViewOf`): no new route, no migration. Every change starts from the saved pins as they are now, day one's included, like Fixar no topo.
+- **The workspace's order stays the workspace's.** A pin's drag is a drag of its own: it drops only on the pinned rows beside it and never reaches `placeChannel`, and the workspace's drag of a channel passes over the pinned rows as before.
+
+### Consequences
+
+- An order of one's own covers the pinned rows only, five per section. A personal order of every channel would undo ADR 0080 §1 (everyone sees the same layout); it stays out until a decision changes that. *Amended 2026-11-16:* that decision is ADR 0080's amendment of the same day. Each person may turn on "Usar a minha ordem" and order every section's rows for themselves, off by default, inside the sections the workspace sets.
+## Amendment (2026-11-15): a person's own links in the sidebar
+
+### Context
+
+People keep a few outside pages open all day beside the workspace (a CRM, a status page, a team's board) and asked to reach them from the sidebar, as they reach the tools on top.
+
+### Decision
+
+- **Links are each person's own, per workspace, on every device.** A row of `sidebar_links` (`org_id`, `user_id`, `title`, `url`, `position`; migration 0285) per link, tied to the person's membership: leaving the workspace takes them away. They are rows and not a key in `organization_members.sidebar_items`, unlike the view and the orders, because each one is added and removed on its own and its address is free text that a whole-object save from a stale tab would undo.
+- **At most 10, https only.** `GET`/`POST …/me/sidebar/links` and `DELETE …/me/sidebar/links/{linkId}` (`packages/engine/src/sidebar-links.ts`). An address is checked once where it comes in (`sidebarLinkUrl`): `https:` with a host, no user or password in it, 2,048 characters at most, and stored as the URL parser writes it back. Anything else (`http:`, `javascript:`, `data:`, words) is refused with 400 `sidebar_link.url`. A title is 1 to 60 characters. An eleventh link is refused with 409 `sidebar_link.full`; adds take a per-person lock, so two at once can't pass the limit.
+- **They open in a new tab, never inside the app.** Most sites forbid being framed (`X-Frame-Options`, `frame-ancestors`), and a framed page would need the app's own CSP opened to every address someone pins. A plain `<a target="_blank" rel="noopener noreferrer">` works for any site; the desktop app already sends a new window outside the server to the system's browser.
+- **The server never fetches a link.** No title or icon is read from the page: nothing a person types makes the server call an address, so it is no way into the server's network.
+- **Where they show.** Under the tools on top of the sidebar, before More, each with the link icon and its title (the address on hover); in a personal workspace, the tools' block shows while it holds a link. They are added and removed in "Personalizar a barra lateral".
+
+### Later
+
+- Moving a link up or down, and changing its title or address in place (today: remove and add again).
+- The phone's Chats list.

@@ -69,6 +69,13 @@ export const NOTIFICATION_KINDS = [
    * agent and conversation, its coded reason in `latest.reason`. Resolved by the agent's next good run there.
    */
   "run_failed",
+  /**
+   * A person's message couldn't start an agent's run for want of an AI (ADR 0061 addendum): its owner and whoever
+   * manages agents or keys, once a day per agent, the person who asked as actor, `source.agentId` and its name in
+   * `source.label`, why in `latest.reason` (`no_key`, `no_computer`, `cli_missing`, `not_signed_in`). Opens "Conectar
+   * uma IA" for that agent; done once it thinks again.
+   */
+  "agent_needs_ai",
   /** A routine paused itself (its reason in `latest.reason`), ADR 0053. */
   "routine_paused",
   /** A routine waits for its computer (once per outage), ADR 0053. */
@@ -125,6 +132,12 @@ export const NOTIFICATION_KINDS = [
    * connectors hears it once that month, `latest.title` the month (`2026-11`) and `latest.calls` the cap.
    */
   "composio_limit",
+  /**
+   * An email that triage sorted as important or needing a reply, and that no routine of its mailbox took (ADR 0038,
+   * addendum 2026-11-15): the person who connected the mailbox, `source.label` the mailbox, `latest.title` the subject,
+   * `latest.text` the sender and the subject.
+   */
+  "mail_important",
   /**
    * An agent's owner asks for one more browser profile for it (ADR 0110): the people who can grant profiles
    * (`manage_connectors`), one row per agent, `source.agentId` and its name in `source.label`. Waiting until seen.
@@ -297,6 +310,13 @@ export const NOTIFICATION_KINDS = [
    * nothing of that cause is wrong.
    */
   "team_watch",
+  /**
+   * An outgoing webhook was turned off by ten failed deliveries in a row (ADR 0212 §7): every member with
+   * `administrator`, one row each time it goes off (`webhook-disabled:<webhookId>:<time>`), `source.webhookId` and its
+   * name in `source.label` and `latest.title`, the last failure's code in `latest.reason` (`timeout`, `http_<status>`…).
+   * Inbox only; done once it is turned back on or deleted.
+   */
+  "webhook_disabled",
 ] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
 
@@ -341,6 +361,8 @@ export interface NotificationSource {
   widgetId?: string;
   /** A skill of the library (`skill_update`). */
   skillId?: string;
+  /** An outgoing webhook (`webhook_disabled`, ADR 0212). */
+  webhookId?: string;
   /** A plan's account (`plan_lent`). */
   accountId?: string;
   /**
@@ -380,6 +402,8 @@ export interface NotificationLatest {
    * translates).
    */
   reason?: string;
+  /** `routine_failed`: it failed once more on its automatic retry (ADR 0177 addendum 2026-11-15). */
+  retried?: boolean;
   /**
    * `widget_failed` with `missing_credential`: why its agent has no AI (`AgentAi.reason`, coded), kept apart from
    * `text`, which the island, the push and the phone show as it is.

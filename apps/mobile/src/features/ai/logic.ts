@@ -3,12 +3,14 @@ import type {
   AgentBrainInput,
   AiAccounts,
   BrainKind,
+  BrainReserve,
   Credential,
   Edition,
   MachineAccount,
   MachineAccountKind,
   PlanUsage,
 } from "@agenteschat/client";
+import { acpEngines, acpThinksNow } from "@agenteschat/client/lib/acp";
 import { autonomyWords, type NewAgentStart } from "@agenteschat/client/lib/agent-setup";
 import {
   type AccountChoice,
@@ -30,6 +32,14 @@ import {
   modelRows,
   needsOwnSignIn,
 } from "@agenteschat/client/lib/brain-picker";
+import {
+  addReserve,
+  MAX_RESERVES,
+  moveReserve,
+  removeReserve,
+  reserveCandidates,
+  reserveRows,
+} from "@agenteschat/client/lib/brain-reserves";
 import { agentGrammar } from "@agenteschat/client/lib/grammar";
 import {
   aiChoiceOf,
@@ -39,6 +49,7 @@ import {
   planOfAccount,
   planOfKind,
 } from "@agenteschat/client/lib/no-ai";
+import { brainName } from "@agenteschat/client/lib/outages";
 import { planWord } from "@agenteschat/client/lib/plan-usage";
 import { brainPlan } from "@agenteschat/client/lib/plans";
 import { AUTO, isAuto, keyLine } from "@agenteschat/client/lib/providers";
@@ -155,14 +166,39 @@ export function accountInput(
   return { account: a?.id ?? null, model: isAuto(view.effectiveModel) ? AUTO : null };
 }
 
-type ThinkingView = Pick<AgentBrain, "brain" | "effectiveModel" | "options" | "accounts" | "account">;
+type ThinkingView = Pick<
+  AgentBrain,
+  "brain" | "effectiveModel" | "options" | "accounts" | "account" | "engine" | "acp"
+>;
 
 /** What thinks, in the one sentence every place says it: the model by the plan that pays for it, or the API's model. */
 function thinksNow(t: TFunction, view: ThinkingView): string | undefined {
-  const model = modelRows(t, view, brainPlan(view)).find((r) => r.checked)?.label;
   const ai = aiChoiceOf(view);
+  if (ai === "acp") return acpThinksNow(t, view);
+  const model = modelRows(t, view, brainPlan(view)).find((r) => r.checked)?.label;
   return ai === "key" || !model ? model : thinksWith(t, ai, model);
 }
+
+/** A row of "Agentes ACP" (ADR 0216): an ACP agent the agent's computer declares. */
+export interface AcpRow {
+  key: string;
+  label: string;
+  sub: string;
+  checked: boolean;
+}
+
+/** The ACP agents the agent's computer declares, as the web's switch screen lists them; none where it can't run one. */
+export const acpRows = (t: TFunction, view: Pick<AgentBrain, "brain" | "engine" | "acp">): AcpRow[] =>
+  acpEngines(view).map((e) => ({
+    key: e.id,
+    label: e.name,
+    sub: e.models.length > 0 ? t("brain.acp.models", { count: e.models.length }) : t("brain.acp.ownDefault"),
+    checked: view.brain === "acp" && view.engine === e.id,
+  }));
+
+/** What a tap on one saves: that ACP agent on its own default model; null for the one in use. */
+export const acpInput = (view: Pick<AgentBrain, "brain" | "engine">, id: string): AgentBrainInput | null =>
+  view.brain === "acp" && view.engine === id ? null : { brain: "acp", engine: id, model: null };
 
 /**
  * What the agent's page says once an account is saved (`saved`: the view the save returned): the account it now uses
@@ -325,5 +361,59 @@ export function pickedAi(
     model: AUTO,
     plan: { machineId: pick.machineId, input: brainPickInput(pick) },
     connect: needsOwnSignIn(computers, pick) ? planOfKind(pick.kind) : null,
+  };
+}
+
+/** A tap in "IAs de reserva": what it reads aloud and the list it saves (null: it can't, its button off). */
+export interface ReserveTap {
+  label: string;
+  chain: BrainReserve[] | null;
+}
+
+/**
+ * "IAs de reserva" on the phone (ADR 0118 addendum 2026-11-15), the web's list in rows: each reserve in order with
+ * ▲ ▼ and ×, then the computer's other accounts it may use (`owner`: the agent's) with +, and why none can be added
+ * once there are `MAX_RESERVES`.
+ */
+export function reserveSection(
+  t: TFunction,
+  view: Pick<AgentBrain, "accounts" | "account">,
+  chain: BrainReserve[],
+  owner: string | null | undefined,
+) {
+  const face = (account: MachineAccount) => ({
+    id: account.id,
+    logo: account.provider ?? account.kind,
+    label: accountTitle(account),
+    sub: brainName(account.kind),
+  });
+  const rows = reserveRows(view, chain);
+  return {
+    chosen: rows.map(({ account }, i) => {
+      const name = accountTitle(account);
+      return {
+        ...face(account),
+        up: {
+          label: t("agentPage.work.brain.reserves.up", { name }),
+          chain: i > 0 ? moveReserve(chain, account.id, -1) : null,
+        } satisfies ReserveTap,
+        down: {
+          label: t("agentPage.work.brain.reserves.down", { name }),
+          chain: i < rows.length - 1 ? moveReserve(chain, account.id, 1) : null,
+        } satisfies ReserveTap,
+        remove: {
+          label: t("agentPage.work.brain.reserves.remove", { name }),
+          chain: removeReserve(chain, account.id),
+        },
+      };
+    }),
+    others: reserveCandidates(view, chain, owner).map((account) => ({
+      ...face(account),
+      add: {
+        label: t("agentPage.work.brain.reserves.addName", { name: accountTitle(account) }),
+        chain: addReserve(chain, account.id),
+      },
+    })),
+    full: chain.length >= MAX_RESERVES ? t("agentPage.work.brain.reserves.full") : null,
   };
 }

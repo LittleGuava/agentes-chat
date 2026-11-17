@@ -53,6 +53,7 @@ import {
   withSignIn,
   yieldRoute,
 } from "./accounts";
+import { binaryFor, CLI_COMMANDS } from "./binaries";
 import { codexThreadKey, unwrapShell } from "./brain-codex";
 import { coAuthorLines } from "./co-authors";
 import { commandApproval, ownBranches } from "./command-gate";
@@ -493,6 +494,25 @@ export function flipSessionFlag(command: string, session: string, resumed: boole
 }
 
 /**
+ * The program a task's line starts for `executor`, quoted for its shell; undefined: the bare name. The computer's own
+ * binary when one is configured (ADR 0218), never the PATH's in place of one that can't run. On Windows Claude Code by
+ * its full path: cmd.exe looks for a bare name in the task's folder first (the agent's, where it writes), so a
+ * `claude.cmd` left there would run as the person.
+ */
+export function taskProgram(executor: "claude" | "codex", platform: NodeJS.Platform = process.platform) {
+  const name = executor === "claude" ? "Claude Code" : "Codex";
+  const quote = (file: string) => (platform === "win32" ? winQuote(file) : shellArg(file, platform));
+  const own = binaryFor(CLI_COMMANDS[executor]);
+  if (own?.refused)
+    throw new RunnerError("not_found", `${name}'s binary on this computer (${own.file}) can't run: ${own.refused}`);
+  if (own) return quote(own.file);
+  if (executor !== "claude" || platform !== "win32") return undefined;
+  const found = findOnWindowsPath("claude", envValue(process.env, "PATH") ?? "", envValue(process.env, "PATHEXT"));
+  if (!found) throw new RunnerError("not_found", `${name} is not installed on this computer.`);
+  return quote(found);
+}
+
+/**
  * The command line for an executor. Prompts never go on it (no quoting
  * across shells): the wrapper feeds them through stdin.
  */
@@ -505,7 +525,7 @@ export function executorCommand(
     extra?: string[];
     /** Claude Code's permission mode (default `acceptEdits`; a mission's plan turn runs `dontAsk`). */
     permissionMode?: "acceptEdits" | "dontAsk";
-    /** Claude Code as the line starts it (default `claude`; on Windows its full path, quoted). */
+    /** The CLI as the line starts it (default `claude` or `codex`; `taskProgram`'s, already quoted). */
     program?: string;
     /** Codex: where it works (`-C`), its sandbox, the file for its last message, the thread to resume. */
     codex?: { cwd: string; sandbox: "read-only" | "workspace-write"; lastFile: string; thread?: string };
@@ -532,7 +552,7 @@ export function executorCommand(
     const q = (v: string) => shellArg(v, options.platform);
     const c = options.codex;
     return [
-      "codex",
+      options.program ?? "codex",
       "exec",
       "--json",
       "--skip-git-repo-check",
@@ -1085,14 +1105,7 @@ export class TaskManager {
     if (executor !== "shell" && !prompt.trim())
       throw new RunnerError("bad_request", `A ${executor} task needs a prompt`);
     const hosted = executor === "claude" && grant?.kind === "hosted";
-    // On Windows Claude Code by its full path: cmd.exe looks for a bare name in the task's folder first (the agent's,
-    // where it writes), so a `claude.cmd` left there would run as the person.
-    let program: string | undefined;
-    if (executor === "claude" && !hosted && process.platform === "win32") {
-      const found = findOnWindowsPath("claude", envValue(process.env, "PATH") ?? "", envValue(process.env, "PATHEXT"));
-      if (!found) throw new RunnerError("not_found", "Claude Code is not installed on this computer.");
-      program = winQuote(found);
-    }
+    const program = executor === "shell" || hosted ? undefined : taskProgram(executor);
     const signIn = executor === "shell" || hosted ? null : await this.signIn(executor, req.account, grant);
     if (signIn?.release) this.releases.set(taskId, signIn.release);
     const keyPlan = executor === "claude" && signIn?.planKey ? planOf(signIn.planKey.provider) : undefined;

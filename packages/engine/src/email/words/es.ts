@@ -6,6 +6,11 @@ import type { EmailWords } from "./index";
  * The emails in es: whatever is here replaces English, word group by word group (`deepMerge`); write a count's
  * forms with `plural("es", n, { one, few, many, other })` from `@agenteschat/i18n/format`.
  */
+/** How long the reader was away, and how often the away email comes (ADR 0069, addendum 2026-11-15). */
+const awayFor = (m: number) => (m >= 1440 ? "un día" : m >= 60 ? "una hora" : `${m} minutos`);
+const awayOften = (m: number) =>
+  `Llega como mucho ${m >= 1440 ? "una vez al día" : m >= 60 ? "una vez por hora" : `cada ${m} minutos`}, nunca dos veces por lo mismo. Cámbialo o desactívalo en Configuración, Notificaciones.`;
+
 export const words: EmailWords = {
   sentBy: (host) =>
     host ? atHost("Enviado por el servidor de agentes.chat", "en", host) : "Enviado por agentes.chat.",
@@ -188,6 +193,24 @@ export const words: EmailWords = {
         }),
       why: (_org, hours) =>
         `Recibiste este correo porque puedes aprobar estas solicitudes.${hours ? ` Se envía cuando una solicitud espera más de ${hours} horas, una vez por solicitud.` : ""}`,
+    },
+  },
+  away: {
+    subject: (n) =>
+      plural("es", n, { one: "Algo nuevo mientras no estabas", other: `${n} novedades mientras no estabas` }),
+    preheader: "Menciones, mensajes directos y trabajo terminado que aún no viste.",
+    headline: (n) => plural("es", n, { one: "Una cosa te espera", other: `${n} cosas te esperan` }),
+    body: (org) => ["Mientras no estabas, llegó esto a ", { b: org }, " y aún no lo viste."],
+    groups: { mentions: "Te mencionaron", dms: "Mensajes directos", done: "Trabajo terminado" },
+    media: { gif: "Envió un GIF", sticker: "Envió un sticker", voice: "Envió un audio" },
+    message: "Envió un mensaje",
+    more: (k) => `Y ${k} más en tu bandeja de entrada.`,
+    button: "Abrir la bandeja de entrada",
+    why: (org, minutes) =>
+      `Recibiste este email porque estuviste ${awayFor(minutes)} fuera de ${org}. ${awayOften(minutes)}`,
+    personal: {
+      body: () => "Mientras no estabas, llegó esto y aún no lo viste.",
+      why: (_org, minutes) => `Recibiste este email porque estuviste ${awayFor(minutes)} fuera. ${awayOften(minutes)}`,
     },
   },
   ready: {

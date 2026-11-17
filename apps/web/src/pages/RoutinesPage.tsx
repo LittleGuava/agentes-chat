@@ -75,9 +75,21 @@ import {
 } from "@agenteschat/client/lib/routine-view";
 import {
   browserTimezone,
+  cleanConnectorFilter,
+  connectorChoiceKey,
+  connectorDraftFor,
+  connectorEventOfChoice,
+  connectorKindKey,
+  defaultReportFor,
+  formKindOf,
   hookCurl,
   isRefusedHookCall,
+  type MeetingDraft,
+  meetingDraftOf,
+  meetingTriggerChanged,
+  meetingTriggerOf,
   onceParts,
+  type RoutineFormKind,
   routineHookUrl,
   timezoneName,
 } from "@agenteschat/client/lib/routines";
@@ -117,6 +129,7 @@ import {
   SearchField,
   Segmented,
   Select,
+  SettingRow,
   Switch,
   TabPanel,
   Tabs,
@@ -138,10 +151,9 @@ import { useActors } from "@/components/actors";
 import {
   type ConnectorTriggerDraft,
   ConnectorTriggerFields,
-  cleanConnectorFilter,
   connectorWhen,
   MILLIONSEND_EMAIL,
-  useEmailEventConnections,
+  useConnectorEvents,
 } from "@/components/ConnectorTrigger";
 import { MenuEntries } from "@/components/DesktopMenus";
 import { DetailsLink } from "@/components/details-link";
@@ -151,6 +163,7 @@ import { EventWebhookSetup } from "@/components/EventWebhookSetup";
 import { useActorFilterOptions, useFilterCopy } from "@/components/filters";
 import { ErrorState, LoadingCards, LoadingList } from "@/components/Loading";
 import { SwitchComputerDialog } from "@/components/MachineOutages";
+import { MeetingTriggerFields, useMeetingCalendars } from "@/components/MeetingTrigger";
 import { CommandBlock } from "@/components/machine-bits";
 import { useOrg } from "@/components/org-context";
 import { RoutineReachWarnings } from "@/components/RoutineReachWarnings";
@@ -179,9 +192,14 @@ export const ROUTINE_EVENTS: RoutineEvent[] = [
 
 /** Started by something happening (an event, an email, a webhook call), not by the clock. */
 const isEventDriven = (r: Routine) => r.trigger.type !== "schedule" && r.trigger.type !== "once";
-/** An email routine whose mailbox needs reconnecting (or whose watch fails, or that MillionSend refused). */
+/**
+ * An email routine whose mailbox needs reconnecting (or whose watch fails, or that MillionSend refused), or a meeting
+ * routine whose look at the calendar failed.
+ */
 const mailTrouble = (r: Routine) =>
-  (r.trigger.type === "email" || r.trigger.type === "connector") && r.trigger.status && r.trigger.status !== "active"
+  (r.trigger.type === "email" || r.trigger.type === "connector" || r.trigger.type === "meeting") &&
+  r.trigger.status &&
+  r.trigger.status !== "active"
     ? r.trigger.status
     : null;
 
@@ -289,6 +307,7 @@ export function useWhen() {
     if (r.trigger.type === "email") return emailWhen(t, r, mailboxes.data);
     if (r.trigger.type === "connector") return connectorWhen(t, r);
     if (r.trigger.type === "webhook") return t("routines.webhook.when");
+    if (r.trigger.type === "meeting") return t("routines.meeting.when", { minutes: r.trigger.leadMinutes });
     const zone = r.trigger.type === "event" ? "" : r.trigger.timezone || "UTC";
     const zoneNote = zone && zone !== myZone ? ` (${timezoneName(zone, i18n.language)})` : "";
     if (r.trigger.type === "schedule")
@@ -608,6 +627,7 @@ function useNextText() {
       if (r.trigger.type === "email" || r.trigger.type === "connector")
         return week > 0 ? t("mail.routine.thisWeek", { count: week }) : t("mail.routine.waiting");
       if (week > 0) return t("routines.eventThisWeek", { count: week });
+      if (r.trigger.type === "meeting") return t("routines.meeting.waiting");
       return t(r.trigger.type === "webhook" ? "routines.webhook.waiting" : "routines.waitingEvent");
     }
     if (!r.nextRunAt) return "";
@@ -940,13 +960,15 @@ function RoutineRow({
                 ? "bolt"
                 : r.trigger.type === "email" || r.trigger.type === "connector"
                   ? "mail"
-                  : r.trigger.type === "webhook"
-                    ? "link"
-                    : r.trigger.type === "once"
-                      ? reminder
-                        ? "bell"
-                        : "calendar"
-                      : "repeat"
+                  : r.trigger.type === "meeting"
+                    ? "clock"
+                    : r.trigger.type === "webhook"
+                      ? "link"
+                      : r.trigger.type === "once"
+                        ? reminder
+                          ? "bell"
+                          : "calendar"
+                        : "repeat"
             }
             size={16}
           />
@@ -1474,6 +1496,8 @@ function RoutineDetails({ routine: r, now, onClose }: { routine: Routine; now: D
               )}
               {r.trigger.type === "email" || r.trigger.type === "connector" ? (
                 <p className="small muted">{t("mail.routine.every")}</p>
+              ) : r.trigger.type === "meeting" ? (
+                <p className="small muted">{t("routines.meeting.every")}</p>
               ) : r.trigger.type === "webhook" ? (
                 <p className="small muted">
                   {t("common.joinSentences", {
@@ -1997,6 +2021,27 @@ function RoutineStrip({
             </InfoHint>
           </span>
         )}
+        {/* One more try for a run that fails for a passing reason: a repeating schedule's, off by default. */}
+        {r.trigger.type === "schedule" && !isWidgetRoutine(r) && (edits || r.retryOnce) && (
+          <span className="routine-props__report">
+            {edits ? (
+              // The words are the switch's label: a press on them toggles it.
+              <label className="ac-props__switch" htmlFor={`rt-retry-${r.id}`}>
+                <Switch
+                  id={`rt-retry-${r.id}`}
+                  checked={r.retryOnce ?? false}
+                  onCheckedChange={(on) => update({ retryOnce: on })}
+                />
+                {t("routines.form.retryOnce")}
+              </label>
+            ) : (
+              <span className="ac-props__value">{t("routines.form.retryOnce")}</span>
+            )}
+            <InfoHint name={t("common.about", { label: t("routines.form.retryOnce") })}>
+              {t("routines.form.retryOnceHint")}
+            </InfoHint>
+          </span>
+        )}
         {runsOn && value(t("routines.panel.runsOn"), <Icon name="computer" size={16} />, runsOn)}
         {r.widget && isWidgetRoutine(r) && (
           <Link
@@ -2415,22 +2460,28 @@ function RoutineDialog({
   // The starting point picked, and one waiting for the person's ok to write over their words.
   const [template, setTemplate] = useState<RoutineTemplateOption>();
   const [replacing, setReplacing] = useState<RoutineTemplateOption>();
-  const [kind, setKind] = useState<"schedule" | "event" | "email" | "webhook" | "connector">(
-    routine?.trigger.type === "event" ||
-      routine?.trigger.type === "email" ||
-      routine?.trigger.type === "webhook" ||
-      routine?.trigger.type === "connector"
-      ? routine.trigger.type
-      : "schedule",
-  );
-  // "Email no MillionSend" (ADR 0130): shown where the workspace connected MillionSend (or the routine uses it).
+  // What starts it, as it was (a meeting routine opens as one, never as a schedule).
+  const [kind, setKind] = useState<RoutineFormKind>(formKindOf(routine));
+  // "Email no MillionSend" (ADR 0130), "Mensagem no Slack" (ADR 0196): one choice per service the workspace
+  // connected (and the one the form holds).
   const [connector, setConnector] = useState<ConnectorTriggerDraft>(() =>
     routine?.trigger.type === "connector"
-      ? { connectionId: routine.trigger.connectionId, filter: routine.trigger.filter }
-      : { connectionId: "", filter: {} },
+      ? { connectionId: routine.trigger.connectionId, event: routine.trigger.event, filter: routine.trigger.filter }
+      : { connectionId: "", event: MILLIONSEND_EMAIL, filter: {} },
   );
-  const eventConnections = useEmailEventConnections(org.id);
-  const hasMillionSend = kind === "connector" || eventConnections.length > 0;
+  const connectorEvents = useConnectorEvents(org.id, kind === "connector" ? connector.event : undefined);
+  const pickWhen = (choice: string) => {
+    const picked = connectorEventOfChoice(choice);
+    const plain = (["schedule", "event", "email", "meeting", "webhook"] as const).find((k) => k === choice);
+    if (picked) {
+      setConnector((c) => connectorDraftFor(c, picked));
+      setKind("connector");
+    } else if (plain) setKind(plain);
+  };
+  // "Antes de uma reunião" (ADR 0190): shown where the workspace connected a Google Calendar (or the routine uses one).
+  const [meeting, setMeeting] = useState<MeetingDraft>(() => meetingDraftOf(routine));
+  const calendars = useMeetingCalendars(org.id);
+  const hasCalendar = kind === "meeting" || calendars.length > 0;
   // "Quando chegar um email": the mailbox, folder and filters.
   const [email, setEmail] = useState<EmailTriggerDraft>(() => emailDraftOf(routine));
   const mailboxes = useMailAccounts(org.id);
@@ -2441,8 +2492,11 @@ function RoutineDialog({
   const [event, setEvent] = useState<RoutineEvent>(
     routine?.trigger.type === "event" ? routine.trigger.event : "sentry.issue_created",
   );
-  // When it posts.
-  const [report, setReport] = useState<RoutineReport>(routine?.report ?? "when_new");
+  // When it posts: a new routine follows its kind's default (a meeting's prep always posts) until one is picked.
+  const [pickedReport, setReport] = useState<RoutineReport | undefined>(routine?.report);
+  const report = pickedReport ?? defaultReportFor(kind);
+  // One more try when a run fails for a passing reason (off by default).
+  const [retryOnce, setRetryOnce] = useState(routine?.retryOnce ?? false);
   const say = useSay();
   const [touched, setTouched] = useState(false);
   // One source of truth for "when": the rule (the picker), with the phrase kept in step.
@@ -2497,14 +2551,17 @@ function RoutineDialog({
     : upcomingLabels(i18n.language, rule);
   const phraseFailed = phraseTyped && typed.length > 0 && parsed.data?.ok === false;
   const shownZone = zone;
+  const meetingInput = meetingTriggerOf(meeting);
   const scheduleOk =
     kind === "event" ||
     kind === "webhook" ||
-    (kind === "connector"
-      ? Boolean(connector.connectionId)
-      : kind === "email"
-        ? Boolean(email.accountId)
-        : once || !phraseFailed);
+    (kind === "meeting"
+      ? meetingInput !== null
+      : kind === "connector"
+        ? Boolean(connector.connectionId)
+        : kind === "email"
+          ? Boolean(email.accountId)
+          : once || !phraseFailed);
   const targetValue = (): RoutineTargetInput =>
     target === TARGET_DM
       ? { type: "dm" }
@@ -2520,12 +2577,17 @@ function RoutineDialog({
   const connectorTrigger = () => ({
     type: "connector" as const,
     connectionId: connector.connectionId,
-    event: MILLIONSEND_EMAIL,
+    event: connector.event,
     inboxId: null,
     filter: cleanConnectorFilter(connector.filter),
   });
-  const trigger = (): RoutineInput["trigger"] =>
-    kind === "connector"
+  const trigger = (): RoutineInput["trigger"] => {
+    if (kind === "meeting") {
+      // `scheduleOk` keeps the form from saving before it has a calendar and minutes the server keeps.
+      if (!meetingInput) throw new Error("meeting trigger incomplete");
+      return meetingInput;
+    }
+    return kind === "connector"
       ? connectorTrigger()
       : kind === "webhook"
         ? { type: "webhook" }
@@ -2540,6 +2602,7 @@ function RoutineDialog({
                   timezone: rule.timezone,
                 }
               : { type: "schedule", rule: toApiRule(rule) };
+  };
   /** What changed against the routine (`PATCH` sends only this). */
   const changes = (r: Routine): RoutinePatch => {
     const patch: RoutinePatch = {};
@@ -2548,35 +2611,39 @@ function RoutineDialog({
     if (agentId !== r.agentId) patch.agentId = agentId;
     if (target !== TARGET_KEEP && target !== targetChoice(r.target)) patch.target = targetValue();
     const triggerChanged =
-      kind === "connector"
-        ? r.trigger.type !== "connector" ||
-          JSON.stringify(connectorTrigger()) !==
-            JSON.stringify({
-              type: "connector",
-              connectionId: r.trigger.connectionId,
-              event: r.trigger.event,
-              inboxId: null,
-              filter: cleanConnectorFilter(r.trigger.filter),
-            })
-        : kind === "webhook"
-          ? r.trigger.type !== "webhook"
-          : kind === "email"
-            ? r.trigger.type !== "email" ||
-              JSON.stringify(emailTrigger()) !==
-                JSON.stringify({
-                  type: "email",
-                  accountId: r.trigger.accountId,
-                  folder: r.trigger.folder,
-                  filter: cleanFilter(r.trigger.filter ?? {}),
-                })
-            : kind === "event"
-              ? r.trigger.type !== "event" || r.trigger.event !== event
-              : once
-                ? r.trigger.type !== "once" ||
-                  JSON.stringify(trigger()) !== JSON.stringify({ type: "once", at: r.trigger.at, timezone: savedZone })
-                : r.trigger.type !== "schedule" || JSON.stringify(toApiRule(rule)) !== savedRule;
+      kind === "meeting"
+        ? meetingTriggerChanged(r, meeting)
+        : kind === "connector"
+          ? r.trigger.type !== "connector" ||
+            JSON.stringify(connectorTrigger()) !==
+              JSON.stringify({
+                type: "connector",
+                connectionId: r.trigger.connectionId,
+                event: r.trigger.event,
+                inboxId: null,
+                filter: cleanConnectorFilter(r.trigger.filter),
+              })
+          : kind === "webhook"
+            ? r.trigger.type !== "webhook"
+            : kind === "email"
+              ? r.trigger.type !== "email" ||
+                JSON.stringify(emailTrigger()) !==
+                  JSON.stringify({
+                    type: "email",
+                    accountId: r.trigger.accountId,
+                    folder: r.trigger.folder,
+                    filter: cleanFilter(r.trigger.filter ?? {}),
+                  })
+              : kind === "event"
+                ? r.trigger.type !== "event" || r.trigger.event !== event
+                : once
+                  ? r.trigger.type !== "once" ||
+                    JSON.stringify(trigger()) !==
+                      JSON.stringify({ type: "once", at: r.trigger.at, timezone: savedZone })
+                  : r.trigger.type !== "schedule" || JSON.stringify(toApiRule(rule)) !== savedRule;
     if (triggerChanged) patch.trigger = trigger();
     if (report !== r.report) patch.report = report;
+    if (retryOnce !== (r.retryOnce ?? false)) patch.retryOnce = retryOnce;
     return patch;
   };
   // A routine on someone's computer that runs hourly or more often: say how often it wakes that computer.
@@ -2656,6 +2723,7 @@ function RoutineDialog({
           target: targetValue(),
           trigger: trigger(),
           report,
+          ...(retryOnce ? { retryOnce } : {}),
         },
       },
       {
@@ -2760,21 +2828,21 @@ function RoutineDialog({
             {shows("when") && (
               <>
                 <Field label={t("routines.form.when")} group>
-                  <Segmented
+                  <Segmented<string>
                     label={t("routines.form.when")}
-                    value={kind}
-                    onValueChange={setKind}
+                    value={kind === "connector" ? connectorChoiceKey(connector.event) : kind}
+                    onValueChange={pickWhen}
                     options={[
-                      { value: "schedule" as const, label: t("routines.form.kind.schedule") },
-                      { value: "event" as const, label: t("routines.form.kind.event") },
-                      ...(hasMail ? [{ value: "email" as const, label: t("routines.form.kind.email") }] : []),
-                      ...(hasMillionSend
-                        ? [{ value: "connector" as const, label: t("routines.form.kind.connector") }]
-                        : []),
-                      { value: "webhook" as const, label: t("routines.form.kind.webhook") },
+                      { value: "schedule", label: t("routines.form.kind.schedule") },
+                      { value: "event", label: t("routines.form.kind.event") },
+                      ...(hasMail ? [{ value: "email", label: t("routines.form.kind.email") }] : []),
+                      ...connectorEvents.map((e) => ({ value: connectorChoiceKey(e), label: t(connectorKindKey(e)) })),
+                      ...(hasCalendar ? [{ value: "meeting", label: t("routines.form.kind.meeting") }] : []),
+                      { value: "webhook", label: t("routines.form.kind.webhook") },
                     ]}
                   />
                 </Field>
+                {kind === "meeting" && <MeetingTriggerFields value={meeting} onChange={setMeeting} agentId={agentId} />}
                 {kind === "email" && <EmailTriggerFields value={email} onChange={setEmail} agentId={agentId} />}
                 {kind === "connector" && (
                   <ConnectorTriggerFields value={connector} onChange={setConnector} agentId={agentId} />
@@ -2904,6 +2972,18 @@ function RoutineDialog({
                     }))}
                   />
                 </Field>
+                {kind === "schedule" && !once && (
+                  <SettingRow
+                    title={t("routines.form.retryOnce")}
+                    hint={{
+                      name: t("common.about", { label: t("routines.form.retryOnce") }),
+                      text: t("routines.form.retryOnceHint"),
+                    }}
+                    htmlFor="nr-retry-once"
+                  >
+                    <Switch id="nr-retry-once" checked={retryOnce} onCheckedChange={setRetryOnce} />
+                  </SettingRow>
+                )}
                 <div className="ac-field">
                   <HintLine
                     name={t("common.about", { label: t("routines.panel.ownActions") })}

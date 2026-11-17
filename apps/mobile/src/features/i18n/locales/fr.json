@@ -899,6 +899,7 @@
   "activity": {
     "title": "Activité",
     "chooseModel": "Choisir un autre modèle",
+    "connectAi": "Connecter une IA",
     "filter": {
       "all": "Tout",
       "waiting": "Demandes",
@@ -958,6 +959,9 @@
       "routine_failed_one": "Échec de la routine",
       "routine_failed_many": "Échec des routines",
       "routine_failed_other": "Échec des routines",
+      "routine_failed_retried_one": "Échec de la routine après un nouvel essai",
+      "routine_failed_retried_many": "Échec des routines après un nouvel essai",
+      "routine_failed_retried_other": "Échec des routines après un nouvel essai",
       "run_failed_one": "N'a pas pu terminer",
       "run_failed_many": "N'ont pas pu terminer",
       "run_failed_other": "N'ont pas pu terminer",
@@ -1045,6 +1049,9 @@
       "desktop_taken_female_one": "{{names}} a pris le contrôle de l'écran de l'ordinateur de {{agent}}",
       "desktop_taken_female_many": "{{names}} ont pris le contrôle de l'écran de l'ordinateur de {{agent}}",
       "desktop_taken_female_other": "{{names}} ont pris le contrôle de l'écran de l'ordinateur de {{agent}}",
+      "agent_needs_ai_one": "{{names}} a appelé {{agent}}, qui n'a pas d'IA connectée pour répondre",
+      "agent_needs_ai_many": "{{names}} ont appelé {{agent}}, qui n'a pas d'IA connectée pour répondre",
+      "agent_needs_ai_other": "{{names}} ont appelé {{agent}}, qui n'a pas d'IA connectée pour répondre",
       "plan_lent_one": "{{names}} a connecté votre forfait {{plan}} à {{agent}}",
       "plan_lent_many": "{{names}} ont connecté votre forfait {{plan}} à {{agent}}",
       "plan_lent_other": "{{names}} ont connecté votre forfait {{plan}} à {{agent}}",
@@ -2988,5 +2995,13 @@
       "title": "Rien à vérifier",
       "text": "Quand un agent fait quelque chose hors de la discussion, cela apparaît ici."
     }
+  },
+  "phoneTools": {
+    "title": "Contacts du téléphone",
+    "contacts": "Les agents peuvent chercher dans mes contacts",
+    "help": "Uniquement dans cet espace de travail et uniquement sur ce téléphone. Quand un agent avec qui vous parlez a besoin des coordonnées de quelqu'un, il cherche son nom dans vos contacts : l'agent reçoit au plus 5 résultats, chacun avec seulement un nom, des numéros de téléphone et des e-mails.",
+    "deniedTitle": "L'accès aux contacts est désactivé",
+    "deniedSub": "Autorisez-le pour agentes.chat dans les Réglages du téléphone.",
+    "failed": "Impossible d'enregistrer. Réessayez."
   }
 }

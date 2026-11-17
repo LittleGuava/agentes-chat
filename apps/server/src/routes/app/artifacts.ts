@@ -14,8 +14,10 @@ import {
   createArtifact,
   createFileArtifact,
   DRAW_OPTIONS,
+  DRIVE_SYNC_MAX,
   deleteArtifact,
   drawBlock,
+  driveSyncList,
   getArtifact,
   getBlockState,
   getChoices,
@@ -43,6 +45,7 @@ import {
   type AppDeps,
   body,
   createAppRouter,
+  csv,
   errors,
   json,
   MULTIPART_SLACK_BYTES,
@@ -56,20 +59,6 @@ const tags = ["Drive"];
 const Kind = z.enum(["document", "table", "diff", "html", "diagram", "file", "block", "poll", "choices"]);
 const Author = z.object({ type: z.enum(["agent", "person"]), id: z.string() });
 
-/** A comma-separated list in a query string, each item read by `item` (at most 50). */
-const csv = <T>(description: string, item: z.ZodType<T, string>) =>
-  z
-    .string()
-    .max(4000)
-    .optional()
-    .transform((v) =>
-      v
-        ?.split(",")
-        .map((x) => x.trim())
-        .filter(Boolean),
-    )
-    .pipe(z.array(item).max(50).optional())
-    .openapi({ description, type: "string" });
 const AuthorKey = z
   .string()
   .regex(/^(agent|person):[\w-]{1,100}$/)
@@ -207,6 +196,24 @@ const Artifact = z
     }),
   })
   .openapi("Artifact");
+
+const DriveSyncFile = z
+  .object({
+    id: z.uuid(),
+    kind: z.enum(["document", "table", "diff", "html", "diagram", "file"]),
+    version: z.number().int(),
+    name: z
+      .string()
+      .openapi({ description: "The same from one version to the next: an upload's name, else title + extension." }),
+    format: z
+      .enum(["csv", "patch"])
+      .nullable()
+      .openapi({ description: "The download's `format`; null: the bytes as stored." }),
+    agent: z.object({ id: z.string(), name: z.string() }),
+    conversation: z.object({ id: z.uuid(), name: z.string(), dm: z.boolean() }),
+    updatedAt: z.string(),
+  })
+  .openapi("DriveSyncFile");
 
 const Poll = z
   .object({
@@ -390,6 +397,48 @@ export function artifactRoutes(deps: AppDeps) {
         },
         200,
       );
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/organizations/{orgId}/drive-sync",
+      tags,
+      security,
+      summary: "The agents' files of these conversations, for the desktop app's folder (ADR 0204)",
+      request: {
+        params: OrgParams,
+        query: z.object({
+          channelIds: z
+            .string()
+            .max(4000)
+            .transform((v) =>
+              v
+                .split(",")
+                .map((x) => x.trim())
+                .filter(Boolean),
+            )
+            .pipe(z.array(z.uuid()).min(1).max(50))
+            .openapi({ description: "Comma-separated channel or DM ids (1 to 50).", type: "string" }),
+        }),
+      },
+      responses: {
+        200: json(
+          z.object({
+            files: z.array(DriveSyncFile),
+            truncated: z
+              .boolean()
+              .openapi({ description: `More than ${DRIVE_SYNC_MAX} files: the most recently updated are listed.` }),
+          }),
+        ),
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { orgId } = c.req.valid("param");
+      const { channelIds } = c.req.valid("query");
+      return c.json(await driveSyncList(db, c.get("user").id, orgId, channelIds), 200);
     },
   );
 

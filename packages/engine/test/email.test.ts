@@ -65,7 +65,14 @@ const buttons = (t: EmailTemplate) =>
 function poisoned(t: EmailTemplate, value = SENTINEL): EmailTemplate {
   const o = structuredClone(t) as Record<string, unknown>;
   for (const k of TYPED) if (typeof o[k] === "string") o[k] = value;
-  if (Array.isArray(o.items)) o.items = o.items.map((i) => ({ ...i, agentName: value, title: value }));
+  if (Array.isArray(o.items))
+    o.items = o.items.map((i) => ({
+      ...i,
+      agentName: value,
+      title: value,
+      // The away email's lines: who, where and what they said.
+      ...("group" in i ? { name: value, place: value, text: value } : {}),
+    }));
   if (Array.isArray(o.orgNames)) o.orgNames = o.orgNames.map(() => value);
   for (const side of ["was", "now"]) if (o[side]) o[side] = { ...(o[side] as object), names: [value] };
   for (const list of ["topStalls", "topNoise"])
@@ -125,6 +132,7 @@ describe("every email, in both languages", () => {
       early_access_allowed: true,
       budget: true,
       approval_digest: true,
+      away_digest: true,
       computer_ready: true,
       join_request: true,
       join_answer: true,

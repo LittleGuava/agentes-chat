@@ -1,6 +1,7 @@
 import type { ServerCheck } from "@agenteschat/client/lib/server";
 import type { HelloLine } from "../control/client";
 import type { Candidate } from "../control/first-run";
+import type { FolderSyncFetch, LocalScan, RemoteFile } from "../control/folder-sync";
 import type {
   KeepRunning,
   LocalChoice,
@@ -146,6 +147,20 @@ export interface Host {
   onLink(cb: () => void): () => void;
   /** Shows a local folder in Finder. */
   revealFolder(path: string): Promise<void>;
+  /**
+   * The agents' folder on this computer (ADR 0204, the popover only): the agents' files of the chosen conversations,
+   * as the server lists them with the main window's session.
+   */
+  folderSyncList(server: string, orgId: string, channelIds: string[]): Promise<RemoteFile[]>;
+  /** Preferences: where the agents' files go, `<Documents>/agentes.chat`, made if it isn't there yet. */
+  folderSyncRoot(): Promise<string>;
+  /** Every file under `<Documents>/agentes.chat`, and the SHA-256 of the paths in `hash`. */
+  folderSyncScan(hash: string[]): Promise<LocalScan>;
+  /**
+   * Downloads one file of a plan into that folder, only where nothing is (`expect` null) or over a file that still has
+   * the hash `expect`; resolves with the SHA-256 written, rejects with `changed` when the folder moved on.
+   */
+  folderSyncFetch(request: FolderSyncFetch): Promise<string>;
   pickFolder(): Promise<string | null>;
   setTrayState(state: TrayState): Promise<void>;
   /** The menu bar icon on a Mac (Windows and Linux always keep theirs, `tray.rs`). */

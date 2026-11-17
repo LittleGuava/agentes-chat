@@ -27,6 +27,7 @@ import { CONNECTOR_CATALOG } from "./connectors/catalog";
 import { toolPrefixOfConnection } from "./connectors/connections";
 import { isCustom } from "./connectors/custom";
 import { exposedToolName } from "./connectors/mcp";
+import { presetCallArgs, presetLocks } from "./connectors/presets";
 import { learnFromRefusal } from "./context/feedback";
 import type { MemoryJudging } from "./context/items";
 import { ConflictError, ForbiddenError, NotFoundError } from "./errors";
@@ -115,6 +116,11 @@ export interface ApprovalView {
   connectorAccount: string | null;
   /** The email itself (From, To, Subject, text), for mail drafts and sends; null for every other action. */
   email: ApprovalEmail | null;
+  /**
+   * Which of `params` its service says is what the call does and the amount it moves in US cents
+   * (`McpPreset.callArgs`, ADR 0016 addendum 2026-11-17): the card leads with them. Null: its service names none.
+   */
+  callArgs: { does: string | null; usdCents: string | null } | null;
   /** The agent's required reason (ADR 0053): what it found and why this action, shown on the card. */
   why: string | null;
   /** Asked while nobody watched: by a routine (its name) or an unattended run; null when a person was behind it. */
@@ -147,6 +153,7 @@ interface ApprovalContext {
   connector: string | null;
   connectorAccount: string | null;
   email: ApprovalEmail | null;
+  callArgs: ApprovalView["callArgs"];
   issue: { id: string; number: number; title: string } | null;
   trail: { text: string; at: string }[];
 }
@@ -191,6 +198,7 @@ async function approvalContexts(db: Database, rows: Approval[]): Promise<Map<str
             connector: connectorConnections.connector,
             label: connectorConnections.label,
             account: connectorConnections.accountLabel,
+            serverUrl: connectorConnections.serverUrl,
           })
           .from(connectorConnections)
           .where(inArray(connectorConnections.id, connectionIds))
@@ -257,6 +265,7 @@ async function approvalContexts(db: Database, rows: Approval[]): Promise<Map<str
       connector: connection?.connector ?? (mailbox ? "email" : null),
       connectorAccount: connection ? accountNote(connection) : (mailbox?.address ?? null),
       email: mailbox ? approvalEmail(row, mailbox) : null,
+      callArgs: connection ? presetCallArgs(presetLocks(connection.serverUrl), row.params) : null,
       issue: row.runId ? (issueOfRun.get(row.runId) ?? null) : null,
       trail: trail.slice(-12),
     });
@@ -442,6 +451,7 @@ async function viewsOf(db: Database, rows: Approval[], canDecide: (row: Approval
       connector: null,
       connectorAccount: null,
       email: null,
+      callArgs: null,
       issue: null,
       trail: [],
     };
@@ -491,6 +501,7 @@ export const approvalView = (a: Approval, canDecide = false, routine = false): A
   connector: null,
   connectorAccount: null,
   email: null,
+  callArgs: null,
   why: a.why.trim() || null,
   origin: approvalOriginOf(a.origin),
   issue: null,

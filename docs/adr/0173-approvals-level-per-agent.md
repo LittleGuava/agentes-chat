@@ -8,7 +8,8 @@
 - Code: `packages/db/src/schema/agents.ts` (`approvals_level`, migration `0254_agent_approvals_level`),
   `packages/engine/src/tools/run-policy.ts` (`ApprovalsLevel`, `approvalsLevelOf`, `toolPolicy`'s third argument),
   `packages/engine/src/tools/gateway.ts` (`unaskedAtNever`, the listing and the call), `packages/engine/src/agents.ts`
-  (who sets it), `packages/engine/src/agent-audit.ts` (`approvalsLevel: "never"` on a call that ran unasked),
+  (who sets it), `packages/engine/src/agent-setup.ts` (on several agents at once, ADR 0094),
+  `packages/engine/src/agent-audit.ts` (`approvalsLevel: "never"` on a call that ran unasked),
   `packages/engine/src/git/repos.ts` (`mergeReposOfCall`), `apps/server/src/routes/app/schemas.ts`
   (`ApprovalsLevel`), `packages/client/src/lib/approvals-level.ts`, web `pages/agent/ApprovalsLevelCard.tsx`, phone
   `features/agents/ApprovalsLevelRow.tsx`
@@ -55,7 +56,8 @@ did before) or `never`.
    as before. What `never` does lift is asking itself: a tool an admin set to ask, and a shared mailbox set to ask
    before a send or a delete, run without a card (a person's own mailbox still asks its owner).
 6. **Who sets it.** Whoever may edit any agent (`manage_agents`), through the agent's `PATCH`, and at creation only
-   with that permission. A new agent starts at `risky`. The right hand's level can be changed too.
+   with that permission. A new agent starts at `risky`. The right hand's level can be changed too. Several agents at
+   once take it through "Usar em outros agentes", with the same permission (ADR 0094, addendum 2026-11-15).
 7. **The audit says so.** A call that ran without its card because of `never` is recorded with
    `details.approvalsLevel = "never"`, and the audit's detail shows "Not asked (Never ask)" where an approval would
    be. Changing the level is an `agent.updated` row with the new value.

@@ -15,7 +15,10 @@ export const strings: Partial<PushStrings> = {
   replyTitle: (a) => `${a} membalas`,
   missionStoppedTitle: "Sebuah misi berhenti",
   routineFailedTitle: "Sebuah rutinitas tidak selesai",
+  routineFailedRetriedTitle: "Sebuah rutinitas tidak selesai, bahkan setelah dicoba lagi",
   runFailedTitle: (a) => `${a} tidak bisa menyelesaikannya`,
+  needsAiTitle: (a) => `${a} belum terhubung ke AI`,
+  needsAiBody: (p) => `${p} bertanya tetapi tidak mendapat jawaban. Hubungkan AI agar bisa menjawab.`,
   routineFailedBody: "Ketuk untuk melihat apa yang terjadi.",
   routinePausedTitle: "Sebuah rutinitas dijeda",
   routinePausedBody: "Ketuk untuk melihat alasannya.",
@@ -41,6 +44,7 @@ export const strings: Partial<PushStrings> = {
   secretTitle: (a) => `${a} butuh data rahasia darimu`,
   secretBody: "Ketuk untuk mengirimnya dengan aman.",
   widgetAlertTitle: (a, w) => (w ? `${a}: ${w}` : `${a} menandai sebuah widget`),
+  mailImportantTitle: (m) => `Email penting di ${m}`,
   widgetFailedTitle: (w) => (w ? `“${w}” tidak diperbarui` : "Sebuah widget tidak diperbarui"),
   widgetFailedReasons: {
     no_update: "Pembaruan terakhir selesai tanpa data.",

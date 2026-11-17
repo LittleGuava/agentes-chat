@@ -2,7 +2,7 @@ import { parseChart } from "@agenteschat/client/lib/chart";
 import type { AgentColorName } from "@agenteschat/ui/agent/engine";
 import { memo, useMemo, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { Icon, Text } from "@/ui";
+import { Icon, TaskBox, Text } from "@/ui";
 import { useColors } from "../shared/hooks";
 import { tapHaptic } from "../shared/parts";
 import { ChartCard } from "./ChartCard";
@@ -12,7 +12,13 @@ import { useRowLook } from "./look";
 import { Spans, Table } from "./MessageSpans";
 
 /**
- * A message's text: paragraphs, lists, quotes, headings, bold, italic,
+ * A task's box: the kit's (`TaskBox`), sized so its words start where a bullet's do (2 + 14 + 8 = 16 + 8), as on the
+ * web, and so the smallest Tamanho do texto's line (18) still holds it.
+ */
+const TASK_BOX = 16;
+
+/**
+ * A message's text: paragraphs, lists, tasks (read only, as on the web), quotes, headings, bold, italic,
  * @mentions and code (mono only for code).
  */
 export const MessageText = memo(function MessageText({
@@ -83,6 +89,34 @@ export const MessageText = memo(function MessageText({
                   {b.ordinal ? `${b.ordinal}.` : "•"}
                 </Text>
                 <Text variant={variant} tone={tone} style={[line, styles.flex, inked]} {...fit}>
+                  {spans(b.inline)}
+                </Text>
+              </View>
+            );
+          case "task":
+            return (
+              // biome-ignore lint/suspicious/noArrayIndexKey: the blocks of one text, in order
+              <View key={i} style={styles.task}>
+                <View
+                  accessible
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: b.done }}
+                  style={styles.taskMark}
+                >
+                  {/* An empty line of the words' own size, so the box sits on their first line at any text size. */}
+                  <Text variant={variant} style={line} {...fit}>
+                    {"\u200b"}
+                  </Text>
+                  <View style={[StyleSheet.absoluteFill, styles.box]}>
+                    <TaskBox done={b.done} size={TASK_BOX} ink={ink} />
+                  </View>
+                </View>
+                <Text
+                  variant={variant}
+                  tone={b.done ? "muted" : tone}
+                  style={[line, styles.flex, b.done && styles.done, inked]}
+                  {...fit}
+                >
                   {spans(b.inline)}
                 </Text>
               </View>
@@ -184,6 +218,11 @@ const styles = StyleSheet.create({
   heading: { fontWeight: "700" },
   bullet: { flexDirection: "row", gap: 8, paddingLeft: 2 },
   mark: { minWidth: 14 },
+  task: { flexDirection: "row", gap: 8 },
+  taskMark: { width: TASK_BOX },
+  box: { alignItems: "center", justifyContent: "center" },
+  /** A done task, as the web's: quiet and struck through. */
+  done: { textDecorationLine: "line-through" },
   quote: { borderLeftWidth: 3, paddingLeft: 10 },
   /** On a solid bubble: a table or a collapsed block stays on the page's color, in the page's ink. */
   cut: { borderRadius: 10, overflow: "hidden" },

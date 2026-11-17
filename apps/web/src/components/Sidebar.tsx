@@ -121,7 +121,9 @@ import { useTranslation } from "react-i18next";
 import { useApi } from "@/api/context";
 import { useDirectory } from "@/hooks/useDirectory";
 import { agentLine, availabilityOf, personLine, useAgentPresence, usePersonPresence } from "@/hooks/usePresence";
+import { useRowOrderDrag } from "@/hooks/useRowOrderDrag";
 import { useServerPlace } from "@/hooks/useServerPlace";
+import { useSidebarOwnOrder } from "@/hooks/useSidebarOwnOrder";
 import { useSidebarPins } from "@/hooks/useSidebarPins";
 import { useSignOut } from "@/hooks/useSignOut";
 import { useUnreadTitle } from "@/hooks/useUnreadTitle";
@@ -172,6 +174,7 @@ import { OpenOnPhoneDialog } from "./OpenOnPhone";
 import { useOrg } from "./org-context";
 import { StatusLine } from "./Presence";
 import { MyFace, OrgMark } from "./ProfilePhoto";
+import { SidebarLinkRows, useHasSidebarLinks } from "./SidebarLinks";
 import { sectionName, useSectionOrder } from "./SidebarOrder";
 import { SIDEBAR_TOOLS, SidebarSetupDialog, ToolList } from "./SidebarSetup";
 import { AgentGlow, AgentTrail, colorOf, MenuHorizon, SidebarHorizon, WorkspaceSky } from "./Sky";
@@ -331,6 +334,8 @@ export function Sidebar() {
   const toolOrder = sidebarItemOrder(personal);
   const listed = toolOrder.filter((id) => inSidebarList(sidebarPlace(sidebarItems, id, personal), counts[id] ?? 0));
   const inMore = toolOrder.filter((id) => !listed.includes(id));
+  // The person's own links, under the tools (ADR 0083, amendment of 2026-11-15).
+  const hasLinks = useHasSidebarLinks(orgId);
   const countOf = (id: SidebarItem) =>
     id === "waiting" && waitingOnMe > 0 ? (
       <CountBadge aria-label={t("notifications.summaryWaiting", { count: waitingOnMe })}>
@@ -397,17 +402,30 @@ export function Sidebar() {
   const newAgent = () =>
     newAgentDialog ? newAgentDialog.open() : void navigate({ to: "/org/$orgId/agents/new", params: { orgId } });
   const sections = useSidebarSections(me.user.id, orgId);
-  // "Fixar no topo": pinned rows sit on top of their own section, above a thin line.
-  const { view, setView, pins } = useSidebarPins();
+  // "Fixar no topo": pinned rows sit on top of their own section, above a thin line, in the person's own order.
+  const { view, setView, pins, place: placePin } = useSidebarPins();
   // "Mensagens diretas": the people I talked to or just opened a DM with, latest first (an agent's row in AGENTES is its DM), pinned ones on top.
   const pinnedPeople = pins.people.flatMap((id) => {
     const m = id === me.user.id ? undefined : dir.memberById.get(id);
     return m ? [m] : [];
   });
-  const directs = recentDms(dms.data ?? [], hiddenAgents).flatMap((d) => {
+  // "Usar a minha ordem" (ADR 0080, addendum of 2026-11-16): on, each section's rows that aren't pinned in my order.
+  const own = useSidebarOwnOrder();
+  const latest = recentDms(dms.data ?? [], hiddenAgents).flatMap((d) => {
     const member = d.with.type === "person" ? dir.memberById.get(d.with.id) : undefined;
     return member && !pins.people.includes(member.userId) ? [{ dm: d, member }] : [];
   });
+  const directs = own.arrange("people", latest, (x) => x.member.userId);
+  const directIds = directs.map((x) => x.member.userId);
+  const pinnedPeopleIds = pinnedPeople.map((m) => m.userId);
+  const peopleDrag = useRowOrderDrag(
+    () => pinnedPeopleIds,
+    (id, before) => placePin("people", id, before),
+  );
+  const directsDrag = useRowOrderDrag(
+    () => directIds,
+    (id, before, shown) => own.place("people", shown, id, before),
+  );
   const directsUnread = [...pinnedPeople.map((m) => dmOf.get(m.userId)), ...directs.map((x) => x.dm)].reduce(
     (n, d) => n + (d?.unread ?? 0),
     0,
@@ -447,7 +465,8 @@ export function Sidebar() {
   const byGroup = agentSections(shownAgents, groups, (a) => a.id);
   const ordered = (items: Agent[]) => {
     const { top, rest } = splitPinned(items, pins.agents, (a) => a.id);
-    return { top, rest: sortAgents(rest, view.agentSort, me.user.id, busy) };
+    const mine = own.arrange("agents", sortAgents(rest, view.agentSort, me.user.id, busy), (a) => a.id);
+    return { top, rest: mine, restIds: mine.map((a) => a.id) };
   };
   const loose = ordered(byGroup.ungrouped);
   // Members never see an empty group; who arranges the agents keeps them, to drop agents in.
@@ -497,7 +516,9 @@ export function Sidebar() {
       },
     ];
   };
-  const agentRow = (a: Agent) => {
+  // `shown`: the row's section in my order (not a pinned row), for "Usar a minha ordem"'s moves.
+  const agentRow = (a: Agent, shown?: readonly string[]) => {
+    const extra = [...own.entries("agents", shown, a.id), ...(manages ? groupEntries(a) : [])];
     const dm = dmOf.get(a.id);
     const unread = dm?.unread ?? 0;
     return (
@@ -520,7 +541,7 @@ export function Sidebar() {
           onPrefetch={() => dm && prefetch(dm.channelId)}
           onOpen={() => markOpen(dm?.channelId ?? a.id)}
           drag={organize ? drag.row(a.id) : undefined}
-          menuExtra={manages ? groupEntries(a) : undefined}
+          menuExtra={extra.length ? extra : undefined}
         />
       </ErrorBoundary>
     );
@@ -642,20 +663,21 @@ export function Sidebar() {
         />
       )}
       {dir.loading && team.length === 0 && <SidebarSkeleton count={2} avatar label={t("common.loadingList")} />}
-      {loose.top.map(agentRow)}
+      {loose.top.map((a) => agentRow(a))}
       {loose.top.length > 0 && (loose.rest.length > 0 || agentGroups.length > 0) && (
         <hr className="sidebar__pins-end" />
       )}
-      {loose.rest.map(agentRow)}
+      {loose.rest.map((a) => agentRow(a, loose.restIds))}
     </>
   );
   const blocks: Record<SectionKey, ReactNode> = {
     // A personal workspace's list is its conversations (ADR 0159): a tool comes into sight only while something
     // waits in it, or once the person put it there; Início, Go to… and the other tools are in More at the end.
     tools: personal ? (
-      listed.length > 0 && (
+      (listed.length > 0 || hasLinks) && (
         <div className="sidebar__group sidebar__tools">
           <ToolList items={listed} row={toolRow} />
+          <SidebarLinkRows orgId={orgId} />
         </div>
       )
     ) : (
@@ -666,6 +688,7 @@ export function Sidebar() {
           <span className="sidebar__item-label">{t("shell.home")}</span>
         </Link>
         <ToolList items={listed} row={toolRow} />
+        <SidebarLinkRows orgId={orgId} />
         <MoreTools items={inMore} row={toolRow} countOf={countOf} onCustomize={() => setCustomizing(true)} />
       </div>
     ),
@@ -680,6 +703,8 @@ export function Sidebar() {
         headProps={sectionMenu("channels")}
         addEntries={[...newChannelItem, ...newCategoryItem, ...archivedItem]}
         pinned={pins.channels}
+        onPlacePin={(id, before) => placePin("channels", id, before)}
+        own={own}
       />
     ),
     agents: (dir.loading ||
@@ -769,7 +794,7 @@ export function Sidebar() {
           </SidebarSection>
         )}
         {agentGroups.map(({ group, items }) => {
-          const { top, rest } = ordered(items);
+          const { top, rest, restIds } = ordered(items);
           const list = [...top, ...rest];
           // Where a dragged row would land: a line before the row at that place among the others.
           const others = list.filter((a) => a.id !== drag.dragging);
@@ -809,7 +834,7 @@ export function Sidebar() {
                 <Fragment key={a.id}>
                   {i > 0 && i === top.length && <hr className="sidebar__pins-end" />}
                   {lineAt === others.indexOf(a) && line}
-                  {agentRow(a)}
+                  {agentRow(a, rest.includes(a) ? restIds : undefined)}
                 </Fragment>
               ))}
               {lineAt !== null && lineAt >= others.length && line}
@@ -864,6 +889,7 @@ export function Sidebar() {
                 member={m}
                 unread={dm?.unread ?? 0}
                 pinned
+                drag={rail ? undefined : peopleDrag(m.userId)}
                 onPrefetch={() => dm && prefetch(dm.channelId)}
                 onOpen={() => markOpen(dm?.channelId ?? m.userId)}
               />
@@ -876,6 +902,8 @@ export function Sidebar() {
             <PersonRow
               member={member}
               unread={dm.unread}
+              drag={own.on && !rail ? directsDrag(member.userId) : undefined}
+              menuExtra={own.entries("people", directIds, member.userId)}
               onPrefetch={() => prefetch(dm.channelId)}
               onOpen={() => markOpen(dm.channelId)}
             />
@@ -1236,6 +1264,8 @@ function SidebarChannels({
   headProps,
   addEntries,
   pinned,
+  onPlacePin,
+  own,
 }: {
   channels: Channel[];
   loading: boolean;
@@ -1251,6 +1281,10 @@ function SidebarChannels({
   addEntries: MenuEntry[];
   /** The channels pinned on top of "Canais" ("Fixar no topo"), in order. */
   pinned: readonly string[];
+  /** A pinned channel dragged before another pinned one, or last (null): the person's own order. */
+  onPlacePin: (channelId: string, before: string | null) => void;
+  /** "Usar a minha ordem": on, each part's channels in my order, dragged and moved only for me. */
+  own: ReturnType<typeof useSidebarOwnOrder>;
 }) {
   const { t } = useTranslation();
   const { org, me } = useOrg();
@@ -1282,8 +1316,25 @@ function SidebarChannels({
   const categoryOf = (c: Channel) => (c.categoryId && known.has(c.categoryId) ? c.categoryId : null);
   const pinnedChannels = pinned.flatMap((id) => channels.filter((c) => c.id === id && c.isMember));
   const unpinned = channels.filter((c) => !pinnedChannels.includes(c));
-  const loose = unpinned.filter((c) => categoryOf(c) === null);
-  const inCategory = (id: string) => unpinned.filter((c) => categoryOf(c) === id);
+  const pinnedIds = pinnedChannels.map((c) => c.id);
+  const pinDrag = useRowOrderDrag(() => pinnedIds, onPlacePin);
+  const inPart = (id: string | null) =>
+    own.arrange(
+      "channels",
+      unpinned.filter((c) => categoryOf(c) === id),
+      (c) => c.id,
+    );
+  const loose = inPart(null);
+  const inCategory = (id: string) => inPart(id);
+  // The channel's part (the ones with no category, or its category) as I see it: where my own order moves it.
+  const partIds = (c: Channel) => inPart(categoryOf(c)).map((x) => x.id);
+  const ownDrag = useRowOrderDrag(
+    (id) => {
+      const c = unpinned.find((x) => x.id === id);
+      return c ? partIds(c) : [];
+    },
+    (id, before, part) => own.place("channels", part, id, before),
+  );
   // A category shows while it holds a channel I can see; who manages channels keeps the empty ones to drop channels in.
   const shown = manages ? list : list.filter((c) => inCategory(c.id).length > 0);
   const categoryIds = shown.map((c) => `${CATEGORY_KEY}${c.id}` as SectionId);
@@ -1386,6 +1437,7 @@ function SidebarChannels({
               },
             ] satisfies MenuEntry[])
           : []),
+        ...(own.on && !pinnedIds.includes(c.id) ? own.entries("channels", partIds(c), c.id) : []),
         ...(manages
           ? ([
               {
@@ -1470,7 +1522,8 @@ function SidebarChannels({
     return actions;
   };
 
-  // A pinned row stays put: it doesn't drag, and nothing drops on it.
+  // A pinned row drags only among the pinned ones (the person's own order, `useRowOrderDrag`); with "Usar a minha
+  // ordem" every row drags only inside its part, for me alone; else a channel drags in the workspace's order.
   const row = (c: Channel, top = false) => {
     // Discord's marks: something new lights the row (a pill on its left edge, the name in full ink) with how many
     // messages wait, in a quiet count; only a mention of me gets the red one. Muted, it rests dim whatever comes, but a
@@ -1488,15 +1541,17 @@ function SidebarChannels({
         data-unread={unread}
         data-muted={c.muted || undefined}
         {...(top
-          ? {}
-          : {
-              "data-drop": dropMark(`channel:${c.id}`),
-              draggable: categories.data !== undefined && mayChange(c),
-              onDragStart: (e: DragEvent) => startDrag(e, { kind: "channel", id: c.id }),
-              onDragEnd: endDrag,
-              onDragOver: (e: DragEvent) => overChannel(e, c),
-              onDrop: drop,
-            })}
+          ? pinDrag(c.id)
+          : own.on
+            ? ownDrag(c.id)
+            : {
+                "data-drop": dropMark(`channel:${c.id}`),
+                draggable: categories.data !== undefined && mayChange(c),
+                onDragStart: (e: DragEvent) => startDrag(e, { kind: "channel", id: c.id }),
+                onDragEnd: endDrag,
+                onDragOver: (e: DragEvent) => overChannel(e, c),
+                onDrop: drop,
+              })}
         onMouseEnter={() => onPrefetch(c.id)}
         onFocus={() => onPrefetch(c.id)}
         onClick={() => markOpen(c.id)}
@@ -2043,12 +2098,18 @@ function PersonRow({
   member: m,
   unread,
   pinned,
+  drag,
+  menuExtra,
   onPrefetch,
   onOpen,
 }: {
   member: Member;
   unread: number;
   pinned?: boolean;
+  /** A person drags in my own order: among the pinned ones, or with "Usar a minha ordem" (`useRowOrderDrag`). */
+  drag?: ReturnType<ReturnType<typeof useRowOrderDrag>>;
+  /** "Mover para cima" / "para baixo" in my own order. */
+  menuExtra?: MenuEntry[];
   onPrefetch: () => void;
   onOpen: () => void;
 }) {
@@ -2060,7 +2121,7 @@ function PersonRow({
   const personEntries = usePersonMenu();
   return (
     <Link
-      {...entityMenu(() => personEntries(m))}
+      {...entityMenu(() => personEntries(m, undefined, menuExtra))}
       to="/org/$orgId/dm/person/$userId"
       params={{ orgId: org.id, userId: m.userId }}
       className="sidebar__item"
@@ -2070,6 +2131,7 @@ function PersonRow({
       onMouseEnter={onPrefetch}
       onFocus={onPrefetch}
       onClick={onOpen}
+      {...drag}
     >
       <Avatar
         name={m.name}

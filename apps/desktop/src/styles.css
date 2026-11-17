@@ -1744,6 +1744,33 @@ body[data-window="popover"] {
 .dk-inline-form .ac-input {
   width: min(240px, 40vw);
 }
+/* Lending the person's Chrome (ADR 0202): agent, port and minutes on one line while they fit, the note under them. */
+.dk-lend {
+  flex-wrap: wrap;
+  margin-top: var(--space-2);
+}
+/* A long agent name ends in an ellipsis inside the card, as wide as a field here at most. A fixed cap, not a
+   percentage: the row sizes to its content's smallest width, and a percentage there counts the whole name. */
+.dk-lend .ac-select {
+  max-width: 240px;
+}
+/* The field holds its longest value (a port's five digits, 480 minutes) and no more; its words sit before it.
+   The width counts the padding too (border-box), and the digits are all as wide. */
+.dk-lend .ac-input-affix input {
+  flex: none;
+  padding-inline: var(--space-1) var(--space-3);
+  font-variant-numeric: tabular-nums;
+}
+.dk-lend .dk-lend__port input {
+  width: calc(5ch + var(--space-1) + var(--space-3) + 2px);
+}
+.dk-lend .dk-lend__minutes input {
+  width: calc(3ch + var(--space-1) + var(--space-3) + 2px);
+}
+.dk-lend .dk-help {
+  flex-basis: 100%;
+  margin: 0;
+}
 .dk-orgpick {
   margin-bottom: 12px;
   overflow-x: auto;
@@ -2220,5 +2247,23 @@ body[data-window="notch"] {
   margin: 0;
   padding: 0;
   list-style: none;
+  overflow-wrap: anywhere;
+}
+/* Sites through this computer (ADR 0203): many agents of other computers scroll, each with its computer's name. */
+.dk-drop__list {
+  display: flex;
+  flex-direction: column;
+  max-height: 280px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.dk-drop__who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.dk-drop__who small {
+  color: var(--faint);
+  font-size: 12px;
   overflow-wrap: anywhere;
 }

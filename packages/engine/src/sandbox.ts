@@ -18,6 +18,7 @@ import {
 } from "./machines";
 import { missionOfRun } from "./mission-context";
 import { can, requirePermission } from "./organizations";
+import { type AgentRelaySite, agentRelaySites } from "./relay";
 import { isRightHand } from "./right-hand";
 import { machineScope, NO_HOME_MESSAGE, type ScopeContext, toolMachineId } from "./right-hand-seats";
 import { runnerUpdateWay } from "./runner-update";
@@ -349,6 +350,8 @@ export async function agentComputerInfo(
 /** `GET …/agents/{id}/computer`: which computer the agent uses (ADR 0025). */
 export interface AgentComputerView {
   target: ComputerTarget;
+  /** The sites a person's computer lends it (ADR 0203): through which computer, whose, and whether it is there. */
+  relay: AgentRelaySite[];
 }
 
 /** The agent's owner or an admin (`manage_agents`). */
@@ -369,7 +372,7 @@ export async function getAgentComputer(
   agentId: string,
 ): Promise<AgentComputerView> {
   await requireComputerManager(db, actorId, orgId, agentId);
-  return { target: await computerTarget(db, orgId, agentId) };
+  return { target: await computerTarget(db, orgId, agentId), relay: await agentRelaySites(db, orgId, agentId) };
 }
 
 /** Keeps the start and end of long output, cutting the middle. */

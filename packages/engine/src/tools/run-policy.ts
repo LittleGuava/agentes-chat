@@ -30,6 +30,10 @@ import type { ToolDefinition } from "./types";
  *   through, `ownJobCovers`). It reaches other agents (`ask_agent`,
  *   `tell_agent`) and posts where its creator can post (`post_message`, `send_dm` to its creator): the
  *   tools hold it to its creator's rooms and agents (ADR 0053 §2, amended 2026-10-31).
+ * - A tool that spends money on an outside service with every call (`generate_image`, ADR 0213): a person's run and
+ *   the agent's own work use it as any tool; a routine's run and one a routine's reading feeds ask a person first
+ *   (an approval card, which a rule, "Nunca perguntar" or the agent's level lifts as it lifts any card), so nothing
+ *   spends unattended on what a routine read.
  * - `routine` redoing a widget (its brief's `widget`, ADR 0135 §5): it only reads (built-in reads, connected apps'
  *   reads, the web, the browser) and answers through `update_widget`; everything else is refused with why,
  *   `hand_off` included: a widget's refresh never posts. `update_widget` is no other run's. What it starts with in
@@ -69,6 +73,8 @@ export type ToolKind =
   | { kind: "internal"; area: InternalArea }
   /** A write to a connected app (connector tools that aren't reads, mail). */
   | { kind: "external" }
+  /** Spends money on an outside service with every call (`PAID`). */
+  | { kind: "paid" }
   /**
    * The computer's own permission prompt (`permission_prompt`, Claude Code's `--permission-prompt-tool`):
    * what it allows is the command policy's, by the turn's profile. Every computer run needs it listed.
@@ -97,6 +103,8 @@ export type InternalArea =
 export const APPROVALS_LEVELS = ["always", "risky", "never"] as const;
 export type ApprovalsLevel = (typeof APPROVALS_LEVELS)[number];
 export const DEFAULT_APPROVALS_LEVEL: ApprovalsLevel = "risky";
+export const isApprovalsLevel = (v: unknown): v is ApprovalsLevel =>
+  (APPROVALS_LEVELS as readonly unknown[]).includes(v);
 
 /** An agent's level, read fresh on every call: narrowing it asks at once. */
 export async function approvalsLevelOf(db: Executor, orgId: string, agentId: string): Promise<ApprovalsLevel> {
@@ -111,7 +119,10 @@ export async function approvalsLevelOf(db: Executor, orgId: string, agentId: str
 export const asksOf = (level: ApprovalsLevel): { asks?: "always" | "never" } =>
   level === "risky" ? {} : { asks: level };
 
-export type PolicyTool = Pick<ToolDefinition, "name" | "scope" | "connectionId" | "sensitive" | "opensPullRequest">;
+export type PolicyTool = Pick<
+  ToolDefinition,
+  "name" | "scope" | "connectionId" | "sensitive" | "opensPullRequest" | "everyCall"
+>;
 
 const ALLOW: PolicyDecision = { action: "allow" };
 const APPROVE: PolicyDecision = { action: "approve" };
@@ -140,7 +151,14 @@ const ELSEWHERE = new Set([
   "propose_event",
   // An email to whoever runs the server, in a person's name (ADR 0160 §11): only a run a person is behind sends it.
   "send_feedback",
+  // A page anyone on the internet opens (ADR 0211 §4): never what a routine or what it read asks for.
+  "publish_page",
+  // The right hand starts another agent's failed task again, in that task's conversation (ADR 0177, 2026-11-15).
+  "retry_run",
 ]);
+
+/** Our own tools that spend money on an outside service with every call, by name (ADR 0213). */
+const PAID = new Set(["generate_image"]);
 
 /** Long work's tools (ADR 0121), on the run's own work: `self`. */
 const SELF_WORK = new Set(["work_in_background", "post_update", "steer_work", "stop_work"]);
@@ -185,6 +203,8 @@ const READS = new Set([
   "list_reminders",
   "find_agent",
   "get_my_usage",
+  // A part of an answer this run already got (ADR 0015, addendum on long results).
+  "query_result",
   "computer_status",
   "read_file",
   "list_files",
@@ -196,6 +216,8 @@ const READS = new Set([
   "list_dashboards",
   "phone_screenshot",
   "phone_logs",
+  // The contacts on the phone of the person behind the run (ADR 0205): the tool itself refuses any other run.
+  "phone_find_contact",
 ]);
 
 /**
@@ -244,6 +266,8 @@ const LOOKS_ONLY = new Set([
   "browser_profile",
   "desktop_read",
   "desktop_screenshot",
+  // Reading the agent's own tab of a person's lent Chrome (ADR 0202); opening a page there, signed in as the person, asks.
+  "my_chrome_read",
   "git_clone",
   "team_status",
   "offer_approvals",
@@ -315,6 +339,8 @@ export function toolKind(tool: PolicyTool): ToolKind {
   // before consulting the built-in name table.
   if (tool.connectionId) return isReadScope(tool.scope) && !tool.sensitive ? { kind: "read" } : { kind: "external" };
   if (tool.name === "hand_off") return { kind: "hand_off" };
+  // Before the scope tables: its scope is the Drive's, whose writes a routine makes unasked.
+  if (PAID.has(tool.name)) return { kind: "paid" };
   if (tool.name === "update_widget" && tool.scope === "") return { kind: "widget" };
   if (tool.name === "pass") return { kind: "pass" };
   if (
@@ -367,6 +393,8 @@ export const REFUSALS = {
   widgetOnly:
     "This run keeps a widget up to date: it only reads (your tools' reads, the web, your browser) and answers with update_widget. Nothing else here: no posting, handing off, changing or asking anyone. If you can't get the data, call update_widget with `failed` and why.",
   widgetToolOnly: "update_widget belongs to a widget's update run; in a conversation, use create_widget instead.",
+  everyCallNever:
+    "Not available to this agent: it never asks for approval, and every call of this service (it spends money or reaches people) needs a person's yes first. Only an admin can change that, by setting the agent's approvals (in Portuguese, Aprovações) to a level that asks, on its page. Say so in plain words, and don't try to do it another way.",
 } as const;
 
 /** Tools that speak here whose refusal in a routine says what it does instead, by name; any other: `routineHere`. */
@@ -382,6 +410,7 @@ const ROUTINE_HERE_REFUSAL: Readonly<Record<string, string>> = {
 function asksAtAlways(what: ToolKind, tool: PolicyTool): boolean {
   switch (what.kind) {
     case "external":
+    case "paid":
       return true;
     case "elsewhere":
       return !ASKS_ITSELF.has(tool.name);
@@ -401,6 +430,9 @@ export function toolPolicy(
   /** A routine's own run whose creator still decides its agent's approvals (the gateway reads it fresh). */
   creatorDecides = false,
 ): PolicyDecision {
+  // A service whose every call a person decides (ADR 0016, addendum 2026-11-17): an agent that never asks (ADR 0173)
+  // keeps asking for nothing, so these are not its to use, on any run.
+  if (tool.everyCall && level === "never") return refuse(REFUSALS.everyCallNever);
   const what = toolKind(tool);
   const asks = level === "always" && asksAtAlways(what, tool);
   // A widget's refresh (ADR 0135 §5): reads and `update_widget`, nothing else.
@@ -432,6 +464,8 @@ export function toolPolicy(
       return asks ? APPROVE : ALLOW;
     case "external":
       return !fed && creatorDecides && level === "risky" ? ALLOW : APPROVE;
+    case "paid":
+      return APPROVE;
     case "mission":
       return refuse(fed ? REFUSALS.fedMission : REFUSALS.missionOnly);
     case "unknown":

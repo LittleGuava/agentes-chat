@@ -1,12 +1,14 @@
-import { SPEECH_PROVIDERS } from "@agenteschat/adapters";
+import { SPEECH_PROVIDERS, SpeechError } from "@agenteschat/adapters";
 import {
   acceptVoiceClip,
+  dictateVoice,
   isAgentesCloud,
   MAX_MESSAGE_LENGTH,
   NotFoundError,
   pinnedOwner,
   requirePermission,
   type SpeechSettings,
+  speakReply,
   ValidationError,
   VOICE_MAX_BYTES,
   type VoiceDeps,
@@ -26,6 +28,7 @@ const tags = ["Chat"];
 /** Multipart overhead allowed on top of the recording. */
 const MULTIPART_SLACK_BYTES = 64 * 1024;
 const SENDS_PER_PERSON = { limit: 30, windowMs: 60_000 };
+const SPEECH_PER_PERSON = { limit: 30, windowMs: 60_000 };
 /** Limits checking keys through this server, so it can't test keys in bulk. */
 const KEY_WRITES = { limit: 10, windowMs: 60_000 };
 
@@ -33,6 +36,7 @@ const ChannelParams = OrgParams.extend({ channelId: z.uuid() });
 const ClipParams = OrgParams.extend({ clipId: z.uuid() });
 // The count is the engine's to refuse (`message.too_many_attachments`), as for a typed message.
 const AttachmentIds = z.array(z.uuid());
+const MessageParams = OrgParams.extend({ messageId: z.uuid() });
 
 function audioResponse(c: Context, audio: Uint8Array, contentType: string) {
   return rangedResponse(audio, c.req.header("range"), {
@@ -50,13 +54,12 @@ export function voiceRoutes(deps: AppDeps) {
   const { adapters } = deps;
   const app = createAppRouter(deps);
   app.use("/organizations/*", requireSession(deps.auth));
-  app.use(
-    "/organizations/:orgId/channels/:channelId/voice",
-    bodyLimit({
-      maxSize: VOICE_MAX_BYTES + MULTIPART_SLACK_BYTES,
-      onError: (c) => apiError(c, 413, "voice.too_large", "The recording is too large"),
-    }),
-  );
+  const recordingLimit = bodyLimit({
+    maxSize: VOICE_MAX_BYTES + MULTIPART_SLACK_BYTES,
+    onError: (c) => apiError(c, 413, "voice.too_large", "The recording is too large"),
+  });
+  app.use("/organizations/:orgId/channels/:channelId/voice", recordingLimit);
+  app.use("/organizations/:orgId/channels/:channelId/voice/dictation", recordingLimit);
   const voice = (): VoiceDeps => {
     const v = deps.extras?.voice;
     if (!v) throw new NotFoundError();
@@ -169,6 +172,76 @@ export function voiceRoutes(deps: AppDeps) {
 
   app.openapi(
     createRoute({
+      method: "post",
+      path: "/organizations/{orgId}/channels/{channelId}/voice/dictation",
+      tags,
+      security,
+      summary: "Dictate: a recording's words for the message box, posted by nobody",
+      description:
+        "Answers the words of the recording, for the person to edit and send as text. Nothing is posted and the " +
+        "audio is not kept; its minutes count toward the same fair use as voice messages. `text` is empty when " +
+        "nothing was said.",
+      request: {
+        params: ChannelParams,
+        body: {
+          required: true,
+          content: {
+            "multipart/form-data": {
+              schema: z.object({
+                file: z.any().openapi({ type: "string", format: "binary", description: "The recording." }),
+                durationMs: z.coerce.number().int().positive(),
+                language: z
+                  .string()
+                  .max(8)
+                  .optional()
+                  .openapi({ description: "The app's language (`pt`, `en`): a hint for engines that take one." }),
+              }),
+            },
+          },
+        },
+      },
+      responses: {
+        200: json(z.object({ text: z.string() }), "The words, empty when nothing was said"),
+        ...errors,
+        409: errorResponse("Voice messages are off (`voice.unavailable`)"),
+        413: errorResponse("The recording is too large (`voice.too_large`)"),
+        422: errorResponse("No engine could make out the words (`voice.no_words`)"),
+        429: errorResponse("Too many (`voice_limit`, `rate_limited`)"),
+        503: errorResponse("No engine could take it now (`voice.busy`)"),
+      },
+    }),
+    async (c) => {
+      const { orgId, channelId } = c.req.valid("param");
+      const form = c.req.valid("form");
+      const user = c.get("user");
+      if (!(await adapters.rateLimiter.consume(`voice:${user.id}`, SENDS_PER_PERSON)).allowed) {
+        return apiError(c, 429, "rate_limited", "Slow down");
+      }
+      const file: unknown = form.file;
+      if (!(file instanceof File)) throw new ValidationError("send the recording in the field file", "voice.bad_type");
+      try {
+        const words = await dictateVoice(voice(), user.id, orgId, channelId, {
+          audio: new Uint8Array(await file.arrayBuffer()),
+          contentType: file.type,
+          durationMs: form.durationMs,
+          language: form.language ?? null,
+        });
+        return c.json(words, 200);
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          if (error.code === "voice.limit") return apiError(c, 429, "voice_limit", error.message);
+          if (error.code === "voice.unavailable") return apiError(c, 409, error.code, error.message);
+          if (error.code === "voice.too_large") return apiError(c, 413, error.code, error.message);
+          if (error.code === "voice.no_words") return apiError(c, 422, error.code, error.message);
+          if (error.code === "voice.busy") return apiError(c, 503, error.code, error.message);
+        }
+        throw error;
+      }
+    },
+  );
+
+  app.openapi(
+    createRoute({
       method: "get",
       path: "/organizations/{orgId}/voice/allowed",
       tags,
@@ -212,6 +285,60 @@ export function voiceRoutes(deps: AppDeps) {
       if ("expired" in audio) return apiError(c, 410, "voice.expired", "This recording is no longer kept");
       if ("url" in audio) return c.redirect(audio.url, 302);
       return audioResponse(c, audio.body, audio.contentType);
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "post",
+      path: "/organizations/{orgId}/messages/{messageId}/speech",
+      tags,
+      security,
+      summary: "An agent's reply read aloud, for a voice call",
+      description:
+        "ADR 0198. Made when asked and never kept: the audio comes back in the answer. Only an agent's reply, for " +
+        "someone who can read its channel, and only the words a person reads (no code, tables or headings).",
+      request: { params: MessageParams },
+      responses: {
+        200: { description: "The audio" },
+        ...errors,
+        409: errorResponse("Voice calls are off on this server (`voice_call.unavailable`)"),
+        422: errorResponse("Not an agent's reply (`voice_call.not_agent`), or nothing to read (`voice_call.no_words`)"),
+        429: errorResponse("Too many (`rate_limited`)"),
+        502: errorResponse("The text-to-speech server refused (`voice_call.failed`)"),
+        503: errorResponse("The text-to-speech server is busy (`voice_call.busy`)"),
+      },
+    }),
+    async (c) => {
+      const { orgId, messageId } = c.req.valid("param");
+      const user = c.get("user");
+      if (!(await adapters.rateLimiter.consume(`voice-call:${user.id}`, SPEECH_PER_PERSON)).allowed) {
+        return apiError(c, 429, "rate_limited", "Slow down");
+      }
+      try {
+        const v = deps.extras?.voice;
+        const { audio, contentType } = await speakReply(
+          { db: deps.db, voice: v?.callVoice ?? null },
+          user.id,
+          orgId,
+          messageId,
+        );
+        return new Response(audio, {
+          status: 200,
+          headers: { "content-type": contentType, "cache-control": "no-store", "x-content-type-options": "nosniff" },
+        });
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          if (error.code === "voice_call.unavailable") return apiError(c, 409, error.code, error.message);
+          if (error.code.startsWith("voice_call.")) return apiError(c, 422, error.code, error.message);
+        }
+        if (error instanceof SpeechError) {
+          return error.reason === "busy"
+            ? apiError(c, 503, "voice_call.busy", "The voice is busy. Try again.")
+            : apiError(c, 502, "voice_call.failed", "The voice couldn't read this reply");
+        }
+        throw error;
+      }
     },
   );
 

@@ -121,12 +121,12 @@ export async function setMySidebarItems(
   await requirePermission(db, userId, orgId, "read");
   const clean = sidebarItemsOf(items);
   const column = organizationMembers.sidebarItems;
-  // The section order, the tools' order and the view share the row (`setMySidebarOrder`, `setMySidebarToolOrder`,
-  // `setMySidebarView`) and stay.
+  // The section order, the tools' order, the view and my own order share the row (`setMySidebarOrder`,
+  // `setMySidebarToolOrder`, `setMySidebarView`, `setMyOwnOrder`) and stay.
   await db
     .update(organizationMembers)
     .set({
-      sidebarItems: sql`${JSON.stringify(clean)}::jsonb || jsonb_strip_nulls(jsonb_build_object('order', ${column} -> 'order', 'tools', ${column} -> 'tools', 'view', ${column} -> 'view'))`,
+      sidebarItems: sql`${JSON.stringify(clean)}::jsonb || jsonb_strip_nulls(jsonb_build_object('order', ${column} -> 'order', 'tools', ${column} -> 'tools', 'view', ${column} -> 'view', 'own', ${column} -> 'own'))`,
     })
     .where(mine(orgId, userId));
   return clean;
@@ -328,6 +328,60 @@ export async function setMySidebarView(
   await db
     .update(organizationMembers)
     .set({ sidebarItems: sql`${items} || jsonb_build_object(${VIEW_KEY}::text, ${JSON.stringify(clean)}::jsonb)` })
+    .where(mine(orgId, userId));
+  return clean;
+}
+
+const OWN_KEY = "own";
+/** At most this many ids kept per kind in my own order: more than any sidebar lists, and a row stays small. */
+export const OWN_ORDER_LIMIT = 500;
+export const OWN_ORDER_KINDS = ["channels", "people", "agents"] as const;
+
+/**
+ * "Usar a minha ordem" (ADR 0080, addendum of 2026-11-16): whether the person's sidebar lists its channels, agents and
+ * people in their own order, and that order (`own` in the same `sidebar_items` row). Ids only, never checked against
+ * the channels: the apps place only the rows the person sees, and nothing here reaches anyone else. Off keeps the
+ * order for the next time it's on.
+ */
+export interface OwnOrder {
+  on: boolean;
+  channels: string[];
+  people: string[];
+  agents: string[];
+}
+
+const ownIds = (raw: unknown) =>
+  Array.isArray(raw)
+    ? [...new Set(raw.filter((x): x is string => typeof x === "string" && x.length > 0 && x.length <= 64))].slice(
+        0,
+        OWN_ORDER_LIMIT,
+      )
+    : [];
+
+/** Each kind's ids once, at most `OWN_ORDER_LIMIT`; off unless the row says on. */
+export function ownOrderOf(raw: unknown): OwnOrder {
+  const v = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  return { on: v.on === true, channels: ownIds(v.channels), people: ownIds(v.people), agents: ownIds(v.agents) };
+}
+
+/** The person's own order in this workspace. */
+export async function myOwnOrder(db: Database, orgId: string, userId: string): Promise<OwnOrder> {
+  await requirePermission(db, userId, orgId, "read");
+  const [row] = await db
+    .select({ items: organizationMembers.sidebarItems })
+    .from(organizationMembers)
+    .where(mine(orgId, userId));
+  return ownOrderOf((row?.items as Record<string, unknown> | undefined)?.[OWN_KEY]);
+}
+
+/** Replaces the person's own order in this workspace; the tools' places, the orders and the view stay. */
+export async function setMyOwnOrder(db: Database, orgId: string, userId: string, own: OwnOrder): Promise<OwnOrder> {
+  await requirePermission(db, userId, orgId, "read");
+  const clean = ownOrderOf(own);
+  const items = organizationMembers.sidebarItems;
+  await db
+    .update(organizationMembers)
+    .set({ sidebarItems: sql`${items} || jsonb_build_object(${OWN_KEY}::text, ${JSON.stringify(clean)}::jsonb)` })
     .where(mine(orgId, userId));
   return clean;
 }

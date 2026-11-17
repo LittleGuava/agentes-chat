@@ -201,3 +201,38 @@ test("suggestions: archiving is its own tap, never in the bulk one, and each can
   ]);
   expect(s.calls.some((c) => c.method === "proposals.accept")).toBe(false);
 });
+
+test("the day's card opens with the paragraph the AI wrote, marked as such, only when there is one", async () => {
+  const day = {
+    period: "day" as const,
+    stats: { done: 2, stuck: 0, waiting: 1, spentNanoUsd: 0, budgetNanoUsd: 0 },
+    rows: [
+      {
+        id: "waiting",
+        kind: "waiting" as const,
+        count: 1,
+        ids: ["n-1"],
+        agentId: ADA_ID,
+        since: "2026-11-05T12:41:00Z",
+      },
+    ],
+  };
+  const s = lodiWeek(card({ ...day, summary: "Uma coisa espera você e a Ada terminou dois trabalhos." }));
+  await renderApp(`/org/${ORG_ID}/dm/agent/${LODI_ID}`, { api: createFakeApi(s) });
+  await settle(8);
+  const group = screen.getByRole("group", { name: "Resumo do dia" });
+  expect(group.querySelector(".tw__summary")?.textContent).toBe(
+    "Uma coisa espera você e a Ada terminou dois trabalhos.",
+  );
+  expect(group.textContent).toContain("Escrito pela IA");
+  // The rest of the card is the same.
+  expect(group.textContent).toContain("1 coisa espera você");
+  cleanup();
+
+  const plain = lodiWeek(card(day));
+  await renderApp(`/org/${ORG_ID}/dm/agent/${LODI_ID}`, { api: createFakeApi(plain) });
+  await settle(8);
+  const without = screen.getByRole("group", { name: "Resumo do dia" });
+  expect(without.querySelector(".tw__summary")).toBeNull();
+  expect(without.textContent).not.toContain("Escrito pela IA");
+});

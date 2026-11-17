@@ -19,6 +19,19 @@ const Computer = z
       description:
         "Which computer the agent uses (ADR 0025): a connected computer, or none. Set with `PUT …/computer/target`.",
     }),
+    relay: z
+      .array(
+        z.object({
+          site: z.string(),
+          machine: z.object({ id: z.uuid(), name: z.string() }),
+          by: z.object({ id: z.string(), name: z.string() }).nullable(),
+          online: z.boolean(),
+        }),
+      )
+      .openapi({
+        description:
+          "The sites another computer of the workspace lends the agent's browser its connection for (ADR 0203), one line per computer: the person who connected it, and whether it is there now (online, not paused). Granted only at that computer.",
+      }),
   })
   .openapi("AgentComputer");
 const Settings = z

@@ -1,6 +1,7 @@
 import {
   hashKey,
   type InfiniteData,
+  keepPreviousData,
   mutationOptions,
   notifyManager,
   type QueryCache,
@@ -45,6 +46,7 @@ import {
   upsertInPages,
   withServerCounts,
 } from "../lib/notifications";
+import { OWN_ORDER_DEFAULT } from "../lib/own-order";
 import { workspaceUsesApi } from "../lib/plan-usage";
 import { learnPlanModels } from "../lib/plans";
 import { setMyReaction } from "../lib/reactions";
@@ -54,6 +56,7 @@ import { firstVisitOf, teamAnswered } from "../lib/right-hand";
 import { type LodiPrefs, type LodiPrefsPatch, legacyPatch } from "../lib/right-hand-prefs";
 import { usagePauseRefetchMs } from "../lib/routine-view";
 import { withRead } from "../lib/seen";
+import { SERVER_UPDATE_POLL_MS, serverUpdateBusy } from "../lib/server-updater";
 import {
   knownToolOrder,
   sidebarDefaults,
@@ -69,6 +72,7 @@ import { upsertMessage, withLocalCopies } from "../lib/timeline";
 import { listedText } from "../lib/voice";
 import type { AudienceChoice } from "../lib/who-sees";
 import type { WikiAccess } from "../lib/wiki";
+import { scopeNamesSome } from "../lib/workspace-export";
 import type { RealtimeConnection } from "../realtime/connection";
 import { readUnknownMembers, setOrgDeletion } from "../realtime/machines";
 import type { ApiClient } from "./client";
@@ -81,6 +85,7 @@ import type {
   AdminAsk,
   Agent,
   AgentAction,
+  AgentApiKeyInput,
   AgentAudience,
   AgentComputer,
   AgentDatabase,
@@ -95,6 +100,7 @@ import type {
   AgentSetup,
   AgentStyle,
   AiStatus,
+  Announcement,
   ApiRule,
   AppConsentDecision,
   AppNotification,
@@ -107,6 +113,7 @@ import type {
   AuditPage,
   AuditQuery,
   AuditRow,
+  AwayEmailMinutes,
   BlockState,
   BrainScope,
   CalendarEventInput,
@@ -125,6 +132,7 @@ import type {
   DmRead,
   DmTarget,
   EndpointModel,
+  ExportScope,
   ForeignMailbox,
   GifCategory,
   GifKey,
@@ -155,12 +163,17 @@ import type {
   NotificationCount,
   NotificationEvent,
   NotificationFilter,
+  OAuthAppInput,
   OrgRoles,
   OrgSettings,
+  OwnOrder,
   PendingReturn,
   Person,
   PersonalTokenInput,
   PersonLimits,
+  PhoneTool,
+  PhoneTools,
+  ProgramInput,
   Proposal,
   ReactionCount,
   ReminderInput,
@@ -182,6 +195,7 @@ import type {
   SetupStep,
   SidebarItem,
   SidebarItems,
+  SidebarLink,
   SidebarPlace,
   SidebarSection,
   SidebarView,
@@ -341,6 +355,36 @@ export function useSetServerTelemetry() {
   });
 }
 
+/** A newer release to install: `null` for everyone but the installation's owner (the server asks GitHub twice a day at most). */
+export const useServerUpdate = () => {
+  const api = useApi();
+  return useQuery({ queryKey: keys.serverUpdate, queryFn: () => api.system.serverUpdate(), staleTime: 3600_000 });
+};
+
+/**
+ * Updates from the app (ADR 0200): `null` for everyone but the installation's owner on a server with the updater.
+ * Asked again every few seconds while a request waits or a run goes on, and while the server is away restarting.
+ */
+export const useServerUpdater = () => {
+  const api = useApi();
+  return useQuery({
+    queryKey: keys.serverUpdater,
+    queryFn: () => api.system.serverUpdater(),
+    refetchInterval: (query) => (serverUpdateBusy(query.state.data ?? null) ? SERVER_UPDATE_POLL_MS : false),
+  });
+};
+
+export function useUpdateServer() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.system.updateServer(),
+    onSuccess: (view) => qc.setQueryData(keys.serverUpdater, view),
+    // Refused (the updater went away, another request got there first): show what is true now.
+    onError: () => qc.invalidateQueries({ queryKey: keys.serverUpdater }),
+  });
+}
+
 /** The installation's Jev key: `null` for everyone but its owner on a self-hosted server. */
 export const useJevKey = () => {
   const api = useApi();
@@ -469,6 +513,34 @@ export const useAccountDeletionPlan = (enabled = true) => {
     gcTime: 0,
   });
 };
+
+/** Where my account is signed in (`GET /account/sessions`); null on a server from before the list. */
+export const useAccountSessions = () => {
+  const api = useApi();
+  return useQuery({ queryKey: keys.accountSessions, queryFn: () => api.account.sessions(), staleTime: 0 });
+};
+
+/** Signs one of my other sessions out; the list is read again either way (it may have ended meanwhile). */
+export function useSignOutSession() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (sessionId: string) => api.account.signOutSession(sessionId),
+    meta: { silent: true },
+    onSettled: () => qc.invalidateQueries({ queryKey: keys.accountSessions }),
+  });
+}
+
+/** Signs out every session of mine but this one. */
+export function useSignOutOtherSessions() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.account.signOutOtherSessions(),
+    meta: { silent: true },
+    onSettled: () => qc.invalidateQueries({ queryKey: keys.accountSessions }),
+  });
+}
 
 /**
  * Deletes the workspace (owners), with the proof that it's them (the emailed code, or the password). Its line on top
@@ -769,6 +841,19 @@ export function useUnarchiveAgent(orgId: string) {
     mutationFn: (agentId: string) => api.agents.unarchive(orgId, agentId),
     onSuccess: () => {
       for (const key of [keys.agents(orgId), keys.team(orgId)]) void qc.invalidateQueries({ queryKey: key });
+    },
+  });
+}
+
+/** "Duplicar" on an agent: the copy joins the agents' lists (and its group, when it took the original's). */
+export function useDuplicateAgent(orgId: string) {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ agentId, name }: { agentId: string; name?: string }) => api.agents.duplicate(orgId, agentId, name),
+    onSuccess: () => {
+      for (const key of [keys.agents(orgId), keys.team(orgId), keys.agentGroups(orgId)])
+        void qc.invalidateQueries({ queryKey: key });
     },
   });
 }
@@ -1159,6 +1244,19 @@ export function useSetAgentLines(orgId: string) {
 export const useAgentGroups = (orgId: string) => {
   const api = useApi();
   return useQuery({ queryKey: keys.agentGroups(orgId), queryFn: () => api.agentGroups.list(orgId), staleTime: 30_000 });
+};
+
+/** The file a part of the workspace would download as (ADR 0055 addendum 2026-11-15), while the part names some. */
+export const useExportPreview = (orgId: string, scope: ExportScope) => {
+  const api = useApi();
+  const agentIds = scope.agentIds ?? [];
+  const groupIds = scope.groupIds ?? [];
+  return useQuery({
+    queryKey: keys.exportPreview(orgId, agentIds, groupIds),
+    queryFn: () => api.imports.exportBundle(orgId, { agentIds, groupIds }),
+    enabled: scopeNamesSome(scope),
+    placeholderData: keepPreviousData,
+  });
 };
 
 export type AgentGroupAction =
@@ -1919,12 +2017,14 @@ export function useSendVoice(
       replyTo: string | null;
       language: string | null;
       meta?: Record<string, unknown>;
+      /** The caller's own, to follow the message (a voice call, ADR 0198); else a new one. */
+      clientId?: string;
       text?: string;
     }): Promise<boolean> => {
       const { blob, durationMs, peaks, threadId, replyTo, language, meta } = input;
       const text = input.text?.trim() ?? "";
       const attachments = artifactRefs(meta).map((r) => r.id);
-      const clientId = newClientId();
+      const clientId = input.clientId ?? newClientId();
       voiceLocal.set(clientId, URL.createObjectURL(blob));
       const local: Message = {
         id: `local-${clientId}`,
@@ -2538,6 +2638,36 @@ export function useRemoveGitHubApp(orgId: string) {
   });
 }
 
+/** Turns each person's own account on or off for a connection (ADR 0195, admins). */
+export function useSetPerPerson(orgId: string) {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, perPerson }: { id: string; perPerson: boolean }) =>
+      api.connectors.setPerPerson(orgId, id, perPerson),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.customServers(orgId) }),
+  });
+}
+
+/** "Connect my account": the URL to open, back to `returnTo` (ADR 0195). */
+export function useConnectMine(orgId: string) {
+  const api = useApi();
+  return useMutation({
+    mutationFn: ({ id, returnTo }: { id: string; returnTo: string }) =>
+      api.connectors.connectMine(orgId, id, { returnTo }),
+  });
+}
+
+/** "Disconnect my account" (ADR 0195). */
+export function useDisconnectMine(orgId: string) {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.connectors.disconnectMine(orgId, id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.customServers(orgId) }),
+  });
+}
+
 export function useDisconnect(orgId: string) {
   const api = useApi();
   const qc = useQueryClient();
@@ -2694,6 +2824,9 @@ export const useSettings = (orgId: string) => {
   const api = useApi();
   return useQuery({ queryKey: keys.settings(orgId), queryFn: () => api.orgs.settings(orgId) });
 };
+
+/** The workspace's rule on what agents think with (ADR 0191), for the pickers; null while unknown or none. */
+export const useBrainPolicy = (orgId: string) => useSettings(orgId).data?.allowedBrains ?? null;
 
 export function useUpdateSettings(orgId: string) {
   const api = useApi();
@@ -3066,6 +3199,50 @@ export function useResendInvitation(orgId: string) {
   });
 }
 
+/** The domains whose confirmed addresses join without an invitation (admins, ADR 0068, addendum 2026-11-15). */
+export const useJoinDomains = (orgId: string, enabled = true) => {
+  const api = useApi();
+  return useQuery({ queryKey: keys.joinDomains(orgId), queryFn: () => api.joinDomains.list(orgId), enabled });
+};
+
+export function useAddJoinDomain(orgId: string) {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { domain: string; roleIds?: string[] }) => api.joinDomains.add(orgId, input),
+    onSettled: () => qc.invalidateQueries({ queryKey: keys.joinDomains(orgId) }),
+  });
+}
+
+export function useRemoveJoinDomain(orgId: string) {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (domainId: string) => api.joinDomains.remove(orgId, domainId),
+    onSettled: () => qc.invalidateQueries({ queryKey: keys.joinDomains(orgId) }),
+  });
+}
+
+/** Workspaces the account's confirmed address's domain lets it join. */
+export const useDomainWorkspaces = (enabled = true) => {
+  const api = useApi();
+  return useQuery({ queryKey: keys.domainWorkspaces, queryFn: () => api.joinDomains.workspaces(), enabled });
+};
+
+/** Joins one: the account's workspaces read again, so it opens as one of them. */
+export function useJoinByDomain() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (orgId: string) => api.joinDomains.join(orgId),
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: keys.me }),
+        qc.invalidateQueries({ queryKey: keys.domainWorkspaces }),
+      ]),
+  });
+}
+
 /** The workspace's invitation links (admins, ADR 0068). */
 export const useInviteLinks = (orgId: string, enabled = true) => {
   const api = useApi();
@@ -3169,6 +3346,16 @@ export const useComposioUsage = (orgId: string, enabled = true) => {
   });
 };
 
+/** Configurações › Saúde: the workspace's failures grouped by cause, latest first (ADR 0214). */
+export function useHealthIssues(orgId: string) {
+  const api = useApi();
+  return useQuery({
+    queryKey: keys.healthIssues(orgId),
+    queryFn: () => api.orgs.healthIssues(orgId),
+    staleTime: 60_000,
+  });
+}
+
 /** Configurações › Auditoria: pages of 50, newest first (admins). */
 export function useAudit(orgId: string, query: AuditQuery, enabled = true) {
   const api = useApi();
@@ -3254,6 +3441,45 @@ export const useRaisePersonLimit = (orgId: string) => {
 export const useRefuseMoreUsage = (orgId: string) => {
   const api = useApi();
   return usePeopleUsageMutation(orgId, (userId: string) => api.orgs.refuseMoreUsage(orgId, userId));
+};
+
+/** How often the announcements are read again while the workspace is open, besides its window coming into focus. */
+const ANNOUNCEMENTS_POLL_MS = 15 * 60_000;
+
+/**
+ * What the server's operator tells me here now (ADR 0056, addendum on announcements). Nothing comes over the socket:
+ * read when the workspace opens, on focus and every 15 minutes.
+ */
+export const useAnnouncements = (orgId: string, enabled = true) => {
+  const api = useApi();
+  return useQuery({
+    queryKey: keys.announcements(orgId),
+    queryFn: () => api.orgs.announcements(orgId),
+    enabled,
+    retry: false,
+    refetchInterval: ANNOUNCEMENTS_POLL_MS,
+    refetchOnWindowFocus: true,
+    meta: { quiet: true },
+  });
+};
+
+/** Closes one for good: it leaves at once, and comes back only if the server refuses. */
+export const useDismissAnnouncement = (orgId: string) => {
+  const api = useApi();
+  const qc = useQueryClient();
+  const key = keys.announcements(orgId);
+  return useMutation({
+    mutationFn: (id: string) => api.orgs.dismissAnnouncement(orgId, id),
+    onMutate: async (id: string) => {
+      await qc.cancelQueries({ queryKey: key });
+      const before = qc.getQueryData<{ announcements: Announcement[] }>(key);
+      if (before) qc.setQueryData(key, { announcements: before.announcements.filter((a) => a.id !== id) });
+      return { before };
+    },
+    onError: (_error, _id, context) => {
+      if (context?.before) qc.setQueryData(key, context.before);
+    },
+  });
 };
 
 /** What Lodi does for me by itself: when its daily and weekly cards come, and its other switches (ADR 0137 §9). */
@@ -3750,6 +3976,24 @@ export function cachePinned(
 }
 
 /**
+ * `message.edited` (and an edit's own response, ADR 0207): the message's new text and edit time, in every cached list
+ * of that channel (timeline and threads). Everything else it carries (receipts, reactions, pins) stays.
+ */
+export function cacheMessageEdited(
+  qc: ReturnType<typeof useQueryClient>,
+  orgId: string,
+  channelId: string,
+  edit: { messageId: string; body: string; editedAt: string },
+) {
+  qc.setQueriesData({ queryKey: ["org", orgId, "channel", channelId] }, (data: unknown) => {
+    if (!Array.isArray(data)) return data;
+    const list = data as Message[];
+    if (!list.some((m) => m && m.id === edit.messageId)) return data;
+    return list.map((m) => (m.id === edit.messageId ? { ...m, body: edit.body, editedAt: edit.editedAt } : m));
+  });
+}
+
+/**
  * `message.actions` (and undo/redo results): an agent message's receipts, in
  * every cached list of that channel (timeline and threads). Replaces the list.
  */
@@ -3833,6 +4077,24 @@ export function useCorrectMessage(orgId: string) {
   });
 }
 
+/** Edits a message you sent, or edits it and redoes the agents' answer (`redo`, ADR 0207); its new text at once. */
+export function useEditMessage(orgId: string) {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ messageId, body, redo }: { messageId: string; body: string; redo?: boolean }) =>
+      api.chat.editMessage(orgId, messageId, { body, ...(redo ? { redo: true } : {}) }),
+    onSuccess: ({ message }) => {
+      if (message.editedAt)
+        cacheMessageEdited(qc, orgId, message.channelId, {
+          messageId: message.id,
+          body: message.body,
+          editedAt: message.editedAt,
+        });
+    },
+  });
+}
+
 // ── Invites, custom MCP ─────────────────────────────────────────────────────
 
 export const useCustomServers = (orgId: string, enabled = true) => {
@@ -3853,6 +4115,7 @@ export function useCustomServerAction(orgId: string) {
         returnTo: string;
         connectionId?: string;
         headers?: RequestHeader[];
+        oauthClient?: OAuthAppInput;
       }) => api.customConnectors.connect(orgId, input),
       // A new server is every agent's: their access trees change too.
       onSuccess: () => Promise.all([done(), qc.invalidateQueries({ queryKey: keys.access(orgId) })]),
@@ -3875,8 +4138,24 @@ export function useCustomServerAction(orgId: string) {
       mutationFn: (id: string) => api.customConnectors.disconnect(orgId, id),
       onSuccess: done,
     }),
+    connectProgram: useMutation({
+      mutationFn: (input: ProgramInput) => api.customConnectors.connectProgram(orgId, input),
+      onSuccess: done,
+      // The form says its own failures.
+      meta: { silent: true },
+    }),
   };
 }
+
+/** The caller's own computers that can run a program (ADR 0215); only asked for a manager of connectors. */
+export const useProgramComputers = (orgId: string, enabled = true) => {
+  const api = useApi();
+  return useQuery({
+    queryKey: keys.programComputers(orgId),
+    queryFn: () => api.customConnectors.programComputers(orgId),
+    enabled,
+  });
+};
 
 // ── Memory and proposals (phase 5) ──────────────────────────────────────────
 
@@ -3918,13 +4197,13 @@ export function useMemoryAction(orgId: string, agentId: string) {
   return useMutation({
     mutationFn: (
       action:
-        | { type: "edit"; id: string; text: string }
+        | { type: "edit"; id: string; text: string; validUntil?: string | null }
         | { type: "pin"; id: string; pinned: boolean }
         | { type: "archive"; id: string; archived: boolean }
         | { type: "confirm"; id: string }
         | { type: "team"; id: string },
     ) => {
-      if (action.type === "edit") return api.memory.edit(orgId, action.id, action.text);
+      if (action.type === "edit") return api.memory.edit(orgId, action.id, action.text, action.validUntil);
       if (action.type === "pin") return api.memory.setPinned(orgId, action.id, action.pinned);
       if (action.type === "confirm") return api.memory.confirm(orgId, action.id);
       if (action.type === "team") return api.memory.makeTeam(orgId, action.id);
@@ -4344,6 +4623,26 @@ export function useSetArtifactSharing(orgId: string) {
   return useMutation({
     mutationFn: (input: { id: string; sharing: Parameters<typeof api.artifacts.setSharing>[2] }) =>
       api.artifacts.setSharing(orgId, input.id, input.sharing),
+    meta: { silent: true },
+    onSettled: () => qc.invalidateQueries({ queryKey: keys.artifacts(orgId) }),
+  });
+}
+
+/** A file's live public page, if any, that I may take down (ADR 0211). */
+export function usePublishedPages(orgId: string, artifactId: string) {
+  const api = useApi();
+  return useQuery({
+    queryKey: keys.publishedPages(orgId, artifactId),
+    queryFn: () => api.artifacts.publishedPages(orgId, artifactId),
+  });
+}
+
+/** Despublicar: the page's address stops at once. The caller says a failure. */
+export function useUnpublishPage(orgId: string) {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (pageId: string) => api.artifacts.unpublish(orgId, pageId),
     meta: { silent: true },
     onSettled: () => qc.invalidateQueries({ queryKey: keys.artifacts(orgId) }),
   });
@@ -5930,6 +6229,25 @@ export const useNoticePrefs = (orgId: string) => {
   return useQuery({ queryKey: keys.noticePrefs(orgId), queryFn: () => api.notifications.prefs(orgId) });
 };
 
+/**
+ * What this person lets their agents use on this phone here (ADR 0205). A server from before it answers 404: the
+ * query fails once (no retry) and the phone app hides the row.
+ */
+export const usePhoneTools = (orgId: string, enabled = true) => {
+  const api = useApi();
+  return useQuery({ queryKey: keys.phoneTools(orgId), queryFn: () => api.phone.tools(orgId), enabled, retry: false });
+};
+
+/** Turns the phone's apps on or off for this person's agents here, with the phone's name. */
+export function useSetPhoneTools(orgId: string) {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { tools: PhoneTool[]; deviceName: string }) => api.phone.setTools(orgId, input),
+    onSuccess: (tools: PhoneTools) => qc.setQueryData(keys.phoneTools(orgId), tools),
+  });
+}
+
 /** One category on or off: the switch moves at once, and goes back if the server refuses. */
 export function useSetNoticePref(orgId: string) {
   const api = useApi();
@@ -5942,6 +6260,25 @@ export function useSetNoticePref(orgId: string) {
       const before = qc.getQueryData<NoticePrefs>(keys.noticePrefs(orgId));
       qc.setQueryData<NoticePrefs>(keys.noticePrefs(orgId), (prefs) =>
         prefs ? { ...prefs, categories: prefs.categories.map((c) => (c.id === category ? { ...c, on } : c)) } : prefs,
+      );
+      return { before };
+    },
+    onError: (_error, _input, context) => qc.setQueryData(keys.noticePrefs(orgId), context?.before),
+    onSuccess: (prefs) => qc.setQueryData(keys.noticePrefs(orgId), prefs),
+  });
+}
+
+/** The email when I'm away (ADR 0069, addendum 2026-11-15): the choice shows at once, and goes back if refused. */
+export function useSetAwayEmail(orgId: string) {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (minutes: AwayEmailMinutes) => api.notifications.setAwayEmail(orgId, minutes),
+    onMutate: async (minutes) => {
+      await qc.cancelQueries({ queryKey: keys.noticePrefs(orgId) });
+      const before = qc.getQueryData<NoticePrefs>(keys.noticePrefs(orgId));
+      qc.setQueryData<NoticePrefs>(keys.noticePrefs(orgId), (prefs) =>
+        prefs ? { ...prefs, awayEmail: minutes } : prefs,
       );
       return { before };
     },
@@ -6087,6 +6424,88 @@ export function useSetSidebarView(orgId: string) {
   return (change: (now: SidebarView) => SidebarView) => {
     void qc.cancelQueries({ queryKey: key });
     const next = change(qc.getQueryData<SidebarView>(key) ?? SIDEBAR_VIEW_DEFAULT);
+    qc.setQueryData(key, next);
+    save.mutate(next);
+  };
+}
+
+/** My links in the sidebar of this workspace, in their order (ADR 0083, amendment of 2026-11-15). */
+export const useSidebarLinks = (orgId: string) => {
+  const api = useApi();
+  return useQuery({
+    queryKey: keys.sidebarLinks(orgId),
+    queryFn: () => api.orgs.sidebarLinks(orgId),
+    staleTime: 60_000,
+  });
+};
+
+/** Adds a link at the end of my sidebar's links; the server's answer (every link) is what shows. */
+export function useAddSidebarLink(orgId: string) {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (link: { title: string; url: string }) => api.orgs.addSidebarLink(orgId, link),
+    onSuccess: (links) => qc.setQueryData<SidebarLink[]>(keys.sidebarLinks(orgId), links),
+  });
+}
+
+/** Removes one of my sidebar's links: it leaves at once and comes back if the server refuses. */
+export function useRemoveSidebarLink(orgId: string) {
+  const api = useApi();
+  const qc = useQueryClient();
+  const key = keys.sidebarLinks(orgId);
+  return useMutation({
+    mutationFn: (linkId: string) => api.orgs.removeSidebarLink(orgId, linkId),
+    onMutate: async (linkId) => {
+      await qc.cancelQueries({ queryKey: key });
+      const before = qc.getQueryData<SidebarLink[]>(key);
+      qc.setQueryData<SidebarLink[]>(key, (links) => links?.filter((l) => l.id !== linkId));
+      return { before };
+    },
+    onError: (_error, _linkId, context) => {
+      qc.setQueryData(key, context?.before);
+      void qc.invalidateQueries({ queryKey: key });
+    },
+    onSuccess: (links) => qc.setQueryData<SidebarLink[]>(key, links),
+  });
+}
+
+/** "Usar a minha ordem" and my order in this workspace (ADR 0080, addendum of 2026-11-16); off until it loads. */
+export const useOwnOrder = (orgId: string): OwnOrder => {
+  const api = useApi();
+  return (
+    useQuery({
+      queryKey: keys.ownOrder(orgId),
+      queryFn: () => api.orgs.ownOrder(orgId),
+      staleTime: 60_000,
+    }).data ?? OWN_ORDER_DEFAULT
+  );
+};
+
+/**
+ * Changes my own order, as `useSetSidebarView` changes the view: at once on screen, one request at a time, each change
+ * from the latest order on screen; a refusal brings back what the server keeps.
+ */
+export function useSetOwnOrder(orgId: string) {
+  const api = useApi();
+  const qc = useQueryClient();
+  const key = keys.ownOrder(orgId);
+  const mutationKey = ["own-order", orgId];
+  const save = useMutation({
+    mutationKey,
+    scope: { id: `own-order:${orgId}` },
+    mutationFn: (own: OwnOrder) => api.orgs.setOwnOrder(orgId, own),
+    onError: () => {
+      if (qc.isMutating({ mutationKey }) > 1) return;
+      void qc.invalidateQueries({ queryKey: key });
+    },
+    onSuccess: (own) => {
+      if (qc.isMutating({ mutationKey }) <= 1) qc.setQueryData(key, own);
+    },
+  });
+  return (change: (now: OwnOrder) => OwnOrder) => {
+    void qc.cancelQueries({ queryKey: key });
+    const next = change(qc.getQueryData<OwnOrder>(key) ?? OWN_ORDER_DEFAULT);
     qc.setQueryData(key, next);
     save.mutate(next);
   };
@@ -6415,7 +6834,8 @@ function part<
     | "actions"
     | "actionCards"
     | "agentForYou"
-    | "gifs",
+    | "gifs"
+    | "viewers",
 >(api: ApiClient, name: K): NonNullable<ApiClient[K]> {
   const value = api[name];
   if (!value) throw new Error(`This API client has no ${name}`);
@@ -6507,6 +6927,36 @@ export function addDm(qc: QueryClient, orgId: string, dm: DirectMessage) {
   // A read of the list already on its way (the sidebar's, started with the page) may have left before this DM
   // existed, and its answer would replace the list: once it lands, the DM goes in again, with no read of its own.
   void qc.refetchQueries({ queryKey: key, exact: true, fetchStatus: "fetching" }, { cancelRefetch: false }).then(add);
+}
+
+/**
+ * Marks a channel or DM unread for me ("Marcar como não lida"): the lists show it unread at once, then read again
+ * (the server's count wins). Opening it reads it, as ever.
+ */
+export function useMarkChannelUnread(orgId: string) {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (channelId: string) => api.dms.markUnread(orgId, channelId),
+    onMutate: (channelId) => markUnread(qc, orgId, channelId),
+    onSettled: () => refreshConversations(qc, orgId),
+  });
+}
+
+/** A conversation counts one unread at least in the cached lists (marked here or on another device). */
+function markUnread(qc: QueryClient, orgId: string, channelId: string) {
+  qc.setQueryData<Channel[]>(keys.channels(orgId), (list) =>
+    list?.map((c) => (c.id === channelId ? { ...c, unreadCount: Math.max(c.unreadCount ?? 0, 1) } : c)),
+  );
+  qc.setQueryData<DirectMessage[]>(keys.dms(orgId), (list) =>
+    list?.map((d) => (d.channelId === channelId ? { ...d, unread: Math.max(d.unread, 1) } : d)),
+  );
+}
+
+/** The channel and DM lists read again. */
+function refreshConversations(qc: QueryClient, orgId: string) {
+  void qc.invalidateQueries({ queryKey: keys.channels(orgId) });
+  void qc.invalidateQueries({ queryKey: keys.dms(orgId) });
 }
 
 /** A conversation shows nothing unread in the cached lists (read here or on another device). */
@@ -6674,6 +7124,9 @@ export function applyUnreadEvent(qc: QueryClient, orgId: string, event: { type: 
     void qc.invalidateQueries({ queryKey: keys.channels(orgId) });
     void qc.invalidateQueries({ queryKey: keys.dms(orgId) });
     void qc.invalidateQueries({ queryKey: keys.unreadThreads(orgId) });
+  } else if (e.type === "channel.unread") {
+    markUnread(qc, orgId, e.channelId);
+    refreshConversations(qc, orgId);
   } else if (e.type === "channel.muted") setMuted(qc, orgId, e.channelId, e.muted);
   else if (e.type === "thread.read") {
     clearThreadUnread(qc, orgId, e.threadId);
@@ -6720,6 +7173,24 @@ export function useCancelFollowUp(orgId: string) {
       void qc.invalidateQueries({ queryKey: keys.taskManager(orgId) });
       void qc.invalidateQueries({ queryKey: keys.agentStatus(orgId) });
     },
+  });
+}
+
+/**
+ * Who else has a conversation open (ADR 0084 addendum 2026-11-15), live: the channel's `channel.viewers` and the
+ * workspace's `member.status` (someone went hidden) read it again. Never kept from an earlier visit: while the
+ * conversation was closed no event reached it.
+ */
+export function useChannelViewers(orgId: string, channelId: string, enabled = true) {
+  const api = useApi();
+  return useQuery({
+    queryKey: keys.viewers(orgId, channelId),
+    queryFn: () => part(api, "viewers").list(orgId, channelId),
+    enabled: enabled && Boolean(api.viewers),
+    staleTime: 0,
+    // Dropped as the header goes: a visit later never shows who was there before.
+    gcTime: 0,
+    refetchOnMount: "always",
   });
 }
 
@@ -7106,6 +7577,53 @@ export const useApps = (orgId: string, all = false, pollMs: number | false = fal
     queryKey: keys.apps(orgId, all),
     queryFn: () => api.apps.list(orgId, all),
     refetchInterval: pollMs,
+  });
+};
+
+/**
+ * An agent's API keys (ADR 0210) and where they send, for its owner or whoever manages agents. Read again back to the
+ * tab: a key is used from a terminal, not from here, so its last use and its room arrive with no event.
+ */
+export const useAgentApiKeys = (orgId: string, agentId: string, enabled = true) => {
+  const api = useApi();
+  return useQuery({
+    queryKey: keys.agentApiKeys(orgId, agentId),
+    queryFn: () => api.agentApiKeys.list(orgId, agentId),
+    enabled,
+    ...BACK_TO_TAB,
+  });
+};
+
+/** Criar chave, Revogar: the agent's list refreshes. Creating is silent: its dialog says what went wrong. */
+export function useAgentApiKeyActions(orgId: string, agentId: string) {
+  const api = useApi();
+  const qc = useQueryClient();
+  const done = () => void qc.invalidateQueries({ queryKey: keys.agentApiKeys(orgId, agentId) });
+  return {
+    create: useMutation({
+      mutationFn: (input: AgentApiKeyInput) => api.agentApiKeys.create(orgId, agentId, input),
+      meta: { silent: true },
+      onSuccess: done,
+    }),
+    revoke: useMutation({
+      mutationFn: (keyId: string) => api.agentApiKeys.revoke(orgId, agentId, keyId),
+      onSuccess: done,
+    }),
+  };
+}
+
+/**
+ * The API key a conversation outside the channel and DM lists belongs to (ADR 0210), asked only for such a one:
+ * a 404 is an answer (not a key's room, or not mine), never retried.
+ */
+export const useAgentKeyRoom = (orgId: string, channelId: string, enabled: boolean) => {
+  const api = useApi();
+  return useQuery({
+    queryKey: keys.agentKeyRoom(orgId, channelId),
+    queryFn: () => api.agentApiKeys.room(orgId, channelId),
+    enabled,
+    retry: false,
+    staleTime: Number.POSITIVE_INFINITY,
   });
 };
 

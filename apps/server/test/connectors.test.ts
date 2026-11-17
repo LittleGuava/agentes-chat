@@ -4,7 +4,7 @@ import { existsSync } from "node:fs";
 import { createFakeComposioClient, createFakeErrorReporter, createFakeMailConnector } from "@agenteschat/adapters";
 import { and, eq, schema } from "@agenteschat/db";
 import { type McpConnect, mcpPreset } from "@agenteschat/engine";
-import { browser, createTestServer, seedOrg, signUp, type TestServer } from "./harness";
+import { browser, createTestServer, joinByInvitation, seedOrg, signUp, type TestServer } from "./harness";
 
 let t: TestServer;
 afterEach(() => t.close());
@@ -430,6 +430,65 @@ test("one-click servers that haven't approved agentes.chat: `soon`, refused by i
   expect(asked).toContain("https://mcp.asana.com/register");
 });
 
+test("a server whose authorization server registers no apps (Entra ID) signs in with the admin's app", async () => {
+  const MCP = "https://mcp.contoso.example/mcp";
+  const ISSUER = "https://login.contoso.example/tenant/v2.0";
+  const http = (async (input: string | URL) => {
+    const url = String(input);
+    if (url === MCP) {
+      return new Response("", {
+        status: 401,
+        headers: {
+          "www-authenticate": `Bearer resource_metadata="https://mcp.contoso.example/.well-known/oauth-protected-resource"`,
+        },
+      });
+    }
+    if (url === "https://mcp.contoso.example/.well-known/oauth-protected-resource") {
+      return Response.json({ resource: MCP, authorization_servers: [ISSUER] });
+    }
+    if (url === "https://login.contoso.example/tenant/v2.0/.well-known/openid-configuration") {
+      // No registration endpoint: apps are registered in the tenant by an admin.
+      return Response.json({
+        issuer: ISSUER,
+        authorization_endpoint: "https://login.contoso.example/tenant/oauth2/v2.0/authorize",
+        token_endpoint: "https://login.contoso.example/tenant/oauth2/v2.0/token",
+        scopes_supported: ["openid", "offline_access"],
+        token_endpoint_auth_methods_supported: ["client_secret_post", "client_secret_basic"],
+      });
+    }
+    return new Response("not found", { status: 404 });
+  }) as unknown as typeof fetch;
+  t = await createTestServer({ http, resolveHost: async () => ["93.184.216.34"] });
+  const owner = browser(t);
+  await signUp(owner, "owner@example.com");
+  const { orgId } = await seedOrg(owner);
+  const path = `/api/app/organizations/${orgId}/connectors/custom`;
+  expect(await (await owner(path, { json: { serverUrl: MCP } })).json()).toEqual({
+    status: "needs_key",
+    reason: "not_approved",
+  });
+  const res = await owner(path, {
+    json: {
+      serverUrl: MCP,
+      oauthClient: { clientId: "11111111-app", clientSecret: "contoso-secret-value", scopes: ["api://mcp/.default"] },
+    },
+  });
+  expect(res.status).toBe(200);
+  const text = await res.text();
+  expect(text).not.toContain("contoso-secret-value");
+  const started = JSON.parse(text) as { status: string; authorizeUrl: string };
+  expect(started.status).toBe("oauth");
+  expect(Object.fromEntries(new URL(started.authorizeUrl).searchParams)).toMatchObject({
+    client_id: "11111111-app",
+    scope: "api://mcp/.default offline_access",
+    code_challenge_method: "S256",
+    resource: MCP,
+  });
+  // No client id: refused before anything is asked.
+  const blank = await owner(path, { json: { serverUrl: MCP, oauthClient: { clientId: "" } } });
+  expect(blank.status).toBe(400);
+});
+
 test("catalog: with its OAuth app configured, our Linear connector replaces the one-click server", async () => {
   t = await createTestServer({
     env: { CONNECTOR_LINEAR_CLIENT_ID: "lin-id", CONNECTOR_LINEAR_CLIENT_SECRET: "lin-secret" },
@@ -837,4 +896,79 @@ test("request headers for a server by address (ADR 0186): taken by the route, na
     components: { schemas: { CustomServer: { properties: Record<string, unknown>; required: string[] } } };
   };
   expect(doc.components.schemas.CustomServer.required).toContain("headerNames");
+});
+
+test("each person's own account (ADR 0195): admins turn it on, any member connects theirs, and sees only their own", async () => {
+  const composio = createFakeComposioClient();
+  const version = mcpPreset("drive")?.composio?.version ?? "";
+  composio.addTools("googledrive", version, [
+    {
+      slug: "GOOGLEDRIVE_FIND_FILE",
+      description: "Find files",
+      inputSchema: { type: "object" },
+      tags: ["readOnlyHint"],
+    },
+  ]);
+  const signedIn = { email: "ana@acme.com" };
+  composio.answer("GOOGLEDRIVE_GET_ABOUT", () => ({ user: { emailAddress: signedIn.email } }));
+  t = await createTestServer({
+    mail: { composio: { client: composio.client, connector: createFakeMailConnector().connector }, imap: null },
+  });
+  const owner = browser(t);
+  await signUp(owner, "owner@example.com");
+  const { orgId } = await seedOrg(owner);
+  const org = `/api/app/organizations/${orgId}`;
+  const started = (await (await owner(`${org}/connectors/presets/drive/connect`, { json: {} })).json()) as {
+    authorizeUrl: string;
+  };
+  const account = composio.state.links.at(-1)?.connectedAccountId ?? "";
+  composio.activate(account, "", null);
+  const state = new URL(started.authorizeUrl).searchParams.get("state") ?? "";
+  await owner(`/api/app/connectors/oauth/callback?state=${state}&status=success&connected_account_id=${account}`);
+  type Server = { id: string; perPerson: boolean; mine: { accountLabel: string | null; status: string } | null };
+  const serversOf = async (who: typeof owner) =>
+    ((await (await who(`${org}/connectors/custom`)).json()) as { servers: Server[] }).servers;
+  const [drive] = await serversOf(owner);
+  if (!drive) throw new Error("Drive didn't connect");
+  expect(drive).toMatchObject({ perPerson: false, mine: null });
+  const sentry = (await (
+    await owner(`${org}/connectors`, { json: { connector: "sentry", apiKey: "sntrys_secret_value" } })
+  ).json()) as { id: string };
+
+  const bea = await joinByInvitation(t, owner, orgId, "bea@example.com");
+  const code = async (res: Response) => ((await res.json()) as { error: { code: string } }).error.code;
+  // Not per person yet: nobody connects their own.
+  const early = await bea(`${org}/connectors/${drive.id}/mine`, { json: {} });
+  expect([early.status, await code(early)]).toEqual([400, "connector.not_per_person"]);
+  // Only managers of connectors turn it on, and only for a service through Composio.
+  expect(
+    (await bea(`${org}/connectors/${drive.id}/per-person`, { method: "PUT", json: { perPerson: true } })).status,
+  ).toBe(403);
+  const key = await owner(`${org}/connectors/${sentry.id}/per-person`, { method: "PUT", json: { perPerson: true } });
+  expect([key.status, await code(key)]).toEqual([400, "connector.per_person_unsupported"]);
+  const on = await owner(`${org}/connectors/${drive.id}/per-person`, { method: "PUT", json: { perPerson: true } });
+  expect(await on.json()).toEqual({ perPerson: true });
+
+  const mine = (await (await bea(`${org}/connectors/${drive.id}/mine`, { json: { returnTo: "/x" } })).json()) as {
+    authorizeUrl: string;
+  };
+  const beaAccount = composio.state.links.at(-1)?.connectedAccountId ?? "";
+  composio.activate(beaAccount, "", null);
+  signedIn.email = "bea@acme.com";
+  const beaState = new URL(mine.authorizeUrl).searchParams.get("state") ?? "";
+  const back = await bea(
+    `/api/app/connectors/oauth/callback?state=${beaState}&status=success&connected_account_id=${beaAccount}`,
+  );
+  expect(back.headers.get("location")).toBe(
+    `http://localhost:3000/x?connected=${encodeURIComponent(`custom:${drive.id}`)}&outcome=personal`,
+  );
+  expect((await serversOf(bea))[0]).toMatchObject({
+    perPerson: true,
+    mine: { accountLabel: "bea@acme.com", status: "active" },
+  });
+  expect((await serversOf(owner))[0]).toMatchObject({ perPerson: true, mine: null });
+
+  expect((await bea(`${org}/connectors/${drive.id}/mine`, { method: "DELETE" })).status).toBe(204);
+  expect(composio.state.deletedAccounts).toContain(beaAccount);
+  expect((await serversOf(bea))[0]?.mine).toBeNull();
 });

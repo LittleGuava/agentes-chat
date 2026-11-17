@@ -361,6 +361,37 @@ describe("Perfil: o que pode usar", () => {
     expect(asks).toBe(true);
     expect(usesOf(null)).toEqual({ lines: [], asks: false });
   });
+
+  test("a service whose every call asks is unavailable to an agent that never asks, and asks nothing there", () => {
+    const access = {
+      all: false,
+      builtins: [],
+      connectors: [
+        {
+          connectionId: "c1",
+          connector: "custom:c1",
+          label: "Agentcard",
+          custom: true,
+          everyCall: true,
+          state: "granted",
+          scopes: [
+            {
+              scope: "custom:c1:write",
+              label: "Escrita",
+              state: "granted",
+              tools: [tool("custom:c1:write", "granted", true)],
+            },
+          ],
+        },
+      ],
+    } as unknown as AgentAccess;
+    const at = (level: "risky" | "never") => {
+      const { lines, asks } = usesOf(access, level);
+      return [lines.map((l) => [l.label, l.offAtNever]), asks];
+    };
+    expect(at("risky")).toEqual([[[{ text: "Agentcard" }, false]], true]);
+    expect(at("never")).toEqual([[[{ text: "Agentcard" }, true]], false]);
+  });
 });
 
 describe("Perfil: o mês, com os limites do plano (ADR 0063 §5)", () => {

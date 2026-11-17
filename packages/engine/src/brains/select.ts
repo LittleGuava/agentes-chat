@@ -1,4 +1,5 @@
 import {
+  ACP_ENGINE_PROTOCOL,
   ANTIGRAVITY_PROTOCOL,
   BRAIN_PROTOCOL,
   type BrainEffort,
@@ -25,6 +26,7 @@ import {
 } from "@agenteschat/providers/plans";
 import { modelFamily, planFull, planState, planWindows, windowModel } from "@agenteschat/ui/plan-state";
 import type { Agent } from "../agents";
+import { brainPolicyRefusal, orgBrainPolicy } from "../brain-policy";
 import type { ModelGateway } from "../gateway";
 import type { MachineStatus } from "../machine-hub";
 import { pausedMessage } from "../machines";
@@ -52,6 +54,7 @@ const KINDS: readonly BrainKind[] = [
   "grok",
   "antigravity",
   "copilot",
+  "acp",
 ];
 const kindOf = (v: unknown): BrainKind => (KINDS.includes(v as BrainKind) ? (v as BrainKind) : "model");
 
@@ -397,7 +400,8 @@ export async function storedPlanUsage(
   kind: BrainKind,
   accountId?: string,
 ): Promise<PlanUsage | null> {
-  if (kind === "model") return null;
+  // An ACP agent (ADR 0216) reports no plan.
+  if (kind === "model" || kind === "acp") return null;
   const { machineAccounts, machines } = schema;
   if (accountId) {
     const [row] = await db
@@ -503,6 +507,28 @@ export function computerBrainUnavailable(
       ...pausedUntil,
     };
   }
+  // ADR 0216: an ACP agent the computer declares, by its commands switch; which one the agent chose is the turn's.
+  if (kind === "acp") {
+    if (status.access?.tools && status.access.tools.commands !== true) {
+      return {
+        code: "tool_off",
+        message: `Commands are turned off on ${status.name} (its owner can turn them on in the agentes app).`,
+      };
+    }
+    if (status.protocol < ACP_ENGINE_PROTOCOL) {
+      return {
+        code: "runner_outdated",
+        message: `The runner on ${status.name} is too old for ACP agents. ${runnerUpdateWay(status)}`,
+      };
+    }
+    if (status.executors?.detectedAt && !status.executors.acp?.length) {
+      return {
+        code: "acp_engine_missing",
+        message: `${status.name} declares no ACP agent (its owner lists them in the runner's config.json).`,
+      };
+    }
+    return null;
+  }
   if (kind === "cursor" || kind === "opencode" || kind === "grok" || kind === "antigravity" || kind === "copilot") {
     const off = toolOff(status, kind);
     if (off) return off;
@@ -575,12 +601,19 @@ export const UNAVAILABLE_CODES: ReadonlySet<string> = new Set([
   "grok_missing",
   "antigravity_missing",
   "copilot_missing",
+  "acp_engine_missing",
   "plan_limit",
   "plan_not_owner",
   "plan_not_shared",
   "plan_unattended",
   "tools_not_locked",
 ]);
+
+/**
+ * The workspace's rule leaves the brain out (ADR 0191): in neither list above, since no wait ends it and nothing stands
+ * in for it; the run fails with the rule's words.
+ */
+export const BRAIN_NOT_ALLOWED = "not_allowed";
 
 /**
  * Unavailable codes that mean the computer brain has nothing to think with (no computer, its command-line
@@ -596,6 +629,7 @@ export const NO_AI_CODES: ReadonlySet<string> = new Set([
   "grok_missing",
   "antigravity_missing",
   "copilot_missing",
+  "acp_engine_missing",
 ]);
 
 /** What the engine runs a turn with. */
@@ -751,7 +785,7 @@ export const SESSION_IDLE_MS = 60 * 60_000;
 export const SESSION_MAX_INPUT_TOKENS = 150_000;
 
 /** Whether a session already ran on the machine (plan usage recorded for one of its runs): resume it. A hint: the runner checks its own disk. */
-async function sessionUsed(db: Executor, run: AgentRun, kind: BrainKind, sessionId: string) {
+export async function sessionUsed(db: Executor, run: AgentRun, kind: BrainKind, sessionId: string) {
   const { agentRuns, usageRecords } = schema;
   const [row] = await db
     .select({ id: usageRecords.id })
@@ -882,6 +916,10 @@ export async function resolveBrain(
   const agent = options.thinker ?? (await thinkingAgent(deps.db, given, person));
   const kind = brainFor(agent, run, mission);
   const base = mission ? { missionId: mission.missionId } : {};
+  // A computer brain the workspace's rule leaves out (ADR 0191): the run fails on it, never waits nor stands in. The API
+  // brain's own refusal is the Model Gateway's, which knows the model each call runs.
+  const refused = kind === "model" ? null : brainPolicyRefusal(await orgBrainPolicy(deps.db, agent.orgId), kind);
+  if (refused) return { kind, ...base, unavailable: { code: BRAIN_NOT_ALLOWED, message: refused.message } };
   if (kind === "model") {
     const effort = brainEffortFor(agent, kind);
     return { kind, ...base, ...(effort ? { effort } : {}) };

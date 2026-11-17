@@ -186,8 +186,14 @@ export async function openDm(
  * isn't checked: the agent may write to anyone in the organization; the person's replies only get an
  * answer when they may talk to it.
  */
-export async function openPersonAgentDm(db: Executor, orgId: string, userId: string, agentId: string) {
-  const dmKey = personAgentDmKey(userId, agentId);
+export const openPersonAgentDm = (db: Executor, orgId: string, userId: string, agentId: string) =>
+  openPersonAgentRoom(db, orgId, userId, agentId, personAgentDmKey(userId, agentId));
+
+/** An agent API key's room (ADR 0210), opened the same way the first time a message is sent with the key. */
+export const openAgentKeyRoom = (db: Executor, orgId: string, userId: string, agentId: string, keyId: string) =>
+  openPersonAgentRoom(db, orgId, userId, agentId, agentKeyRoomKey(agentId, keyId, userId));
+
+async function openPersonAgentRoom(db: Executor, orgId: string, userId: string, agentId: string, dmKey: string) {
   const existing = async () =>
     (
       await db
@@ -226,6 +232,21 @@ export async function openPersonAgentDm(db: Executor, orgId: string, userId: str
 
 /** The DM key of a conversation between a person and an agent. */
 export const personAgentDmKey = (userId: string, agentId: string) => keyOf([`u:${userId}`, `a:${agentId}`]);
+
+/**
+ * The room of an agent API key (ADR 0210): its agent and the person who made the key, apart from that person's own DM
+ * with the agent. The person is a member (the cards the run posts there are theirs to answer), so `u:` is in it.
+ */
+export const agentKeyRoomKey = (agentId: string, keyId: string, userId: string) =>
+  `apikey|a:${agentId}|k:${keyId}|u:${userId}`;
+
+export const isAgentKeyRoom = (dmKey: string | null | undefined) => Boolean(dmKey?.startsWith("apikey|"));
+
+/** The agent, key and maker an agent API key's room belongs to, read back from its DM key; null for any other room. */
+export function agentKeyRoomOf(dmKey: string | null | undefined) {
+  const m = /^apikey\|a:([^|]+)\|k:([^|]+)\|u:([^|]+)$/.exec(dmKey ?? "");
+  return m ? { agentId: m[1] as string, keyId: m[2] as string, userId: m[3] as string } : null;
+}
 
 /** The DM key of a conversation between two agents (`ask_agent`, ADR 0034): no person in it. */
 export const agentDmKey = (a: string, b: string) => keyOf([`a:${a}`, `a:${b}`]);
@@ -314,6 +335,8 @@ export async function listDms(db: Database, actorId: string, orgId: string, only
         eq(channels.orgId, orgId),
         eq(channels.kind, "dm"),
         isNull(channels.archivedAt),
+        // An agent API key's room (ADR 0210) is the caller's conversation, opened from its cards, never a DM to list.
+        sql`coalesce(${channels.dmKey}, '') not like 'apikey|%'`,
         only ? eq(channels.id, only) : undefined,
       ),
     );
@@ -393,6 +416,8 @@ export async function listDms(db: Database, actorId: string, orgId: string, only
   ]);
   const readAt = new Map(reads.map((r) => [r.channelId, r.lastReadAt]));
   const unread = new Map(unreadRows.map((r) => [r.channelId, r.n]));
+  // Marked unread (`markChannelUnread`): one at least, whatever landed since.
+  for (const r of reads) if (r.markedUnread) unread.set(r.channelId, Math.max(unread.get(r.channelId) ?? 0, 1));
   const lastBy = new Map(last.map((m) => [m.channelId, m]));
   return mine
     .flatMap((c) => {
@@ -453,7 +478,10 @@ export async function markChannelRead(
   await db
     .insert(channelReads)
     .values({ orgId, channelId, userId: actorId, lastReadAt: at })
-    .onConflictDoUpdate({ target: [channelReads.channelId, channelReads.userId], set: { lastReadAt: at } });
+    .onConflictDoUpdate({
+      target: [channelReads.channelId, channelReads.userId],
+      set: { lastReadAt: at, markedUnread: false },
+    });
   await resolveNotifications({ db, pubsub }, orgId, {
     groupKeyPrefix: `agent_reply:${channelId}:`,
     userIds: [actorId],
@@ -464,6 +492,37 @@ export async function markChannelRead(
   if (member.kind === "dm") await publishChannelEvent(pubsub, read);
   // My other devices: the conversation stops looking unread there too.
   await publishUserEvent(pubsub, orgId, actorId, read);
+}
+
+/**
+ * Marks a channel (or DM) unread for me ("Marcar como não lida"): it counts as one unread at least, on all my devices
+ * (`channel.unread`), until I read it again (`markChannelRead`). Where I stopped reading stays, so the other people of a
+ * DM keep their "Visto". A DM I never read has nothing to mark: what's in it is already unread to me.
+ */
+export async function markChannelUnread(
+  db: Database,
+  actorId: string,
+  orgId: string,
+  channelId: string,
+  pubsub?: PubSub,
+) {
+  const [member] = await db
+    .select({ joinedAt: channelMembers.createdAt, kind: channels.kind })
+    .from(channelMembers)
+    .innerJoin(channels, eq(channels.id, channelMembers.channelId))
+    .where(
+      and(eq(channelMembers.orgId, orgId), eq(channelMembers.channelId, channelId), eq(channelMembers.userId, actorId)),
+    );
+  if (!member) throw new NotFoundError("Channel not found");
+  const where = and(eq(channelReads.channelId, channelId), eq(channelReads.userId, actorId));
+  if (member.kind === "dm") await db.update(channelReads).set({ markedUnread: true }).where(where);
+  // Never read yet: the new row reads from my joining (listChannels' fallback), as muting does.
+  else
+    await db
+      .insert(channelReads)
+      .values({ orgId, channelId, userId: actorId, markedUnread: true, lastReadAt: member.joinedAt })
+      .onConflictDoUpdate({ target: [channelReads.channelId, channelReads.userId], set: { markedUnread: true } });
+  await publishUserEvent(pubsub, orgId, actorId, { type: "channel.unread", channelId });
 }
 
 /**

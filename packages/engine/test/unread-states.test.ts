@@ -5,12 +5,14 @@ import {
   addChannelMember,
   countUnreadThreads,
   createThreadFromRange,
+  dmReads,
   getThread,
   insertMessage,
   listChannels,
   listDms,
   listMembers,
   markChannelRead,
+  markChannelUnread,
   markThreadRead,
   messageView,
   moveContextIntoThread,
@@ -115,6 +117,82 @@ describe("channels: mentions and muting", () => {
     await expect(setChannelMuted(f.db, f.owner.id, f.org.id, dm.id, true)).rejects.toMatchObject({
       code: "channel.mute_dm",
     });
+  });
+});
+
+describe("marking a conversation unread", () => {
+  test("a channel I read looks unread again to me alone until I read it, and my devices hear it", async () => {
+    f = await setup();
+    const bia = await withBia();
+    await post(f.owner.id, f.general.id, "hello all");
+    await markChannelRead(f.db, bia.id, f.org.id, f.general.id);
+    expect((await general(bia.id)).unreadCount).toBe(0);
+
+    const mine = heard(bia.id);
+    const ana = heard(f.owner.id);
+    await markChannelUnread(f.db, bia.id, f.org.id, f.general.id, f.pubsub);
+    expect(await general(bia.id)).toMatchObject({ unreadCount: 1, mentionCount: 0, muted: false });
+    expect(mine).toContainEqual({ type: "channel.unread", channelId: f.general.id });
+    expect(ana).toEqual([]);
+    expect((await general(f.owner.id)).unreadCount).toBe(0);
+
+    // Twice is once.
+    await markChannelUnread(f.db, bia.id, f.org.id, f.general.id, f.pubsub);
+    expect((await general(bia.id)).unreadCount).toBe(1);
+
+    await markChannelRead(f.db, bia.id, f.org.id, f.general.id);
+    expect((await general(bia.id)).unreadCount).toBe(0);
+  });
+
+  test("what lands after it is counted as it is, not one more", async () => {
+    f = await setup();
+    const bia = await withBia();
+    await markChannelRead(f.db, bia.id, f.org.id, f.general.id);
+    await markChannelUnread(f.db, bia.id, f.org.id, f.general.id);
+    expect((await general(bia.id)).unreadCount).toBe(1);
+    await nextMillisecond();
+    for (const body of ["one", "two", "three"]) await post(f.owner.id, f.general.id, body);
+    expect((await general(bia.id)).unreadCount).toBe(3);
+  });
+
+  test("a channel I never opened keeps where its unread starts, and muting keeps the mark", async () => {
+    f = await setup();
+    const bia = await withBia();
+    await markChannelUnread(f.db, bia.id, f.org.id, f.general.id);
+    expect(await general(bia.id)).toMatchObject({ unreadCount: 1, muted: false });
+    await nextMillisecond();
+    await post(f.owner.id, f.general.id, "since I joined");
+    expect((await general(bia.id)).unreadCount).toBe(1);
+    await setChannelMuted(f.db, bia.id, f.org.id, f.general.id, true);
+    expect(await general(bia.id)).toMatchObject({ unreadCount: 1, muted: true });
+  });
+
+  test("a DM looks unread to me while the other person's Visto stays where it was", async () => {
+    f = await setup();
+    const bia = await addMember(f.db, f.org.id, "member", "bia");
+    const dm = await openDm(f.db, f.owner.id, f.org.id, { userId: bia.id });
+    await post(bia.id, dm.id, "can you look?");
+    await nextMillisecond();
+    await markChannelRead(f.db, f.owner.id, f.org.id, dm.id);
+    const seen = await dmReads(f.db, bia.id, f.org.id, dm.id);
+    const dmOf = async () => (await listDms(f.db, f.owner.id, f.org.id)).find((d) => d.channelId === dm.id);
+    expect((await dmOf())?.unread).toBe(0);
+
+    const events: RealtimeEvent[] = [];
+    f.pubsub.subscribe(chatActivityTopic, (e) => events.push(e));
+    await markChannelUnread(f.db, f.owner.id, f.org.id, dm.id, f.pubsub);
+    expect((await dmOf())?.unread).toBe(1);
+    expect(await dmReads(f.db, bia.id, f.org.id, dm.id)).toEqual(seen);
+    expect(events.filter((e) => e.type === "channel.read")).toEqual([]);
+
+    await markChannelRead(f.db, f.owner.id, f.org.id, dm.id);
+    expect((await dmOf())?.unread).toBe(0);
+  });
+
+  test("only members mark a channel unread", async () => {
+    f = await setup();
+    const bia = await addMember(f.db, f.org.id, "member", "bia");
+    await expect(markChannelUnread(f.db, bia.id, f.org.id, f.general.id)).rejects.toThrow("Channel not found");
   });
 });
 

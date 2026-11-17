@@ -15,7 +15,10 @@ export const strings: Partial<PushStrings> = {
   replyTitle: (a) => `Новый ответ от ${a}`,
   missionStoppedTitle: "Миссия остановлена",
   routineFailedTitle: "Регулярная задача не завершилась",
+  routineFailedRetriedTitle: "Регулярная задача не завершилась и после повторной попытки",
   runFailedTitle: (a) => `${a}: не удалось завершить`,
+  needsAiTitle: (a) => `${a}: не подключён ИИ`,
+  needsAiBody: (p) => `${p} задаёт вопрос и не получает ответа. Подключите ИИ, чтобы появился ответ.`,
   routineFailedBody: "Нажмите, чтобы узнать, что случилось.",
   routinePausedTitle: "Регулярная задача на паузе",
   routinePausedBody: "Нажмите, чтобы узнать почему.",
@@ -41,6 +44,7 @@ export const strings: Partial<PushStrings> = {
   secretTitle: (a) => `${a} просит у вас секрет`,
   secretBody: "Нажмите, чтобы отправить его безопасно.",
   widgetAlertTitle: (a, w) => (w ? `${a}: ${w}` : `${a}: оповещение по виджету`),
+  mailImportantTitle: (m) => `Важное письмо в ${m}`,
   widgetFailedTitle: (w) => (w ? `«${w}» не обновился` : "Виджет не обновился"),
   widgetFailedReasons: {
     no_update: "Последнее обновление закончилось без данных.",

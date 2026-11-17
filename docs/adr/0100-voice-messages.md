@@ -174,3 +174,37 @@ take, the words and the files as one message: the phone uploads its files at sen
 one fails the take stays, paused, with the words back in the field. The offline queue keeps the typed text and the
 uploaded files with the recording and sends them with it. Holding the mic and sliding to cancel are unchanged. The
 phone has no Esc question: delete in the row removes only the take, and the words stay in the field.
+
+## Addendum (2026-11-15): dictation into the message box
+
+**The decision.** A recording can also become text in the person's own message box, to be edited and sent as any
+typed message; nothing is posted and nobody else sees it. It uses the same engines, in the same order, with the same
+hints (the workspace's names, the app's language), and the same fair use as voice messages.
+
+**The route.** `POST …/channels/{channelId}/voice/dictation` (multipart: the recording, `durationMs`, `language`)
+answers `200 { text }` once the words are made out, empty when nothing was said. It is a route of its own rather than
+a switch on the voice message's, whose answer is a `202` with the clip that a message follows. The same checks as a
+voice message, shared in `checkRecording`: who may write in that conversation, the workspace's switch and an engine,
+the size, the length, the type, fair use; the same rate limit. `dictateVoice` (`voice.ts`) does the work in the
+request: there is no job and no retry, the person is waiting and can record again. `422 voice.no_words` when every
+engine refused it, `503 voice.busy` when they were busy; any other failure (a refused key, the network) is not hidden
+as busy and answers as the server's own error.
+
+**The audio is not kept.** It lives only in the request and never reaches the workspace's storage. The minutes go on a
+`voice_clips` row with `status: "dictated"`, no audio (`size` 0, `audio_deleted_at` set at once), written before the
+engines are asked and given the engine and cost after, so fair use stays one budget for both: dictated minutes stop
+the next voice message and the other way around, and a second recording sent while the first is being heard already
+counts it. A try that failed is deleted and costs no minutes; one every engine refused keeps its row, at no cost. The sweep, `storedBytes` and storage migrations read only rows that
+still have audio, so they never see these. `status` is plain text: no migration.
+
+**Only the person sees it.** A recording for text sends no "gravando áudio…" frame: the seconds recorded before the
+switch was turned on did, and the line ends within its 5 s.
+
+**The gesture.** While recording, a switch beside the microphone ("Transformar em texto", `aria-pressed`) picks text
+for this recording, and every way it ends follows it: the send button (its name changes), Enter, letting go of a held
+microphone and the five-minute limit. The keys under the wave say so. The switch stays as the person left it for the
+next recording while the box is open. While the words are on their way the microphone shows a spinner and takes no
+new recording. The words go in where the caret is when they come, into what the box holds then, a space apart from
+the text before them; words that come after the box moved to another conversation are dropped. The kit's `Composer`
+does this (`ComposerVoice.dictation`); the web app wires it in `ChannelPage`. The phone records with its own recorder
+and doesn't dictate yet.

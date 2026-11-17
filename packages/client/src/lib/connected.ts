@@ -1,5 +1,5 @@
 import type { TFunction } from "i18next";
-import type { Connection, ConnectOutcome, ConnectorDef, CustomServer } from "../api/types";
+import type { Connection, ConnectOutcome, ConnectorDef, CustomServer, PersonalAccount } from "../api/types";
 import { exposedTools, sameServer, toolsToReview } from "./custom-tools";
 import { connectorName } from "./scopes";
 import { reviewToolsOf } from "./tool-review";
@@ -38,6 +38,9 @@ export interface ConnectedItem {
   viaGithubApp?: boolean;
   /** Its sign-in stopped working (a refresh refused, a 401, a Composio account gone): no tools until Reconectar. */
   needsReconnect: boolean;
+  /** Each person uses their own account here (ADR 0195): `mine` is the viewer's. */
+  perPerson?: boolean;
+  mine?: PersonalAccount | null;
   /** OAuth scopes its sign-in lacks (GitHub's `project`): Reconectar adds what they let agents do. */
   reconnectAdds: string[];
   /** A server by address whose tools couldn't be read last time (its words): agents have none from it now. */
@@ -50,6 +53,8 @@ export interface ConnectedItem {
   /** Never reviewed, or new tools to review. */
   needsReview: boolean;
   server: CustomServer | null;
+  /** A program on a connected computer (ADR 0215): that computer's id. It has no address, sign-in or other account. */
+  computerId?: string | null;
 }
 
 const host = (url: string) => {
@@ -94,10 +99,17 @@ export function fromServer(s: CustomServer, catalog: ConnectorDef[]): ConnectedI
     label: s.label,
     def: catalog.find((d) => d.kind === "remote_mcp" && sameServer(d.serverUrl, s.serverUrl)) ?? null,
     image: s.iconUrl ?? null,
-    // Composio's address means nothing to people: only the account, when it is known.
-    account: s.accountLabel ? accountNote(s.label, s.accountLabel) : s.via === "composio" ? null : host(s.serverUrl),
+    // Composio's address means nothing to people, nor a program's: only the account, when it is known.
+    account: s.accountLabel
+      ? accountNote(s.label, s.accountLabel)
+      : s.via === "composio" || s.program
+        ? null
+        : host(s.serverUrl),
+    computerId: s.program?.machineId ?? null,
     viaComposio: s.via === "composio",
     needsReconnect: s.status === "needs_reconnect",
+    perPerson: s.perPerson === true,
+    mine: s.mine ?? null,
     reconnectAdds: [],
     toolsError: s.toolsError ?? null,
     createdAt: s.createdAt,
@@ -172,6 +184,28 @@ export function itemName(t: TFunction, item: Pick<ConnectedItem, "def" | "label"
   return /^\d+$/.test(number) ? `${name} ${number}` : item.label;
 }
 
+/** The viewer's own account on a per-person connection (ADR 0195): none yet, working, or stopped; null when it isn't one. */
+export function mineOf(item: Pick<ConnectedItem, "perPerson" | "mine">): "none" | "active" | "broken" | null {
+  if (!item.perPerson) return null;
+  if (!item.mine) return "none";
+  return item.mine.status === "needs_reconnect" ? "broken" : "active";
+}
+
+/** What the viewer reads of their own account there, the web's line and the phone's row alike. */
+export function mineText(t: TFunction, item: Pick<ConnectedItem, "perPerson" | "mine">): string | null {
+  const state = mineOf(item);
+  if (state === "none") return t("connectors.personal.mineNone");
+  if (state === "broken") return t("connectors.personal.mineBroken");
+  const account = item.mine?.accountLabel;
+  return state === "active" && account ? t("connectors.personal.mine", { account }) : null;
+}
+
+/** "Connect my account" shows while the viewer has none there or theirs stopped working. */
+export const connectsMine = (item: Pick<ConnectedItem, "perPerson" | "mine">) => {
+  const state = mineOf(item);
+  return state === "none" || state === "broken";
+};
+
 /**
  * What a connect did, as a toast: another account came in, an account got its new sign-in, or the account was
  * already there (with the way to add another when the provider named it).
@@ -202,8 +236,10 @@ export function asksCount(t: TFunction, item: Pick<ConnectedItem, "server" | "de
  * that instead: agents get none of them until someone does (`pending`). Nothing asking adds no second sentence.
  */
 export function connectedSummary(t: TFunction, item: Pick<ConnectedItem, "server" | "def" | "pending">) {
-  const lead =
-    item.pending > 0 ? t("connectFlow.done.waiting", { count: item.pending }) : t("connectFlow.done.everyone");
+  const waiting = item.pending > 0 ? t("connectFlow.done.waiting", { count: item.pending }) : null;
+  // A program on a person's computer (ADR 0215) is no agent's until someone gives it.
+  const who = item.server?.program ? t("connectFlow.done.program") : t("connectFlow.done.everyone");
+  const lead = item.server?.program && waiting ? t("common.joinSentences", { a: waiting, b: who }) : (waiting ?? who);
   const asks = asksCount(t, item);
   return asks > 0 ? t("common.joinSentences", { a: lead, b: t("connectFlow.done.asks", { count: asks }) }) : lead;
 }

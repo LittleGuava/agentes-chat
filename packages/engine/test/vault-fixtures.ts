@@ -31,13 +31,15 @@ export const SOURCE_PASSWORD = "src-password-NEVER-SHOWN-9876";
 export interface FakeSource extends VaultSource {
   items: VaultSourceItem[];
   values: Map<string, string>;
+  /** Each login's one-time code now, by ref (the fake keeps no seed: the code is all a source may give). */
+  codes: Map<string, string>;
   /** Thrown by the next `list` calls while set. */
   listError: VaultSourceError | Error | null;
   /** The secrets `list` and `reveal` were handed (to prove they were unsealed). */
   seenTokens: string[];
   /** Every call, with the signal the engine gave it and the workspace `connect` was told (ADR 0144). */
   calls: {
-    op: "connect" | "list" | "reveal" | "create" | "update";
+    op: "connect" | "list" | "reveal" | "code" | "create" | "update";
     signal: AbortSignal | undefined;
     orgId: string | undefined;
   }[];
@@ -91,6 +93,7 @@ export function fakeSource(): FakeSource {
     kind: "fakepass",
     items: [],
     values: new Map(),
+    codes: new Map(),
     listError: null,
     seenTokens: [],
     calls: [],
@@ -120,6 +123,13 @@ export function fakeSource(): FakeSource {
       const value = source.values.get(ref);
       if (value === undefined) throw new VaultSourceError("not_found", "It isn't there any more.");
       return value;
+    },
+    currentCode: async (connection: SourceConnection, ref, signal) => {
+      source.calls.push({ op: "code", signal, orgId: connection.orgId });
+      source.seenTokens.push(connection.secret.token ?? "");
+      const code = source.codes.get(ref);
+      if (code === undefined) throw new VaultSourceError("not_found", "This login keeps no one-time code.");
+      return code;
     },
   };
   return source;

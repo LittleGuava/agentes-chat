@@ -111,6 +111,20 @@ export function toolOneClick(
   return { kind: "ask", ownerId: m.pairedBy.id, ownerName: m.pairedBy.name };
 }
 
+/**
+ * Whether this person reads the MCP servers and skills of their own coding tools on a computer (ADR 0055, addendum
+ * 2026-11-15): only whoever connected it, never the workspace's own computer nor one in system mode (its app runs as
+ * the agents' users, not as them). `outdated`: its app is too old for it; `offline`: it reads only while online.
+ */
+export function localSetupWay(
+  m: Pick<Machine, "kind" | "mode" | "pairedBy" | "localConfig" | "online"> | null | undefined,
+  meId: string | null | undefined,
+): "read" | "offline" | "outdated" | null {
+  if (!m || m.kind === "managed" || m.mode === "system" || !meId || m.pairedBy?.id !== meId) return null;
+  if (!m.localConfig) return "outdated";
+  return m.online ? "read" : "offline";
+}
+
 /** How often a screen asks where an install of a coding CLI stands while it runs. */
 export const CLI_INSTALL_POLL_MS = 1500;
 
@@ -568,4 +582,17 @@ export function loginRead(status: { isError: boolean; error: unknown; errorUpdat
   if (!status.isError) return null;
   if (!(status.error instanceof LoginReadError)) return "failed";
   return status.errorUpdatedAt - status.error.since < LOGIN_RECONNECT_MS ? "reconnecting" : "noAnswer";
+}
+
+/**
+ * ADR 0202: until when the person who connected `machine` lent `agentId` their own Chrome (ISO), or null when they
+ * didn't or it ended. The server already leaves out what ended or can't be used; `now` keeps an open page honest.
+ */
+export function lentChromeUntil(
+  machine: Pick<Machine, "myChrome"> | null | undefined,
+  agentId: string,
+  now: number,
+): string | null {
+  const lent = machine?.myChrome?.find((l) => l.agentId === agentId);
+  return lent && Date.parse(lent.expiresAt) > now ? lent.expiresAt : null;
 }

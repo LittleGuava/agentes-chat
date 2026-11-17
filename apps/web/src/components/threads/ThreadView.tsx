@@ -9,8 +9,11 @@ import { AvatarStack, Button, Chip, cx, Icon, Menu, MenuItem, MenuSeparator } fr
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useApi } from "@/api/context";
 import { ActorAvatar } from "@/components/AgentAvatar";
 import { useActors } from "@/components/actors";
+import { ConversationModelsButton } from "@/components/ai/ConversationModels";
+import { useExportConversation } from "@/components/ConversationExport";
 import { NavToggle } from "@/components/NavDrawer";
 import { useOrg } from "@/components/org-context";
 import { useDirectory } from "@/hooks/useDirectory";
@@ -152,6 +155,8 @@ export function ThreadHeader({
   const toast = useToast();
   const controls = useThreadControls();
   const flows = useThreadFlows();
+  const exportThread = useExportConversation();
+  const api = useApi();
   const navigate = useNavigate();
   const who = useWho(thread);
   const channelParams = { orgId: org.id, channelId: thread.channelId };
@@ -210,6 +215,7 @@ export function ThreadHeader({
         </span>
       </div>
       {thread.state !== "open" && <ThreadStatusChip thread={thread} />}
+      <ConversationModelsButton channelId={thread.channelId} threadId={thread.id} look="thread" />
       <Menu
         align="end"
         label={more}
@@ -233,6 +239,11 @@ export function ThreadHeader({
         >
           {t("channel.copyLink")}
         </MenuItem>
+        {exportThread && api.transcripts && (
+          <MenuItem icon="download" onSelect={() => exportThread({ channelId: thread.channelId, threadId: thread.id })}>
+            {t("transcript.menuThread")}
+          </MenuItem>
+        )}
         {thread.canManage && thread.context && !archived && (
           <MenuItem icon="edit" onSelect={() => flows.adjust(thread)}>
             {t("threads.context.adjust")}

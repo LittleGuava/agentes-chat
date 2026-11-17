@@ -4,6 +4,7 @@ import { matchesWords } from "@agenteschat/ui/search";
 import i18next, { type TFunction } from "i18next";
 import type { AiAccounts, BrainMachine, BrainOption, Model } from "../src/api/types";
 import {
+  apiPickOptions,
   brainModelLine,
   brainPickInput,
   brainPickOptions,
@@ -508,5 +509,82 @@ describe("the model picker: the agent's AI changed in place", () => {
       brain: null,
       model: "gpt-6",
     });
+  });
+});
+
+describe("a workspace endpoint's models in the pickers (ADR 0146)", () => {
+  const onEndpoint = (id: string, credentialId: string, name: string, mark?: string): Model => ({
+    ...model(id, "custom"),
+    id: `custom:${credentialId}:${id}`,
+    endpoint: { credentialId, name, ...(mark ? { mark } : {}) },
+  });
+  // Named like a maker on purpose: the name is the admin's, never the mark.
+  const models = [onEndpoint("deepseek-chat", "k1", "Claude", "deepseek"), onEndpoint("llama-4", "k2", "Gateway")];
+  const keys = [
+    { id: "k1", provider: "custom" },
+    { id: "k2", provider: "custom" },
+  ];
+  const api = modelChoices(models, keys, false);
+
+  test("each option and key tile shows the mark its endpoint's host names, else the generic endpoint's", () => {
+    expect(apiPickOptions(t, "pt-BR", api).map((o) => [o.group, o.mark])).toEqual([
+      ["Claude", "deepseek"],
+      ["Gateway", "custom"],
+    ]);
+    const view = {
+      brain: "model" as const,
+      model: AUTO,
+      options: [],
+      accounts: [],
+      account: null,
+      ownSignIn: false,
+      ownUsage: {},
+    };
+    expect(modelPickerTiles(t, view, "u1", api, models[0]?.id ?? null, models).map((x) => [x.key, x.mark])).toEqual([
+      ["api:Claude", "deepseek"],
+      ["api:Gateway", "custom"],
+    ]);
+  });
+});
+
+describe("the workspace's rule on what agents use (ADR 0191)", () => {
+  const ruled = (policy: Parameters<typeof modelChoices>[3], machines: BrainMachine[] = [MAC]) =>
+    brainPickOptions(t, "pt-BR", {
+      api: modelChoices(
+        MODELS,
+        ["anthropic", "openai"].map((provider, i) => ({ id: `k${i}`, provider }) as never),
+        false,
+        policy,
+      ),
+      machines,
+      accounts: [],
+      ownerIsMe: true,
+    });
+
+  test("a model the rule leaves out shows greyed with the rule's words, even with its provider's key", () => {
+    // No computer: Claude's plan would otherwise stand for its API models.
+    const options = ruled({ brains: null, providers: ["openai"], models: null }, []);
+    const claude = options.find((o) => o.value === "claude-sonnet-5-5");
+    expect(claude?.disabled).toBe(true);
+    expect(claude?.description).toBe("brain.ruledOut");
+    const gpt = options.find((o) => o.value === "gpt-6.1-sol");
+    expect(gpt?.disabled).toBe(false);
+    expect(gpt?.description).not.toBe("brain.ruledOut");
+  });
+
+  test("a plan the rule leaves out is one row that says so and can't be picked", () => {
+    const blocked: BrainOption = { ...claudeCode, available: false, reason: "not_allowed" };
+    const options = ruled({ brains: ["model"], providers: null, models: null }, [
+      { ...MAC, options: [blocked, codexOff] },
+    ]);
+    expect(options.some((o) => o.value.startsWith("claude@m1/"))).toBe(false);
+    const row = options.find((o) => o.value === "none:claude");
+    expect(row?.disabled).toBe(true);
+    expect(row?.description).toStartWith("brain.reasons.not_allowed");
+  });
+
+  test("no rule changes nothing", () => {
+    expect(ruled(null)).toEqual(ruled(undefined));
+    expect(ruled(null, []).find((o) => o.value === "claude-sonnet-5-5")?.disabled).toBe(false);
   });
 });

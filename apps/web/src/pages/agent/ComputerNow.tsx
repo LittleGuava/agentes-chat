@@ -1,6 +1,9 @@
+import type { Machine } from "@agenteschat/client";
 import { isWaitingHandoff, useBrowserHandoffMutations } from "@agenteschat/client";
 import { entryButton, entryLine, entryState } from "@agenteschat/client/lib/agent-computer";
 import { computerName } from "@agenteschat/client/lib/computer";
+import { clockAt } from "@agenteschat/client/lib/format";
+import { lentChromeUntil } from "@agenteschat/client/lib/machines";
 import { isPersonal } from "@agenteschat/client/lib/workspace-mode";
 import { Button, Icon } from "@agenteschat/ui";
 import { useEffect } from "react";
@@ -122,8 +125,34 @@ export function ComputerNow() {
         <span className="agp-frow__value">{status}</span>
         <span className="agp-frow__tail">{action}</span>
       </section>
+      {/* A person's own Chrome lent to it from the desktop app (ADR 0202), for the same people. */}
+      <LentChromeRow machine={view.machine} agentId={agent.id} />
       {/* What it keeps running there (ADR 0176), for the same people. */}
       <KeptRunningRow agentId={agent.id} />
     </>
+  );
+}
+
+/** A fact-sheet row while the person who connected its computer lends the agent their own Chrome (ADR 0202). */
+function LentChromeRow({ machine, agentId }: { machine: Machine | null; agentId: string }) {
+  const { t, i18n } = useTranslation();
+  const { org } = useOrg();
+  const dir = useDirectory(org.id);
+  const held = Boolean(machine?.myChrome?.some((l) => l.agentId === agentId));
+  // The row goes when the time the person gave ends, with the page open.
+  const now = useNow(held ? 30_000 : false);
+  const until = lentChromeUntil(machine, agentId, now);
+  if (!until || !machine?.pairedBy) return null;
+  const name = dir.memberById.get(machine.pairedBy.id)?.name ?? machine.pairedBy.name;
+  return (
+    <section className="agp-frow agp-cell--ro" aria-label={t("agentComputer.myChrome.title")}>
+      <span className="agp-cell__key">
+        <Icon name="globe" size={16} />
+      </span>
+      <small className="agp-frow__label">{t("agentComputer.myChrome.title")}</small>
+      <span className="agp-frow__value">
+        {t("agentComputer.myChrome.line", { name, time: clockAt(i18n.language, until, new Date(now)) })}
+      </span>
+    </section>
   );
 }

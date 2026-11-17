@@ -3,7 +3,9 @@ import {
   keys,
   useArchiveChannel,
   useDms,
+  useDuplicateAgent,
   useMarkChannelRead,
+  useMarkChannelUnread,
   useMuteChannel,
   usePeople,
   useRoles,
@@ -13,6 +15,7 @@ import { agentGrammar } from "@agenteschat/client/lib/grammar";
 import { can, leavesChannel, managesChannel } from "@agenteschat/client/lib/permissions";
 import { isRightHand } from "@agenteschat/client/lib/right-hand";
 import { leaves, removes } from "@agenteschat/client/lib/roles";
+import { readToggleOf } from "@agenteschat/client/lib/unread";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
@@ -24,6 +27,7 @@ import { copyText, type MenuEntry } from "@/lib/context-menu";
 import { useToast } from "@/lib/toast";
 import { useLiveStore } from "@/realtime/context";
 import { useOpenAgentPanel } from "./agent-panel-context";
+import { useExportConversation } from "./ConversationExport";
 import { useChannelActions } from "./channel-actions";
 import { useLeaveChannelWithUndo } from "./LeaveChannelDialog";
 import { useOrg } from "./org-context";
@@ -88,23 +92,34 @@ export function useArchiveChannelWithUndo() {
   return { run, pending: archive.isPending };
 }
 
-/** "Marcar como lida" for a channel or DM with unread messages (nothing otherwise). */
+/** "Marcar como lida" or "Marcar como não lida", as `readToggleOf` says for this conversation. */
 function useMarkRead() {
   const { t } = useTranslation();
   const { org } = useOrg();
-  const mark = useMarkChannelRead(org.id);
-  return (channelId: string | undefined, unread: number): MenuEntry[] =>
-    channelId && unread > 0
-      ? [
-          {
-            kind: "item",
-            id: "mark-read",
-            label: t("contextMenu.markRead"),
-            icon: "check",
-            run: () => mark.mutate(channelId),
-          },
-        ]
-      : [];
+  const read = useMarkChannelRead(org.id);
+  const unread = useMarkChannelUnread(org.id);
+  return (channelId: string | undefined, toggle: ReturnType<typeof readToggleOf>): MenuEntry[] =>
+    !channelId || !toggle
+      ? []
+      : toggle === "read"
+        ? [
+            {
+              kind: "item",
+              id: "mark-read",
+              label: t("contextMenu.markRead"),
+              icon: "check",
+              run: () => read.mutate(channelId),
+            },
+          ]
+        : [
+            {
+              kind: "item",
+              id: "mark-unread",
+              label: t("contextMenu.markUnread"),
+              icon: "mail",
+              run: () => unread.mutate(channelId),
+            },
+          ];
 }
 
 /** "Copiar @handle". */
@@ -159,6 +174,26 @@ function useMention() {
       : [];
 }
 
+/** "Exportar conversa" for a conversation the viewer reads (the server checks it again). */
+function useExportEntry() {
+  const { t } = useTranslation();
+  const open = useExportConversation();
+  // A client that can't name the export's address (an older or test one) offers nothing.
+  const offered = useApi().transcripts !== undefined;
+  return (channelId: string | undefined): MenuEntry[] =>
+    open && offered && channelId
+      ? [
+          {
+            kind: "item",
+            id: "export",
+            label: t("transcript.menu"),
+            icon: "download",
+            run: () => open({ channelId }),
+          },
+        ]
+      : [];
+}
+
 /**
  * A channel (sidebar row, channel header): mark read, its details (edit for who manages it), `extra` (the sidebar's
  * Mover para… and Nova categoria), copy link, archive.
@@ -173,11 +208,12 @@ export function useChannelMenu() {
   const archive = useArchiveChannelWithUndo();
   const leave = useLeaveChannelWithUndo();
   const pins = useSidebarPins();
+  const exportEntry = useExportEntry();
   return (c: Channel, extra: MenuEntry[] = []): MenuEntry[] => {
     const manages = managesChannel(c, me.user.id, org);
     return [
       { kind: "header", label: `#${c.name}` },
-      ...markRead(c.id, c.unreadCount ?? 0),
+      ...markRead(c.id, readToggleOf({ channel: c })),
       // Muted, it never looks unread to me (a mention of me still counts).
       ...(c.isMember
         ? [
@@ -204,7 +240,7 @@ export function useChannelMenu() {
           void navigate({ to: "/org/$orgId/c/$channelId", params: { orgId: org.id, channelId: c.id } });
         },
       },
-      ...(c.isMember ? [pins.entry("channels", c.id)] : []),
+      ...(c.isMember ? pins.entries("channels", c.id) : []),
       ...extra,
       { kind: "separator" },
       {
@@ -214,6 +250,8 @@ export function useChannelMenu() {
         icon: "link",
         run: () => void copyText(linkTo(`/org/${org.id}/c/${c.id}`), () => toast.show(t("contextMenu.linkCopied"))),
       },
+      // Who reads it: a member, or an administrator reading without joining (ADR 0151).
+      ...(c.isMember || c.seenAsAdmin ? exportEntry(c.id) : []),
       ...(leavesChannel(c) || (manages && c.name !== "general") ? ([{ kind: "separator" }] satisfies MenuEntry[]) : []),
       ...(leavesChannel(c)
         ? ([
@@ -238,7 +276,7 @@ export function useChannelMenu() {
 
 /**
  * An agent (sidebar row, its face or name in a message, its card's ⋯): talk, its profile, its computer (`openComputer`,
- * where the caller knows this person may open it), mention, copy @, mark its DM read, edit (its owner and admins), its
+ * where the caller knows this person may open it), mention, copy @, mark its DM read, edit and duplicate (its owner and admins), its
  * link, stop while it works, its id.
  */
 export function useAgentMenu() {
@@ -255,6 +293,8 @@ export function useAgentMenu() {
   const copyId = useCopyId();
   const mention = useMention();
   const pins = useSidebarPins();
+  const duplicate = useDuplicateAgent(org.id);
+  const exportEntry = useExportEntry();
   /** `extra`: the sidebar row's own items (Mudar de grupo), after Fixar no topo. */
   return (
     a: Pick<Agent, "id" | "name" | "handle" | "ownerUserId" | "builtin">,
@@ -266,12 +306,25 @@ export function useAgentMenu() {
     const working = Object.values(live.get().streams.runs).filter(
       (r) => r.agentId === a.id && isStoppable(r) && runs.canStop(r),
     );
-    const page = (tab?: "settings") =>
+    const page = (tab?: "settings", agentId = a.id) =>
       void navigate({
         to: "/org/$orgId/agents/$agentId",
-        params: { orgId: org.id, agentId: a.id },
+        params: { orgId: org.id, agentId },
         search: tab ? { tab } : {},
       });
+    // A copy with its settings, yours: it opens on its settings to rename it. The right hand is one per workspace.
+    const copy = () =>
+      duplicate.mutate(
+        { agentId: a.id, name: t("contextMenu.agentCopyName", { name: a.name }) },
+        {
+          onSuccess: ({ agent, skipped }) => {
+            const said = skipped.length ? "contextMenu.agentDuplicatedPartly" : "contextMenu.agentDuplicated";
+            toast.show(t(said, { name: agent.name }));
+            page("settings", agent.id);
+          },
+          onError: (e) => toast.show(errorText(t, e), "error"),
+        },
+      );
     return [
       { kind: "header", label: a.name },
       {
@@ -300,15 +353,20 @@ export function useAgentMenu() {
           ] satisfies MenuEntry[])
         : []),
       // The right hand has its own row on top of the sidebar.
-      ...(isRightHand(a) ? [] : [pins.entry("agents", a.id)]),
+      ...(isRightHand(a) ? [] : pins.entries("agents", a.id)),
       ...mention(a.handle),
       ...copyHandle(a.handle),
-      ...markRead(dm?.channelId, dm?.unread ?? 0),
+      ...markRead(dm?.channelId, readToggleOf({ dm })),
       ...extra,
       { kind: "separator" },
       ...(edits
         ? ([
             { kind: "item", id: "edit", label: t("contextMenu.editAgent"), icon: "edit", run: () => page("settings") },
+          ] satisfies MenuEntry[])
+        : []),
+      ...(edits && can(org, "create_agents") && !isRightHand(a)
+        ? ([
+            { kind: "item", id: "duplicate", label: t("contextMenu.duplicateAgent"), icon: "copy", run: copy },
           ] satisfies MenuEntry[])
         : []),
       {
@@ -319,6 +377,7 @@ export function useAgentMenu() {
         run: () =>
           void copyText(linkTo(`/org/${org.id}/dm/agent/${a.id}`), () => toast.show(t("contextMenu.linkCopied"))),
       },
+      ...exportEntry(dm?.channelId),
       ...(working.length
         ? ([
             { kind: "separator" },
@@ -356,8 +415,14 @@ export function usePersonMenu() {
   const copyId = useCopyId();
   const mention = useMention();
   const pins = useSidebarPins();
+  const exportEntry = useExportEntry();
   const viewer = { role: org.role, rank: org.rank, userId: me.user.id, permissions: org.permissions };
-  return (p: { userId: string; name: string; handle?: string | null }, openCard?: () => void): MenuEntry[] => {
+  /** `extra`: the sidebar row's own items ("Mover para cima" / "para baixo" in my order), after Fixar no topo. */
+  return (
+    p: { userId: string; name: string; handle?: string | null },
+    openCard?: () => void,
+    extra: MenuEntry[] = [],
+  ): MenuEntry[] => {
     const dm = dms?.find((d) => d.with.id === p.userId);
     const handle = p.handle ?? undefined;
     const mine = p.userId === me.user.id;
@@ -382,10 +447,12 @@ export function usePersonMenu() {
             { kind: "item", id: "profile", label: t("profile.viewProfile"), icon: "person", run: openCard },
           ] satisfies MenuEntry[])
         : []),
-      ...(mine ? [] : [pins.entry("people", p.userId)]),
+      ...(mine ? [] : pins.entries("people", p.userId)),
+      ...extra,
       ...mention(handle),
       ...copyHandle(handle),
-      ...markRead(dm?.channelId, dm?.unread ?? 0),
+      ...markRead(dm?.channelId, readToggleOf({ dm })),
+      ...exportEntry(dm?.channelId),
       ...(out
         ? ([
             { kind: "separator" },

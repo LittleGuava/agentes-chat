@@ -74,6 +74,8 @@ export function auditPhrase(t: TFunction, row: AuditRow, locale?: string): strin
         : guessed;
     return stepLabel(t, { ...activity, tool: row.target.id ?? "" }, locale);
   }
+  // A DM with an agent shared as a copy (ADR 0151, addendum 2026-11-15): the row names no words of it.
+  if (row.action === "dm.shared") return t("audit.change.dmShared");
   if (row.action === "agent.merged_without_asking") {
     return t("audit.change.mergedWithoutAsking", { repo: row.target.id ?? "" });
   }
@@ -100,11 +102,27 @@ export function auditPhrase(t: TFunction, row: AuditRow, locale?: string): strin
     const app = auditStr(row.details.app) ?? auditStr(row.details.client);
     if (what && app) return t(`audit.change.apps.${what}`, { app });
   }
+  // A domain whose addresses join without an invitation (ADR 0068, addendum 2026-11-15), named or removed.
+  if (area === "join_domain" && (rest === "added" || rest === "removed")) {
+    return t(`audit.change.joinDomain.${rest}`, { domain: auditStr(row.details.domain) ?? "" });
+  }
+  // An agent's API keys (ADR 0210): the key's name, as it was when it happened.
+  if (area === "agent_api") {
+    const what = (["key_created", "key_revoked", "message_sent"] as const).find((s) => s === rest);
+    const app = auditStr(row.details.app);
+    if (what && app) return t(`audit.change.agent_api.${what}`, { app });
+  }
   // The Vault (ADR 0144): its own sentences, since a value shown or copied and a password manager connected don't
   // read as "<verb> <area>".
   if (area === "vault") {
     const what = VAULT_ACTIONS.find((s) => s === rest);
     if (what) return t(`audit.change.vault.${what}`);
+  }
+  // A file's public page (ADR 0211): on or off the internet, at the version it shows.
+  if (row.action === "artifact.page_published" || row.action === "artifact.page_unpublished") {
+    return t(`audit.change.artifact.${rest as "page_published" | "page_unpublished"}`, {
+      version: String(row.details.version ?? ""),
+    });
   }
   const last = (rest.split("_").at(-1) ?? "").replace("cancelled", "canceled");
   const verb = VERBS.find((v) => v === last) ?? "other";
@@ -142,6 +160,7 @@ const VERBS = [
   "deleted",
   "updated",
   "changed",
+  "edited",
   "connected",
   "disconnected",
   "reconnected",
@@ -172,6 +191,7 @@ const VERBS = [
   "shown",
   "copied",
   "used",
+  "exported",
 ] as const;
 const AREAS = [
   "routine",
@@ -198,6 +218,7 @@ const AREAS = [
   "webhook",
   "issue",
   "message",
+  "conversation",
   "run",
   "member",
   "invitation",

@@ -1,8 +1,10 @@
 import type { Agent, Channel, Member } from "@agenteschat/client";
 import { Icon } from "@agenteschat/ui";
 import { useTranslation } from "react-i18next";
+import { ConversationModelsButton } from "@/components/ai/ConversationModels";
 import { ChannelPinsButton } from "@/components/ChannelPins";
 import { QueueButton } from "@/components/ComputerQueue";
+import { ConversationViewers } from "@/components/ConversationViewers";
 import { useChannelMenu } from "@/components/entity-menus";
 import { NavToggle } from "@/components/NavDrawer";
 import { HeaderSearch } from "@/components/search/HeaderSearch";
@@ -11,8 +13,9 @@ import { entityMenu } from "@/lib/entity-menu";
 import "./channel-header.css";
 
 /**
- * A channel's header, as Discord's: `#` and the name, the topic beside it while it fits whole, then icon buttons
- * (threads with their count, pins, the channel's settings, members) and the workspace search's icon.
+ * A channel's header, as Discord's: `#` and the name, the topic beside it while it fits whole, then the faces of who
+ * else has it open, icon buttons (threads with their count, pins, the channel's settings, members) and the
+ * workspace search's icon.
  */
 export function ChannelHeader({
   channel,
@@ -62,9 +65,11 @@ export function ChannelHeader({
           )}
         </div>
         <div className="channel__acts">
+          <ConversationViewers channelId={channel.id} enabled={isMember} />
           <QueueButton machineId={queueMachine} />
           {isMember && <ChannelThreadsButton channelId={channel.id} channelName={channel.name} />}
           {isMember && <ChannelPinsButton channelId={channel.id} channelName={channel.name} />}
+          {isMember && <ConversationModelsButton channelId={channel.id} look="channel" />}
           <button
             type="button"
             className="ac-btn ac-btn--ghost ac-btn--icon channel__icon channel__cog"

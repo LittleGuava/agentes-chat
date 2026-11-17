@@ -911,6 +911,8 @@ export const featureKeysPtBR = {
     title: "Atividade",
     /** Under `plan_model_dropped`: opens the agent's model. */
     chooseModel: "Escolher outro modelo",
+    /** Under `agent_needs_ai`: opens "Conectar uma IA" for the agent. */
+    connectAi: "Conectar uma IA",
     /** The pills over Atividade: short, no counts (the section and the tab's badge count). */
     filter: {
       all: "Tudo",
@@ -960,6 +962,8 @@ export const featureKeysPtBR = {
       run_failed_one: "Não conseguiu terminar",
       run_failed_other: "Não conseguiu terminar",
       routine_failed_other: "Rotina falhou",
+      routine_failed_retried_one: "Rotina falhou após uma nova tentativa",
+      routine_failed_retried_other: "Rotina falhou após uma nova tentativa",
       admin_ask_channel_agent: "{{names}} pede para adicionar {{agent}} a #{{label}}",
       admin_ask_create_agents: "{{names}} pede para poder criar agentes",
       admin_ask_webhook: "{{names}} pede para ligar o webhook do {{service}} para rotinas",
@@ -1019,6 +1023,11 @@ export const featureKeysPtBR = {
       desktop_taken_other: "{{names}} assumiram a tela do computador do\u00a0{{agent}}",
       desktop_taken_female_one: "{{names}} assumiu a tela do computador da\u00a0{{agent}}",
       desktop_taken_female_other: "{{names}} assumiram a tela do computador da\u00a0{{agent}}",
+      /** A person's message got no answer from an agent with no AI (`agent_needs_ai`). */
+      agent_needs_ai_one: "{{names}} chamou o\u00a0{{agent}}, que está sem IA conectada para responder",
+      agent_needs_ai_other: "{{names}} chamaram o\u00a0{{agent}}, que está sem IA conectada para responder",
+      agent_needs_ai_female_one: "{{names}} chamou a\u00a0{{agent}}, que está sem IA conectada para responder",
+      agent_needs_ai_female_other: "{{names}} chamaram a\u00a0{{agent}}, que está sem IA conectada para responder",
       plan_lent_one: "{{names}} conectou o seu plano do {{plan}} ao\u00a0{{agent}}",
       plan_lent_other: "{{names}} conectaram o seu plano do {{plan}} ao\u00a0{{agent}}",
       plan_lent_female_one: "{{names}} conectou o seu plano do {{plan}} à\u00a0{{agent}}",
@@ -2940,5 +2949,14 @@ export const featureKeysPtBR = {
       title: "Nada para revisar",
       text: "Quando um agente fizer algo fora da conversa, aparece aqui.",
     },
+  },
+  phoneTools: {
+    /** Contatos do celular (ADR 0205): Você's page, its row and its toasts. */
+    title: "Contatos do celular",
+    contacts: "Agentes podem buscar nos meus contatos",
+    help: "Só neste workspace e só neste celular. Quando um agente com quem você fala precisa dos dados de alguém, ele busca o nome nos seus contatos: vão para o agente até 5 resultados, cada um só com nome, telefones e e-mails.",
+    deniedTitle: "O acesso aos contatos está desligado",
+    deniedSub: "Permita para o agentes.chat nos Ajustes do celular.",
+    failed: "Não deu para salvar. Tente de novo.",
   },
 } satisfies LocaleStrings;

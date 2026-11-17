@@ -1,7 +1,8 @@
 import type { TFunction } from "i18next";
-import type { AiRouting, AiStatus, DecidedBy } from "../api/types";
-import type { ReceiptView } from "../realtime/receipts";
+import type { AiRouting, AiStatus, DecidedBy, Message } from "../api/types";
+import type { ReceiptsState, ReceiptView } from "../realtime/receipts";
 import { agentGrammar } from "./grammar";
+import { planLabel } from "./no-ai";
 import { providerLabel } from "./providers";
 
 /**
@@ -58,6 +59,51 @@ export function deciderOf(t: TFunction, view: ReceiptView, names: { agent: (id: 
   // A coordinator's pick (before ADR 0137) reads as the default it was.
   const rule = by.rule === "coordinator" ? "default" : by.rule;
   return { rule, text: t(`receipts.by.${rule}`, agentGrammar(names.agent(first))) };
+}
+
+/** A step of the router that is an AI: Jev, the workspace's small model, the author's own plan (ADR 0074). */
+export type AiPick = Exclude<DecidedBy, { step: "rule" }>;
+
+/**
+ * The AI step that picked the agent behind a reply, for the line under it when the workspace shows it (ADR 0074
+ * addendum 2026-11-16): the decision on the message nobody mentioned whose receipt follows this reply's run for this
+ * agent. Null for a rule's pick (the receipt already says why), a decision from before the server said who decided, a
+ * run no message here was routed to, and a run any message mentioned this agent into: that reply answers a mention
+ * too, and a reply to a mention never wears the line.
+ */
+export function routerPickOf(receipts: ReceiptsState, message: Pick<Message, "author" | "agentRunId">): AiPick | null {
+  const agentId = message.author.type === "agent" ? message.author.id : null;
+  const runId = message.agentRunId;
+  if (!agentId || !runId) return null;
+  let pick: AiPick | null = null;
+  for (const id in receipts) {
+    const receipt = receipts[id];
+    if (receipt?.runOf?.[agentId] !== runId) continue;
+    if (receipt.mentioned?.includes(agentId)) return null;
+    const by = receipt.decidedBy;
+    if (!pick && by && by.step !== "rule") pick = by;
+  }
+  return pick;
+}
+
+/**
+ * The words the receipt said before the addendum of 2026-11-03 ("Escolhido pelo Jev", "Escolhido pelo Claude Haiku
+ * 5.5", "Escolhido pelo seu plano do Claude"). Null for a model the catalog can't name yet.
+ */
+export function pickedByLine(
+  t: TFunction,
+  by: AiPick,
+  names: { meId: string | null | undefined; person: (userId: string) => string; model: (id: string) => string | null },
+): string | null {
+  if (by.step === "jev") return t("routing.picked.jev");
+  if (by.step === "model") {
+    const model = names.model(by.model);
+    return model ? t("routing.picked.model", { model }) : null;
+  }
+  const brand = planLabel(t, by.brand);
+  return by.ownerId === names.meId
+    ? t("routing.picked.planYours", { brand })
+    : t("routing.picked.planOf", { brand, person: names.person(by.ownerId) });
 }
 
 /**

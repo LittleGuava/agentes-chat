@@ -1,10 +1,14 @@
 import {
   archiveChannel,
+  attachmentDisposition,
+  CHANNEL_INSTRUCTIONS_MAX,
   CHANNEL_KEYS,
   channelMembersDetail,
+  channelViewers,
   createChannelCategory,
   deleteChannel,
   deleteChannelCategory,
+  exportConversation,
   listArchivedChannels,
   listChannelCategories,
   listChannelOverrides,
@@ -17,9 +21,11 @@ import {
   requireChannelAccess,
   setChannelAgentAutoReply,
   setChannelOverride,
+  TRANSCRIPT_FORMATS,
   unarchiveChannel,
   unpinMessage,
   updateChannel,
+  ValidationError,
 } from "@agenteschat/engine";
 import { createRoute, z } from "@hono/zod-openapi";
 import {
@@ -39,6 +45,12 @@ const tags = ["Channels"];
 const ChannelParams = OrgParams.extend({ channelId: z.uuid() });
 const PinParams = ChannelParams.extend({ messageId: z.uuid() });
 const CategoryParams = OrgParams.extend({ categoryId: z.uuid() });
+const ExportParams = OrgParams.extend({ channelId: z.uuid() });
+const ExportQuery = z.object({
+  format: z.enum(TRANSCRIPT_FORMATS),
+  threadId: z.uuid().optional(),
+  files: z.enum(["true", "false"]).optional(),
+});
 const categoryJson = (r: { id: string; name: string; position: number }) => ({
   id: r.id,
   name: r.name,
@@ -72,6 +84,28 @@ export function channelRoutes(deps: AppDeps) {
   const app = createAppRouter(deps);
   app.use("/organizations/*", requireSession(deps.auth));
   const opts = { pubsub: adapters.pubsub };
+
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/organizations/{orgId}/channels/{channelId}/viewers",
+      tags,
+      security,
+      summary: "Who else has this conversation open now",
+      description:
+        "People with the conversation open in an app now, in the order they opened it (ADR 0084 addendum 2026-11-15). Never you, nor anyone hidden. The channel hears `channel.viewers` when it changes. Each server replica answers for its own connections unless the presence adapter is shared.",
+      request: { params: ChannelParams },
+      responses: {
+        200: json(z.object({ viewers: z.array(z.string()).openapi({ description: "User ids." }) })),
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { orgId, channelId } = c.req.valid("param");
+      const viewers = await channelViewers({ db, presence: adapters.presence }, c.get("user").id, orgId, channelId);
+      return c.json({ viewers }, 200);
+    },
+  );
 
   app.openapi(
     createRoute({
@@ -254,13 +288,17 @@ export function channelRoutes(deps: AppDeps) {
       path: "/organizations/{orgId}/channels/{channelId}",
       tags,
       security,
-      summary: "Rename, change topic or who may join (creator or admin)",
+      summary: "Rename, change topic, the agents' instructions or who may join (creator or admin)",
       request: {
         params: ChannelParams,
         body: body(
           z.object({
             name: z.string().min(1).max(80).optional(),
             topic: z.string().max(500).optional(),
+            instructions: z.string().max(CHANNEL_INSTRUCTIONS_MAX).optional().openapi({
+              description:
+                "What every agent working in the channel follows, a section of its context (ADR 0208); empty clears them. Channels only; a change is audited (`channel.instructions_changed`).",
+            }),
             visibility: z.enum(["public", "private"]).optional(),
             audienceRoleIds: z.array(z.uuid()).max(100).optional().openapi({
               description:
@@ -279,6 +317,7 @@ export function channelRoutes(deps: AppDeps) {
           id: r.id,
           name: r.name,
           topic: r.topic,
+          instructions: r.instructions,
           visibility: r.visibility,
           audienceRoleIds: r.audienceRoleIds,
           isMember: true,
@@ -570,6 +609,34 @@ export function channelRoutes(deps: AppDeps) {
       return c.body(null, 204);
     },
   );
+
+  // A conversation's transcript (ADR 0055 addendum 2026-11-15): Markdown or JSON, zipped with its files when asked.
+  // Whole, never in parts: a ranged request would build the export and its audit row again.
+  app.get("/organizations/:orgId/channels/:channelId/export", async (c) => {
+    const params = ExportParams.safeParse(c.req.param());
+    const query = ExportQuery.safeParse(c.req.query());
+    if (!params.success || !query.success)
+      throw new ValidationError("format is markdown or json, threadId a message id, files true or false");
+    const { orgId, channelId } = params.data;
+    const file = await exportConversation(
+      { db, artifacts: deps.extras?.artifacts },
+      c.get("user").id,
+      orgId,
+      channelId,
+      {
+        format: query.data.format,
+        threadId: query.data.threadId,
+        files: query.data.files === "true",
+      },
+    );
+    return c.body(file.body as Uint8Array<ArrayBuffer>, 200, {
+      "content-type": file.contentType,
+      "content-disposition": attachmentDisposition(file.filename),
+      "x-content-type-options": "nosniff",
+      "content-security-policy": "sandbox",
+      "cache-control": "private, no-store, no-transform",
+    });
+  });
 
   return app;
 }

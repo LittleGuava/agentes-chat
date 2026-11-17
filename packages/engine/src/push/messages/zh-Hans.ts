@@ -15,7 +15,10 @@ export const strings: Partial<PushStrings> = {
   replyTitle: (a) => `${a} 回复了`,
   missionStoppedTitle: "一个专项任务已停止",
   routineFailedTitle: "一项例行工作没有完成",
+  routineFailedRetriedTitle: "一项例行工作重试后仍没有完成",
   runFailedTitle: (a) => `${a} 没能完成`,
+  needsAiTitle: (a) => `${a} 没有连接 AI`,
+  needsAiBody: (p) => `${p} 发了消息但没有得到回复。连接一个 AI 让它能够回答。`,
   routineFailedBody: "点按查看发生了什么。",
   routinePausedTitle: "一项例行工作已暂停",
   routinePausedBody: "点按查看原因。",
@@ -41,6 +44,7 @@ export const strings: Partial<PushStrings> = {
   secretTitle: (a) => `${a} 需要你提供一项机密信息`,
   secretBody: "点按安全发送。",
   widgetAlertTitle: (a, w) => (w ? `${a}：${w}` : `${a} 对一个小组件发出了提醒`),
+  mailImportantTitle: (m) => `${m} 收到重要邮件`,
   widgetFailedTitle: (w) => (w ? `“${w}”未更新` : "一个小组件未更新"),
   widgetFailedReasons: {
     no_update: "上次更新结束时没有数据。",

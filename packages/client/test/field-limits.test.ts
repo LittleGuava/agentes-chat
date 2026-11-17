@@ -23,6 +23,11 @@ test("each field's limit is the number its route takes", () => {
   has(routes("calendar.ts"), /description: z\.string\(\)\.max\(([\d_]+)\)/g, FIELD_LIMITS.eventDescription);
   has(routes("issues.ts"), /description: z\.string\(\)\.max\(([\d_]+)\)/g, FIELD_LIMITS.issueDescription);
   has(read("packages/engine/src/right-hand-approvals.ts"), /guidanceChars: ([\d_]+)/g, FIELD_LIMITS.rightHandGuidance);
+  has(
+    read("packages/engine/src/channels.ts"),
+    /export const CHANNEL_INSTRUCTIONS_MAX = ([\d_]+)/g,
+    FIELD_LIMITS.channelInstructions,
+  );
   has(read("packages/engine/src/approvals.ts"), /export const APPROVAL_REASON_MAX = ([\d_]+)/g, APPROVAL_REASON_MAX);
   has(read("packages/ui/src/components/Field.tsx"), /const LIMIT_NEAR = ([\d.]+)/g, LIMIT_NEAR);
 });

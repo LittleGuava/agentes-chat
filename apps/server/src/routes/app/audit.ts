@@ -1,5 +1,5 @@
 import type { schema } from "@agenteschat/db";
-import { AUDIT_PAGE_MAX, listAudit } from "@agenteschat/engine";
+import { AUDIT_CSV_MAX, AUDIT_PAGE_MAX, attachmentDisposition, auditCsv, listAudit } from "@agenteschat/engine";
 import { createRoute, z } from "@hono/zod-openapi";
 import { type AppDeps, createAppRouter, errors, json, OrgParams, requireSession, security } from "./context";
 
@@ -50,6 +50,32 @@ const AuditRow = z
   })
   .openapi("AuditRow");
 
+/** What the list and its CSV are filtered by. */
+const AuditFilterQuery = z.object({
+  actorType: ActorType.optional(),
+  actorId: z.string().min(1).max(200).optional(),
+  via: z
+    .string()
+    .min(1)
+    .max(200)
+    .optional()
+    .openapi({ description: "An agent's id: what it did, and what people applied from its cards." }),
+  outcome: z
+    .string()
+    .regex(/^(done|failed|refused|pending)(,(done|failed|refused|pending))*$/)
+    .optional()
+    .openapi({ description: "One ending or several, comma-separated (`refused,failed`)." }),
+  waiting: z
+    .enum(["true", "false"])
+    .optional()
+    .openapi({ description: "`true`: only calls whose approval or secret nobody has answered yet." }),
+  kind: z.enum(["tool", "change"]).optional(),
+});
+
+function filterOf<Q extends z.infer<typeof AuditFilterQuery>>({ outcome, waiting, ...query }: Q) {
+  return { ...query, outcome: outcome?.split(",") as AuditOutcome[] | undefined, waiting: waiting === "true" };
+}
+
 /** The org's audit log: what people changed and what agents did. Admins only (`configure`). */
 export function auditRoutes(deps: AppDeps) {
   const { db } = deps;
@@ -65,25 +91,7 @@ export function auditRoutes(deps: AppDeps) {
       summary: "The audit log, newest first: agents' tool calls and people's changes (admins)",
       request: {
         params: OrgParams,
-        query: z.object({
-          actorType: ActorType.optional(),
-          actorId: z.string().min(1).max(200).optional(),
-          via: z
-            .string()
-            .min(1)
-            .max(200)
-            .optional()
-            .openapi({ description: "An agent's id: what it did, and what people applied from its cards." }),
-          outcome: z
-            .string()
-            .regex(/^(done|failed|refused|pending)(,(done|failed|refused|pending))*$/)
-            .optional()
-            .openapi({ description: "One ending or several, comma-separated (`refused,failed`)." }),
-          waiting: z
-            .enum(["true", "false"])
-            .optional()
-            .openapi({ description: "`true`: only calls whose approval or secret nobody has answered yet." }),
-          kind: z.enum(["tool", "change"]).optional(),
+        query: AuditFilterQuery.extend({
           before: z.uuid().optional().openapi({ description: "`next` from the previous page." }),
           limit: z.coerce.number().int().min(1).max(AUDIT_PAGE_MAX).optional(),
         }),
@@ -95,13 +103,28 @@ export function auditRoutes(deps: AppDeps) {
     }),
     async (c) => {
       const { orgId } = c.req.valid("param");
-      const { outcome, waiting, ...query } = c.req.valid("query");
-      const filter = {
-        ...query,
-        outcome: outcome?.split(",") as AuditOutcome[] | undefined,
-        waiting: waiting === "true",
-      };
-      return c.json(await listAudit(db, c.get("user").id, orgId, filter), 200);
+      return c.json(await listAudit(db, c.get("user").id, orgId, filterOf(c.req.valid("query"))), 200);
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/organizations/{orgId}/audit.csv",
+      tags,
+      security,
+      summary: `The audit log as CSV, newest first, with the list's filters: its latest ${AUDIT_CSV_MAX} rows (admins)`,
+      request: { params: OrgParams, query: AuditFilterQuery },
+      responses: { 200: { description: "CSV", content: { "text/csv": { schema: z.string() } } }, ...errors },
+    }),
+    async (c) => {
+      const { orgId } = c.req.valid("param");
+      const csv = await auditCsv(db, c.get("user").id, orgId, filterOf(c.req.valid("query")));
+      const day = new Date().toISOString().slice(0, 10);
+      return c.body(csv, 200, {
+        "content-type": "text/csv; charset=utf-8",
+        "content-disposition": attachmentDisposition(`audit-${day}.csv`),
+      });
     },
   );
 

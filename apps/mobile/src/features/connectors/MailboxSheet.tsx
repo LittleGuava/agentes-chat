@@ -27,8 +27,8 @@ import { MailReview } from "./ToolReview";
 
 /**
  * A connected mailbox (any kind), opened from the gallery's connected row, in the settings' groups as a connection's
- * screen: who uses it and how far, what agents may do in it (Ferramentas, in the sheet), and disconnecting it after a
- * confirmation. Mailboxes connect on the web.
+ * screen: who uses it and how far, what agents may do in it (Ferramentas, in the sheet), its triage, and disconnecting
+ * it after a confirmation. Mailboxes connect on the web.
  */
 export function MailboxSheet({ accountId }: { accountId: string }) {
   const { t } = useTranslation();
@@ -38,7 +38,7 @@ export function MailboxSheet({ accountId }: { accountId: string }) {
   const sheet = useSheet();
   const toast = useToast();
   const accounts = useMailAccounts(orgId);
-  const { disconnect } = useMailAction(orgId);
+  const { disconnect, update } = useMailAction(orgId);
   const admin = can(org, "manage_connectors");
   const [error, setError] = useState<string | null>(null);
   const [tools, setTools] = useState(false);
@@ -48,6 +48,20 @@ export function MailboxSheet({ accountId }: { accountId: string }) {
   const fail = (text: string) => {
     errorHaptic();
     setError(text);
+  };
+  // Triage (ADR 0038, addendum 2026-11-15): saved as it flips, like the app's other switches.
+  const sortMail = (on: boolean) => {
+    setError(null);
+    update.mutate(
+      { accountId: account.id, triage: on },
+      {
+        onSuccess: () => {
+          successHaptic();
+          toast({ title: t(on ? "mail.triage.savedOn" : "mail.triage.savedOff", { address: account.address }) });
+        },
+        onError: () => fail(t("mail.triage.failed", { address: account.address })),
+      },
+    );
   };
   const leave = () => {
     setError(null);
@@ -90,6 +104,22 @@ export function MailboxSheet({ accountId }: { accountId: string }) {
                 onPress={() => setTools(true)}
               />
             </GroupedList>
+          ) : null}
+          {admin ? (
+            <View>
+              <GroupedList>
+                <GroupedRow
+                  leading={<Tile icon="flag" size={30} />}
+                  label={t("mail.triage.label")}
+                  labelLines={2}
+                  hint={{ name: t("common.about", { label: t("mail.triage.label") }), text: t("mail.triage.scope") }}
+                  toggle={account.triage === true}
+                  disabled={update.isPending}
+                  onPress={() => sortMail(account.triage !== true)}
+                />
+              </GroupedList>
+              <GroupedFooter>{t("mail.triage.help")}</GroupedFooter>
+            </View>
           ) : null}
           <Button variant="primary" wide label={t("mobile.connectors.done")} onPress={sheet.close} />
           {admin ? (

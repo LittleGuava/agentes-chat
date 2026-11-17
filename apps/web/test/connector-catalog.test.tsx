@@ -547,6 +547,49 @@ describe("the connect flow: conectar → conectado; Ajustar → o que faz → qu
     expect(screen().getByRole("dialog", { name: "Linear conectado" })).toBeTruthy();
   });
 
+  test("a server that only lets in apps it approved signs in with the admin's own app: its redirect URI shown, client id required", async () => {
+    const state = seedState({ connections: [] });
+    const api = createFakeApi(state);
+    const sent: Parameters<typeof api.customConnectors.connect>[1][] = [];
+    api.customConnectors.connect = async (_orgId, input) => {
+      sent.push(input);
+      return input.oauthClient
+        ? { status: "oauth", authorizeUrl: "https://login.example.com/authorize?client_id=app-1" }
+        : { status: "needs_key", reason: "not_approved" };
+    };
+    const left: string[] = [];
+    setNavigateAway((url) => left.push(url));
+    const { dialog } = await open(state, api);
+    await pick(dialog, "Linear");
+    const flow = screen().getByRole("dialog", { name: "Conectar Linear" });
+    await click(within(flow).getByRole("button", { name: "Continuar no Linear" }));
+    await settle(4);
+    await click(within(flow).getByText("Entrar com um app registrado por você"));
+    await settle(2);
+    // Opening the app's form folds the key away.
+    const folds = [...flow.querySelectorAll("details.cflow__more")].map((d) => d.hasAttribute("open"));
+    expect(folds).toEqual([false, true]);
+    expect((within(flow).getByLabelText("URI de redirecionamento") as HTMLInputElement).value).toBe(
+      `${window.location.origin}/api/app/connectors/oauth/callback`,
+    );
+    const signIn = within(flow).getByRole("button", { name: "Entrar com este app" });
+    await click(signIn);
+    await settle(2);
+    expect(flow.textContent).toContain("Digite o ID do cliente do app");
+    expect(sent).toHaveLength(1);
+    await type(within(flow).getByLabelText("ID do cliente"), " app-1 ");
+    await type(within(flow).getByLabelText("Segredo do cliente (opcional)"), "s3cret");
+    await type(within(flow).getByLabelText("Escopos (opcional)"), "api://mcp/read   offline_access");
+    await click(signIn);
+    await settle(4);
+    expect(sent.at(-1)?.oauthClient).toEqual({
+      clientId: "app-1",
+      clientSecret: "s3cret",
+      scopes: ["api://mcp/read", "offline_access"],
+    });
+    expect(left).toEqual(["https://login.example.com/authorize?client_id=app-1"]);
+  });
+
   test("a one-click server the catalog lists without a key (Intercom on the Cloud) offers no API key", async () => {
     const state = seedState({ connections: [] });
     const api = createFakeApi(state);

@@ -1,6 +1,10 @@
 {
   "app": {
     "pt-BR": [
+      "settings.import.countSkills",
+      "shell.sidebarSetup.links",
+      "browser.profiles.sitesCookies",
+      "machines.local.skills",
       "usageViews.logins",
       "chat.wait.said",
       "access.area.skills",
@@ -302,9 +306,12 @@
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
       "storage.connect.provider.b2",
-      "storage.connect.awsRegion.il-central-1"
+      "storage.connect.awsRegion.il-central-1",
+      "settings.section.webhooks"
     ],
     "es": [
+      "connectFlow.program.variable",
+      "browser.profiles.sitesCookies",
       "devices.iphone.path.general",
       "devices.cpus",
       "devices.memory",
@@ -561,10 +568,17 @@
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
       "storage.connect.provider.b2",
-      "storage.connect.awsRegion.il-central-1"
+      "storage.connect.awsRegion.il-central-1",
+      "settings.section.webhooks"
     ],
     "fr": [
+      "connectFlow.program.variable",
       "usage.kinds.routines",
+      "settings.import.agents",
+      "settings.import.setorAgents",
+      "settings.import.countRoutines",
+      "share.publicVersion",
+      "browser.profiles.sitesCookies",
       "channel.tooLong.fileName",
       "calendar.moreRuns",
       "devices.cpus",
@@ -666,6 +680,8 @@
       "channelMembers.agents",
       "channelRefs.agents",
       "chat.consultPanel.messages",
+      "dmShare.lines",
+      "dmShare.note",
       "chat.work.seconds",
       "composer.pc",
       "composer.routine",
@@ -1001,9 +1017,18 @@
       "storage.connect.awsRegion.eu-central-2",
       "storage.connect.awsRegion.eu-west-3",
       "storage.connect.awsRegion.eu-south-1",
-      "storage.connect.awsRegion.eu-north-1"
+      "storage.connect.awsRegion.eu-north-1",
+      "transcript.format",
+      "settings.section.webhooks",
+      "webhooks.event.ping"
     ],
     "de": [
+      "connectFlow.program.computer",
+      "connectFlow.program.variable",
+      "members.domains.domain",
+      "shell.sidebarSetup.links",
+      "shell.sidebarSetup.linkTitle",
+      "machines.local.skills",
       "devices.iphone.steps.account",
       "devices.workspace",
       "devices.cpus",
@@ -1466,9 +1491,19 @@
       "storage.connect.theirName.s3Secret",
       "storage.connect.theirName.b2Key",
       "storage.connect.theirName.b2Secret",
-      "storage.connect.awsRegion.il-central-1"
+      "storage.connect.awsRegion.il-central-1",
+      "transcript.format",
+      "settings.section.webhooks",
+      "webhooks.inChannels",
+      "webhooks.event.ping",
+      "webhooks.form.name",
+      "webhooks.form.urlExample"
     ],
     "it": [
+      "connectFlow.program.computer",
+      "settings.import.countSkills",
+      "settings.import.countRoutines",
+      "browser.profiles.sitesCookies",
       "shell.email.label",
       "calendar.moreRuns",
       "devices.iphone.steps.account",
@@ -1843,10 +1878,20 @@
       "appsDownload.computer",
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
-      "storage.connect.provider.b2"
+      "storage.connect.provider.b2",
+      "webhooks.inChannels"
     ],
     "nl": [
+      "connectFlow.program.computer",
       "usage.kinds.routines",
+      "brain.acp.models",
+      "settings.import.agents",
+      "settings.import.setorAgents",
+      "settings.import.countSkills",
+      "settings.import.countRoutines",
+      "shell.sidebarSetup.links",
+      "browser.profiles.sitesCookies",
+      "machines.local.skills",
       "calendar.moreRuns",
       "devices.iphone.steps.account",
       "devices.filter.computers",
@@ -2457,7 +2502,10 @@
       "storage.connect.theirName.s3Key",
       "storage.connect.theirName.s3Secret",
       "storage.connect.theirName.b2Key",
-      "storage.connect.theirName.b2Secret"
+      "storage.connect.theirName.b2Secret",
+      "settings.section.webhooks",
+      "webhooks.inChannels",
+      "webhooks.event.ping"
     ],
     "ja": [
       "channel.tooLong.fileName",
@@ -2634,7 +2682,8 @@
       "appsDownload.googlePlay",
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
-      "storage.connect.provider.b2"
+      "storage.connect.provider.b2",
+      "webhooks.form.urlExample"
     ],
     "ko": [
       "channel.tooLong.fileName",
@@ -2805,7 +2854,8 @@
       "appsDownload.googlePlay",
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
-      "storage.connect.provider.b2"
+      "storage.connect.provider.b2",
+      "webhooks.form.urlExample"
     ],
     "zh-Hans": [
       "channel.tooLong.fileName",
@@ -2967,9 +3017,11 @@
       "appsDownload.googlePlay",
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
-      "storage.connect.provider.b2"
+      "storage.connect.provider.b2",
+      "webhooks.form.urlExample"
     ],
     "id": [
+      "members.domains.domain",
       "shell.email.label",
       "devices.cpus",
       "devices.memory",
@@ -3282,9 +3334,13 @@
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
       "storage.connect.provider.b2",
-      "storage.connect.awsRegion.il-central-1"
+      "storage.connect.awsRegion.il-central-1",
+      "transcript.format",
+      "webhooks.edit",
+      "webhooks.form.editTitle"
     ],
     "tr": [
+      "brain.acp.models",
       "devices.cpus",
       "devices.memory",
       "devices.system.android",
@@ -3478,9 +3534,12 @@
       "appsDownload.googlePlay",
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
-      "storage.connect.provider.b2"
+      "storage.connect.provider.b2",
+      "webhooks.event.ping"
     ],
     "pl": [
+      "brain.acp.models",
+      "settings.import.setorAgents",
       "devices.cpus",
       "devices.memory",
       "devices.system.android",
@@ -3784,7 +3843,9 @@
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
       "storage.connect.provider.b2",
-      "storage.connect.region"
+      "storage.connect.region",
+      "transcript.format",
+      "webhooks.event.ping"
     ],
     "ru": [
       "channel.tooLong.fileName",
@@ -3946,7 +4007,8 @@
       "appsDownload.googlePlay",
       "storage.connect.provider.r2",
       "storage.connect.provider.s3",
-      "storage.connect.provider.b2"
+      "storage.connect.provider.b2",
+      "webhooks.form.urlExample"
     ]
   },
   "mobile-base": {
@@ -4481,6 +4543,9 @@
       "prefs.advanced.claude",
       "prefs.folders.org",
       "prefs.general.orgs",
+      "prefs.nav.sites",
+      "prefs.sites.site",
+      "prefs.sites.title",
       "server.jev",
       "servers.workspaces",
       "tools.antigravityName",
@@ -4512,6 +4577,9 @@
       "tools.opencodeName"
     ],
     "fr": [
+      "myChrome.agent",
+      "myChrome.port",
+      "myChrome.minutes",
       "common.hours",
       "common.minutes",
       "device.mac",
@@ -4523,6 +4591,7 @@
       "prefs.advanced.claude",
       "prefs.folders.agents",
       "prefs.nav.label",
+      "prefs.sites.agents",
       "prefs.thisMac.agents",
       "prefs.tools.protection",
       "server.jev",
@@ -4532,9 +4601,12 @@
       "tools.cursorName",
       "tools.grokName",
       "tools.copilotName",
-      "tools.opencodeName"
+      "tools.opencodeName",
+      "folderSync.conversations"
     ],
     "de": [
+      "myChrome.agent",
+      "myChrome.port",
       "device.mac",
       "device.windows",
       "iphone.account",
@@ -4585,6 +4657,7 @@
       "tools.opencodeName"
     ],
     "nl": [
+      "myChrome.agent",
       "common.minutes",
       "device.linux",
       "device.mac",
@@ -4600,6 +4673,7 @@
       "prefs.nav.servers",
       "prefs.nav.tools",
       "prefs.nav.updates",
+      "prefs.sites.agents",
       "prefs.thisMac.agents",
       "prefs.tools.title",
       "prefs.updates.title",
@@ -4662,6 +4736,7 @@
       "tools.opencodeName"
     ],
     "id": [
+      "myChrome.port",
       "device.mac",
       "device.windows",
       "link.chipTailnet",
@@ -4679,7 +4754,8 @@
       "tools.cursorName",
       "tools.grokName",
       "tools.copilotName",
-      "tools.opencodeName"
+      "tools.opencodeName",
+      "folderSync.folder"
     ],
     "tr": [
       "device.mac",
@@ -4696,6 +4772,8 @@
       "tools.opencodeName"
     ],
     "pl": [
+      "myChrome.agent",
+      "myChrome.port",
       "common.minutes",
       "device.mac",
       "device.windows",
@@ -4710,7 +4788,8 @@
       "tools.cursorName",
       "tools.grokName",
       "tools.copilotName",
-      "tools.opencodeName"
+      "tools.opencodeName",
+      "folderSync.folder"
     ],
     "ru": [
       "connect.placeholder",

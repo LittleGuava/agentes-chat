@@ -1,8 +1,12 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { and, eq, inArray, schema, sql } from "@agenteschat/db";
 import { en, STRINGS } from "@agenteschat/i18n";
+import { modelForTier } from "@agenteschat/providers";
 import {
   actOnTeamWeek,
+  createCalendarEvent,
+  createIssue,
+  createRoutine,
   createSetupToolSource,
   createToolGateway,
   decideProposal,
@@ -1375,6 +1379,166 @@ describe("Resumo do dia", () => {
       daily: true,
       hour: 8,
     });
+  });
+
+  test("the day ahead, for who asks for it: their meetings, their agents' routines and tasks due, from the slot to midnight", async () => {
+    f = await setup({ rightHand: true });
+    await inZone(f);
+    const deps = { db: f.db, pubsub: f.pubsub };
+    const bia = await addMember(f.db, f.org.id, "member", "bia");
+    const meeting = (title: string, start: string, participants: { type: "person"; id: string }[] = []) =>
+      createCalendarEvent(deps, f.owner.id, f.org.id, {
+        title,
+        start,
+        end: new Date(Date.parse(start) + HOUR).toISOString(),
+        recurrence: "none",
+        participants,
+      });
+    // 14:00 and 11:00 in São Paulo today; 07:00 is before the slot; tomorrow's is on tomorrow's card.
+    await meeting("Planejamento", "2026-11-06T17:00:00Z");
+    await meeting("Daily", "2026-11-06T14:00:00Z");
+    await meeting("Cedo", "2026-11-06T10:00:00Z");
+    await meeting("Amanhã", "2026-11-07T14:00:00Z");
+    // Bia's own meeting, without the owner, is on her calendar only.
+    await createCalendarEvent(deps, bia.id, f.org.id, {
+      title: "1:1",
+      start: "2026-11-06T15:00:00Z",
+      end: "2026-11-06T16:00:00Z",
+      recurrence: "none",
+      participants: [],
+    });
+    const owner = { type: "person" as const, userId: f.owner.id };
+    await createIssue(deps, owner, f.org.id, {
+      title: "Entrega",
+      dueDate: "2026-11-06",
+      assignees: [{ type: "agent", id: f.agent.id }],
+    });
+    await createIssue(deps, owner, f.org.id, { title: "Depois", dueDate: "2026-11-07" });
+    await createIssue(deps, owner, f.org.id, {
+      title: "Da Bia",
+      dueDate: "2026-11-06",
+      assignees: [{ type: "person", id: bia.id }],
+    });
+    await createRoutine({ db: f.db, pubsub: f.pubsub, context: f.context }, f.owner.id, f.org.id, {
+      agentId: f.agent.id,
+      prompt: "Resumo",
+      target: { type: "channel", channelId: f.general.id },
+      trigger: { type: "schedule", rule: { freq: "daily", times: ["10:00"], timezone: ZONE, start: "2026-11-01" } },
+    });
+
+    // Off by default: a day with only the calendar to say posts nothing.
+    expect((await getLodiPrefs(f.db, f.org.id, f.owner.id)).agenda).toBe(false);
+    expect(await post(f, f.owner.id, NINE)).toBeNull();
+
+    expect((await setLodiPrefs(f.db, f.org.id, f.owner.id, { agenda: true })).agenda).toBe(true);
+    const today = await post(f, f.owner.id, NINE);
+    expect(today).not.toBeNull();
+    const { card } = await cardOf(f, today as string);
+    // First on the card; only builds that word it read it; never "seen", since each day's is its own.
+    expect(card.moreRows?.[0]).toEqual({
+      id: "today",
+      kind: "today",
+      meetings: 2,
+      routines: 1,
+      deadlines: 1,
+      first: { title: "Daily", at: "2026-11-06T14:00:00.000Z", allDay: false },
+    });
+    expect(card.rows.some((r) => (r.kind as string) === "today")).toBe(false);
+    expect(card.seen ?? []).not.toContain("today");
+    // Asked for, it rings at the person's hour; none of it called a model.
+    expect(await rings(f, today as string)).toBe(true);
+    expect(f.provider.calls).toHaveLength(0);
+
+    // The next day's slot reads that day: its meeting and the routine at 10h. Nothing is due then for the owner.
+    const next = await post(f, f.owner.id, new Date(NINE.getTime() + DAY));
+    expect((await cardOf(f, next as string)).card.moreRows?.[0]).toEqual({
+      id: "today",
+      kind: "today",
+      meetings: 1,
+      routines: 1,
+      deadlines: 0,
+      first: { title: "Amanhã", at: "2026-11-07T14:00:00.000Z", allDay: false },
+    });
+
+    // A day with no meeting, routine or task of theirs says nothing.
+    await f.db.update(schema.routines).set({ active: false });
+    expect(await post(f, f.owner.id, new Date(NINE.getTime() + 3 * DAY))).toBeNull();
+  });
+
+  /** The day's job as the worker runs it: with the gateway, for "Resumo escrito pela IA". */
+  const postWithAi = (fx: Fixture, userId: string, slot: Date) =>
+    postTeamWeek({ db: fx.db, pubsub: fx.pubsub, gateway: fx.gateway }, fx.org.id, {
+      userId,
+      slot: slot.toISOString(),
+      period: "day",
+    });
+
+  test("written by the AI, for who turns it on: a short paragraph from the card's own facts, on Lodi's budget", async () => {
+    f = await setup({
+      rightHand: true,
+      reply: () => ({ chunks: ["Uma coisa espera você ", "e o Dev terminou um trabalho."] }),
+    });
+    await inZone(f);
+    const bia = await addMember(f.db, f.org.id, "member", "bia");
+    const caio = await addMember(f.db, f.org.id, "member", "caio");
+    for (const who of [bia, caio]) {
+      await ask(f, who.id, new Date(NINE.getTime() - 5 * HOUR), "done");
+      await waits(f, who.id, `question:${who.id}`);
+    }
+
+    // Off by default: the card the ADR describes, and no model call.
+    expect((await getLodiPrefs(f.db, f.org.id, caio.id)).aiSummary).toBe(false);
+    const plain = await postWithAi(f, caio.id, NINE);
+    expect((await cardOf(f, plain as string)).card.summary).toBeUndefined();
+    expect(f.provider.calls).toHaveLength(0);
+
+    expect((await setLodiPrefs(f.db, f.org.id, bia.id, { aiSummary: true })).aiSummary).toBe(true);
+    // A save of the other choices keeps it.
+    expect((await setLodiPrefs(f.db, f.org.id, bia.id, { dayHour: 9 })).aiSummary).toBe(true);
+    const id = await postWithAi(f, bia.id, NINE);
+    const { card } = await cardOf(f, id as string);
+    expect(card.summary).toBe("Uma coisa espera você e o Dev terminou um trabalho.");
+    // The same rows as without it.
+    expect(card.moreRows?.map((r) => r.kind)).toEqual(["waiting"]);
+
+    expect(f.provider.calls).toHaveLength(1);
+    const [call] = f.provider.calls;
+    const facts = JSON.stringify(call?.request.messages);
+    // What the card shows, as outside data: never what the question or a run said.
+    expect(facts).toContain("external_data");
+    expect(facts).toContain("Dev finished 1 job(s) in #general.");
+    expect(facts).not.toContain("Which plan");
+    expect(facts).not.toContain("faz isso");
+    // Through the gateway, on Lodi's budget and the reader's month, at a small model.
+    const lodi = await lodiOf(f);
+    const usage = await f.db.select().from(schema.usageRecords).where(eq(schema.usageRecords.agentId, lodi.id));
+    expect(usage.map((u) => [u.personId, u.kind])).toEqual([[bia.id, "agent"]]);
+    expect(call?.request.model).toBe(modelForTier("anthropic", "small") ?? "no small model");
+  });
+
+  test("without an answer from the AI, or with no budget left, the card goes out as it is, at once", async () => {
+    f = await setup({ rightHand: true, reply: () => new Error("provider down") });
+    await inZone(f);
+    const bia = await addMember(f.db, f.org.id, "member", "bia");
+    await ask(f, bia.id, new Date(NINE.getTime() - 5 * HOUR), "done");
+    await waits(f, bia.id, "question:1");
+    await setLodiPrefs(f.db, f.org.id, bia.id, { aiSummary: true });
+
+    const failed = await postWithAi(f, bia.id, NINE);
+    expect(failed).not.toBeNull();
+    const { card } = await cardOf(f, failed as string);
+    expect(card.summary).toBeUndefined();
+    expect(card.moreRows?.map((r) => r.kind)).toEqual(["waiting"]);
+
+    // Lodi's budget spent: the gateway refuses before any call.
+    const lodi = await lodiOf(f);
+    await f.db.update(schema.agents).set({ monthlyBudgetNanoUsd: 1 }).where(eq(schema.agents.id, lodi.id));
+    const calls = f.provider.calls.length;
+    await waits(f, bia.id, "question:2");
+    const next = await postWithAi(f, bia.id, new Date(NINE.getTime() + DAY));
+    expect(next).not.toBeNull();
+    expect((await cardOf(f, next as string)).card.summary).toBeUndefined();
+    expect(f.provider.calls.length).toBe(calls);
   });
 });
 

@@ -233,7 +233,7 @@ function Profile({ id }: { id: string }) {
   );
   const memories = knownAboutMe(knows.data);
   const learned = byPlaybook(memories);
-  const uses = usesOf(access.data);
+  const uses = usesOf(access.data, agent?.approvalsLevel);
   const connected = useConnectedById();
   // A computer brain: its maker's mark and the model by the plan that pays for it ("Sonnet pelo plano do Claude"; its
   // computer only where it tells two apart).
@@ -244,12 +244,14 @@ function Profile({ id }: { id: string }) {
   const effortView = useAgentBrain(orgId, id, decides && thinks !== null).data;
   const brainKind = agent?.brain?.kind;
   const thinksPlan =
-    brainKind && brainKind !== "model"
-      ? planLabel(t, planOfAccount({ kind: brainKind, provider: agent?.brain?.provider ?? null }))
-      : null;
+    brainKind === "acp"
+      ? agent?.brain?.engine || t("brain.acp.name")
+      : brainKind && brainKind !== "model"
+        ? planLabel(t, planOfAccount({ kind: brainKind, provider: agent?.brain?.provider ?? null }))
+        : null;
   const thinksModel = isAuto(agent?.brain?.model) ? t("brain.auto.label") : (agent?.brain?.model ?? null);
   const thinksEffort =
-    effortView && effortView.brain !== "model" && !isAuto(effortView.effectiveModel)
+    effortView && effortView.brain !== "model" && effortView.brain !== "acp" && !isAuto(effortView.effectiveModel)
       ? t("agentPage.work.cell.effort", {
           level: t(`agentPage.work.brain.effortsLower.${effortLevel(effortView.effort)}`),
         })
@@ -375,8 +377,10 @@ function Profile({ id }: { id: string }) {
     : apiModelName(t, agent.model, modelLabel(agent.model) ?? undefined, autoMakerOf(aiStatus.data, id));
   const monthLabel =
     shown.plan?.account ?? thinksPlan ?? thinks?.text ?? apiModel ?? t("usageViews.agent.title", agentGrammar(name));
-  // A plan's maker, or the maker Automático's models come from through the API.
-  const monthMark = thinks?.mark ?? agent?.brain?.maker;
+  // A plan's maker, or the maker Automático's models come from through the API, or the maker a workspace endpoint's
+  // host names for its model (ADR 0146).
+  const endpointMark = models.data?.models.find((m) => m.id === agent?.model)?.endpoint?.mark;
+  const monthMark = thinks?.mark ?? agent?.brain?.maker ?? endpointMark;
   // A short value fits on the right ("week 40%", "$3.20 of $50.00"); a sentence goes under the name.
   const monthValue = planNow?.top
     ? `${meter.short(planNow.top)} ${planNow.top.used}%`
@@ -593,6 +597,7 @@ function Profile({ id }: { id: string }) {
                     />
                   }
                   label={u.label.text}
+                  {...(u.offAtNever ? { sub: t("access.neverLegend") } : {})}
                   value={t(`mobile.intentAgents.uses.level.${u.level}`)}
                 />
               ),

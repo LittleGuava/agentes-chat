@@ -24,7 +24,15 @@ import {
 import { busyOnComputer, eventWebhook, runsPerDay } from "@agenteschat/client/lib/routine-view";
 import {
   connectionReader,
+  connectorChoiceKey,
+  connectorDraftFor,
+  connectorEventChoices,
+  connectorEventOfChoice,
+  connectorKindKey,
   mailboxReader,
+  meetingCalendars,
+  meetingLeadOf,
+  SLACK_MESSAGE,
   timezoneName,
   triggerChoices,
   zoneDisplayName,
@@ -79,11 +87,12 @@ import {
   TARGET_ARTIFACT,
   TARGET_DM,
   TARGET_KEEP,
-  type TriggerKind,
   targetChoice,
   targetIcon,
   toastParts,
+  triggerReady,
   wasUtc,
+  withKind,
   zoneOf,
 } from "./logic";
 import { AgentAccessNote } from "./parts";
@@ -107,7 +116,7 @@ import { setRoutineZone, useRoutineZone } from "./zone";
 
 const PROMPT_LIMIT = { max: FIELD_LIMITS.routinePrompt };
 
-type Open = "agent" | "target" | "mailbox" | "folder" | null;
+type Open = "agent" | "target" | "mailbox" | "folder" | "connection" | "calendar" | null;
 
 const close = () => goBack("/routines");
 
@@ -160,9 +169,8 @@ function Form({ routine }: { routine: Routine | undefined }) {
   const creator = routine?.createdByUserId ?? me;
   const channels = useChannels(orgId);
   const mailboxes = useMailAccounts(orgId);
-  const eventConnections = (useCustomServers(orgId).data ?? []).filter((s) =>
-    s.events?.includes("millionsend.email.received"),
-  );
+  const servers = useCustomServers(orgId).data ?? [];
+  const calendars = meetingCalendars(servers);
   const targetLabel = useTargetLabel();
   const action = useRoutineAction(orgId);
   const agents = dir.agents;
@@ -388,9 +396,25 @@ function Form({ routine }: { routine: Routine | undefined }) {
   const setFilter = (patch: { subject?: string; text?: string }) =>
     setD((x) => ({ ...x, email: { ...x.email, filter: { ...x.email.filter, ...patch } } }));
   const fromBad = d.kind === "email" && from.invalid.length > 0;
-  // "Email no MillionSend" (ADR 0130): the first connection, its inbox's address and the same filters.
-  const hasMillionSend = d.kind === "connector" || eventConnections.length > 0;
-  const grants = useAgentScopes(orgId, d.agentId, d.kind === "connector" && Boolean(d.agentId));
+  // "Email no MillionSend" (ADR 0130), "Mensagem no Slack" (ADR 0196): one choice per service connected (and the one
+  // the form holds); the connection, then the inbox's address and filters, or the channel and words.
+  const connectorEvents = connectorEventChoices(servers, d.kind === "connector" ? d.connector.event : undefined);
+  const slack = d.connector.event === SLACK_MESSAGE;
+  const eventConnections = servers.filter((s) => s.events?.includes(d.connector.event));
+  const [msFromText, setMsFromText] = useState(() => (d.connector.filter.from ?? []).join(", "));
+  const pickWhen = (choice: string) => {
+    const picked = connectorEventOfChoice(choice);
+    const plain = (["schedule", "event", "email", "meeting", "webhook"] as const).find((k) => k === choice);
+    if (picked) {
+      if (picked !== d.connector.event) setMsFromText("");
+      setD((x) => ({ ...withKind(x, "connector", reportPicked), connector: connectorDraftFor(x.connector, picked) }));
+    } else if (plain) setD((x) => withKind(x, plain, reportPicked));
+  };
+  const grants = useAgentScopes(
+    orgId,
+    d.agentId,
+    (d.kind === "connector" || d.kind === "meeting") && Boolean(d.agentId),
+  );
   const connectionPick = triggerChoices(
     eventConnections,
     d.agentId && grants.data ? connectionReader(grants.data) : undefined,
@@ -401,11 +425,31 @@ function Form({ routine }: { routine: Routine | undefined }) {
     if (d.kind === "connector" && !d.connector.connectionId && firstConnection)
       setD((x) => ({ ...x, connector: { ...x.connector, connectionId: firstConnection } }));
   }, [d.kind, d.connector.connectionId, firstConnection]);
-  const [msFromText, setMsFromText] = useState(() => (d.connector.filter.from ?? []).join(", "));
   const msFrom = splitAddresses(msFromText);
-  const setConnectorFilter = (patch: { to?: string; from?: string[]; subject?: string }) =>
-    setD((x) => ({ ...x, connector: { ...x.connector, filter: { ...x.connector.filter, ...patch } } }));
+  const setConnectorFilter = (patch: {
+    to?: string;
+    from?: string[];
+    subject?: string;
+    channel?: string;
+    text?: string;
+  }) => setD((x) => ({ ...x, connector: { ...x.connector, filter: { ...x.connector.filter, ...patch } } }));
   const msFromBad = d.kind === "connector" && msFrom.invalid.length > 0;
+  // "Antes de uma reunião" (ADR 0190): the first calendar its agent reads, until the person picks, and the minutes.
+  const hasCalendar = d.kind === "meeting" || calendars.length > 0;
+  const calendarPick = triggerChoices(
+    calendars,
+    d.agentId && grants.data ? connectionReader(grants.data) : undefined,
+    d.meeting.connectionId,
+  );
+  const firstCalendar = d.agentId && grants.isPending ? undefined : calendarPick.options[0]?.id;
+  useEffect(() => {
+    if (d.kind === "meeting" && !d.meeting.connectionId && firstCalendar)
+      setD((x) => ({ ...x, meeting: { ...x.meeting, connectionId: firstCalendar } }));
+  }, [d.kind, d.meeting.connectionId, firstCalendar]);
+  const calendarName = (calendars.find((s) => s.id === d.meeting.connectionId) ?? calendars[0])?.label ?? "";
+  const leadBad = d.kind === "meeting" && meetingLeadOf(d.meeting.lead) === null;
+  // A new routine's "Quando posta" follows its kind (a meeting's prep always posts) until the person picks one.
+  const [reportPicked, setReportPicked] = useState(editing);
 
   // A routine on someone's computer that runs hourly or more often: how often it wakes that computer.
   const brain = dir.agentById.get(d.agentId)?.brain;
@@ -420,14 +464,7 @@ function Form({ routine }: { routine: Routine | undefined }) {
       : null;
 
   const promptHidden = routine !== undefined && routine.prompt === null;
-  const scheduleOk =
-    d.kind === "event" ||
-    d.kind === "webhook" ||
-    (d.kind === "connector"
-      ? Boolean(d.connector.connectionId) && !msFromBad
-      : d.kind === "email"
-        ? Boolean(d.email.accountId) && !fromBad
-        : !phraseFailed);
+  const scheduleOk = triggerReady(d) && !msFromBad && !fromBad && !(schedule && phraseFailed);
   const [template, setTemplate] = useState<RoutineTemplateOption>();
   const unfilled = blankLeft(d.prompt, template);
   const ready =
@@ -445,6 +482,7 @@ function Form({ routine }: { routine: Routine | undefined }) {
     setTemplate(o);
     setPhrase("");
     setPhraseTyped(false);
+    setReportPicked(true);
     setD((x) => ({
       ...x,
       prompt: o.prompt,
@@ -627,11 +665,12 @@ function Form({ routine }: { routine: Routine | undefined }) {
               { key: "schedule", label: t("routines.form.kind.schedule") },
               { key: "event", label: t("routines.form.kind.event") },
               ...(hasMail ? [{ key: "email", label: t("routines.form.kind.email") }] : []),
-              ...(hasMillionSend ? [{ key: "connector", label: t("routines.form.kind.connector") }] : []),
+              ...connectorEvents.map((e) => ({ key: connectorChoiceKey(e), label: t(connectorKindKey(e)) })),
+              ...(hasCalendar ? [{ key: "meeting", label: t("routines.form.kind.meeting") }] : []),
               { key: "webhook", label: t("routines.form.kind.webhook") },
             ]}
-            value={d.kind}
-            onChange={(k) => set({ kind: k as TriggerKind })}
+            value={d.kind === "connector" ? connectorChoiceKey(d.connector.event) : d.kind}
+            onChange={pickWhen}
             wide="fit"
           />
           {schedule ? (
@@ -887,54 +926,173 @@ function Form({ routine }: { routine: Routine | undefined }) {
                 />
               ) : null}
               <View style={styles.gap} />
-              <GroupedList>
-                <StackedField label={t("mail.routine.inboxAddress")}>
-                  <TextInput
-                    value={d.connector.filter.to ?? ""}
-                    onChangeText={(to) => setConnectorFilter({ to })}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    accessibilityLabel={t("mail.routine.inboxAddress")}
-                    style={input}
-                  />
-                </StackedField>
-              </GroupedList>
-              <GroupedFooter>{t("mail.routine.inboxAddressHelp")}</GroupedFooter>
-              <GroupedHeader>{t("mail.routine.filters")}</GroupedHeader>
-              <GroupedList>
-                <StackedField label={t("mail.routine.from")}>
-                  <TextInput
-                    value={msFromText}
-                    onChangeText={(text) => {
-                      setMsFromText(text);
-                      setConnectorFilter({ from: splitAddresses(text).valid });
-                    }}
-                    placeholder={t("mail.list.placeholder")}
-                    placeholderTextColor={c.faint}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    accessibilityLabel={t("mail.routine.from")}
-                    style={input}
-                  />
-                </StackedField>
-                <StackedField label={t("mail.routine.subject")}>
-                  <TextInput
-                    value={d.connector.filter.subject ?? ""}
-                    onChangeText={(subject) => setConnectorFilter({ subject })}
-                    accessibilityLabel={t("mail.routine.subject")}
-                    style={input}
-                  />
-                </StackedField>
-              </GroupedList>
-              {msFromBad ? (
-                <Text variant="footnote" tone="danger" style={styles.error} accessibilityLiveRegion="polite">
-                  {t("mail.list.invalid")}
-                </Text>
+              {connectionPick.options.length > 1 ? (
+                <>
+                  <GroupedList>
+                    <GroupedRow
+                      icon="bolt"
+                      label={t("mail.routine.connection")}
+                      value={eventConnections.find((s) => s.id === d.connector.connectionId)?.label}
+                      chevron
+                      onPress={() => toggle("connection")}
+                    />
+                    {open === "connection"
+                      ? connectionPick.options
+                          .filter((s) => s.id !== d.connector.connectionId)
+                          .map((s) => (
+                            <GroupedRow
+                              key={s.id}
+                              label={s.label}
+                              onPress={() => {
+                                setD((x) => ({ ...x, connector: { ...x.connector, connectionId: s.id } }));
+                                setOpen(null);
+                              }}
+                            />
+                          ))
+                      : null}
+                  </GroupedList>
+                  <View style={styles.gap} />
+                </>
+              ) : null}
+              {slack ? (
+                <>
+                  <GroupedList>
+                    <StackedField label={t("mail.routine.slackChannel")}>
+                      <TextInput
+                        value={d.connector.filter.channel ?? ""}
+                        onChangeText={(channel) => setConnectorFilter({ channel })}
+                        autoCapitalize="characters"
+                        autoCorrect={false}
+                        accessibilityLabel={t("mail.routine.slackChannel")}
+                        style={input}
+                      />
+                    </StackedField>
+                  </GroupedList>
+                  <GroupedFooter>{t("mail.routine.slackChannelHelp")}</GroupedFooter>
+                  <GroupedHeader>{t("mail.routine.filters")}</GroupedHeader>
+                  <GroupedList>
+                    <StackedField label={t("mail.routine.text")}>
+                      <TextInput
+                        value={d.connector.filter.text ?? ""}
+                        onChangeText={(text) => setConnectorFilter({ text })}
+                        accessibilityLabel={t("mail.routine.text")}
+                        style={input}
+                      />
+                    </StackedField>
+                  </GroupedList>
+                </>
               ) : (
-                <GroupedFooter>{t("mail.routine.fromHelp")}</GroupedFooter>
+                <>
+                  <GroupedList>
+                    <StackedField label={t("mail.routine.inboxAddress")}>
+                      <TextInput
+                        value={d.connector.filter.to ?? ""}
+                        onChangeText={(to) => setConnectorFilter({ to })}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        accessibilityLabel={t("mail.routine.inboxAddress")}
+                        style={input}
+                      />
+                    </StackedField>
+                  </GroupedList>
+                  <GroupedFooter>{t("mail.routine.inboxAddressHelp")}</GroupedFooter>
+                  <GroupedHeader>{t("mail.routine.filters")}</GroupedHeader>
+                  <GroupedList>
+                    <StackedField label={t("mail.routine.from")}>
+                      <TextInput
+                        value={msFromText}
+                        onChangeText={(text) => {
+                          setMsFromText(text);
+                          setConnectorFilter({ from: splitAddresses(text).valid });
+                        }}
+                        placeholder={t("mail.list.placeholder")}
+                        placeholderTextColor={c.faint}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        accessibilityLabel={t("mail.routine.from")}
+                        style={input}
+                      />
+                    </StackedField>
+                    <StackedField label={t("mail.routine.subject")}>
+                      <TextInput
+                        value={d.connector.filter.subject ?? ""}
+                        onChangeText={(subject) => setConnectorFilter({ subject })}
+                        accessibilityLabel={t("mail.routine.subject")}
+                        style={input}
+                      />
+                    </StackedField>
+                  </GroupedList>
+                  {msFromBad ? (
+                    <Text variant="footnote" tone="danger" style={styles.error} accessibilityLiveRegion="polite">
+                      {t("mail.list.invalid")}
+                    </Text>
+                  ) : (
+                    <GroupedFooter>{t("mail.routine.fromHelp")}</GroupedFooter>
+                  )}
+                </>
               )}
+            </>
+          ) : null}
+
+          {d.kind === "meeting" ? (
+            <>
+              {calendarPick.cantRead ? (
+                <AgentAccessNote
+                  agentId={d.agentId}
+                  words={
+                    calendarPick.options.length === 0
+                      ? "mail.routine.connectorReadsNone"
+                      : "mail.routine.connectorCantRead"
+                  }
+                  values={{ connector: calendarName }}
+                />
+              ) : null}
+              {calendarPick.options.length > 0 ? (
+                <>
+                  <View style={styles.gap} />
+                  <GroupedList>
+                    <GroupedRow
+                      icon="calendar"
+                      label={t("routines.meeting.calendar")}
+                      value={calendarName}
+                      chevron={calendarPick.options.length > 1}
+                      onPress={calendarPick.options.length > 1 ? () => toggle("calendar") : undefined}
+                    />
+                    {open === "calendar"
+                      ? calendarPick.options
+                          .filter((s) => s.id !== d.meeting.connectionId)
+                          .map((s) => (
+                            <GroupedRow
+                              key={s.id}
+                              label={s.label}
+                              onPress={() => {
+                                setD((x) => ({ ...x, meeting: { ...x.meeting, connectionId: s.id } }));
+                                setOpen(null);
+                              }}
+                            />
+                          ))
+                      : null}
+                    <StackedField label={t("routines.meeting.lead")}>
+                      <TextInput
+                        value={d.meeting.lead}
+                        onChangeText={(lead) => setD((x) => ({ ...x, meeting: { ...x.meeting, lead } }))}
+                        keyboardType="number-pad"
+                        accessibilityLabel={t("routines.meeting.lead")}
+                        style={input}
+                      />
+                    </StackedField>
+                  </GroupedList>
+                  {leadBad ? (
+                    <Text variant="footnote" tone="danger" style={styles.error} accessibilityLiveRegion="polite">
+                      {t("errors.said.meetingLead")}
+                    </Text>
+                  ) : (
+                    <GroupedFooter>{t("routines.meeting.leadExample")}</GroupedFooter>
+                  )}
+                </>
+              ) : null}
             </>
           ) : null}
 
@@ -964,10 +1122,27 @@ function Form({ routine }: { routine: Routine | undefined }) {
                 key={v}
                 label={t(`routines.report.${v}`)}
                 checked={d.report === v}
-                onPress={() => set({ report: v })}
+                onPress={() => {
+                  set({ report: v });
+                  setReportPicked(true);
+                }}
               />
             ))}
           </GroupedList>
+          {schedule && !once ? (
+            <GroupedList>
+              <GroupedRow
+                label={t("routines.form.retryOnce")}
+                labelLines={2}
+                hint={{
+                  name: t("common.about", { label: t("routines.form.retryOnce") }),
+                  text: t("routines.form.retryOnceHint"),
+                }}
+                toggle={d.retryOnce}
+                onPress={() => set({ retryOnce: !d.retryOnce })}
+              />
+            </GroupedList>
+          ) : null}
           {routineReachWarnings(d.prompt, dir.agents, {
             agentId: d.agentId || null,
             creatorUserId: creator === me ? null : creator,

@@ -1,9 +1,9 @@
 # 0055. Imports from other apps, and our own export, through one bundle
 
-- Status: Accepted (2026-10-21). Addendum 2026-10-31: an old id handle still reaches its agent. Addendum 2026-11-12: private repositories through the workspace's GitHub
+- Status: Accepted (2026-10-21). Addendum 2026-10-31: an old id handle still reaches its agent. Addendum 2026-11-12: private repositories through the workspace's GitHub. Addendum 2026-11-15: exporting a part, setores or chosen agents (§6). Addendum 2026-11-15: a conversation's transcript, for whoever reads it. Addendum 2026-11-15: a team file applied, checked and pruned from the command line. Addendum 2026-11-15: an update keeps what was changed here, and an import can be undone. Addendum 2026-11-15: MCP servers and skills from a person's own coding tools
 - Date: 2026-10-21
 - Extends: ADR 0020 (skills), ADR 0016 (connectors), ADR 0017 (context items), ADR 0019 (SSRF guard)
-- Out of scope for now: chat history, a CLI, a scan of `~/.openclaw` / `~/.hermes` on a connected computer, the Manus API, rollback
+- Out of scope for now: chat history, a scan of `~/.openclaw` / `~/.hermes` on a connected computer, the Manus API (rollback came with the addendum of 2026-11-15)
 - Amended 2026-10-31: §8, the agents' own files into the Drive
 
 ## Context
@@ -110,7 +110,7 @@ Some exports carry what the agents made, not only how they are set up: OpenBot.r
 
 - One apply path for every source: a new source is a parser that fills the bundle, plus fixtures.
 - Re-running is safe and picks up where it stopped; the plan says what would change before anything does.
-- An update overwrites what the import made with the source's version (instructions, routine prompts, notes). The plan shows it as `update`, and the person can leave it unchecked.
+- An update overwrites what the import made with the source's version (instructions, routine prompts, notes). The plan shows it as `update`, and the person can leave it unchecked. Since the addendum of 2026-11-15, what someone changed here since is kept unless the person checks it.
 - Importing into the same workspace makes copies (suffixed handles); restoring by id is not covered.
 
 ## Later
@@ -119,7 +119,7 @@ Some exports carry what the agents made, not only how they are set up: OpenBot.r
 - **A CLI** (`agentes migrate --from … --out bundle.json`, MIT, no dependencies) once scripting or agents kept in git asks for it; writing from it needs a sign-in the app API doesn't have.
 - **A runner scan** of `~/.openclaw*` and `~/.hermes` on a connected computer, read-only and confirmed by its owner, preferring their own redacted `--json` CLIs.
 - **The Manus API**.
-- **Rollback** of what an import made (the table already says what that is, and never adopted channels).
+- ~~**Rollback** of what an import made~~: done, the addendum of 2026-11-15 ("Undo").
 
 ## Addendum (2026-10-31): an old id handle still reaches its agent
 
@@ -144,3 +144,194 @@ Two things people hit bringing agents from another app with `EXPORT_PROMPT`: the
 ## Addendum (2026-11-10): the onboarding's team step brings the agents (§3, §4)
 
 The onboarding no longer sends a person who has agents elsewhere to Settings › Import after it ends: its team step asks first whether they have agents in another app, and brings them there (ADR 0162, amended 2026-11-10). The step uses the same flow as the import page: an app that answers `EXPORT_PROMPT` is asked from the step, a file or a folder goes through the picker, the preview shows what was found and applying it makes the team. Agents brought there arrive with no model (`model: null`), so they take the new agent's default and think with the AI connected in the next step: a model kept from the other app (§4) could be one the workspace never connects. A step that brought no agent goes on as if the person had none.
+
+## Addendum (2026-11-15): exporting a part, setores or chosen agents (§6)
+
+A team that shares one department with another workspace, or keeps a copy of a few agents, had to take the whole workspace and clean the file by hand. The export now takes a part.
+
+- **What names the part.** `GET …/export?agents=<ids>&groups=<ids>`: these agents and every agent of these setores (`agent_groups`, ADR 0148), together, an agent named twice coming once. Each list is comma-separated uuids, at most 200 (the import's own limit of agents, `IMPORT_LIMITS.agents`). An id that isn't an exportable agent here (another workspace's, archived, the right hand) or a setor of another workspace is a 404. With neither parameter it is the whole workspace, as before. A part that names nobody (a setor with no agent, empty lists) exports an empty bundle, never the whole workspace.
+- **What goes with them, and nothing else.** The skills they have on (and the left-out files of those skills only), the public channels at least one of them is in, with only them as its agents, their routines, and their own memory (`context_items` whose `agent_id` is one of them) under §6's rules. The workspace's memory, the notes no agent owns, stays: it is everyone's, not the part's. Private channels, DMs and personal skills stay as in §6, and what may come from memory is still checked against every public channel, so a note learned in a public channel none of them is in still goes. `leftOut` lists only their routines and their skills' files, so no name of the rest reaches the file. A routine on a channel none of them is in any more is left out, like one on a private channel.
+- **Closed.** Every reference in a part's file points inside it (an agent's skills, a channel's agents, a routine's agent and channel, a note's agent), so it imports whole, with no `agent_not_picked` or `channel_not_picked`.
+- **The bundle doesn't change.** Same format and version. The setor itself doesn't travel: the importing workspace places the agents in its own setores.
+- **The screen.** Settings › Import and export › Export picks "The whole workspace" or "Departments or agents". The second is one field with the setores and then the agents (the kit's `ChipField`), and, while it names some, a preview read from the same endpoint, the file the download will save: its agents by name and how many skills, channels, routines and memory notes go with them, or that nobody is in it, which keeps the download off. The download goes to the same URL with the part's query (`exportUrl(orgId, scope)`), so the browser and the desktop app save it as before.
+- **Later.** The phone's export stays the whole workspace. Taking the workspace's memory along as an option, and carrying the setor into the importing workspace, are not built.
+
+## Addendum (2026-11-15): a conversation's transcript, for whoever reads it
+
+The bundle (§6) still never carries messages: it moves a workspace's setup to another one, and conversations are their people's. People still asked to keep a conversation outside the app (a record of a decision, a thread to hand to someone without an account). That is a read, not a migration, so it is its own route and never part of the bundle or the import.
+
+- `GET …/channels/{channelId}/export?format=markdown|json[&threadId=][&files=true]` (`exportConversation`, `packages/engine/src/conversation-export.ts`). A channel, a DM or a task's conversation, or one thread of it (the root must be a top-level message of that conversation, else 404).
+- Who: `requireChannelAccess`, the one check for reading a conversation. A member, an administrator in a channel (never someone else's DM, ADR 0151 §5), whoever sees a task for its conversation. Anyone else gets the same 403 or 404 the chat gives.
+- What goes out (`Transcript`, `version: 1`): the conversation's id, kind and name (a DM's is who else is in it), and per message its id, thread root, time (ISO, UTC), edit time, author (`person` or `agent`, id and name; null for an author since deleted), the words `readableBody` gives, a voice message's length, and its files by id and title. Never `meta`, runs, usage, tool calls or reactions. Deleted messages and quiet notices are left out, as is a message with no words, voice or file left. Replies follow their root; a thread's export is its root and replies.
+- Markdown: the conversation as a title, each message as its author in bold and the time, replies quoted under their root, files as 📎 lines. No sentence of ours, so it reads the same in every language.
+- Caps (`TRANSCRIPT_LIMITS`): the latest 5,000 messages (`truncated` says older ones were left out); with files, 200 files and 50 MB in all. The zip is built in memory on the server's thread with the deflate the Word export already uses (`zip` in `docx.ts`), so the cap stays modest; streaming it is for later.
+- Files (`files=true`): a zip with `transcript.md` or `transcript.json` and `files/NNN-<name>`. Each file goes through `fileRefOf` and `artifactFile`, the Drive's own visibility check; its size is read from its current version before its bytes are. What the exporter can't read (or is in the trash) is `leftOut: "unreadable"`, past the caps `too_large` or `too_many`, and live blocks, polls and choices `unsupported`, named in the transcript without failing the export.
+- Audit: one `conversation.exported` row per export (target the channel; `threadId`, `format`, `files`, counts of messages and files). Ids and counts only: the log's readers may not read the conversation. The reader adds the conversation by its id (`channel`), as it does for every row with one, an agent's call in a DM included.
+- No range requests: each request builds the export and its audit row once.
+- Apps: "Exportar conversa" in a channel's menu (members and administrators reading it), in the person's or agent's menu when a DM with them exists, and "Exportar thread" in a thread's "…": one dialog (`ConversationExport.tsx`) with the format and "Incluir anexos", saving what the server sends.
+
+Later: the phone; a date range; streaming the zip from a job for very large conversations.
+
+## Addendum (2026-11-15): a team file kept in git, applied, checked and pruned from the server's command line
+
+People who keep their agents in a repository asked for the "Later" CLI: a file they edit by hand, review in a pull request and apply, and a check their CI runs to fail when the workspace and the file disagree. This is that, as the smallest piece that works: a hand-written format that becomes the bundle, and a command inside the server's own image.
+
+### The format: `team.yaml`
+
+YAML (JSON is YAML too), read by `parseTeamFile` in `packages/client/src/lib/import/team-file.ts` (pure, the `yaml` package the clients already use, so the same reader can serve the import page later). It maps one to one onto the bundle; nothing in it exists only here.
+
+```yaml
+version: 1                       # required
+name: Launch Room                # required: the package's name
+id: launch-room                  # optional, default the name as a slug: what this file made is found by it (write it: a new name without one is a new package)
+agents:
+  - handle: scout                # required, the item's key
+    name: Scout                  # required
+    role: Researcher
+    instructions: TEXT | { file: PATH }   # required, not empty
+    model: claude-sonnet-5-5     # only when the agent is created
+    look: { color: sky, eyes: round, accessory: none }
+    skills: [research]           # skill keys
+skills:
+  - file: skills/research/SKILL.md   # key: the folder's name, unless `key`
+  - { key: tone, markdown: TEXT }
+channels:
+  - name: launch                 # the key
+    topic: TEXT                  # only when the channel is created
+    agents: [scout, { handle: lead, autoReply: false }]   # autoReply defaults to true
+routines:
+  - name: Morning digest         # the key, unless `key`
+    agent: scout
+    channel: launch              # left out: the DM of whoever applies
+    cron: "0 9 * * 1-5"
+    timezone: America/Sao_Paulo  # left out: whoever applies, then the workspace
+    prompt: TEXT | { file: PATH }
+notes:
+  - key: cycle                   # left out: the title
+    agent: scout                 # left out: workspace-wide
+    kind: fact                   # fact | preference | decision | note | lesson; default note
+    title: TEXT
+    content: TEXT | { file: PATH }
+```
+
+- `source` is `{ app: "team-file", ref: <id> }`, so everything the file made is one package (§3).
+- Refused before anything is planned, each problem with its line and column (`team.yaml:12:5: unknown field "rol"`): YAML that doesn't parse, an unknown field, a wrong type, a missing required field, an agent with no instructions (an import keeps what an earlier one brought for an agent that comes with none, §4, so its other changes would never land), a repeated key, a handle that isn't one, a reference to an agent, channel or skill the file doesn't have, a routine with no `cron`, a `{ file }` that is absolute, leaves the file's folder (`..`) or isn't there. Paths take either separator; text read from the file or beside it loses its BOM and has its line ends made LF, so a Windows checkout and a Linux CI hash the same.
+- No one-off routine (`at`): once its moment passes the plan skips it (`schedule_in_past`), and a check would never pass again.
+- Keys and passwords are found by the server as for any bundle (`secret_like`, §4): the item is skipped, which a check reports as a difference.
+
+### Prune: only what this file made
+
+`ImportInput.prune` (left out: removals aren't looked at, as before). The candidates are the provenance rows of this package (same person, `team-file`, same `id`), still there, not `adopted`, whose `kind:key` isn't anywhere in the file: compared with every key the file has, so an item the file keeps but the plan skips (a key in its text, a taken name) is never removed, and a `pick` only narrows which removals one call applies. They come back in `removals`, apart from `items`, so the import page and its contract don't change: `keep` (listed; `prune: false`), `delete` (planned, or done), `skip` with `failed`. Applied in reverse dependency order through the app's own functions: notes deleted (`deleteContextItem`), routines deleted (`deleteRoutine`), channels archived (`archiveChannel`), agents archived (`archiveAgent`, which can be undone), skills deleted (`deleteSkill`). The provenance row stays, no longer a candidate since its target is gone: put back in the file, a skill comes back as it was (§4: the import's own deleted skill), a routine or a note is made anew, and an agent or a channel someone unarchived in the app is matched again; still archived, the agent comes back as a new one with the next handle (`lead-2`) and the channel's name stays taken (`exists`) until someone unarchives or renames it. Restoring them from the plan is Later. Nothing someone made by hand, nothing another person's file made, nothing of another file, never a channel the import only joined. Removals count against the 200 writes of one apply.
+
+### Check: the file's answer, not a reconciliation
+
+The import brings, it doesn't reconcile (§2): `unchanged` means the file's item has the hash the last apply stored, not that the workspace still looks like it. What a check sees, field by field:
+
+- compared and updated: an agent's name, role and instructions; a skill's SKILL.md; which agents a channel lists (joining only: an agent the file drops stays in the channel); a routine's name, agent, channel, prompt and schedule; a note's title and content;
+- set only when the item is created: an agent's handle (a new handle is a new agent), model and look, a channel's topic, skills turning on for an agent (§ addendum 2026-11-01);
+- not seen: changes made in the app after an apply. An agent's instructions edited by hand stay `unchanged` until the file changes; then the file's version wins (§ Consequences).
+
+"In sync" is: every item `unchanged`, nothing skipped, and, with prune, nothing to remove. Without prune, what the file no longer has is listed as kept and doesn't fail the check.
+
+### The command: `agentes team`
+
+`docker compose run --rm -T agentes team plan|check|apply FILE --as EMAIL [--org ID] [--prune]` (`apps/server/src/team-file.ts`, from `main.ts`, the image's entry point), FILE `-` for standard input (then a `{ file }` path is refused). It runs in the server's own image with its `DATABASE_URL`, like `password-link` (ADR 0158): whoever can run commands there already holds the database. It acts as the member named by `--as`, with that person's permissions (`create_agents`; removals need `manage_agents`); `--org` may be left out when that person is in one workspace. The bundle goes through the route's own schema (`Bundle`, the same caps), applies in chunks of 200 in the plan's order, and reaches the running server through Postgres: its events, and its caches' invalidations (`shareCacheInvalidations`), before the command closes its connection. Exit codes: 0 done or in sync, 1 refused or failed, 2 the file is invalid, 6 the check found differences.
+
+- Provenance belongs to a person (§3): the same `--as` every time, or the second account sees everything as new and prunes nothing.
+- Only where one can run commands in the server's image against its Postgres: a self-hosted server with Docker (the native server keeps its PGlite to itself while it runs). agentes.chat Cloud has no way in for it yet.
+
+### Later
+
+- Writing `team.yaml` from a workspace (the export, §6, in this format).
+- The import page reading a dropped `team.yaml`, with prune as a choice.
+- The same command from outside the server, once the app API has tokens of its own for scripts.
+- A check that compares with the workspace as it is now (instructions edited in the app), not with the last apply.
+- Unarchiving, from the plan, an agent or a channel that `--prune` archived when the file has it again.
+
+## Addendum (2026-11-15): an update keeps what was changed here, and an import can be undone
+
+Two things people hit after an import, as other apps' organization libraries already handle them: updating a package wrote over what the team had changed since (an agent's instructions, a routine's prompt, a note), and there was no way to take an import back but one item at a time.
+
+### What the import wrote (§3)
+
+`import_items` gains `written_hash` (migration 0300): a print of the target as the import last wrote it, read back from the database after the apply (`targetPrints` in `packages/engine/src/imports.ts`), never derived from the bundle. Its fields are the ones an import writes and people change, never what jobs write on their own:
+
+- agent: name, role, instructions and look (an update writes the look too);
+- skill: name, description, body;
+- routine: name, prompt, agent, target and trigger (`trigger_type`, `cron`, `rule`, `timezone`, `event`), not its on/off, next run or failures;
+- note: title, content and `superseded_by`, since a person's edit makes a new version and points the old one at it (memory upkeep merging it counts as a change too);
+- channel: name and topic (an update only adds agents, so this matters only to an undo; its print is taken when the import makes it, never when it adopts one).
+
+A print other than the stored one means someone changed it here. A row written before this (`written_hash` null) reads as not changed, in an update and in an undo alike: the old behavior, a known limit until an import next writes that item (one the source never changes again stays so).
+
+### Kept unless overwritten (§2)
+
+When the source changed an item (another hash) and someone changed it here too, the plan says `skip` with `edited_here` and the item's `targetId`, and applying leaves it and its provenance row as they are (the source hash stays old, so the next import says the same). The request takes `overwrite: string[]` (`kind:key`): an item in it is an `update` with the note `edited_here`, written over (a note's newest version, the head of its chain). `pick` alone never overwrites, so a client that sends every item, or an older one, keeps what people changed. A channel's update only joins agents and is never held.
+
+The apps: the row is checkable but starts unchecked (`defaultPicks` in `packages/client/src/lib/import/flow.ts`), its chip reads "mudou aqui" and its note says it stays unless checked; checking it sends it in `overwrite` (`overwritesOf`, `applyInChunks`). A group's "Trazer tudo" never checks it: one row at a time. The report counts what stayed. The phone shows it as kept and leaves it unchecked, and never overwrites: that is the web's, for now.
+
+### Undo
+
+`POST /api/app/organizations/{orgId}/imports/undo` with `{ app, ref, dryRun }` (`undoImport`) takes back what one package brought, as the caller imported it (the same rows `loadImportState` reads). Who manages agents only (`manage_agents`), since it archives them. Each item nobody changed here goes: a note archived, a routine deleted (soft, its run history stays, but it does not come back as itself), a channel archived, an agent archived, a skill deleted (soft), in that order, each in its own `try`. What was changed here stays (`keep`, `edited_here`), a channel with any message in it stays (`in_use`), a channel that was here already (`adopted`) is never listed, and a removal that fails stays (`failed`). One audit entry, `import.undone`, with the counts.
+
+The rows stay, with `undone_at` set (migration 0300). An undone row is not "there": importing the package again makes the items again, and an archived agent or channel an undo left (or one a person brought back by hand since) is brought back instead of a copy beside it (`unarchiveAgent`, `unarchiveChannel`), with its handle and its conversation, so `scout` never becomes `scout-2`. A skill comes back through `saveSkill`, as a deleted one already did. Running the undo twice ends in the same state: what it took back isn't there to take. `GET …/imports` leaves undone rows out and says `mine` per package.
+
+Configurações › Importar lists the caller's packages ("Suas importações", with the kinds each still has) with Desfazer, which opens the dry run (what goes, what stays and why) before anything changes.
+
+Out of it: the agents' own files copied to the Drive (§8) stay, and so does what the agents did since (messages, runs, files of their own); an undo takes back setup, not work. Routines and notes come back as new rows when imported again (they hold no name). The decision on permissions diverges between §4 (`manage_agents` for the import) and the code (`create_agents` in `applyImport`): the undo asks for `manage_agents`, and that divergence is left for its own change.
+
+## Addendum (2026-11-15): MCP servers and skills from a person's own coding tools
+
+People who already use Claude Code, Cursor or Codex have set up MCP servers and skills there. Typing each address again, or copying each SKILL.md by hand, is where they stop. This is the first part of "A runner scan" in Later, for those three tools rather than OpenClaw and Hermes.
+
+### What is read, and where
+
+- The server never reads a person's files. Their computer's runner does, when they ask from the apps, through one op, `local.config` (protocol 72, `LOCAL_CONFIG_PROTOCOL`). The request carries no path: the runner holds the list (`apps/server/runner/local-config.ts`):
+  - Claude Code: the top level `mcpServers` of `.claude.json` (in `CLAUDE_CONFIG_DIR` when set, else the home). A project's own servers and everything else in the file (the account, the history) stay on the computer.
+  - Cursor: `mcpServers` of `~/.cursor/mcp.json`.
+  - Codex: the `[mcp_servers.*]` tables of `config.toml` (in `CODEX_HOME` when set), read with Bun's own TOML parser.
+  - Claude Code's skills: each folder of `<config>/skills/` with its `SKILL.md`.
+- Every file is capped (16 MB for a settings file, since `.claude.json` keeps every project's history; 256 KB for one SKILL.md, 4 MB and 100 skills in all; 200 servers) and never read through a link: it is looked at before it is opened (Windows has no `O_NOFOLLOW`), and the file opened must be the one looked at. What isn't read comes back with its reason (`missing`, `too_big`, `unreadable`, `link`; for a skill folder `link`, `no_skill`, `too_big`, `too_many`), so "nothing found" and "couldn't read it" never look alike. A settings file or a skill folder that is a link (a dotfiles manager's) is listed and never followed, as §5 and §8 treat links.
+- Only the person who connected the computer may ask (`machine.not_owner` for anyone else, the workspace's owner included): the settings are theirs. Never the workspace's own computer. A runner in system mode answers `unsupported`, since root's home isn't the person's. Reading counts as nothing done on the computer (`isNewWork` false), and the audit keeps `machine.local_config_shown` with the counts only.
+
+### What leaves the computer, and what doesn't
+
+Of a server only its name, kind (`http`, `sse`, `stdio`), its address with the user, password, query and fragment removed, the program's file name (`npx`, never its folder), and the names of its headers, variables and query parameters leave the computer. A header's, a variable's or an argument's value never does: `--api-key=…` and `Authorization: Bearer …` are where those files keep keys. Some services put the key in the address's path (`/s/<key>/mcp`): a path part in a known key format, or a run of 24 or more letters and digits with both, is masked (`***`) and the server says so (`keyInAddress`). That is conservative: a long id there is masked too, and the person pastes the whole address themselves.
+
+A SKILL.md is text the person wrote, so it leaves whole, with what looks like a key masked by the same patterns the runner's own logs use (`redactCommon`: bearer headers, known key formats, `password=`/`token:` values), as the browser does for files dropped into an import (§8). A key in a shape those patterns don't know would still leave in a skill's text; the import's own check (§4, `looksLikeSecret`, `secret_like`) is the next stop, and nothing is stored before the person imports it.
+
+The server checks the answer again (`parseLocalConfig` in `machine-protocol.ts`, and the same masking of every SKILL.md): the same shapes and caps, the address cleaned again, anything else dropped, since it comes from the person's computer.
+
+Nothing secret is brought, even with a confirmation: the person types the key, or signs in, when they connect the server, as for any custom server.
+
+### The preview
+
+`POST …/machines/{machineId}/local-config` answers what was read (`LocalSetup`), stores nothing, and sorts each server by what can be done here:
+
+- `connect`: a public https address. It is connected through the usual flow (`POST …/connectors/custom`, ADR 0016, 0099), which signs in, asks for a key or connects it open.
+- `connected`: a server of the workspace already has that address.
+- `private`: `http://`, or an address only that computer or its network reaches (`localhost`, a private IP, a `.local` name). The server's SSRF guard would refuse it.
+- `sse`: the older HTTP+SSE transport, which our MCP client doesn't speak (it speaks Streamable HTTP).
+- `stdio`: a program the tool starts on that computer. The server can't run it.
+- `key_in_address`: a key in its address was masked; the person pastes the whole address in the custom-server flow.
+
+Only servers by address count as `connected` (`custom:` connections): a catalog connector at the same address shows as `connect`, and connecting it again makes a second account (ADR 0099).
+
+The skills come as a bundle (`source.app` `claude-code`, `source.ref` `computer:<machine id>`), applied through the usual import (§2): planned first, unchanged on a second read, and `secret_like` for a SKILL.md where the import still finds a key (§4). `masked` names the skills where something was masked on the way.
+
+### The screen
+
+On the web, the computer's page has a card for the person who connected it (`LocalSetupCard`, `localSetupWay` in `packages/client/src/lib/machines.ts`), never for anyone else, never on the workspace's own computer nor one in system mode. The list says which apps can be asked (`Machine.localConfig`); an older app gets a line asking to update it, an offline computer one asking to turn it on. Nothing is read until the person presses **Procurar**.
+
+- Each server shows its address and, in a short line, why it can't simply be connected (`private`, `sse`, `stdio` with its program, `key_in_address`) or what it will ask for (the names of its headers, query parameters and variables). **Conectar** opens the usual custom-server flow, with the address filled in for `connect` and left empty for `key_in_address`, for people who may connect services (`manage_connectors`). A server connected from there reads as connected without asking the computer again.
+- The skills go through the usual import screen itself (`useImportFlow` reading a ready bundle, its preview, picks and report, without **Trocar**, there being nothing else to pick), for people who may create agents (`create_agents`, which the import route asks for). Others see the skills' names and why they can't import them.
+- The files and skill folders not read are listed with their reason, a missing one left out, and the skills where something was masked are named before anything is imported.
+
+### Later
+
+- The phone app's screen: it has the API (`machines.localConfig`) but no screen yet.
+- Bringing a key with the person's explicit confirmation, per header, instead of typing it again.
+- A stdio server that only wraps a remote one (`npx mcp-remote https://…`), offered as that address.
+- Codex's skills (`$CODEX_HOME/skills`, `~/.agents/skills`), Claude Desktop, Gemini CLI and VS Code's `servers`, and a skill's other files (scripts, references), which today stay behind.
+- Following a settings file's link while it stays inside the home, for people who keep their dotfiles in a repository.
+- Stdio servers run on the computer itself, as the agents' own tools there.

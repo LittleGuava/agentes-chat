@@ -851,6 +851,7 @@
   "activity": {
     "title": "动态",
     "chooseModel": "选择其他模型",
+    "connectAi": "连接 AI",
     "filter": {
       "all": "全部",
       "waiting": "请求",
@@ -880,6 +881,7 @@
       "mission_stopped_other": "专项任务已停止",
       "routine_finished_other": "例行工作已完成",
       "routine_failed_other": "例行工作失败",
+      "routine_failed_retried_other": "例行工作重试后仍失败",
       "run_failed_other": "无法完成",
       "admin_ask_channel_agent": "{{names}} 请你把 {{agent}} 加入 #{{label}}",
       "admin_ask_create_agents": "{{names}} 请求获得创建智能体的权限",
@@ -915,6 +917,7 @@
       "browser_profile_request_other": "{{names}} 请求再增加一个浏览器配置文件",
       "desktop_taken_other": "{{names}} 接管了 {{agent}} 的电脑屏幕",
       "desktop_taken_female_other": "{{names}} 接管了 {{agent}} 的电脑屏幕",
+      "agent_needs_ai_other": "{{names}} 呼叫了 {{agent}}，但没有连接可以回答的 AI",
       "plan_lent_other": "{{names}} 把你的 {{plan}} 套餐连接到了 {{agent}}",
       "plan_lent_female_other": "{{names}} 把你的 {{plan}} 套餐连接到了 {{agent}}",
       "plan_serves_other": "你的 {{plan}} 现在服务整个 workspace",
@@ -2761,5 +2764,13 @@
       "title": "没有需要查看的内容",
       "text": "智能体在对话之外做事时，会显示在这里。"
     }
+  },
+  "phoneTools": {
+    "title": "手机通讯录",
+    "contacts": "允许智能体搜索我的通讯录",
+    "help": "仅限此工作区和这部手机。当与你对话的智能体需要某人的联系方式时，会按姓名搜索你的通讯录：最多 5 条结果发给智能体，每条只含姓名、电话号码和邮箱。",
+    "deniedTitle": "通讯录访问已关闭",
+    "deniedSub": "请在手机设置中允许 agentes.chat 访问通讯录。",
+    "failed": "保存失败，请重试。"
   }
 }

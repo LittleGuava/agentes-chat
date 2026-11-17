@@ -113,6 +113,26 @@ test("each feature the server has shows its switch: the person's own, and the wo
   expect(on(own, "Cuidar da equipe")).toBe("false");
 });
 
+test("the workspace's switch for failed tasks shows when the server has it, and saves as a setting", async () => {
+  const state = withRightHand(seedState());
+  state.teamWeek = { switches: ["teamWatch", "welcomePeople", "incidents"] };
+  const own = await open(state);
+  expect(own.getAllByRole("switch").map((s) => s.getAttribute("aria-label"))).toEqual([
+    "Resumo do dia",
+    "Semana da equipe",
+    "Cuidar da equipe",
+    "Dar boas-vindas a quem entra",
+    "Cuidar das falhas",
+  ]);
+  const row = own.getByRole("switch", { name: "Cuidar das falhas" }).closest(".settings-row") as HTMLElement;
+  expect(row.querySelector(".settings-row__value")?.textContent).toBe("Para todo o workspace");
+  expect(row.className).toBe("settings-row ac-actrow settings-row--lead settings-row--toggle");
+  expect(on(own, "Cuidar das falhas")).toBe("true");
+  await flip(own, "Cuidar das falhas");
+  expect(saved(state, "orgs.updateSettings")).toEqual([{ incidents: false }]);
+  expect(on(own, "Cuidar das falhas")).toBe("false");
+});
+
 test("someone who administers nothing has the daily card and their own switches only", async () => {
   const state = withRightHand(seedState());
   if (state.me?.organizations[0]) state.me.organizations[0].role = "member";

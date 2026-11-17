@@ -5,6 +5,7 @@
 - Amended 2026-11-16: §2, a run a routine's work or report woke uses the keys listed for that routine
 - Addendum, 2026-11-10: §9, logins agents save in a connected password manager (sources may write)
 - Addendum, 2026-11-11: §11, keys from a .env file, and moving an item between Personal and Team
+- Addendum, 2026-11-15: §12, one-time codes from a connected password manager (never a seed in the Vault)
 - Date: 2026-11-03
 - Amends: ADR 0027 (§7: a site's password is kept in the runner's memory only, never in `store.json`; a request may
   carry a username and ask for a code; the card can save the value to the Vault), ADR 0040 and 0054 (the browser
@@ -42,7 +43,8 @@ person (my own logins, used only when I ask), and which reads the password manag
   Still sealed at rest, as personal data.
 
 No authenticator seed is stored: a login that keeps its second factor next to its password stops being two factors.
-A code from a text message or an email is asked of the person when it's needed (§6).
+A code from a text message or an email is asked of the person when it's needed (§6). A password manager that already
+keeps a login's seed gives its current code at use, and only the code (§12).
 
 ### 2. Personal or the team's, and one rule for use
 
@@ -404,6 +406,46 @@ Team from its page (`POST /vault/items/{id}/move`, `moveVaultItem`):
 
 Left out: moving several items at once, moving a password manager's item, renaming keys on import, importing a
 `.env` into a password manager, and other file formats (YAML, TOML, a shell script's logic).
+
+### 12. One-time codes from a connected password manager
+
+*Addendum, 2026-11-15.* A site that asks for an authenticator's code after the password stopped an agent at the second
+step: the Vault types the password and then the run waits on a person for six digits. §1 still holds: **the Vault
+keeps no authenticator seed**, and a login kept in the Vault has no code. What changes is that a password manager
+that already keeps a login's seed, because the people who run it put it there, is asked for that login's current
+code at the moment it is typed, the same way its password is read at use (§3).
+
+- **The source gives the code, never the seed.** `VaultSource.currentCode(connection, ref)` (optional, like the
+  writes) returns the code as it is now and keeps nothing. 1Password: the code its SDK computed when it read the item
+  (`details.content.code` of the item's `Totp` field); the field's value, the seed, is never read. Bitwarden: the
+  login's `totp` decrypted in memory for that one call and turned into the current code by RFC 6238
+  (`packages/adapters/src/vault/totp.ts`, tested against the RFC's vectors: `otpauth://totp` URIs with SHA-1,
+  SHA-256 or SHA-512, 6 to 10 digits and their period, or a bare base32 seed); HOTP and Steam's codes give none
+  (`unsupported`). A login with no seed is `not_found`. No source's words, which may quote the seed, are passed on.
+  In both the seed is in the server's memory for that one call (the 1Password SDK hands over the whole item, as it
+  does for a password; Bitwarden's is decrypted to make the code) and nowhere else: never stored, logged, sealed to
+  the computer or returned. Only the code leaves the source.
+- **Same gates as the password.** `releaseVaultCode` (`packages/engine/src/vault/agents.ts`) runs the checks
+  `releaseVaultLogin` runs (shared with the agent for the person behind the run, a login, still in its source, the
+  page on the login's rule, a shared browser profile it may be typed in) before the source is asked. A login kept in
+  the Vault, one whose password manager keeps no code, and a source that can't give codes are each refused with words
+  that send the agent to `request_secret` with `digits`, as before.
+- **Same sealed path.** The code is sealed to a one-use `vault.key` of the agent's computer like a password, with
+  its own use in the box's additional data (`code:<rule>`, `vaultUseText`), so a code's box never opens as a password
+  and a password's never as a code. Runner protocol 86 (`VAULT_CODE_PROTOCOL`):
+  `agentes:type_vault_code [ref, rule, boxJson, ...moreRefs]` types it only on a page and in frames the rule allows,
+  only into text, number or one-time-code fields (`vaultFieldVerdict` with `field: "code"`), the whole code into one
+  field or one character per box; it is redacted from what the browser answers. Like a code from `request_secret`, it
+  isn't guarded from leaving in an address (short, and gone in seconds). An older runner never gets one: the agent
+  reads that its computer needs an update.
+- **What the agent does.** A `type_secret` step (or `browser_type_secret`) with `login` and `code: true`, into the
+  code's field or every box with `targets`. `vault_list` says so only when a login of a password manager is listed.
+  The model never sees the code: the report says "Typed the one-time code of the Vault login for <site>". A typed
+  code is recorded as a `fill` use of the login, with its origin, like its password.
+
+Left out: storing a seed in the Vault (§1 stands), showing the code to people in the apps (it is in their own
+password manager, and §2 keeps values away from screens), marking which logins have a code (it would need a column the
+sync fills; the agent tries and is told), codes for desktop apps, and HOTP or Steam codes.
 
 ## Consequences
 

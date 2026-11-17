@@ -1,5 +1,12 @@
 import type { SidebarItem, SidebarPlace } from "@agenteschat/client";
-import { useSetSidebarItem, useSetSidebarToolOrder, useSidebarItems, useSidebarToolOrder } from "@agenteschat/client";
+import {
+  useOwnOrder,
+  useSetOwnOrder,
+  useSetSidebarItem,
+  useSetSidebarToolOrder,
+  useSidebarItems,
+  useSidebarToolOrder,
+} from "@agenteschat/client";
 import {
   moveSection,
   moveShownTool,
@@ -20,6 +27,8 @@ import {
   type IconName,
   Segmented,
   type SegmentedOption,
+  SettingRow,
+  Switch,
 } from "@agenteschat/ui";
 import {
   cloneElement,
@@ -34,6 +43,7 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { useOrg } from "./org-context";
+import { SidebarLinksSetup } from "./SidebarLinks";
 import { sectionName, useSectionOrder } from "./SidebarOrder";
 
 /** The tools at the top of the sidebar: the page each opens and its icon. */
@@ -165,6 +175,9 @@ export function SidebarSetupDialog({ open, onClose }: { open: boolean; onClose: 
   const save = useSetSidebarItem(org.id, personal);
   const sections = useSectionOrder(org.id, personal);
   const tools = useToolOrder(org.id, personal);
+  // "Usar a minha ordem" (ADR 0080, addendum of 2026-11-16): off, the rows keep everyone's order; my order stays saved.
+  const own = useOwnOrder(org.id);
+  const setOwn = useSetOwnOrder(org.id);
   // What another device changed since this one loaded shows as the dialog opens.
   useEffect(() => {
     if (open) void refetch();
@@ -268,6 +281,17 @@ export function SidebarSetupDialog({ open, onClose }: { open: boolean; onClose: 
             </li>
           ))}
         </ol>
+        <SidebarLinksSetup orgId={org.id} />
+        <SettingRow
+          title={t("shell.sidebarSetup.ownOrder")}
+          hint={{
+            name: t("common.about", { label: t("shell.sidebarSetup.ownOrder") }),
+            text: t("shell.sidebarSetup.ownOrderHint"),
+          }}
+          htmlFor="sidebar-own-order"
+        >
+          <Switch id="sidebar-own-order" checked={own.on} onCheckedChange={(on) => setOwn((now) => ({ ...now, on }))} />
+        </SettingRow>
       </DialogBody>
       <DialogFooter>
         <Button

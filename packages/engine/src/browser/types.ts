@@ -102,6 +102,21 @@ export const DESKTOP_TOOL_INFO = {
   },
 };
 
+/**
+ * A person's own Chrome, lent to one agent from the desktop app (ADR 0202): under `browser:use`, offered only in the
+ * lender's own runs while the lending lasts. Labels and descriptions in English; the app translates them by tool name.
+ */
+export const MY_CHROME_TOOL_INFO = {
+  my_chrome_open: {
+    label: "Open a page in the person's Chrome",
+    description: "Opens a page in the agent's own tab of the Chrome a person lent it, signed in as them.",
+  },
+  my_chrome_read: {
+    label: "Read the page in the person's Chrome",
+    description: "Reads the page in the agent's own tab of the Chrome a person lent it.",
+  },
+};
+
 /** How a handoff ended, as the agent reads it when it resumes (ADR 0040 §6). */
 export interface BrowserHandoffResult {
   result: "done" | "failed" | "expired" | "cancelled" | "withdrawn";

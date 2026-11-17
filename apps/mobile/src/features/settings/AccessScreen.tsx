@@ -6,8 +6,10 @@ import {
   type LevelState,
   levelOf,
   nextLevel,
+  offAtNever,
   resourcesOf,
 } from "@agenteschat/client/lib/access-levels";
+import { approvalsLevelOf } from "@agenteschat/client/lib/approvals-level";
 import { addsConnectors, can } from "@agenteschat/client/lib/permissions";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -144,13 +146,14 @@ export function AccessScreen() {
                     const r = mine.find((x) => x.id === col.id);
                     if (!r) return <GroupedRow key={col.id} {...lead} label={name} value={t("access.level.none")} />;
                     const level = pending[`${a.id}|${r.id}`] ?? levelOf(r);
-                    const asks = asksAt(r, level).length > 0;
+                    const off = offAtNever(r, approvalsLevelOf(a));
+                    const asks = !off && asksAt(r, level).length > 0;
                     return (
                       <GroupedRow
                         key={col.id}
                         {...lead}
                         label={name}
-                        {...(asks ? { sub: t("access.asksLegend") } : {})}
+                        {...(off ? { sub: t("access.neverLegend") } : asks ? { sub: t("access.asksLegend") } : {})}
                         value={t(`access.level.${level}`)}
                         disabled={busyAgents.has(a.id)}
                         onPress={() => cycle(a, r, level)}

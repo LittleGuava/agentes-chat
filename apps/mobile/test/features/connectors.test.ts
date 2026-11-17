@@ -9,7 +9,7 @@ import {
   type GitHubAppInfo,
   type GitHubAppInstallation,
 } from "@agenteschat/client";
-import { connectedItems, isMcpItem, itemName } from "@agenteschat/client/lib/connected";
+import { connectedItems, isMcpItem, itemName, mineText } from "@agenteschat/client/lib/connected";
 import { knownErrorText } from "@agenteschat/client/lib/errors";
 import {
   appAccountsText,
@@ -34,15 +34,19 @@ import {
   installationIdOf,
   isFinishing,
   isHttpsUrl,
+  landingAfter,
   markFinishing,
+  mineActions,
   monogram,
   needsKeyText,
   ownMarkUri,
+  programVariablesLine,
   searchConnectors,
   shownMailboxes,
   stateOf,
   suggestionsOf,
 } from "../../src/features/connectors/logic";
+import { returnHref } from "../../src/features/connectors/review";
 import { translator } from "./fixtures";
 
 const def = (id: string, over: Partial<ConnectorDef> = {}): ConnectorDef => ({
@@ -402,6 +406,25 @@ describe("GitHub through the agentes.chat app (ADR 0156), as the web shows it", 
     expect(accountActions(github as NonNullable<typeof github>)).toEqual(["rename"]);
   });
 
+  test("a program on a computer (ADR 0215) has no sign-in to renew: only its name, and its variables by name", async () => {
+    const program: CustomServer = {
+      ...server("computer://00000000-0000-4000-8000-000000000901/p-1"),
+      authType: "computer",
+      headerNames: ["NOTES_TOKEN"],
+      program: { machineId: "00000000-0000-4000-8000-000000000901" },
+    };
+    const byAddress: CustomServer = { ...server("https://mcp.acme.com/mcp"), id: "s-2", headerNames: ["X-Team"] };
+    const [item, other] = connectedItems([], [program, byAddress], []);
+    if (!item || !other) throw new Error("both servers are connected items");
+    expect(accountActions(item)).toEqual(["rename"]);
+    // Its variables are changed by adding it again: never "use Reconnect", which it doesn't have.
+    const pt = await translator("pt-BR");
+    expect(programVariablesLine(pt, item)).toBe("Variáveis: NOTES_TOKEN. Para mudar, adicione o programa de novo.");
+    // A server by address keeps its own line, its headers with Reconnect.
+    expect(accountActions(other)).toContain("reconnect");
+    expect(programVariablesLine(pt, other)).toBe("");
+  });
+
   test("an app made without the events agents hear says which to tick, by GitHub's own names", async () => {
     const pt = await translator("pt-BR");
     const events = {
@@ -549,5 +572,49 @@ describe("a connection that stopped working", () => {
     // Its way out right under it, for whoever manages connectors: read the server's tools again.
     expect(screen).toContain('label={t("mobile.connectors.readAgain")}');
     expect(screen).toContain("refresh.mutate(server.id, {");
+  });
+});
+
+describe("each person's own account (ADR 0195)", () => {
+  const drive = (mine: CustomServer["mine"]): CustomServer => ({
+    ...server("https://backend.composio.dev/googledrive"),
+    label: "Google Drive",
+    perPerson: true,
+    mine,
+  });
+  const itemOf = (s: CustomServer) => {
+    const [item] = connectedItems([], [s], []);
+    if (!item) throw new Error("no item");
+    return item;
+  };
+
+  test("the screen's own group offers connecting until one's account works, and disconnecting once there is one", () => {
+    expect(mineActions(itemOf(drive(null)))).toEqual(["connect"]);
+    expect(mineActions(itemOf(drive({ accountLabel: "bea@acme.com", status: "active" })))).toEqual(["disconnect"]);
+    expect(mineActions(itemOf(drive({ accountLabel: "bea@acme.com", status: "needs_reconnect" })))).toEqual([
+      "connect",
+      "disconnect",
+    ]);
+    expect(mineActions(itemOf({ ...drive(null), perPerson: false }))).toEqual([]);
+  });
+
+  test("it reads as the web's line does, in both languages", async () => {
+    const pt = await translator("pt-BR");
+    const en = await translator("en");
+    expect(mineText(pt, itemOf(drive(null)))).toBe("Você ainda não conectou a sua conta");
+    expect(mineText(pt, itemOf(drive({ accountLabel: "bea@acme.com", status: "active" })))).toBe(
+      "Sua conta: bea@acme.com",
+    );
+    expect(mineText(en, itemOf(drive({ accountLabel: "bea@acme.com", status: "needs_reconnect" })))).toBeTruthy();
+  });
+
+  test("everyone gets the group, not only who manages connectors; a sign-in of one's own lands back on the connection", () => {
+    const screen = readFileSync(join(import.meta.dir, "../../src/features/connectors/ConnectionScreen.tsx"), "utf8");
+    // Drawn before the managers' groups open.
+    expect(screen.indexOf("<MineGroup")).toBeGreaterThan(-1);
+    expect(screen.indexOf("<MineGroup")).toBeLessThan(screen.indexOf("{admin ? ("));
+    expect(landingAfter({ connectionId: "s-1", outcome: "connected", personal: true })).toBe("/connectors/s-1");
+    expect(landingAfter({ connectionId: "s-1", outcome: "connected" })).toEqual(returnHref("s-1"));
+    expect(landingAfter({ connectionId: "s-1", outcome: "reconnected" })).toBe("/connectors/s-1");
   });
 });

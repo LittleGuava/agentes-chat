@@ -4,6 +4,7 @@ import { wakeLineOfRun } from "./approval-order";
 import { BRAIN_NAMES, type ComputerBrainKind, planName } from "./brains/types";
 import { cutText, pgSafeJson } from "./format";
 import { recordRunFinished } from "./operator-events";
+import { queueWebhookEvent } from "./outgoing-webhooks";
 import { standingErrorDetail } from "./standing";
 import { cliErrorWords, redactCredentials } from "./tool-detail";
 
@@ -144,6 +145,7 @@ const CLI_CODES: Readonly<Record<string, ComputerBrainKind>> = {
   grok_failed: "grok",
   antigravity_failed: "antigravity",
   copilot_failed: "copilot",
+  acp_failed: "acp",
 };
 /** The runner's causes that are the provider's answer (runner protocol 50), never the CLI's or the computer's. */
 const PROVIDER_CAUSES: ReadonlySet<string> = new Set([
@@ -591,6 +593,13 @@ export async function transitionRun(
         : undefined,
     );
     await releaseProfileTurns(db, row.id);
+    // The workspace's outgoing webhooks (ADR 0212 §4): one indexed lookup, never a run in a DM.
+    await queueWebhookEvent(db, {
+      orgId: row.orgId,
+      event: "run.finished",
+      subjectId: row.id,
+      channelId: row.channelId,
+    });
     // Failed or stopped, its requests no longer hold the agent's later actions on their cards (ADR 0182). A run that
     // ends done settled its own on resuming (and woke the line there): no query on every reply.
     if (to !== "done") await wakeLineOfRun(db, row.id);

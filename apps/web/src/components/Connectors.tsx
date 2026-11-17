@@ -5,15 +5,19 @@ import {
   useCatalog,
   useComposioUsage,
   useConnections,
+  useConnectMine,
   useCustomServerAction,
   useCustomServers,
   useDatabases,
   useDisconnect,
+  useDisconnectMine,
   useGitHubApp,
+  useMachines,
   useMailAccounts,
   useMailAction,
   useMailProviders,
   useRenameConnection,
+  useSetPerPerson,
 } from "@agenteschat/client";
 import { levelIn } from "@agenteschat/client/lib/access-levels";
 import { composioUsageText, nearComposioLimit } from "@agenteschat/client/lib/composio";
@@ -21,8 +25,11 @@ import {
   type ConnectedItem,
   connectedIds,
   connectedItems,
+  connectsMine,
   isMcpItem,
   itemName,
+  mineOf,
+  mineText,
   outcomeText,
   reconnectAddsText,
 } from "@agenteschat/client/lib/connected";
@@ -74,12 +81,13 @@ import {
   type MailFlowState,
   MailReconnectDialog,
   MailRow,
+  MailTriageDialog,
   mailChoices,
 } from "@/components/MailConnect";
 import { useOrg } from "@/components/org-context";
 import { useAgentsAccess } from "@/hooks/useAgentsAccess";
 import { useRightHandLook } from "@/hooks/useRightHandLook";
-import { takesConnectorReturn } from "@/lib/desktop";
+import { oauthReturnPath, takesConnectorReturn } from "@/lib/desktop";
 import { navigateAway } from "@/lib/navigate";
 import { useToast } from "@/lib/toast";
 
@@ -127,10 +135,14 @@ export function ConnectorsSection({
   const mailProviders = useMailProviders(org.id);
   const mailAccounts = useMailAccounts(org.id);
   const { connectComposio } = useMailAction(org.id);
+  const connectMine = useConnectMine(org.id);
+  const disconnectMine = useDisconnectMine(org.id);
+  const setPerPerson = useSetPerPerson(org.id);
   const accounts = mailAccounts.data ?? [];
   const [mailFlow, setMailFlow] = useState<MailFlowState | null>(null);
   const [reconnecting, setReconnecting] = useState<MailAccount | null>(null);
   const [addressesOf, setAddressesOf] = useState<MailAccount | null>(null);
+  const [triageOf, setTriageOf] = useState<MailAccount | null>(null);
   const [removingMail, setRemovingMail] = useState<MailAccount | null>(null);
   // People's Postgres databases (ADR 0039): rows of the same list, the same kind of flow.
   const databases = useDatabases(org.id);
@@ -188,6 +200,12 @@ export function ConnectorsSection({
       : connected
         ? latest(all.filter((i) => !i.custom && i.def?.id === connected))
         : latest(all.filter((i) => i.custom && i.needsReview));
+    // One's own account (ADR 0195): the workspace got no new account, so no confirmation, only the toast.
+    if (outcome === "personal") {
+      if (item) toast.show(outcomeText(t, "connected", item));
+      window.history.replaceState(null, "", window.location.pathname);
+      return;
+    }
     const done = outcome === "reconnected" || outcome === "same_account" ? outcome : "connected";
     // Signing in elsewhere ends here: say what happened, as connecting with a key does (a toast, or the confirmation).
     const confirms = admin && done === "connected";
@@ -217,6 +235,14 @@ export function ConnectorsSection({
       onReconnect={() => setFlow({ step: 0, def: item.def, mode: "reconnect", item })}
       onAddAccount={() => setFlow({ step: 0, def: item.def, mode: "add", item })}
       onDisconnect={() => setRemoving(item)}
+      onConnectMine={() =>
+        connectMine.mutate(
+          { id: item.id, returnTo: oauthReturnPath(`/org/${org.id}/settings/connectors`) },
+          { onSuccess: (to) => navigateAway(to) },
+        )
+      }
+      onDisconnectMine={() => disconnectMine.mutate(item.id)}
+      onPerPerson={(perPerson) => setPerPerson.mutate({ id: item.id, perPerson })}
     />
   );
   const loaded = connections.isSuccess && servers.isSuccess;
@@ -277,6 +303,7 @@ export function ConnectorsSection({
                 onTools={() => setMailFlow({ step: 1, account })}
                 onWho={() => setMailFlow({ step: 2, account })}
                 onAddresses={() => setAddressesOf(account)}
+                onTriage={() => setTriageOf(account)}
                 onReconnect={() => reconnect(account)}
                 onDisconnect={() => setRemovingMail(account)}
               />
@@ -367,6 +394,7 @@ export function ConnectorsSection({
         <MailConnectFlow flow={mailFlow} onChange={setMailFlow} onClose={() => setMailFlow(null)} />
         <MailReconnectDialog account={reconnecting} onClose={() => setReconnecting(null)} />
         <MailAddressesDialog account={addressesOf} onClose={() => setAddressesOf(null)} />
+        <MailTriageDialog account={triageOf} onClose={() => setTriageOf(null)} />
         <MailDisconnectDialog account={removingMail} onClose={() => setRemovingMail(null)} />
         <DatabaseConnectFlow flow={dbFlow} onChange={setDbFlow} onClose={() => setDbFlow(null)} />
         <DatabaseReconnectDialog connection={reconnectingDb} onClose={() => setReconnectingDb(null)} />
@@ -398,6 +426,9 @@ function ServiceRow({
   onReconnect,
   onAddAccount,
   onDisconnect,
+  onConnectMine,
+  onDisconnectMine,
+  onPerPerson,
 }: {
   item: ConnectedItem;
   using: Agent[];
@@ -409,20 +440,43 @@ function ServiceRow({
   onReconnect: () => void;
   onAddAccount: () => void;
   onDisconnect: () => void;
+  onConnectMine: () => void;
+  onDisconnectMine: () => void;
+  onPerPerson: (perPerson: boolean) => void;
 }) {
   const { t, i18n } = useTranslation();
+  const { org } = useOrg();
+  // A program on a computer (ADR 0215) says which computer runs it: the address means nothing to people.
+  const machines = useMachines(org.id, Boolean(item.computerId));
+  const computer = item.computerId ? machines.data?.find((m) => m.id === item.computerId)?.name : undefined;
   const meta = [
     item.viaGithubApp && item.account
       ? appAccountsText(t, item.account)
       : item.account
         ? t("connectors.connectedAs", { account: item.account })
-        : null,
+        : computer
+          ? t("connectors.program.on", { computer })
+          : null,
     relativeTime(t, i18n.language, item.createdAt),
     t("connectors.toolsCount", { count: item.tools }),
   ].filter(Boolean);
   const adds = reconnectAddsText(t, item);
   const name = itemName(t, item);
   const sent = item.server?.headerNames ?? [];
+  // Each person's own account (ADR 0195): everyone sees their own, and connects it here.
+  const mine = mineOf(item);
+  const hasMine = mine === "active" || mine === "broken";
+  const personal = mine ? [t("connectors.personal.perPerson"), mineText(t, item)].filter(Boolean).join(" · ") : null;
+  const connectMine = connectsMine(item) && (
+    <Button
+      size="sm"
+      variant="primary"
+      aria-label={t("connectors.personal.connectMineName", { name })}
+      onClick={onConnectMine}
+    >
+      {t("connectors.personal.connectMine")}
+    </Button>
+  );
   return (
     <ConnectedRow
       icon={<ConnectorIcon def={item.def} image={item.image} label={name} />}
@@ -454,13 +508,20 @@ function ServiceRow({
       total={total}
       details={[
         meta.join(" · "),
+        personal,
         // The request headers a server by address is also sent, by name: their values are never shown.
-        sent.length > 0 && <Trans i18nKey="connectors.sendsToo" components={{ names: <HeaderNames names={sent} /> }} />,
+        sent.length > 0 && (
+          <Trans
+            i18nKey={item.computerId ? "connectors.program.variables" : "connectors.sendsToo"}
+            components={{ names: <HeaderNames names={sent} /> }}
+          />
+        ),
         !item.needsReconnect && adds,
       ]}
       actions={
-        admin && (
+        admin ? (
           <>
+            {connectMine}
             {(item.needsReconnect || adds) && (
               <Button
                 size="sm"
@@ -499,14 +560,25 @@ function ServiceRow({
                 {t("connectors.rename")}
               </MenuItem>
               {/* GitHub through the app alone has no sign-in to renew: its accounts are on GitHub's side. */}
-              {!item.viaGithubApp && (
+              {/* A program has no sign-in to renew nor another account: it is registered again to change it. */}
+              {!item.viaGithubApp && !item.computerId && (
                 <MenuItem icon="refresh" onSelect={onReconnect}>
                   {t("connectors.detail.reconnect")}
                 </MenuItem>
               )}
-              {item.custom && (
+              {item.custom && !item.computerId && (
                 <MenuItem icon="plus" onSelect={onAddAccount}>
                   {t("connectors.detail.addAccount")}
+                </MenuItem>
+              )}
+              {item.viaComposio && (
+                <MenuItem icon="members" onSelect={() => onPerPerson(!item.perPerson)}>
+                  {t(item.perPerson ? "connectors.personal.turnOff" : "connectors.personal.turnOn")}
+                </MenuItem>
+              )}
+              {hasMine && (
+                <MenuItem icon="power" onSelect={onDisconnectMine}>
+                  {t("connectors.personal.disconnectMine")}
                 </MenuItem>
               )}
               <MenuSeparator />
@@ -515,6 +587,17 @@ function ServiceRow({
               </MenuItem>
             </Menu>
           </>
+        ) : (
+          item.perPerson && (
+            <>
+              {connectMine}
+              {hasMine && (
+                <Button variant="link" onClick={onDisconnectMine}>
+                  {t("connectors.personal.disconnectMine")}
+                </Button>
+              )}
+            </>
+          )
         )
       }
     />

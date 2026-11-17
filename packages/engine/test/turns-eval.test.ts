@@ -114,9 +114,13 @@ const size = (r: ModelRequest) =>
  * ADR 0137), and 47,631 with recall reading the asker's own DM with the agent from anywhere they ask, an empty search
  * never told as "the first time", and the DM rule saying what may be said of it elsewhere. Where each workspace gets its
  * own computer, `workspaceComputerText` adds 447 to that (48,078); and a sign-in whose link or
- * code goes to a mailbox the agent reads being its own work adds 360; the ceiling leaves a little room above both.
+ * code goes to a mailbox the agent reads being its own work adds 360. Three tools every DM lists then say more: several
+ * questions on one card (`ask_user`'s `questions` and `multiSelect`, 836), a stretch of time in recall
+ * (`search_context`'s `since` and `until`, 802) and the day a memory stops holding (`until` on `remember` and
+ * `update_memory`, 765), 2,403 in all: 50,630, and 51,077 with the computer's text. The ceiling leaves a little room
+ * above them.
  */
-const OI_CEILING_CHARS = 48_700;
+const OI_CEILING_CHARS = 51_100;
 
 test("a DM 'oi' stays under the size ceiling", async () => {
   const [request] = await play(TURNS.find((t) => t.id === "greet-dm") as ScriptedTurn);

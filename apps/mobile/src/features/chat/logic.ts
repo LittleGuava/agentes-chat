@@ -7,6 +7,8 @@ import type {
   MessageCard,
   MessageConsultation,
   MessagePin,
+  QuestionItem,
+  QuestionItemAnswer,
   ReactionCount,
   TypingWho,
 } from "@agenteschat/client";
@@ -17,7 +19,7 @@ import type { ChatStyle, ChatTextSize } from "@agenteschat/client/lib/chat-look"
 import { agentsByAnyHandle } from "@agenteschat/client/lib/directory";
 import { loneIdRef, splitIdRefs } from "@agenteschat/client/lib/id-refs";
 import { issueWorkOf } from "@agenteschat/client/lib/issues";
-import { detailsAt, MENTION, type TableAlign, tableAt } from "@agenteschat/client/lib/markdown";
+import { detailsAt, MENTION, type TableAlign, tableAt, taskItem } from "@agenteschat/client/lib/markdown";
 import { messageMediaOf } from "@agenteschat/client/lib/media";
 import {
   answeredNotices,
@@ -280,6 +282,7 @@ export function eventLineOf(
 
 const obj = (v: unknown) => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : null);
 const str = (v: unknown) => (typeof v === "string" ? v : "");
+const strings = (v: unknown) => (Array.isArray(v) ? v.filter((c): c is string => typeof c === "string" && !!c) : []);
 
 export const approvalIdOf = (meta: Message["meta"]) => str(meta?.approvalId) || null;
 
@@ -360,7 +363,7 @@ export function artifactsOf(
 export function questionOf(meta: Message["meta"]): AgentQuestion | null {
   const q = obj(meta?.question);
   if (!q || !str(q.id) || !str(q.text) || !str(q.agentId)) return null;
-  const choices = Array.isArray(q.choices) ? q.choices.filter((c): c is string => typeof c === "string" && !!c) : [];
+  const choices = strings(q.choices);
   return {
     id: str(q.id),
     agentId: str(q.agentId),
@@ -374,9 +377,32 @@ export function questionOf(meta: Message["meta"]): AgentQuestion | null {
     answeredByUserId: str(q.answeredByUserId) || null,
     answeredAt: str(q.answeredAt) || null,
     ...(str(q.requestedForUserId) ? { requestedForUserId: str(q.requestedForUserId) } : {}),
+    ...questionItemsOf(q),
     ...(q.withdrawn === true ? { withdrawn: true as const } : {}),
     ...(q.dismissed === true ? { dismissed: true as const } : {}),
   };
+}
+
+/** A card of several questions, or of one where several may be picked: its questions and, once answered, each answer. */
+function questionItemsOf(q: Record<string, unknown>): Pick<AgentQuestion, "items" | "answers"> {
+  const items: QuestionItem[] = (Array.isArray(q.items) ? q.items : []).flatMap((raw) => {
+    const item = obj(raw);
+    if (!item || !str(item.question)) return [];
+    const choices = strings(item.choices);
+    return [
+      {
+        question: str(item.question),
+        choices: choices.length > 0 ? choices : null,
+        ...(item.multiSelect === true ? { multiSelect: true as const } : {}),
+      },
+    ];
+  });
+  if (items.length === 0) return {};
+  const answers: QuestionItemAnswer[] = (Array.isArray(q.answers) ? q.answers : []).flatMap((raw) => {
+    const answer = obj(raw);
+    return answer ? [{ choices: strings(answer.choices), text: str(answer.text) || null }] : [];
+  });
+  return { items, ...(answers.length === items.length ? { answers } : {}) };
 }
 
 /** A message the person never needs to read as text (the card says it all; a question's card repeats it). */
@@ -690,6 +716,8 @@ export type Block =
   | { kind: "paragraph"; inline: Inline[] }
   | { kind: "heading"; inline: Inline[] }
   | { kind: "bullet"; inline: Inline[]; ordinal: string | null }
+  /** A list item that opens with `[ ]` or `[x]` (`taskItem`, the web's rule): read only, as on the web. */
+  | { kind: "task"; inline: Inline[]; done: boolean }
   | { kind: "quote"; inline: Inline[] }
   | { kind: "code"; lang: string; text: string }
   | { kind: "table"; header: Inline[][]; rows: Inline[][][]; align: TableAlign[] }
@@ -834,7 +862,7 @@ export function parseInline(text: string): Inline[] {
 /**
  * Blocks: collapsed `<details>` (outside fenced code), then in the text around them fenced code (with its language),
  * tables (the web's rule: `tableAt` from the shared parser, so a table right under a sentence is still a table),
- * headings, lists, quotes and paragraphs (lines of a paragraph keep their breaks).
+ * headings, lists (`- [ ]` items as tasks), quotes and paragraphs (lines of a paragraph keep their breaks).
  */
 export function parseBlocks(body: string): Block[] {
   const lines = body.split("\n");
@@ -908,7 +936,12 @@ function textBlocks(chunk: string, out: Block[]) {
       out.push({ kind: "heading", inline: parseInline(heading[1] ?? "") });
     } else if (bullet) {
       flush();
-      out.push({ kind: "bullet", inline: parseInline(bullet[2] ?? ""), ordinal: bullet[1] ?? null });
+      const task = taskItem(bullet[2] ?? "");
+      out.push(
+        task
+          ? { kind: "task", inline: parseInline(task.text), done: task.done }
+          : { kind: "bullet", inline: parseInline(bullet[2] ?? ""), ordinal: bullet[1] ?? null },
+      );
     } else if (quote) {
       flush();
       out.push({ kind: "quote", inline: parseInline(quote[1] ?? "") });

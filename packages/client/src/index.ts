@@ -10,6 +10,7 @@ import { createHttpApi } from "./api/http-client";
 
 export * from "./api/client";
 export * from "./api/context";
+export * from "./api/conversation-model";
 export * from "./api/http";
 export * from "./api/http-client";
 export * from "./api/keys";
@@ -30,6 +31,8 @@ export * from "./realtime/streams";
 export * from "./realtime/typing";
 export * from "./vault/hooks";
 export * from "./vault/types";
+export * from "./webhooks/hooks";
+export * from "./webhooks/types";
 
 /** The client the web app uses: the real backend on the same origin (`/api/health`, `/api/app/*`). */
 export function createApiClient(options: { fetch?: FetchLike } = {}): ApiClient {

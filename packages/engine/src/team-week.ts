@@ -28,9 +28,12 @@ import {
   OVER_BUDGET_REASON,
   proposeSettings,
 } from "./context/proposals";
+import { type DayAgenda, dayAgenda } from "./day-agenda";
+import { writeDaySummary } from "./day-summary";
 import { personAgentDmKey } from "./dms";
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from "./errors";
 import { cutText, stringsOf } from "./format";
+import type { ModelGateway } from "./gateway";
 import { commentIssue } from "./issues";
 import { getMessage, postPersonMessage } from "./messages";
 import { maySql } from "./permissions";
@@ -248,7 +251,13 @@ export type TeamWeekMoreRow =
    * An agent on a large model whose work is light: a settings proposal for the next model down (`from`, `to`: what
    * the proposal's line holds). Counted like `retire`.
    */
-  | { id: string; kind: "model"; agentId: string; proposalId: string; from: string; to: string };
+  | { id: string; kind: "model"; agentId: string; proposalId: string; from: string; to: string }
+  /**
+   * The day ahead ("Hoje", ADR 0177 addendum 2026-11-15), on the day's card of who asked for it (`LodiPrefs.agenda`):
+   * their meetings, their agents' routines and their tasks due, from the slot to midnight. Never in `seen`: each
+   * day's is its own.
+   */
+  | ({ id: "today"; kind: "today" } & DayAgenda);
 
 export type TeamWeekHighlight =
   | { kind: "runs"; agentId: string; channelId: string; count: number }
@@ -274,6 +283,11 @@ export interface TeamWeekCard {
    * next day's card says nothing when it would only say these again.
    */
   seen?: string[];
+  /**
+   * "Resumo escrito pela IA" (ADR 0177, addendum 2026-11-16): a day's card's opening paragraph, written by a small model
+   * from the card's own facts for who turned it on. Absent on every other card.
+   */
+  summary?: string;
   /** The settings proposals on its rows: their receipts (Undo) live on this message. */
   proposalIds: string[];
   /** Rows applied here (the routine made, the message sent), by row id. */
@@ -716,7 +730,7 @@ export function stuckCause(run: {
 }
 
 const isMoreRow = (r: TeamWeekRow | TeamWeekMoreRow): r is TeamWeekMoreRow =>
-  r.kind === "waiting" || r.kind === "stuck";
+  r.kind === "waiting" || r.kind === "stuck" || r.kind === "today";
 
 /**
  * The day's card for this person and whether it rings, or null when nothing on it is both theirs and new (or there is
@@ -730,10 +744,13 @@ const isMoreRow = (r: TeamWeekRow | TeamWeekMoreRow): r is TeamWeekMoreRow =>
  *
  * A run is the person's when they wrote the message that started it or the first message of its thread, which is one
  * statement for all of them. Work an agent passed to another outside that thread is left to its owner's card.
+ *
+ * With `agenda` (the person asked for the day ahead), the card opens on "Hoje", read from their calendar from the slot
+ * (`end`) to midnight, and a day with only that to say posts it and rings: it is the morning brief they asked for.
  */
 export async function buildTeamDay(
   db: Database,
-  w: Window & { seen?: string[]; digest?: boolean },
+  w: Window & { seen?: string[]; digest?: boolean; agenda?: boolean },
 ): Promise<{ card: BuiltCard; push: boolean } | null> {
   const [team] = rowsOf(
     await db.execute(sql`select 1 from agents where org_id = ${w.orgId} and builtin is null
@@ -899,9 +916,19 @@ export async function buildTeamDay(
   const newWaiting = waiting.items.some((i) => !seen.has(i.id) && !(digested && i.kind === "approval"));
   const newHeld = heldKeys.some((k) => !seen.has(k));
   const failed = stuck.some((s) => s.failed > 0);
-  if (unread === 0 && closed.length === 0 && !newWaiting && !newHeld && !failed && rest.every((r) => seen.has(r.id)))
+  const today = w.agenda ? await dayAgenda(db, w.orgId, w.userId, w.end, w.timezone) : null;
+  if (
+    !today &&
+    unread === 0 &&
+    closed.length === 0 &&
+    !newWaiting &&
+    !newHeld &&
+    !failed &&
+    rest.every((r) => seen.has(r.id))
+  )
     return null;
-  const shown = [...approvalRows(digested ? [] : approvals), ...waitingRow, ...stuckRows, ...rest].slice(
+  const todayRow: TeamWeekMoreRow[] = today ? [{ id: "today", kind: "today", ...today }] : [];
+  const shown = [...todayRow, ...approvalRows(digested ? [] : approvals), ...waitingRow, ...stuckRows, ...rest].slice(
     0,
     MAX_DAY_ROWS,
   );
@@ -927,8 +954,9 @@ export async function buildTeamDay(
     },
     // It rings for a run held that was not said before: nothing told its person yet. What waits on them rang when it
     // was asked and is reminded of by the team watch, a run that failed told its person when it did (their inbox),
-    // and what only finished is read when they come: none of those rings again.
-    push: newHeld,
+    // and what only finished is read when they come: none of those rings again. The day ahead rings: it was asked
+    // for, at this hour.
+    push: newHeld || today !== null,
   };
 }
 
@@ -1245,7 +1273,7 @@ export async function enqueueTeamWeeks(db: Database, now = new Date()) {
  * workspace closed to changes since it was queued).
  */
 export async function postTeamWeek(
-  deps: { db: Database; pubsub?: PubSub },
+  deps: { db: Database; pubsub?: PubSub; gateway?: ModelGateway },
   orgId: string,
   payload: { userId?: unknown; slot?: unknown; period?: unknown },
 ) {
@@ -1259,7 +1287,7 @@ export async function postTeamWeek(
     throw error;
   });
   if (!member) return null;
-  const { prefs, admin } = member;
+  const { prefs, admin, aiSummary } = member;
   // A job queued before cards named their period carries none: the one card that person then got.
   const period: TeamWeekPeriod =
     payload.period === "day" || payload.period === "week" ? payload.period : admin && !prefs.weekOff ? "week" : "day";
@@ -1295,13 +1323,31 @@ export async function postTeamWeek(
       before && before.getTime() < slot.getTime()
         ? new Date(Math.max(before.getTime(), slot.getTime() - DAY_REACH_MS))
         : span;
-    built = await buildTeamDay(db, { ...w, start, seen: stringsOf(last?.card?.seen), digest: !prefs.digestOff });
+    built = await buildTeamDay(db, {
+      ...w,
+      start,
+      seen: stringsOf(last?.card?.seen),
+      digest: !prefs.digestOff,
+      agenda: prefs.agenda,
+    });
   } else {
     const week = await buildTeamWeek(db, w);
     built = week && { card: week, push: true };
   }
   if (!built) return null;
-  const card: TeamWeekCard = { ...built.card, period, slot: slot.toISOString(), done: {}, dismissedAt: null };
+  // Only on a card that goes out anyway: the paragraph never posts one, and without it the card is the same.
+  const summary =
+    period === "day" && aiSummary && deps.gateway
+      ? await writeDaySummary({ db, gateway: deps.gateway }, { orgId, userId, lodi, card: built.card, timezone })
+      : null;
+  const card: TeamWeekCard = {
+    ...built.card,
+    ...(summary ? { summary } : {}),
+    period,
+    slot: slot.toISOString(),
+    done: {},
+    dismissedAt: null,
+  };
   const [settings] = await db
     .select({ mode: organizationSettings.mode })
     .from(organizationSettings)

@@ -899,6 +899,7 @@
   "activity": {
     "title": "Attività recenti",
     "chooseModel": "Scegli un altro modello",
+    "connectAi": "Collega un'IA",
     "filter": {
       "all": "Tutto",
       "waiting": "Richieste",
@@ -958,6 +959,9 @@
       "routine_failed_one": "Routine non riuscita",
       "routine_failed_many": "Routine non riuscite",
       "routine_failed_other": "Routine non riuscite",
+      "routine_failed_retried_one": "Routine non riuscita al secondo tentativo",
+      "routine_failed_retried_many": "Routine non riuscite al secondo tentativo",
+      "routine_failed_retried_other": "Routine non riuscite al secondo tentativo",
       "run_failed_one": "Non è stato possibile finire",
       "run_failed_many": "Non è stato possibile finire",
       "run_failed_other": "Non è stato possibile finire",
@@ -1045,6 +1049,9 @@
       "desktop_taken_female_one": "{{names}} ha preso il controllo dello schermo del computer di {{agent}}",
       "desktop_taken_female_many": "{{names}} hanno preso il controllo dello schermo del computer di {{agent}}",
       "desktop_taken_female_other": "{{names}} hanno preso il controllo dello schermo del computer di {{agent}}",
+      "agent_needs_ai_one": "{{names}} ha chiamato {{agent}}, che non ha un'IA collegata per rispondere",
+      "agent_needs_ai_many": "{{names}} hanno chiamato {{agent}}, che non ha un'IA collegata per rispondere",
+      "agent_needs_ai_other": "{{names}} hanno chiamato {{agent}}, che non ha un'IA collegata per rispondere",
       "plan_lent_one": "{{names}} ha collegato il tuo piano {{plan}} a {{agent}}",
       "plan_lent_many": "{{names}} hanno collegato il tuo piano {{plan}} a {{agent}}",
       "plan_lent_other": "{{names}} hanno collegato il tuo piano {{plan}} a {{agent}}",
@@ -2988,5 +2995,13 @@
       "title": "Niente da controllare",
       "text": "Quando un agente fa qualcosa fuori dalla conversazione, compare qui."
     }
+  },
+  "phoneTools": {
+    "title": "Contatti del telefono",
+    "contacts": "Gli agenti possono cercare nei miei contatti",
+    "help": "Solo in questo spazio di lavoro e solo su questo telefono. Quando un agente con cui parli ha bisogno dei dati di qualcuno, cerca il nome nei tuoi contatti: all'agente arrivano al massimo 5 risultati, ciascuno solo con nome, numeri di telefono ed email.",
+    "deniedTitle": "L'accesso ai contatti è disattivato",
+    "deniedSub": "Consentilo ad agentes.chat nelle Impostazioni del telefono.",
+    "failed": "Salvataggio non riuscito. Riprova."
   }
 }

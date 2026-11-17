@@ -186,6 +186,8 @@ function sourceOf(t: TFunction, n: AppNotification, channelName: (id: string) =>
   else if (n.kind === "join_request") [icon, label] = ["mail", t("settings.section.invites")];
   else if (n.kind === "invitation_accepted") [icon, label] = ["members", t("notifications.source.members")];
   else if (n.kind === "composio_limit") [icon, label] = ["wallet", t("notifications.source.usage")];
+  else if (n.kind === "webhook_disabled") [icon, label] = ["send", t("settings.section.webhooks")];
+  else if (n.kind === "mail_important") [icon, label] = ["mail", t("settings.section.connectors")];
   else if (n.kind === "skill_update") [icon, label] = ["book", t("skills.title")];
   else if (
     n.kind === "machine_connected" ||
@@ -205,6 +207,7 @@ function sourceOf(t: TFunction, n: AppNotification, channelName: (id: string) =>
     else if (cause) [icon, label] = ["plug", t("settings.section.connectors")];
   } else if (n.kind === "plan_lent" || n.kind === "plan_serves") [icon, label] = ["bulb", t("settings.section.usage")];
   else if (n.kind === "plan_model_dropped") [icon, label] = ["bulb", t("brain.title")];
+  else if (n.kind === "agent_needs_ai") [icon, label] = ["bulb", t("settings.section.usage")];
   else if (n.kind === "browser_handoff") [icon, label] = ["globe", t("notifications.source.browser")];
   else if (s.issueNumber != null)
     [icon, label] = ["issues", t("notifications.source.issue", { number: s.issueNumber })];
@@ -878,6 +881,13 @@ function Row({
             )}
             {n.kind === "plan_lent" && <PlanTakeBack n={n} />}
             {n.kind === "plan_serves" && <PlanOnlyMe n={n} />}
+            {n.kind === "agent_needs_ai" && n.source.agentId && !n.doneAt && (
+              <div className="nt-steprow">
+                <Button size="sm" onClick={() => h.onOpen(n)}>
+                  {t("notifications.agentNeedsAi.connect")}
+                </Button>
+              </div>
+            )}
             {n.kind === "plan_model_dropped" && n.source.agentId && !n.doneAt && (
               <div className="nt-steprow">
                 <Button size="sm" onClick={() => h.onOpen(n)}>

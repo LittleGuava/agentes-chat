@@ -28,6 +28,7 @@ import type {
   IssueStatus,
   Routine,
   RoutineHook,
+  RoutineMeetingTriggerInput,
   RoutineRun,
   RuleInfo,
   ScheduleParse,
@@ -849,6 +850,7 @@ export function createMockPlanning(
         else if (input.trigger.type === "webhook")
           trigger = { type: "webhook", url: null, signed: false, methods: input.trigger.methods ?? ["POST"] };
         else if (input.trigger.type === "connector") trigger = { ...input.trigger, status: "active", lastError: null };
+        else if (input.trigger.type === "meeting") trigger = meetingOf(input.trigger);
         else trigger = input.trigger;
         const agents = await ctx.lookup.agents(orgId);
         const id = mockId("rt");
@@ -869,6 +871,7 @@ export function createMockPlanning(
           createdAt: ctx.now().toISOString(),
           access: "act",
           report: input.report ?? "when_new",
+          retryOnce: input.retryOnce ?? false,
         };
         s.routines.push(r);
         return clone(r);
@@ -882,6 +885,7 @@ export function createMockPlanning(
         if (patch.target !== undefined) r.target = patch.target;
         if (patch.report !== undefined) r.report = patch.report;
         if (patch.ownActions !== undefined) r.ownActions = patch.ownActions;
+        if (patch.retryOnce !== undefined) r.retryOnce = patch.retryOnce;
         if (patch.active !== undefined) setActive(r, patch.active);
         if (patch.trigger?.type === "schedule") r.trigger = scheduleOf(patch.trigger);
         else if (patch.trigger?.type === "once")
@@ -897,6 +901,7 @@ export function createMockPlanning(
           r.trigger = { type: "webhook", url: hook.url, signed: false, methods: hook.methods };
         } else if (patch.trigger?.type === "connector")
           r.trigger = { ...patch.trigger, status: "active", lastError: null };
+        else if (patch.trigger?.type === "meeting") r.trigger = meetingOf(patch.trigger);
         else if (patch.trigger) r.trigger = patch.trigger;
         r.nextRunAt =
           r.active && r.trigger.type === "schedule"
@@ -1211,6 +1216,17 @@ export function createMockPlanning(
           };
       },
     },
+  };
+}
+
+/** A meeting trigger as the server keeps it (ADR 0190): 15 minutes when none is given, its calendar looked at. */
+function meetingOf(input: RoutineMeetingTriggerInput): Routine["trigger"] {
+  return {
+    type: "meeting",
+    connectionId: input.connectionId,
+    leadMinutes: input.leadMinutes ?? 15,
+    status: "active",
+    lastError: null,
   };
 }
 

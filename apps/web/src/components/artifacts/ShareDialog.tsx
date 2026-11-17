@@ -35,6 +35,7 @@ import { usePersonalView } from "@/hooks/usePersonalView";
 import { copyText } from "@/lib/context-menu";
 import { useToast } from "@/lib/toast";
 import { artifactLink, useAuthorName } from "./ArtifactViewer";
+import { PublishedPageSection } from "./PublishedPageSection";
 import "../who-sees.css";
 
 type Mode = ArtifactSharing["mode"];
@@ -296,6 +297,7 @@ export function ShareDialog({ artifact, onClose }: { artifact: Artifact; onClose
               )}
             </section>
           )}
+          <PublishedPageSection artifactId={file.id} />
         </Locked>
       </DialogBody>
       <DialogFooter

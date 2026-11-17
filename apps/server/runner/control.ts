@@ -30,7 +30,7 @@ function toControlError(err: unknown): { code: ControlErrorCode; message: string
   if (err instanceof ControlError) return { code: err.code, message: err.message };
   if (err instanceof RunnerError) {
     const code: ControlErrorCode =
-      err.code === "bad_request" || err.code === "not_found"
+      err.code === "bad_request" || err.code === "not_found" || err.code === "not_allowed"
         ? err.code
         : err.code === "outside_workspace"
           ? "invalid_path"
@@ -108,16 +108,39 @@ export class ControlServer {
         return d.foldersSetAgents(str(m.path), m.agents);
       case "tools.set":
         return d.toolsSet(m.tool, m.on);
+      case "relay.add":
+        return d.relayAdd(str(m.site), m.agents);
+      case "relay.remove":
+        return d.relayRemove(str(m.site), typeof m.agentId === "string" ? m.agentId : undefined);
+      case "relay.setAgents":
+        return d.relaySetAgents(str(m.site), m.agents);
       case "executors.check":
         return d.executorsCheck();
       case "access.pending":
         return { requests: d.accessPending() };
       case "access.answer":
         return d.accessAnswer(str(m.requestId), m.decision, m.scope === "all" ? "all" : "agent");
+      case "screen.get":
+        return d.screenGet();
+      case "screen.answer":
+        return d.screenAnswer(str(m.requestId), m.decision);
+      case "screen.stop":
+        return d.screenStop(typeof m.agentId === "string" && m.agentId ? m.agentId : undefined);
       case "reconnect":
         return d.reconnect();
       case "browser.stop":
         return d.browserStop(str(m.agentId));
+      case "mychrome.connect":
+        return d.myChromeConnect({
+          agentId: str(m.agentId),
+          port: Number(m.port),
+          minutes: Number(m.minutes),
+          ...(typeof m.wsPath === "string" ? { wsPath: m.wsPath } : {}),
+        });
+      case "mychrome.list":
+        return d.myChromeList();
+      case "mychrome.disconnect":
+        return d.myChromeDisconnect(typeof m.agentId === "string" && m.agentId ? m.agentId : undefined);
       case "accounts.list":
         return d.accountsList();
       case "account.begin":

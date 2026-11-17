@@ -4,6 +4,7 @@ import {
   CONNECTOR_EVENTS,
   type CustomDeps,
   composioConnectorsOf,
+  connectComputerProgram,
   connectCustomServer,
   connectOverHttp,
   connectorIconFile,
@@ -12,12 +13,14 @@ import {
   MCP_PRESETS,
   mcpPreset,
   NotFoundError,
+  programComputers,
   refreshCustomServer,
   requirePermission,
   revokeConnection,
   saveCustomTools,
   ValidationError,
   withComposio,
+  withComputerPrograms,
 } from "@agenteschat/engine";
 import { createRoute, z } from "@hono/zod-openapi";
 import { imageFile } from "../../http/image-file";
@@ -48,11 +51,17 @@ const CustomServer = z
     accountLabel: z.string().nullable().openapi({
       description: "The account as the provider names it, when it says (refreshed when tools are listed).",
     }),
-    authType: z.enum(["oauth", "api_key"]),
+    authType: z.enum(["oauth", "api_key", "computer"]).openapi({
+      description: "`computer`: a stdio program on a connected computer (ADR 0215), with `program`.",
+    }),
     headerNames: z.array(z.string()).openapi({
       description:
-        "The request headers typed for it (ADR 0186), by name: their values are never returned. Empty when it has none, and for a reader who doesn't manage connectors.",
+        "The request headers typed for it (ADR 0186), or a program's variables, by name: their values are never returned. Empty when it has none, and for a reader who doesn't manage connectors.",
     }),
+    program: z
+      .object({ machineId: z.uuid() })
+      .optional()
+      .openapi({ description: "A program on a connected computer (ADR 0215): which computer runs it." }),
     iconUrl: z
       .string()
       .nullable()
@@ -65,7 +74,19 @@ const CustomServer = z
         "`needs_reconnect`: its Composio account stopped working, and agents get no tool of it until Reconectar.",
     }),
     events: z.array(z.enum(CONNECTOR_EVENTS)).openapi({
-      description: "What routines can wait on from it (ADR 0130): `millionsend.email.received`.",
+      description:
+        "What routines can wait on from it (ADR 0130, 0196): `millionsend.email.received`, `slack.message.received`.",
+    }),
+    perPerson: z.boolean().openapi({
+      description:
+        "Each person uses their own account here (ADR 0195): a call goes through the account of the person behind the run.",
+    }),
+    mine: z
+      .object({ accountLabel: z.string().nullable(), status: z.enum(["active", "needs_reconnect"]) })
+      .nullable()
+      .openapi({ description: "The caller's own account on a per-person connection; null when they have none." }),
+    meetings: z.boolean().openapi({
+      description: "Whether a meeting routine can watch it (ADR 0190): a Google Calendar connection.",
     }),
     toolsError: z.string().nullable().openapi({
       description:
@@ -137,15 +158,23 @@ export function customConnectorRoutes(deps: AppDeps) {
   app.use("/organizations/*", requireSession(deps.auth));
   app.use("/connector-icons/*", requireSession(deps.auth));
   const composio = composioConnectorsOf(adapters.mail);
+  const keyWrappers = [adapters.keyWrapper, ...adapters.legacyKeyWrappers];
+  // Connected computers, for programs registered on them (ADR 0215).
+  const machines = deps.extras?.sandbox?.machines?.hub ?? null;
   const custom: CustomDeps = {
     db,
-    keyWrappers: [adapters.keyWrapper, ...adapters.legacyKeyWrappers],
+    keyWrappers,
     oauthApps: connectorOAuthApps(config),
     publicUrl: config.PUBLIC_URL,
     http: deps.extras?.http,
     resolveHost: deps.extras?.resolveHost,
-    connect: withComposio(deps.extras?.mcpConnect ?? connectOverHttp, composio),
+    connect: withComputerPrograms(withComposio(deps.extras?.mcpConnect ?? connectOverHttp, composio), {
+      db,
+      keyWrappers,
+      machines,
+    }),
     composio,
+    machines,
     judge: deps.extras?.context?.judge,
     blobs: adapters.platformBlobs,
     log: deps.log,
@@ -185,7 +214,7 @@ export function customConnectorRoutes(deps: AppDeps) {
       security,
       summary: "Connect an https MCP server: connected, OAuth to finish, or an API key is needed",
       description:
-        "A server's account is every agent's, whole (`connector:*`): its tools reach them once classified, and sensitive ones still ask for approval. The same address again is another account (\"Stripe 2\"), every agent's too; the same account again (the provider says) refreshes its sign-in (`outcome: same_account`). With `connectionId`, that account gets the new sign-in in place (`reconnected`); signing in to another account there is a 409 `connector.other_account`, and a sign-in whose account can't be checked a 409 `connector.account_unknown` (try again). `headers` (ADR 0186) are sent with every request to the server, the key's `Authorization` on top; without a key, a server that answers with them is connected by them alone, and one that asks for a sign-in is a 400 `connector.headers_with_sign_in`. A header that isn't taken is a 400 whose `params` name it (`header`, and `index`, its place in the list): `connector.header_name`, `connector.header_value`, `connector.header_reserved`, `connector.header_twice`, `connector.header_and_key` (`Authorization` beside a key), or `connector.headers_too_many`. With `connectionId` and no `headers`, saved ones that can no longer be read are a 400 `connector.headers_unreadable`: send them again, or `[]`.",
+        "A server's account is every agent's, whole (`connector:*`): its tools reach them once classified, and sensitive ones still ask for approval. The same address again is another account (\"Stripe 2\"), every agent's too; the same account again (the provider says) refreshes its sign-in (`outcome: same_account`). With `connectionId`, that account gets the new sign-in in place (`reconnected`); signing in to another account there is a 409 `connector.other_account`, and a sign-in whose account can't be checked a 409 `connector.account_unknown` (try again). `headers` (ADR 0186) are sent with every request to the server, the key's `Authorization` on top; without a key, a server that answers with them is connected by them alone, and one that asks for a sign-in is a 400 `connector.headers_with_sign_in`. A header that isn't taken is a 400 whose `params` name it (`header`, and `index`, its place in the list): `connector.header_name`, `connector.header_value`, `connector.header_reserved`, `connector.header_twice`, `connector.header_and_key` (`Authorization` beside a key), or `connector.headers_too_many`. With `connectionId` and no `headers`, saved ones that can no longer be read are a 400 `connector.headers_unreadable`: send them again, or `[]`. A server whose authorization server registers no apps itself (`needs_key` with `not_approved`, Microsoft Entra ID for one) signs in with `oauthClient`: an app the admin registered there, with `…/api/app/connectors/oauth/callback` as its redirect URI. Its secret is sealed and never returned; its scopes replace the server's. The same client id again updates it in place (a blank secret keeps the saved one), and later sign-ins to that server reuse it while a connection to it stays. An `apiKey` wins over it.",
       request: {
         params: OrgParams,
         body: body(
@@ -202,6 +231,14 @@ export function customConnectorRoutes(deps: AppDeps) {
                 description:
                   "Request headers for a server by address: at most 10, each an HTTP token for a name (64 characters) and a one-line value of printable ASCII (2,000). With `connectionId`: absent keeps the ones the account has, an empty list removes them, a list replaces them.",
               }),
+            oauthClient: z
+              .object({
+                clientId: z.string().min(1).max(500),
+                clientSecret: z.string().max(2000).optional(),
+                scopes: z.array(z.string().min(1).max(500)).max(30).optional(),
+              })
+              .optional()
+              .openapi({ description: "An OAuth app the admin registered with the server's authorization server." }),
           }),
         ),
       },
@@ -215,6 +252,66 @@ export function customConnectorRoutes(deps: AppDeps) {
         c.req.valid("json"),
       );
       return c.json(started, 200);
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/organizations/{orgId}/connectors/program-computers",
+      tags,
+      security,
+      summary: "The caller's own connected computers, and whether each can run a program now (ADR 0215)",
+      description:
+        "Managers of connectors only. `available`: connected by the caller, outside system mode, with Commands on, online, not paused, and a runner of protocol 87 or later. The workspace's own computers and other people's are left out.",
+      request: { params: OrgParams },
+      responses: {
+        200: json(
+          z.object({ computers: z.array(z.object({ id: z.uuid(), name: z.string(), available: z.boolean() })) }),
+        ),
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const computers = await programComputers(custom, c.get("user").id, c.req.valid("param").orgId);
+      return c.json({ computers }, 200);
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "post",
+      path: "/organizations/{orgId}/connectors/custom/program",
+      tags,
+      security,
+      summary: "Register a stdio MCP program on a computer the caller connected (ADR 0215)",
+      description:
+        "The program is listed there once, for no agent, under the computer's Commands switch and command policy; then it is a custom server like any other, its tools hidden until classified and given to no agent until someone grants it. Variables' values are sealed and never returned. A computer that can't take it is a 409 `connector.program_computer` (`params.computer`); a malformed program, or a variable that loads code the command doesn't show (`NODE_OPTIONS`, `LD_PRELOAD`…), a 400 `connector.program_invalid` (`params.detail`); a program the computer held or couldn't start, a 400 `connector.program_failed` (`params.computer`, `params.detail`: the computer's words).",
+      request: {
+        params: OrgParams,
+        body: body(
+          z.object({
+            machineId: z.uuid(),
+            command: z.string().min(1).max(1000),
+            args: z.array(z.string().max(4000)).max(100).optional(),
+            env: z
+              .array(z.object({ name: z.string().max(200), value: z.string().max(8000) }))
+              .max(50)
+              .optional(),
+            label: z.string().max(80).optional(),
+          }),
+        ),
+      },
+      responses: { 200: json(CustomServer), ...errors },
+    }),
+    async (c) => {
+      const server = await connectComputerProgram(
+        custom,
+        c.get("user").id,
+        c.req.valid("param").orgId,
+        c.req.valid("json"),
+      );
+      return c.json(server, 200);
     },
   );
 

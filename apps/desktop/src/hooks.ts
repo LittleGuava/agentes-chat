@@ -257,6 +257,23 @@ export function writePref<T>(key: string, value: T) {
   }
 }
 
+/** `cb` when another of the app's windows writes `key` (the browser's storage event, which skips the writer). */
+export function onPrefChange(key: string, cb: () => void): () => void {
+  const listener = (e: StorageEvent) => {
+    if (e.key === `agentes.desktop.${key}`) cb();
+  };
+  window.addEventListener("storage", listener);
+  return () => window.removeEventListener("storage", listener);
+}
+
+/** A preference another window writes (the popover's news), read again whenever it does. */
+export function useLivePref<T>(key: string, fallback: T): T {
+  const first = useRef(fallback);
+  const [value, setValue] = useState<T>(() => readPref(key, first.current));
+  useEffect(() => onPrefChange(key, () => setValue(readPref(key, first.current))), [key]);
+  return value;
+}
+
 /** Preferences, on `tab` when given: the window reads the tab it is asked for when it shows (`Prefs`). */
 export function useOpenPrefs() {
   const host = useHost();

@@ -57,6 +57,7 @@ import {
   OPTION_ROW,
   PixelOrbit,
   SCREEN_X,
+  TaskBox,
   Text,
   useReducedMotion,
   useToast,
@@ -657,10 +658,8 @@ function Criteria({ issue: i }: { issue: Issue }) {
             style={({ pressed }) => [styles.crit, pressed && { backgroundColor: c.sunken }]}
           >
             {k > 0 ? <View style={[styles.critLine, { backgroundColor: c.line }]} /> : null}
-            <View
-              style={[styles.box, x.done ? { backgroundColor: c.ink } : { borderWidth: 1.5, borderColor: c.line2 }]}
-            >
-              {x.done ? <Icon name="check" size={13} color={c.bg} /> : null}
+            <View style={styles.box}>
+              <TaskBox done={x.done} size={BOX} />
             </View>
             <Text variant="body" tone={x.done ? "faint" : "ink"} style={[styles.grow, x.done && styles.struck]}>
               {x.text}
@@ -1200,14 +1199,7 @@ const styles = StyleSheet.create({
   critLine: { position: "absolute", top: 0, left: 14 + BOX + 10, right: 0, height: StyleSheet.hairlineWidth },
   linkLine: { position: "absolute", top: 0, left: 14 + TILE + 10, right: 0, height: StyleSheet.hairlineWidth },
   // Centered on the criterion's first line.
-  box: {
-    width: BOX,
-    height: BOX,
-    borderRadius: 6,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: (BODY_LINE - BOX) / 2,
-  },
+  box: { marginTop: (BODY_LINE - BOX) / 2 },
   struck: { textDecorationLine: "line-through" },
   link: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingVertical: 10 },
   pickerStage: { gap: 6 },

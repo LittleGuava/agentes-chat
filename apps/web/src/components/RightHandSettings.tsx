@@ -4,6 +4,7 @@ import {
   useAgentBrain,
   useAiAccounts,
   useApi,
+  useBrainPolicy,
   useCredentials,
   useModels,
   usePlatformKey,
@@ -388,6 +389,7 @@ function RightHandForm({ agent }: { agent: Agent }) {
   const models = useModels();
   const credentials = useCredentials(org.id, can(org, "manage_credentials"));
   const platform = usePlatformKey(org.id);
+  const policy = useBrainPolicy(org.id);
   const usesApi = useWorkspaceUsesApi(org.id);
   const { solo } = usePersonalView();
   const [name, setName] = useState(agent.name);
@@ -444,7 +446,7 @@ function RightHandForm({ agent }: { agent: Agent }) {
   const list = modelOptions(
     t,
     i18n.language,
-    modelChoices(models.data?.models ?? [], credentials.data ?? [], platform.data ?? false),
+    modelChoices(models.data?.models ?? [], credentials.data ?? [], platform.data ?? false, policy),
   );
   // Plans it may think with for everyone: the admin's own, and everyone's that serve the whole workspace.
   const plans = (view?.accounts ?? []).filter((a) => a.status === "active");
@@ -810,7 +812,11 @@ function OwnRows({ name, prefs }: { name: string; prefs: LodiPrefs }) {
         }
       />
     );
-  const everyones = (id: "teamWatch" | "welcomePeople", icon: "eye" | "personAdd", words: "teamWatch" | "welcome") =>
+  const everyones = (
+    id: "teamWatch" | "welcomePeople" | "incidents",
+    icon: "eye" | "personAdd" | "replay",
+    words: "teamWatch" | "welcome" | "incidents",
+  ) =>
     configures &&
     settings &&
     shows(id) && (
@@ -833,11 +839,46 @@ function OwnRows({ name, prefs }: { name: string; prefs: LodiPrefs }) {
   return (
     <div className="settings-rows">
       {card("day", "rh-day", "clock", t("teamWeek.settings.dayLabel"), t("teamWeek.settings.dayHelp", g))}
+      {/* The day ahead on the daily card: only while that card comes, and only from a server that has it. */}
+      {prefs.agenda !== undefined && teamWeekOn(prefs, "day", admin) && (
+        <PrefRow
+          id="rh-day-agenda"
+          icon="calendar"
+          label={t("teamWeek.settings.agendaLabel")}
+          hint={t("teamWeek.settings.agendaHelp")}
+          control={
+            <Switch
+              aria-label={t("teamWeek.settings.agendaLabel")}
+              checked={prefs.agenda}
+              disabled={set.isPending}
+              onCheckedChange={(on) => save({ agenda: on })}
+            />
+          }
+        />
+      )}
+      {/* "Resumo escrito pela IA": the same, a paragraph on the daily card that costs the right hand's budget. */}
+      {prefs.aiSummary !== undefined && teamWeekOn(prefs, "day", admin) && (
+        <PrefRow
+          id="rh-day-ai-summary"
+          icon="brainAgent"
+          label={t("teamWeek.settings.aiSummaryLabel")}
+          hint={t("teamWeek.settings.aiSummaryHelp", g)}
+          control={
+            <Switch
+              aria-label={t("teamWeek.settings.aiSummaryLabel")}
+              checked={prefs.aiSummary}
+              disabled={set.isPending}
+              onCheckedChange={(on) => save({ aiSummary: on })}
+            />
+          }
+        />
+      )}
       {admin && card("week", "rh-team-week", "calendar", t("teamWeek.settings.label"), t("teamWeek.settings.help", g))}
       {mine("digest", "shield", "digestOff")}
       {mine("reminders", "bell", "remindOff")}
       {everyones("teamWatch", "eye", "teamWatch")}
       {everyones("welcomePeople", "personAdd", "welcome")}
+      {everyones("incidents", "replay", "incidents")}
     </div>
   );
 }

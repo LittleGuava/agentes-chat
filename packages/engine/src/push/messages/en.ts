@@ -14,7 +14,12 @@ export interface PushStrings {
   replyTitle: (actor: string) => string;
   missionStoppedTitle: string;
   routineFailedTitle: string;
+  /** `routine_failed` once its automatic retry failed too (ADR 0177 addendum 2026-11-15). */
+  routineFailedRetriedTitle: string;
   runFailedTitle: (actor: string) => string;
+  /** `agent_needs_ai`: the agent with no AI, then who couldn't reach it. */
+  needsAiTitle: (agent: string) => string;
+  needsAiBody: (person: string) => string;
   routineFailedBody: string;
   routinePausedTitle: string;
   routinePausedBody: string;
@@ -40,6 +45,8 @@ export interface PushStrings {
   secretTitle: (actor: string) => string;
   secretBody: string;
   widgetAlertTitle: (actor: string, widget: string) => string;
+  /** An important email no routine took (ADR 0038): the mailbox's address. */
+  mailImportantTitle: (mailbox: string) => string;
   widgetFailedTitle: (widget: string) => string;
   /** Why a widget didn't update, by its coded reason (`widgets.failure.*` in the apps); others: `widgetFailedBody`. */
   widgetFailedReasons: Record<string, string>;
@@ -121,7 +128,10 @@ export const en: PushStrings = {
   replyTitle: (a) => `${a} replied`,
   missionStoppedTitle: "A mission stopped",
   routineFailedTitle: "A routine didn't finish",
+  routineFailedRetriedTitle: "A routine didn't finish, even after one more try",
   runFailedTitle: (a) => `${a} couldn't finish`,
+  needsAiTitle: (a) => `${a} has no AI connected`,
+  needsAiBody: (p) => `${p} called and got no answer. Connect an AI so it can answer.`,
   routineFailedBody: "Tap to see what happened.",
   routinePausedTitle: "A routine was paused",
   routinePausedBody: "Tap to see why.",
@@ -147,6 +157,7 @@ export const en: PushStrings = {
   secretTitle: (a) => `${a} needs a secret from you`,
   secretBody: "Tap to send it securely.",
   widgetAlertTitle: (a, w) => (w ? `${a}: ${w}` : `${a} flagged a widget`),
+  mailImportantTitle: (m) => `Important email in ${m}`,
   widgetFailedTitle: (w) => (w ? `“${w}” didn't update` : "A widget didn't update"),
   widgetFailedReasons: {
     no_update: "The last update ended without data.",

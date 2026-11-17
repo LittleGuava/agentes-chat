@@ -1,12 +1,13 @@
-import type { PubSub } from "@agenteschat/adapters";
+import { CHECKPOINTS_PROTOCOL, type PubSub } from "@agenteschat/adapters";
 import { and, type Database, desc, eq, gt, gte, isNull, ne, or, schema, sql } from "@agenteschat/db";
-import { actionsFor, actionView, describeAction, publishMessageActions, UNDO_WINDOW_MS } from "./agent-actions";
+import { actionsFor, actionView, describeAction, publishMessageActions, undoWindowOf } from "./agent-actions";
 import { getAgentCached } from "./agents";
 import { recordAudit } from "./audit";
 import { caches } from "./cache";
 import { addChannelMember, archiveChannel, removeChannelMember, unarchiveChannel } from "./channels";
 import { ConflictError, ForbiddenError, NotFoundError } from "./errors";
 import { getIssue, type IssueView, setCriterion, updateIssue, type WorkActor } from "./issues";
+import type { MachineCaller } from "./machine-hub";
 import { announceMessageMemories } from "./message-memories";
 import { assertActiveMembership, can, getMembership } from "./organizations";
 import { hookMethodsOf, routineHookKeys } from "./routine-hooks";
@@ -39,6 +40,8 @@ export interface AgentUndoDeps {
   db: Database;
   pubsub?: PubSub;
   now?: () => Date;
+  /** Connected computers: a turn's files are undone there (`files.changed`, ADR 0193). */
+  hub?: MachineCaller;
 }
 
 const same = (a: unknown, b: unknown) => canonicalJson(a ?? null) === canonicalJson(b ?? null);
@@ -567,6 +570,41 @@ handlers["agent.settings_changed"] = async (deps, a, userId, direction) => {
 handlers["workspace.changed"] = (deps, a, userId, direction) =>
   revertWorkspaceAction(deps, a, userId, direction, changedSince);
 
+// A computer turn's files (ADR 0193): the computer puts back only what the turn changed, and only while each of those
+// files is as the turn left it (undo) or found it (redo).
+handlers["files.changed"] = async (deps, a, _userId, direction) => {
+  const machineId = obj(a.after).machineId;
+  if (!deps.hub || typeof machineId !== "string") {
+    throw new ConflictError("Connected computers are not available on this server", "action.not_undoable");
+  }
+  const agent = await getAgentCached(deps.db, a.orgId, a.agentId);
+  if (!agent) throw new NotFoundError("The agent is gone", "action.target_gone");
+  const computer = await deps.hub.status(machineId);
+  if (!computer) throw new NotFoundError("The computer is gone", "action.target_gone");
+  // A runner taken back to a version before checkpoints doesn't know the op (protocol 73).
+  if (computer.protocol < CHECKPOINTS_PROTOCOL) {
+    throw new ConflictError("The computer no longer keeps this change. Change it by hand.", "action.expired");
+  }
+  const reply = await deps.hub.call<"checkpoint.restore">(machineId, {
+    op: "checkpoint.restore",
+    id: a.targetId,
+    direction,
+    agent: { id: agent.id, handle: agent.handle, name: agent.name },
+  });
+  if (reply.status === "restored") return undefined;
+  if (reply.status === "conflict") {
+    const some = reply.paths.slice(0, 5).join(", ");
+    throw new ConflictError(
+      `${some ? `${some} changed` : "Its files changed"} after the agent's turn. Undo it by hand.`,
+      "action.changed_since",
+    );
+  }
+  if (reply.status === "busy") {
+    throw new ConflictError("The agent is working in that folder now. Try again when it finishes.", "action.busy");
+  }
+  throw new ConflictError("The computer no longer keeps this change. Change it by hand.", "action.expired");
+};
+
 handlers["issue.assigned"] = handlers["issue.updated"] as Handler;
 handlers["memory.updated"] = handlers["memory.saved"] as Handler;
 
@@ -625,7 +663,7 @@ async function toggle(deps: AgentUndoDeps, userId: string, orgId: string, id: st
   const handler = handlers[a.kind];
   if (!handler) throw new ConflictError("This can't be undone", "action.not_undoable");
   // Claim first: two clicks never invert twice.
-  const until = new Date(now.getTime() + UNDO_WINDOW_MS);
+  const until = new Date(now.getTime() + undoWindowOf(a.kind));
   const claimed = await deps.db
     .update(agentActions)
     .set(

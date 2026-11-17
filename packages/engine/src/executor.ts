@@ -5,6 +5,7 @@ import {
   type PlanUsage,
   type ProviderFailureCause,
   type PubSub,
+  type TurnCheckpoint,
 } from "@agenteschat/adapters";
 import {
   and,
@@ -38,7 +39,7 @@ import {
 import { autoPlanModel, droppedPlanModel, ownLimitsModel, planModel, planOf } from "@agenteschat/providers/plans";
 import { PLAN_NOTICE, PLAN_PAUSE } from "@agenteschat/ui/plan-state";
 import { pendingConnectors } from "./access";
-import { linkRunActions, publishMessageActions } from "./agent-actions";
+import { linkRunActions, publishMessageActions, recordAgentActions, turnFilesRecord } from "./agent-actions";
 import { withTimeout } from "./agent-media";
 import { announceAgentStatus, askRunStatus, startRunStatus, statusCandidates } from "./agent-status";
 import { TECHNICAL_STYLE_LINE } from "./agent-style";
@@ -55,6 +56,7 @@ import {
   type AutoModels,
   autoApplied,
   autoLine,
+  autoModelFor,
   autoWanted,
   chooseAutoModel,
   fallbackChoice,
@@ -63,13 +65,18 @@ import {
   orgAutoModels,
   withAuto,
 } from "./auto-model";
+import { burstAttemptEnded, burstOfRoom } from "./best-of";
 import type { BlockSpecReader } from "./block-state";
 import { ASK_CHOICES_TOOL, SHOW_BLOCK_TOOL, someoneAnswers } from "./blocks";
+import { brainPolicyRefusal, modelAllowed, orgBrainPolicy } from "./brain-policy";
 import { brainOf } from "./brain-settings";
 import { brainSessionId, missingTurnFolder, recordPlanUsage } from "./brains/claude-code";
 import { ModelBrain } from "./brains/model";
 import type { ComputerTurn } from "./brains/prompt";
+import { mayUseReserve, nextReserve, type ReserveRecord, reservePlan } from "./brains/reserve";
+import { RESERVE_CODES } from "./brains/reserve-chain";
 import {
+  BRAIN_NOT_ALLOWED,
   type BrainPlan,
   type BrainUnavailability,
   bindingReset,
@@ -183,6 +190,7 @@ import {
   triedCalls,
   verdictRecord,
 } from "./continuation";
+import { withConversationModel } from "./conversation-model";
 import { modelInfoFor } from "./credentials";
 import { sha256 } from "./crypto";
 import { widgetRunWaitChanged } from "./dashboards/refresh-fire";
@@ -252,10 +260,12 @@ import {
 import { missionAsksPerson, missionReportSince, scheduleKeepGoing } from "./missions-engine";
 import { type NoAiCardReason, postNoAiCard, postStandInLine } from "./no-ai";
 import {
+  notifyAgentNeedsAi,
   notifyCatchUpClosed,
   notifyCatchUpClosedAsker,
   notifyPlanModelDropped,
   notifyPlanResetUnknown,
+  resolveAgentNeedsAi,
   resolveRunFailed,
 } from "./notification-producers";
 import { openRequestNudge, openRequestsOf, WITHDRAW_REQUEST_TOOL } from "./open-requests";
@@ -655,6 +665,11 @@ export interface Transcript {
   /** The computer brain couldn't answer and the model brain did (ADR 0032 §5): the reply carries a quiet note. */
   /** `quiet`: the right hand's stand-in, whose own line says it (`postStandInLine`), not the reply's note. */
   fallback?: { from: BrainKind; code: string; message: string; resetsAt?: string; quiet?: true };
+  /**
+   * One of the agent's reserve AIs thinks for this run (ADR 0118 addendum 2026-11-15): its own plan was at its limit or
+   * signed out. The run keeps it to the end (its session is that account's); the reply says which (`meta.brainReserve`).
+   */
+  reserve?: ReserveRecord;
   /**
    * The key that stood in for the computer brain was refused (no credit, a wrong key) before it answered a turn: the
    * run went back to its own brain, and no key stands in for it again.
@@ -1497,6 +1512,9 @@ async function executeRunInner(
       await onConsultedRunFinished({ db, pubsub: deps.pubsub, judge: deps.context?.judge }, run, status, error).catch(
         () => {},
       );
+    // One of a burst's attempts ended (ADR 0192): the burst checks whether they all have.
+    if ((status === "done" || status === "failed" || status === "canceled") && burstOfRoom(channelRow?.dmKey))
+      await burstAttemptEnded(db, run, channelRow?.dmKey ?? null).catch(() => {});
     // A mission's run ended: unless it waits on a person, the mission goes on by itself a while later.
     if (status === "done" && brainPlan?.missionId && !run.background)
       await scheduleKeepGoing(db, { id: brainPlan.missionId, orgId: run.orgId }).catch(() => {});
@@ -1506,6 +1524,9 @@ async function executeRunInner(
         await addRunStep(db, run, "context", { continuation: { outcome: "done", rule: "ended" } }).catch(() => {});
       await resolveRunFailed({ db, pubsub: deps.pubsub }, run).catch(() => {});
     }
+    // It thought: whoever was told it had no AI is done with that (background work proves it as well).
+    if (status === "done")
+      await resolveAgentNeedsAi({ db, pubsub: deps.pubsub }, run.orgId, run.agentId).catch(() => {});
     if (status === "failed" && error && !standingErrorDetail(error))
       await reportRunFailure({ db, pubsub: deps.pubsub }, run, error, failCause);
   };
@@ -1638,7 +1659,8 @@ async function executeRunInner(
   };
   /**
    * Nothing to think with (ADR 0061): the run fails with `no_ai`, and the conversation gets its agent's
-   * card with Connect. Background work only fails, its routine run keeping why (a widget says it, ADR 0135 §20).
+   * card with Connect, and who can connect one hears it (`notifyAgentNeedsAi`, even when the card wasn't repeated).
+   * Background work only fails, its routine run keeping why (a widget says it, ADR 0135 §20).
    */
   const failNoAi = async (
     why: NoAiCardReason,
@@ -1652,6 +1674,7 @@ async function executeRunInner(
       await postNoAiCard({ ...cardDeps, judge: deps.context?.judge }, run, why, own, model, said, notYours)
         .catch((error) => addRunStep(db, run, "error", { reason: "no_ai_card", message: String(error) }))
         .catch(() => {});
+      await notifyAgentNeedsAi({ db, pubsub: deps.pubsub }, run, why, own).catch(() => {});
     }
     await fail(NO_AI, { code: NO_AI, detail: why });
   };
@@ -1775,7 +1798,9 @@ async function executeRunInner(
   /** Whose AI the right hand's run thinks with (ADR 0137 §11); null for any other agent. */
   const thinksFor = stored ? await rightHandPerson(db, stored, run) : null;
   // The right hand thinks with the AI of the person whose DM this is, when they chose their own (ADR 0137 §11).
-  const agent = stored && isRightHand(stored) ? (await withPersonalBrain(db, stored, thinksFor)).agent : stored;
+  const own = stored && isRightHand(stored) ? (await withPersonalBrain(db, stored, thinksFor)).agent : stored;
+  // A model chosen for this conversation alone (ADR 0032, addendum 2026-11-15): this run thinks with it.
+  const agent = own && (await withConversationModel(db, own, run, replyThreadId));
   // Claude Code defers our tools itself (its ToolSearch): a new run lists every tool the agent has, the same in every
   // run, instead of the groups a judge picks, so its cached prefix holds across runs and sessions (ADR 0043).
   if (needsContext && deps.toolsOnDemand && agent && brainOf(agent.brain) === "claude_code") {
@@ -2942,10 +2967,15 @@ async function executeRunInner(
     if (brainPlan.kind === "model") transcript.fallback = fallback;
     await addRunStep(db, run, "context", { brainFallback: fallback });
   }
+  // A brain the workspace's rule leaves out (ADR 0191): it fails now in the rule's words, with no wait and no stand-in.
+  if (brainPlan.unavailable?.code === BRAIN_NOT_ALLOWED) {
+    const { message } = brainPlan.unavailable;
+    return fail(message, { code: BRAIN_NOT_ALLOWED, detail: message });
+  }
   // The agent's model left its plan's live list, so this turn runs another: its owner hears it, never silently.
   const dropped =
     brainPlan.kind === "claude_code" && !brainPlan.missionId && agent.brain === "claude_code"
-      ? droppedPlanModel(brainPlan.account?.provider, agent.brainModel)
+      ? droppedPlanModel(brainPlan.account?.provider, own?.brainModel)
       : null;
   const droppedFrom = dropped ? planOf(brainPlan.account?.provider) : undefined;
   if (dropped && droppedFrom) {
@@ -2973,6 +3003,22 @@ async function executeRunInner(
       await db.update(agentRuns).set({ brainSessionId: fresh }).where(eq(agentRuns.id, run.id));
       brainPlan = { ...brainPlan, session: { ...homeSession, id: fresh, resume: false } };
       delete transcript.spill;
+    }
+  }
+  // A run a reserve took keeps it when it picks up again (an approval, an answer, back from a wait): its session is that
+  // account's. That reserve gone or unable to think now, the run is its own AI's again, in a fresh session (the one it
+  // had is in the reserve's folder), and may go to a reserve again from the first one.
+  const reserved = transcript.reserve;
+  if (reserved && brainPlan.kind !== "model" && !brainPlan.missionId) {
+    const kept = await reservePlan(deps, agent, run, brainPlan, reserved.index);
+    if (kept) brainPlan = kept;
+    else {
+      delete transcript.reserve;
+      if (brainPlan.session) {
+        const fresh = Bun.randomUUIDv7();
+        await db.update(agentRuns).set({ brainSessionId: fresh }).where(eq(agentRuns.id, run.id));
+        brainPlan = { ...brainPlan, session: { ...brainPlan.session, id: fresh, resume: false } };
+      }
     }
   }
   // A mission's main session can't be replaced mid-mission: its first turn after an edit reads the settings again.
@@ -3016,15 +3062,21 @@ async function executeRunInner(
     const kept = t.autoModel;
     const choice: AutoModelRecord =
       kept ?? (await (autoAsked ?? (needsContext ? askAuto() : Promise.resolve(fallbackChoice("kept")))));
-    const line: AutoLine =
-      isAutoModel(agent.model) && !choice.apiModel
-        ? await autoLine(db, agent).catch((): AutoLine => ({ provider: "anthropic" }))
-        : { provider: "anthropic" };
+    // A kept choice's model needs its line again only for the key the workspace's rule moved it to (ADR 0191).
+    const line: AutoLine = isAutoModel(agent.model)
+      ? await autoLine(db, agent).catch((): AutoLine => ({ provider: "anthropic" }))
+      : { provider: "anthropic" };
     const { provider, endpoint } = line;
     // OpenRouter's line is its list: in place before a tier maps onto it.
-    if (provider === "openrouter") await ensureOpenRouterModels();
+    if (provider === "openrouter" && !choice.apiModel) await ensureOpenRouterModels();
     const tiers = (await orgAutoModels(db, run.orgId).catch((): AutoModels => ({})))[provider];
-    const applied = autoApplied(agent, brainPlan, choice, provider, tiers, endpoint);
+    const policy = await orgBrainPolicy(db, run.orgId);
+    const allows = policy ? (model: string) => modelAllowed(policy, model) : undefined;
+    const applied = autoApplied(agent, brainPlan, choice, provider, tiers, endpoint, allows);
+    // The rule left out every model the line has for it (ADR 0191): no wait ends that, so it fails in the rule's words.
+    const unruled = allows && !applied.apiModel ? autoModelFor(provider, choice.tier, tiers, endpoint) : null;
+    const ruledOut = brainPlan.kind === "model" && unruled ? brainPolicyRefusal(policy, "model", unruled) : null;
+    if (ruledOut) return fail(ruledOut.message, { code: ruledOut.code, detail: ruledOut.message });
     // No model for the tier: OpenRouter's list couldn't be read, or an endpoint offers none (never a call on the
     // wrong provider's line). Waited out like a provider outage, with the choice kept for the next attempt.
     if (brainPlan.kind === "model" && isAutoModel(agent.model) && !applied.apiModel) {
@@ -3037,6 +3089,7 @@ async function executeRunInner(
       throw outage;
     }
     ({ agent: thinker, plan: brainPlan } = withAuto(agent, brainPlan, applied));
+    if (line.key !== undefined && applied.apiModel) thinker = { ...thinker, credentialId: line.key };
     if (autoBrain) {
       const model = autoPlanModel(brainPlan.account?.provider, brainPlan.model, brainPlan.usage);
       if (model) brainPlan = { ...brainPlan, model };
@@ -3368,6 +3421,39 @@ async function executeRunInner(
       const said = line === "cli_failed" ? cliWords({ code: u.code, message: u.message }) : "";
       await failNoAi(line, undefined, ownModel?.label, said || undefined);
       return "failed";
+    }
+    // The agent's reserve AIs come first (ADR 0118 addendum 2026-11-15): another plan of its own, never a key. One that
+    // can't go on hands the run to the ones after it; with none left, the run goes on as below.
+    if (!onlyThisComputer && !u.queued && RESERVE_CODES.has(u.code) && mayUseReserve(agent, run, plan)) {
+      const next = await nextReserve(deps, agent, run, plan, t.reserve?.index ?? -1);
+      const to = next?.plan;
+      if (next && to?.account && to.session && isComputerBrain(to.kind)) {
+        // Who couldn't answer, and why, stays the agent's own AI's however many reserves it went through.
+        const resetsAt = t.reserve ? t.reserve.resetsAt : u.resetsAt;
+        t.reserve = {
+          index: next.index,
+          from: t.reserve?.from ?? { brain: from, ...(plan.account ? { account: plan.account.label } : {}) },
+          to: {
+            brain: to.kind,
+            account: to.account.label,
+            accountId: to.account.id,
+            ...(to.model ? { model: to.model } : {}),
+          },
+          code: t.reserve?.code ?? u.code,
+          ...(resetsAt ? { resetsAt } : {}),
+        };
+        plan = to;
+        brain = createBrain(deps, thinker, run, to.kind, turnToken, () => transcript as Transcript);
+        if (to.kind !== "claude_code") onDemandForOtherBrain(t);
+        await db.update(agentRuns).set({ brainSessionId: to.session.id }).where(eq(agentRuns.id, run.id));
+        await saveTranscript(db, t);
+        if (run.brain !== to.kind) {
+          await recordRunBrain(db, run.id, to.kind);
+          run = { ...run, brain: to.kind };
+        }
+        await addRunStep(db, run, "context", { brainReserve: reserveNote(t.reserve) });
+        return "fallback";
+      }
     }
     // A background run never stands in on the model brain (`mayFallBack`): it waits for its computer.
     // Behind others in the computer's line (`roomGate`) is no refusal: it waits its turn.
@@ -5053,6 +5139,21 @@ async function executeRunInner(
       prof.mark(`model#${run.turns + 1}`);
       if (result.imagesLeftOut) transcript.filesTextOnly = true;
       if (result.timings) prof.brain.push(result.timings);
+      // The files the computer turn changed: a receipt with Desfazer on its reply (ADR 0193).
+      const filesOn = turnPlan.kind !== "model" ? (turnPlan.session?.machineId ?? agent.machineId) : null;
+      if (result.checkpoint && filesOn) {
+        await recordAgentActions(
+          db,
+          {
+            orgId: run.orgId,
+            agentId: agent.id,
+            runId: run.id,
+            channelId: run.channelId,
+            triggerMessageId: run.triggerMessageId,
+          },
+          [turnFilesRecord(filesOn, result.checkpoint)],
+        ).catch(() => {});
+      }
       await deferred;
       // The files its own tools made are cards on this reply too.
       await Promise.all(sharing);
@@ -5143,6 +5244,7 @@ async function executeRunInner(
               toolUseId: use.id,
               text: outcome.text,
               choices: outcome.choices,
+              items: outcome.items,
               requestedForUserId: outcome.requestedForUserId,
               why: outcome.why,
             });
@@ -5964,6 +6066,8 @@ interface BrainStep {
   imagesLeftOut?: true;
   /** How the computer started the turn (`done.timings`). */
   timings?: BrainTurnTimings;
+  /** What the computer turn changed in its folder (`done.checkpoint`, ADR 0193). */
+  checkpoint?: TurnCheckpoint;
 }
 
 /**
@@ -6019,6 +6123,7 @@ async function thinkOnce(
   let taken = false;
   let usage: Extract<BrainEvent, { type: "usage" }> | null = null;
   let timings: BrainTurnTimings | undefined;
+  let checkpoint: TurnCheckpoint | undefined;
   /** The plan said `limit`: the turn is read on until `deadline`, for the answer the brain may still finish. */
   let limit: { resetsAt?: string; deadline: number } | null = null;
   const limitFailure = (message: string, worked?: boolean) =>
@@ -6098,6 +6203,7 @@ async function thinkOnce(
     else if (event.type === "done") {
       text = event.text;
       timings = event.timings;
+      checkpoint = event.checkpoint;
     }
   }
   if (text === null) throw new Error(`The ${brain.kind} brain ended the turn without an answer`);
@@ -6128,6 +6234,7 @@ async function thinkOnce(
     toolCalls,
     executedCount,
     ...(timings ? { timings } : {}),
+    ...(checkpoint ? { checkpoint } : {}),
     model: usage?.model,
     usage: usage
       ? {
@@ -6504,18 +6611,23 @@ const withCode = (meta: Record<string, unknown> | undefined, code: ReturnType<ty
   code ? { ...(meta ?? {}), ...code } : meta;
 
 /**
- * The quiet notes on a reply: the model brain gave it for an unavailable computer brain (`meta.brainFallback`), or
- * Fast was refused and it came at standard speed (`meta.speedFallback`, the apps say so under the reply).
+ * The quiet notes on a reply: the model brain gave it for an unavailable computer brain (`meta.brainFallback`), one of
+ * the agent's reserve AIs did (`meta.brainReserve`), or Fast was refused and it came at standard speed
+ * (`meta.speedFallback`, the apps say so under the reply).
  */
 const withFallback = (t: Transcript, meta: Record<string, unknown> | undefined) =>
-  (t.fallback && !t.fallback.quiet) || t.speedFallback || t.modelStandIn
+  (t.fallback && !t.fallback.quiet) || t.reserve || t.speedFallback || t.modelStandIn
     ? {
         ...(meta ?? {}),
         ...(t.fallback && !t.fallback.quiet ? { brainFallback: t.fallback } : {}),
+        ...(t.reserve && !t.fallback ? { brainReserve: reserveNote(t.reserve) } : {}),
         ...(t.speedFallback ? { speedFallback: true } : {}),
         ...(t.modelStandIn ? { modelStandIn: t.modelStandIn } : {}),
       }
     : meta;
+
+/** What a reply says about the reserve that gave it: its place in the chain is the run's own business. */
+const reserveNote = ({ index: _index, ...note }: ReserveRecord) => note;
 
 /**
  * The conversation a "Continuar" run starts from: the stopped run's messages (what it wrote

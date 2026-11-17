@@ -16,6 +16,8 @@ import type { ToolDefinition, ToolSource } from "./tools/types";
 const { agentQuestions, channelMembers, messages, notifications, organizationMembers, users } = schema;
 
 export type AgentQuestionRow = typeof agentQuestions.$inferSelect;
+export type QuestionItem = schema.QuestionItem;
+export type QuestionItemAnswer = schema.QuestionItemAnswer;
 
 /** How long a question waits for an answer before the run goes on without one. */
 export const QUESTION_TTL_MS = 24 * 3600_000;
@@ -24,6 +26,12 @@ export const ASK_USER_TOOL = "ask_user";
 export const QUESTION_MAX_CHARS = 300;
 export const questionTooLong = (length: number) =>
   `Not asked: this question is ${length} characters, and a card holds one short question (at most ${QUESTION_MAX_CHARS}). Write what you found and your plan in your text first (it is posted above the card), then call ask_user again with one short question, with choices when they fit (e.g. "Can I start filling in the form?" with Yes and Not yet, in the people's language).`;
+/** How many questions one card holds (ADR 0008 addendum 2026-11-15), and the choices each offers. */
+export const QUESTION_MAX_ITEMS = 6;
+export const QUESTION_MAX_CHOICES = 4;
+export const QUESTION_CHOICE_MAX_CHARS = 200;
+export const QUESTION_OR_QUESTIONS =
+  "Not asked: pass either `question` or `questions`, not both and not neither: one question with its `choices` and `multiSelect`, or several, each with its own.";
 /** What the run reads when its card would ask nothing: no question mark (`hasQuestionMark`) and no choices. */
 export const NOT_A_QUESTION =
   "Not asked: this asks nothing, with no question mark and no choices to pick from. Put it in your reply, or end your turn if your reply already says it: nobody waits on a note. If you need an answer to go on, call ask_user again with one direct question.";
@@ -41,6 +49,10 @@ export interface AgentQuestion {
   choices: string[] | null;
   /** The one person it is for: only they answer it. Null: anyone in the conversation. */
   requestedForUserId: string | null;
+  /** Several questions, or one where several may be picked: the card asks each and sends `answers` together. */
+  items?: QuestionItem[];
+  /** The answer to each of `items`, in order, when it came from the card. */
+  answers?: QuestionItemAnswer[];
   status: "open" | "answered";
   answer: string | null;
   answeredByUserId: string | null;
@@ -63,6 +75,8 @@ export function questionView(q: AgentQuestionRow): AgentQuestion {
     text: q.text,
     choices: q.choices && q.choices.length > 0 ? q.choices : null,
     requestedForUserId: q.requestedForUserId,
+    ...(q.items && q.items.length > 0 ? { items: q.items } : {}),
+    ...(q.answers && q.answers.length > 0 ? { answers: q.answers } : {}),
     // An expired question is closed for the app; it shows as answered without an answer.
     status: q.status === "open" ? "open" : "answered",
     answer: q.answer,
@@ -97,24 +111,42 @@ export function createAskUserToolSource(deps: ResourcefulDeps = {}): ToolSource 
   const tool: ToolDefinition = {
     name: ASK_USER_TOOL,
     description:
-      "Ask the person one short question and wait for the answer, only when you can't go on without it: the request is still ambiguous after you looked with your tools, or a decision is really theirs. Never to approve an action whose own card asks: call it. Never a status note or an offer of optional extra work: those go in your reply, nobody waits on them. A way to do what was asked is never optional: do it, handing the person their step with its own request. Don't ask before what you can just do and undo: issues, memories, routines, a form you fill and save before submitting. Not for choosing between fixes: recommend one. `question` is the question alone, at most 300 characters: anything longer goes in your text before the call, posted above the card. The card shows the question, its choices and your `why`: never write any of them in your text too; after calling, write nothing else and end your turn. Offer 2 to 4 short choices when the answer is one of a few options.",
+      "Ask the person one short question and wait for the answer, only when you can't go on without it: the request is still ambiguous after you looked with your tools, or a decision is really theirs. Never to approve an action whose own card asks: call it. Never a status note or an offer of optional extra work: those go in your reply, nobody waits on them. A way to do what was asked is never optional: do it, handing the person their step with its own request. Don't ask before what you can just do and undo: issues, memories, routines, a form you fill and save before submitting. Not for choosing between fixes: recommend one. `question` is the question alone, at most 300 characters: anything longer goes in your text before the call, posted above the card. The card shows the question, its choices and your `why`: never write any of them in your text too; after calling, write nothing else and end your turn. Offer 2 to 4 short choices when the answer is one of a few options, with `multiSelect` when more than one may apply. Several answers you need before going on go on one card (`questions`, up to 6, each with its own choices and `multiSelect`), answered all at once: the answers come back in order, one per question.",
     scope: "",
     inputSchema: {
       type: "object",
       properties: {
         // No maxLength: a longer question gets `questionTooLong`, which says what to do instead.
         question: { type: "string", minLength: 1 },
-        choices: { type: "array", items: { type: "string", minLength: 1, maxLength: 200 }, minItems: 2, maxItems: 4 },
+        choices: CHOICES_SCHEMA,
+        multiSelect: MULTI_SELECT_SCHEMA,
+        questions: {
+          type: "array",
+          minItems: 1,
+          maxItems: QUESTION_MAX_ITEMS,
+          description: "Instead of `question`: several questions on one card, each answered before you go on.",
+          items: {
+            type: "object",
+            properties: {
+              question: { type: "string", minLength: 1 },
+              choices: CHOICES_SCHEMA,
+              multiSelect: MULTI_SELECT_SCHEMA,
+            },
+            required: ["question"],
+            additionalProperties: false,
+          },
+        },
         person: {
           type: "string",
           maxLength: 200,
           description: "Name or @handle of the one person it is for. Leave it out when anyone here can answer.",
         },
       },
-      required: ["question"],
       additionalProperties: false,
     },
     async execute(input, ctx) {
+      const asked = askedItems(input);
+      if (typeof asked === "string") return { content: asked, isError: true };
       const [channel] = await ctx.db
         .select({ kind: schema.channels.kind, dmKey: schema.channels.dmKey })
         .from(schema.channels)
@@ -144,22 +176,56 @@ export function createAskUserToolSource(deps: ResourcefulDeps = {}): ToolSource 
       ) {
         return { content: `${named} isn't in this conversation, so they wouldn't see the question.`, isError: true };
       }
-      const text = typeof input.question === "string" ? input.question.trim() : "";
-      if (text.length > QUESTION_MAX_CHARS) return { content: questionTooLong(text.length), isError: true };
-      const choices = Array.isArray(input.choices)
-        ? [...new Set((input.choices as unknown[]).map((c) => String(c).trim()).filter(Boolean))]
-        : [];
-      if (!hasQuestionMark(text) && choices.length < 2) return { content: NOT_A_QUESTION, isError: true };
+      const text = asked.map((item) => item.question).join("\n");
       // Loaded here: the check pulls in the controller, which imports most of the engine.
       const held = await (await import("./hand-off")).holdAsk(deps, ctx, text);
       if (held) return { content: held, data: { held: true } };
+      const [only] = asked;
       return {
         content: "",
-        waitForAnswer: { text, choices: choices.length >= 2 ? choices.slice(0, 4) : null, requestedForUserId },
+        waitForAnswer: {
+          text,
+          choices: asked.length === 1 ? (only?.choices ?? null) : null,
+          requestedForUserId,
+          // One question with one pick is the card it always was: nothing new is stored for it, nor said of it.
+          ...(asked.length === 1 && !only?.multiSelect ? {} : { items: asked }),
+        },
       };
     },
   };
   return { name: "questions", tools: async () => [tool] };
+}
+
+const CHOICES_SCHEMA = {
+  type: "array",
+  items: { type: "string", minLength: 1, maxLength: QUESTION_CHOICE_MAX_CHARS },
+  minItems: 2,
+  maxItems: QUESTION_MAX_CHOICES,
+};
+const MULTI_SELECT_SCHEMA = { type: "boolean", description: "The person may pick more than one of the choices." };
+
+/**
+ * The questions an `ask_user` call asks, each held to a single question's rules, or what the run reads instead: one
+ * `question` (with its `choices` and `multiSelect`) or a `questions` list, never both.
+ */
+function askedItems(input: Record<string, unknown>): QuestionItem[] | string {
+  const many = Array.isArray(input.questions) ? (input.questions as Record<string, unknown>[]) : null;
+  const one = typeof input.question === "string" ? input : null;
+  if (Boolean(many) === Boolean(one)) return QUESTION_OR_QUESTIONS;
+  const items: QuestionItem[] = [];
+  for (const entry of (many ?? [input]).slice(0, QUESTION_MAX_ITEMS)) {
+    const question = typeof entry.question === "string" ? entry.question.trim() : "";
+    if (question.length > QUESTION_MAX_CHARS) return questionTooLong(question.length);
+    const choices = Array.isArray(entry.choices)
+      ? [...new Set((entry.choices as unknown[]).map((c) => String(c).trim()).filter(Boolean))]
+      : [];
+    if (!hasQuestionMark(question) && choices.length < 2) return NOT_A_QUESTION;
+    const offered = choices.length >= 2 ? choices.slice(0, QUESTION_MAX_CHOICES) : null;
+    // The same question twice asks it once: the apps tell a card's questions apart by their words.
+    if (items.some((item) => item.question === question)) continue;
+    items.push({ question, choices: offered, ...(offered && entry.multiSelect === true ? { multiSelect: true } : {}) });
+  }
+  return items.length > 0 ? items : QUESTION_OR_QUESTIONS;
 }
 
 /** The people of a conversation a question's text names: by @handle, full name or first name, as whole words. */
@@ -219,6 +285,15 @@ export async function impliedAddressee(
 
 /** What the model hears back once the question is closed. */
 export function questionResult(q: AgentQuestionRow | undefined): { content: string; isError?: boolean } {
+  if (q?.status === "answered" && q.items && q.answers) {
+    const each = q.items.map((item, i) => {
+      const said = q.answers?.[i];
+      return { question: item.question, picked: said?.choices ?? [], ...(said?.text ? { wrote: said.text } : {}) };
+    });
+    return {
+      content: `The person answered the card, one entry per question in the order you asked (picked: the choices they picked; wrote: what they wrote): ${JSON.stringify(each)}`,
+    };
+  }
   if (q?.status === "answered" && q.answer !== null) return { content: `The person answered: ${q.answer}` };
   if (q?.status === "canceled") return { content: "You withdrew this question: nobody will answer it." };
   if (q?.status === "dismissed")
@@ -280,7 +355,7 @@ export async function answerQuestion(
   actorId: string,
   orgId: string,
   questionId: string,
-  input: { choice?: string; text?: string },
+  input: AnswerInput,
 ): Promise<AgentQuestion> {
   const { db } = deps;
   const [current] = await db
@@ -290,19 +365,70 @@ export async function answerQuestion(
   if (!current) throw new NotFoundError("Question not found");
   await requireChannelAccess(db, actorId, orgId, current.channelId);
   requireAddressee(current, actorId);
-  const choice = input.choice?.trim() || null;
-  const text = input.text?.trim() || null;
+  const items = current.items && current.items.length > 0 ? current.items : null;
+  if (input.answers && items) {
+    const answers = checkedAnswers(items, input.answers);
+    return closeByPerson(deps, current, {
+      status: "answered",
+      answer: answerSummary(items, answers),
+      answers,
+      answeredByUserId: actorId,
+    });
+  }
+  // A card of one question with one pick keeps the old answer: a choice, words, or both.
+  const [said] = input.answers
+    ? checkedAnswers([{ question: current.text, choices: current.choices }], input.answers)
+    : [];
+  const choice = said ? (said.choices[0] ?? null) : input.choice?.trim() || null;
+  const text = said ? said.text : input.text?.trim() || null;
   if (!choice && !text) throw new ValidationError("Send a choice or a text answer");
   if (choice && !(current.choices ?? []).includes(choice)) throw new ValidationError("That is not one of the choices");
   const answer = choice && text ? `${choice} (${text})` : (choice ?? text ?? "");
-  return closeByPerson(deps, current, { status: "answered", answer, answeredByUserId: actorId });
+  // One question where several may be picked, answered by an app that picks one: still the card's answer.
+  const answers = items?.length === 1 && choice ? [{ choices: [choice], text }] : undefined;
+  return closeByPerson(deps, current, { status: "answered", answer, answers, answeredByUserId: actorId });
+}
+
+/** A person's answer: one question's `choice` and/or `text`, or `answers`, one per question of the card, in order. */
+export interface AnswerInput {
+  choice?: string;
+  text?: string;
+  answers?: { choices?: string[]; text?: string }[];
+}
+
+/** Each question's answer, checked against the card: every one answered, picks among its choices, one unless `multiSelect`. */
+function checkedAnswers(
+  items: readonly QuestionItem[],
+  input: NonNullable<AnswerInput["answers"]>,
+): QuestionItemAnswer[] {
+  if (input.length !== items.length) throw new ValidationError("Answer every question on the card, in order");
+  return items.map((item, i) => {
+    const said = input[i];
+    const choices = [...new Set((said?.choices ?? []).map((c) => c.trim()).filter(Boolean))];
+    const text = said?.text?.trim() || null;
+    if (choices.length === 0 && !text) throw new ValidationError(`Answer question ${i + 1}`);
+    if (choices.some((c) => !(item.choices ?? []).includes(c)))
+      throw new ValidationError(`That is not one of question ${i + 1}'s choices`);
+    if (choices.length > 1 && !item.multiSelect) throw new ValidationError(`Question ${i + 1} takes one choice`);
+    return { choices, text };
+  });
+}
+
+/** The answer in words (previews, notifications, the card in an older app): one line per question. */
+function answerSummary(items: readonly QuestionItem[], answers: readonly QuestionItemAnswer[]) {
+  const said = (a: QuestionItemAnswer | undefined) => {
+    const picked = a?.choices.join(", ") ?? "";
+    return picked && a?.text ? `${picked} (${a.text})` : picked || a?.text || "";
+  };
+  if (items.length === 1) return said(answers[0]);
+  return items.map((item, i) => `${item.question} ${said(answers[i])}`).join("\n");
 }
 
 /** A person closes an open question (answer or skip): the card changes, the run resumes, the inbox clears. */
 async function closeByPerson(
   deps: { db: Database; pubsub?: PubSub },
   current: AgentQuestionRow,
-  set: { status: "answered" | "dismissed"; answer?: string; answeredByUserId: string },
+  set: { status: "answered" | "dismissed"; answer?: string; answers?: QuestionItemAnswer[]; answeredByUserId: string },
 ): Promise<AgentQuestion> {
   const closed = await deps.db.transaction(async (tx) => {
     const [row] = await tx

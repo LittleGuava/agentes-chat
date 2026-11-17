@@ -4,6 +4,7 @@ import { humanCheckHeaders } from "../lib/human-check";
 import type { OnboardingStepId } from "../lib/onboarding";
 import { type LodiPrefs, lodiPrefsOf } from "../lib/right-hand-prefs";
 import { CLOUD_SERVER } from "../lib/server";
+import { exportQuery } from "../lib/workspace-export";
 import { consultSeeds } from "../realtime/consults";
 import { steerStore } from "../realtime/steer";
 import type {
@@ -14,16 +15,19 @@ import type {
   VaultKeysImportResult,
   VaultOverview,
 } from "../vault/types";
+import type { OutgoingWebhook, OutgoingWebhookDelivery } from "../webhooks/types";
 import type { HttpApi, OpenedWorkspace } from "./client";
 import { ApiError, createFileRequester, createRequester, enc, type TransportOptions } from "./http";
 import type {
   AccountDeletionPlan,
   AccountLoginStart,
   AccountLoginStatus,
+  AccountSession,
   ActiveRun,
   Agent,
   AgentAccess,
   AgentAction,
+  AgentApiKeys,
   AgentBrain,
   AgentBrowserSettings,
   AgentChannel,
@@ -33,6 +37,7 @@ import type {
   AgentForYou,
   AgentGroup,
   AgentHolds,
+  AgentKeyRoom,
   AgentLineChange,
   AgentMailbox,
   AgentPlanUsage,
@@ -46,6 +51,7 @@ import type {
   AgentUsage,
   AiAccounts,
   AiStatus,
+  Announcement,
   AppConsent,
   AppNotification,
   Approval,
@@ -61,12 +67,15 @@ import type {
   ArtifactVersion,
   AskToJoinResult,
   AuditPage,
+  AuditQuery,
   AuthConfig,
   BatchInviteResult,
   BlockState,
   BrainMachine,
   BrowserHandoff,
   BrowserProfile,
+  BrowserSite,
+  BrowserSiteSignOut,
   CalendarEvent,
   CalendarRange,
   Channel,
@@ -89,7 +98,9 @@ import type {
   ConnectOutcome,
   ConnectorCatalog,
   ConsultationConversation,
+  ConversationModel,
   CostlyDecision,
+  CreatedAgentApiKey,
   CreatedPersonalToken,
   Credential,
   CustomConnectStart,
@@ -104,6 +115,8 @@ import type {
   DevicesList,
   DirectMessage,
   DmRead,
+  DomainWorkspace,
+  DuplicatedAgent,
   EmailChange,
   EndpointCheck,
   EndpointModel,
@@ -119,11 +132,13 @@ import type {
   GitHubOrgAccess,
   GitHubRepositories,
   Health,
+  HealthIssue,
   HostComputer,
   IdRef,
   ImportedFile,
   ImportedSource,
   ImportPlan,
+  ImportUndoItem,
   Instance,
   Invitation,
   InvitationPreview,
@@ -143,8 +158,10 @@ import type {
   JevKey,
   JoinApproval,
   JoinClaim,
+  JoinDomain,
   JoinRequest,
   LearnedSkill,
+  LocalSetup,
   Machine,
   MachineAccess,
   MachineAccount,
@@ -160,6 +177,7 @@ import type {
   Message,
   MessageCard,
   MessagePin,
+  MigrationBundle,
   Mission,
   MissionBrain,
   MissionCommand,
@@ -188,6 +206,7 @@ import type {
   OrgPlanUsage,
   OrgRoles,
   OrgSettings,
+  OwnOrder,
   PageTarget,
   PendingReturn,
   PeopleUsage,
@@ -195,10 +214,14 @@ import type {
   PersonLimits,
   PersonUsage,
   PhoneDevice,
+  PhoneJob,
   PhoneSignIn,
+  PhoneTools,
   PlanServes,
   Poll,
+  ProgramComputer,
   Proposal,
+  PublishedPage,
   ReactionCount,
   Reminder,
   RemovalPreview,
@@ -219,8 +242,11 @@ import type {
   SearchHit,
   SecretRequest,
   ServerTelemetry,
+  ServerUpdate,
+  ServerUpdaterStatus,
   SidebarItem,
   SidebarItems,
+  SidebarLink,
   SidebarSection,
   SidebarView,
   SignInOptions,
@@ -297,6 +323,16 @@ const threadQuery = (f: Partial<ThreadFilters>) => ({
 
 const csv = (list: readonly string[] | undefined) => (list?.length ? list.join(",") : undefined);
 
+/** The audit's filters as `GET …/audit` and its CSV read them. */
+const auditQuery = (q: AuditQuery) => ({
+  actorType: q.actorType,
+  actorId: q.actorId,
+  via: q.via,
+  outcome: csv(q.outcome),
+  waiting: q.waiting ? "true" : undefined,
+  kind: q.kind,
+});
+
 /** The Drive's filters as `GET …/artifacts` reads them. */
 const artifactQuery = (f: ArtifactFilters) => ({
   q: f.q,
@@ -351,6 +387,18 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
     agentForYou: {
       get: (orgId, agentId, limit) =>
         request<AgentForYou>(`${org(orgId)}/agents/${enc(agentId)}/for-you`, { query: { limit } }),
+    },
+    viewers: {
+      list: async (orgId, channelId) =>
+        (await request<{ viewers: string[] }>(`${org(orgId)}/channels/${enc(channelId)}/viewers`)).viewers,
+    },
+    transcripts: {
+      url: (orgId, channelId, options) => {
+        const params = new URLSearchParams({ format: options.format });
+        if (options.threadId) params.set("threadId", options.threadId);
+        if (options.files) params.set("files", "true");
+        return `${base}${org(orgId)}/channels/${enc(channelId)}/export?${params.toString()}`;
+      },
     },
     pins: {
       list: async (orgId, channelId) =>
@@ -513,6 +561,15 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         request<void>(`${org(orgId)}/agents/${enc(agentId)}/browser-profile`, { method: "PUT", json: { profileId } }),
       request: (orgId, agentId) =>
         request<void>(`${org(orgId)}/agents/${enc(agentId)}/browser-profile/request`, { json: {} }),
+      sites: async (orgId, profileId) =>
+        (await request<{ sites: BrowserSite[] }>(`${org(orgId)}/browser-profiles/${enc(profileId)}/sites`)).sites,
+      signOutSite: (orgId, profileId, site) =>
+        request<BrowserSiteSignOut>(`${org(orgId)}/browser-profiles/${enc(profileId)}/sites/sign-out`, {
+          json: { site },
+        }),
+      runPersonal: async (orgId, runId) =>
+        (await request<{ profile: BrowserProfile | null }>(`${org(orgId)}/runs/${enc(runId)}/personal-browser`))
+          .profile,
     },
     desktop: {
       status: (orgId, agentId, seat) =>
@@ -524,6 +581,25 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       holds: (orgId, agentId) => request<AgentHolds>(`${org(orgId)}/agents/${enc(agentId)}/holds`),
       stopHold: (orgId, agentId, holdId) =>
         request<void>(`${org(orgId)}/agents/${enc(agentId)}/holds/${enc(holdId)}`, { method: "DELETE" }),
+    },
+    outgoingWebhooks: {
+      list: async (orgId) =>
+        (await request<{ webhooks: OutgoingWebhook[] }>(`${org(orgId)}/outgoing-webhooks`)).webhooks,
+      create: (orgId, input) =>
+        request<{ webhook: OutgoingWebhook; secret: string }>(`${org(orgId)}/outgoing-webhooks`, { json: input }),
+      update: (orgId, id, patch) =>
+        request<OutgoingWebhook>(`${org(orgId)}/outgoing-webhooks/${enc(id)}`, { method: "PATCH", json: patch }),
+      remove: (orgId, id) => request<void>(`${org(orgId)}/outgoing-webhooks/${enc(id)}`, { method: "DELETE" }),
+      rotateSecret: (orgId, id) =>
+        request<{ secret: string }>(`${org(orgId)}/outgoing-webhooks/${enc(id)}/secret`, { json: {} }),
+      test: (orgId, id) =>
+        request<{ deliveryId: string }>(`${org(orgId)}/outgoing-webhooks/${enc(id)}/test`, { json: {} }),
+      deliveries: async (orgId, id) =>
+        (
+          await request<{ deliveries: OutgoingWebhookDelivery[] }>(
+            `${org(orgId)}/outgoing-webhooks/${enc(id)}/deliveries`,
+          )
+        ).deliveries,
     },
     vault: {
       overview: (orgId) => request<VaultOverview>(`${org(orgId)}/vault`),
@@ -578,6 +654,9 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       instance: () => request<Instance>("/api/instance"),
       telemetry: () => nullOn(404, () => request<ServerTelemetry>("/api/app/telemetry")),
       setTelemetry: (enabled) => request<ServerTelemetry>("/api/app/telemetry", { method: "PUT", json: { enabled } }),
+      serverUpdate: () => nullOn(404, () => request<ServerUpdate>("/api/app/server-update")),
+      serverUpdater: () => nullOn(404, () => request<ServerUpdaterStatus>("/api/app/server-updater")),
+      updateServer: () => request<ServerUpdaterStatus>("/api/app/server-updater", { method: "POST", json: {} }),
       sendFeedback: (input) => request<void>("/api/app/feedback", { json: input }),
       uploadFeedbackFile: (file) => {
         const form = new FormData();
@@ -621,6 +700,13 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
           method: "POST",
           json: userId ? { userId } : {},
         }),
+      sessions: async () =>
+        (await nullOn(404, () => request<{ sessions: AccountSession[] }>("/api/app/account/sessions")))?.sessions ??
+        null,
+      signOutSession: (sessionId) =>
+        request<void>(`/api/app/account/sessions/${encodeURIComponent(sessionId)}`, { method: "DELETE" }),
+      signOutOtherSessions: () =>
+        request<{ signedOut: number }>("/api/app/account/sessions/sign-out-others", { json: {} }),
       updateMe: (input) => request<void>("/api/app/me", { method: "PATCH", json: input }),
       setWorkArea: (area) => request<void>("/api/app/me/work-area", { method: "PUT", json: { area } }),
       phoneSignIn: () => request<PhoneSignIn>("/api/app/phone-sign-in", { json: {} }),
@@ -696,6 +782,18 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       sidebarView: async (orgId) => (await request<{ view: SidebarView }>(`${org(orgId)}/me/sidebar/view`)).view,
       setSidebarView: async (orgId, view) =>
         (await request<{ view: SidebarView }>(`${org(orgId)}/me/sidebar/view`, { method: "PUT", json: { view } })).view,
+      sidebarLinks: async (orgId) => (await request<{ links: SidebarLink[] }>(`${org(orgId)}/me/sidebar/links`)).links,
+      addSidebarLink: async (orgId, link) =>
+        (await request<{ links: SidebarLink[] }>(`${org(orgId)}/me/sidebar/links`, { json: link })).links,
+      removeSidebarLink: async (orgId, linkId) =>
+        (
+          await request<{ links: SidebarLink[] }>(`${org(orgId)}/me/sidebar/links/${enc(linkId)}`, {
+            method: "DELETE",
+          })
+        ).links,
+      ownOrder: async (orgId) => (await request<{ own: OwnOrder }>(`${org(orgId)}/me/sidebar/own-order`)).own,
+      setOwnOrder: async (orgId, own) =>
+        (await request<{ own: OwnOrder }>(`${org(orgId)}/me/sidebar/own-order`, { method: "PUT", json: { own } })).own,
       sidebarToolOrder: async (orgId) =>
         (await request<{ order: SidebarItem[] }>(`${org(orgId)}/me/sidebar/tools`)).order,
       setSidebarToolOrder: async (orgId, order) =>
@@ -771,6 +869,8 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         request<void>(`${org(orgId)}/usage/people/${enc(userId)}/raise`, { json: { limitUsd } }),
       refuseMoreUsage: (orgId, userId) =>
         request<void>(`${org(orgId)}/usage/people/${enc(userId)}/refuse`, { json: {} }),
+      announcements: (orgId) => request<{ announcements: Announcement[] }>(`${org(orgId)}/announcements`),
+      dismissAnnouncement: (orgId, id) => request<void>(`${org(orgId)}/announcements/${enc(id)}/dismiss`, { json: {} }),
       teamWeek: (orgId) => request<LodiPrefs>(`${org(orgId)}/team-week`).then(lodiPrefsOf),
       setTeamWeek: (orgId, patch) =>
         request<LodiPrefs>(`${org(orgId)}/team-week`, { method: "PUT", json: patch }).then(lodiPrefsOf),
@@ -778,17 +878,15 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         request<void>(`${org(orgId)}/team-week/${enc(messageId)}`, { json: act }),
       audit: (orgId, query = {}) =>
         request<AuditPage>(`${org(orgId)}/audit`, {
-          query: {
-            actorType: query.actorType,
-            actorId: query.actorId,
-            via: query.via,
-            outcome: query.outcome?.length ? query.outcome.join(",") : undefined,
-            waiting: query.waiting ? "true" : undefined,
-            kind: query.kind,
-            before: query.before,
-            limit: query.limit,
-          },
+          query: { ...auditQuery(query), before: query.before, limit: query.limit },
         }),
+      auditCsvUrl: (orgId, query = {}) => {
+        const qs = new URLSearchParams(
+          Object.entries(auditQuery(query)).filter((e): e is [string, string] => e[1] !== undefined),
+        );
+        return `${base}${org(orgId)}/audit.csv${qs.size ? `?${qs}` : ""}`;
+      },
+      healthIssues: (orgId) => request<{ issues: HealthIssue[] }>(`${org(orgId)}/health-issues`),
     },
     roles: {
       list: (orgId) => request<OrgRoles>(`${org(orgId)}/roles`),
@@ -896,6 +994,8 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         ).mailboxes,
       archive: (orgId, agentId) => request<void>(`${org(orgId)}/agents/${enc(agentId)}`, { method: "DELETE" }),
       unarchive: (orgId, agentId) => request<void>(`${org(orgId)}/agents/${enc(agentId)}/unarchive`, { json: {} }),
+      duplicate: (orgId, agentId, name) =>
+        request<DuplicatedAgent>(`${org(orgId)}/agents/${enc(agentId)}/duplicate`, { json: name ? { name } : {} }),
       purge: (orgId, agentId) =>
         request<void>(`${org(orgId)}/agents/${enc(agentId)}`, { method: "DELETE", query: { purge: "true" } }),
       former: async (orgId) => (await request<{ agents: FormerAgent[] }>(`${org(orgId)}/former-agents`)).agents,
@@ -954,6 +1054,15 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         request<AgentBrain>(`${org(orgId)}/agents/${enc(agentId)}/brain${scope ? `?scope=${scope}` : ""}`),
       setBrain: (orgId, agentId, input) =>
         request<AgentBrain>(`${org(orgId)}/agents/${enc(agentId)}/brain`, { method: "PUT", json: input }),
+      conversationModel: (orgId, agentId, { channelId, threadId }) =>
+        request<ConversationModel>(
+          `${org(orgId)}/agents/${enc(agentId)}/conversation-model?channelId=${enc(channelId)}${threadId ? `&threadId=${enc(threadId)}` : ""}`,
+        ),
+      setConversationModel: (orgId, agentId, input) =>
+        request<ConversationModel>(`${org(orgId)}/agents/${enc(agentId)}/conversation-model`, {
+          method: "PUT",
+          json: input,
+        }),
       brainMachines: async (orgId) =>
         (await request<{ machines: BrainMachine[] }>(`${org(orgId)}/brain-machines`)).machines,
       // ponytail: past 200 agents each call is its own transaction, so a preview's later calls don't see a one-agent
@@ -1015,6 +1124,7 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
     imports: {
       apply: (orgId, input) => request<ImportPlan>(`${org(orgId)}/imports`, { json: input }),
       sources: async (orgId) => (await request<{ sources: ImportedSource[] }>(`${org(orgId)}/imports`)).sources,
+      undo: (orgId, input) => request<{ items: ImportUndoItem[] }>(`${org(orgId)}/imports/undo`, { json: input }),
       copyFile: (orgId, input) => {
         const form = new FormData();
         form.append("file", input.file, input.name);
@@ -1023,7 +1133,16 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         if (input.note) form.append("note", input.note);
         return files.upload<ImportedFile>(`${org(orgId)}/imports/files`, form);
       },
-      exportUrl: (orgId) => `${base}${org(orgId)}/export`,
+      exportUrl: (orgId, scope) => `${base}${org(orgId)}/export${exportQuery(scope)}`,
+      exportBundle: (orgId, scope) => request<MigrationBundle>(`${org(orgId)}/export${exportQuery(scope)}`),
+    },
+    readAloud: {
+      available: (orgId) => request<{ available: boolean }>(`${org(orgId)}/read-aloud`),
+      make: (orgId, messageId) =>
+        request<{ clipId: string }>(`${org(orgId)}/messages/${enc(messageId)}/read-aloud`, {
+          method: "POST",
+          json: {},
+        }),
     },
     voice: {
       allowed: (orgId) => request<{ allowed: boolean }>(`${org(orgId)}/voice/allowed`),
@@ -1041,6 +1160,14 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         if (input.attachments?.length) form.set("attachments", JSON.stringify(input.attachments));
         return files.upload<{ clipId: string }>(`${org(orgId)}/channels/${enc(channelId)}/voice`, form);
       },
+      dictate: (orgId, channelId, input) => {
+        const form = new FormData();
+        form.set("file", input.blob, input.blob.type.startsWith("audio/webm") ? "voice.webm" : "voice.m4a");
+        form.set("durationMs", String(Math.round(input.durationMs)));
+        if (input.language) form.set("language", input.language);
+        return files.upload<{ text: string }>(`${org(orgId)}/channels/${enc(channelId)}/voice/dictation`, form);
+      },
+      speech: (orgId, messageId) => files.blob(`${org(orgId)}/messages/${enc(messageId)}/speech`, "POST"),
     },
     chat: {
       channels: async (orgId) => (await request<{ channels: Channel[] }>(`${org(orgId)}/channels`)).channels,
@@ -1091,6 +1218,11 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         request<{ runs: { agentId: string; runId: string }[] }>(`${org(orgId)}/messages/${enc(messageId)}/answer-now`, {
           json: {},
         }),
+      editMessage: (orgId, messageId, input) =>
+        request<{ message: Message; runs: { agentId: string; runId: string }[] }>(
+          `${org(orgId)}/messages/${enc(messageId)}`,
+          { method: "PATCH", json: input },
+        ),
       followUps: async (orgId, channelId) =>
         (
           (await nullOn(404, () =>
@@ -1101,6 +1233,7 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         request<void>(`${org(orgId)}/messages/${enc(messageId)}/cancel-follow-up`, { json: {} }),
       answerGitHub: (orgId, messageId) =>
         request<void>(`${org(orgId)}/messages/${enc(messageId)}/github-answer`, { json: {} }),
+      leaveMeeting: (orgId, meetingId) => request<void>(`${org(orgId)}/meetings/${enc(meetingId)}/leave`, { json: {} }),
       archive: (orgId, channelId) => request<void>(`${org(orgId)}/channels/${enc(channelId)}`, { method: "DELETE" }),
       unarchive: (orgId, channelId) =>
         request<void>(`${org(orgId)}/channels/${enc(channelId)}/unarchive`, { json: {} }),
@@ -1188,16 +1321,29 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         ).authorizeUrl,
       composioUsage: (orgId) => request<ComposioUsage>(`${org(orgId)}/usage/composio`),
       completeOAuth: (orgId, input) =>
-        request<{ connectionId: string; connector: string; outcome?: ConnectOutcome; returnTo?: string }>(
-          `${org(orgId)}/connectors/oauth/complete`,
-          {
-            json: input,
-          },
-        ),
+        request<{
+          connectionId: string;
+          connector: string;
+          outcome?: ConnectOutcome;
+          returnTo?: string;
+          personal?: boolean;
+        }>(`${org(orgId)}/connectors/oauth/complete`, {
+          json: input,
+        }),
       rename: (orgId, connectionId, label) =>
         request<Connection>(`${org(orgId)}/connectors/${enc(connectionId)}`, { method: "PATCH", json: { label } }),
       disconnect: (orgId, connectionId) =>
         request<void>(`${org(orgId)}/connectors/${enc(connectionId)}`, { method: "DELETE" }),
+      setPerPerson: (orgId, connectionId, perPerson) =>
+        request<{ perPerson: boolean }>(`${org(orgId)}/connectors/${enc(connectionId)}/per-person`, {
+          method: "PUT",
+          json: { perPerson },
+        }),
+      connectMine: async (orgId, connectionId, input) =>
+        (await request<{ authorizeUrl: string }>(`${org(orgId)}/connectors/${enc(connectionId)}/mine`, { json: input }))
+          .authorizeUrl,
+      disconnectMine: (orgId, connectionId) =>
+        request<void>(`${org(orgId)}/connectors/${enc(connectionId)}/mine`, { method: "DELETE" }),
     },
     githubApp: {
       info: (orgId) => request<GitHubAppInfo>(`${org(orgId)}/github-app`),
@@ -1231,8 +1377,8 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
             query: { about: filter?.about },
           })
         ).memories,
-      edit: (orgId, id, text) =>
-        request<Memory>(`${org(orgId)}/memories/${enc(id)}`, { method: "PATCH", json: { text } }),
+      edit: (orgId, id, text, validUntil) =>
+        request<Memory>(`${org(orgId)}/memories/${enc(id)}`, { method: "PATCH", json: { text, validUntil } }),
       setPinned: (orgId, id, pinned) =>
         request<Memory>(`${org(orgId)}/memories/${enc(id)}`, { method: "PATCH", json: { pinned } }),
       setArchived: (orgId, id, archived) =>
@@ -1248,8 +1394,13 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       open: (orgId, target) =>
         request<{ channelId: string; dm?: DirectMessage }>(`${org(orgId)}/dms`, { json: target }),
       markRead: (orgId, channelId) => request<void>(`${org(orgId)}/channels/${enc(channelId)}/read`, { json: {} }),
+      markUnread: (orgId, channelId) => request<void>(`${org(orgId)}/channels/${enc(channelId)}/unread`, { json: {} }),
       reads: async (orgId, channelId) =>
         (await request<{ reads: DmRead[] }>(`${org(orgId)}/channels/${enc(channelId)}/reads`)).reads,
+      share: (orgId, channelId, input) =>
+        request<{ channelId: string; message: Message }>(`${org(orgId)}/dms/${enc(channelId)}/share`, {
+          json: { ...input, confirm: true },
+        }),
     },
     sandbox: {
       settings: (orgId) => request<SandboxSettings>(`${org(orgId)}/sandbox-settings`),
@@ -1261,6 +1412,12 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
           method: "PUT",
           json: { machineId },
         }),
+    },
+    phone: {
+      tools: (orgId) => request<PhoneTools>(`${org(orgId)}/phone/tools`),
+      setTools: (orgId, input) => request<PhoneTools>(`${org(orgId)}/phone/tools`, { method: "PUT", json: input }),
+      jobs: (orgId) => request<{ jobs: PhoneJob[] }>(`${org(orgId)}/phone/jobs`),
+      answer: (orgId, jobId, answer) => request<void>(`${org(orgId)}/phone/jobs/${enc(jobId)}`, { json: answer }),
     },
     devices: {
       list: (orgId) => request<DevicesList>(`${org(orgId)}/devices`),
@@ -1351,6 +1508,8 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
           ...(action === "cancel" ? { method: "DELETE" } : {}),
         });
       },
+      localConfig: (orgId, machineId) =>
+        request<LocalSetup>(`${org(orgId)}/machines/${enc(machineId)}/local-config`, { json: {} }),
       askCliInstall: async (orgId, machineId, tool) => {
         await request<unknown>(`${org(orgId)}/machines/${enc(machineId)}/cli-install/ask`, { json: { tool } });
       },
@@ -1415,6 +1574,14 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       disconnect: (orgId, grantId) => request<void>(`${org(orgId)}/apps/${enc(grantId)}`, { method: "DELETE" }),
       createToken: (orgId, input) => request<CreatedPersonalToken>(`${org(orgId)}/tokens`, { json: input }),
       revokeToken: (orgId, grantId) => request<void>(`${org(orgId)}/tokens/${enc(grantId)}`, { method: "DELETE" }),
+    },
+    agentApiKeys: {
+      list: (orgId, agentId) => request<AgentApiKeys>(`${org(orgId)}/agents/${enc(agentId)}/api-keys`),
+      create: (orgId, agentId, input) =>
+        request<CreatedAgentApiKey>(`${org(orgId)}/agents/${enc(agentId)}/api-keys`, { json: input }),
+      revoke: (orgId, agentId, keyId) =>
+        request<void>(`${org(orgId)}/agents/${enc(agentId)}/api-keys/${enc(keyId)}`, { method: "DELETE" }),
+      room: (orgId, channelId) => request<AgentKeyRoom>(`${org(orgId)}/agent-key-rooms/${enc(channelId)}`),
     },
     skills: {
       list: async (orgId) => (await request<{ skills: Skill[] }>(`${org(orgId)}/skills`)).skills,
@@ -1485,6 +1652,14 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       requestNew: (token) => request<void>(`/api/app/invitations/${enc(token)}/request-new`, { json: {} }),
       claim: (token, key) =>
         nullOn(404, () => request<JoinClaim>(`/api/app/invitations/${enc(token)}/requests/claim`, { json: { key } })),
+    },
+    joinDomains: {
+      list: async (orgId) => (await request<{ domains: JoinDomain[] }>(`${org(orgId)}/join-domains`)).domains,
+      add: (orgId, input) => request<JoinDomain>(`${org(orgId)}/join-domains`, { json: input }),
+      remove: (orgId, domainId) => request<void>(`${org(orgId)}/join-domains/${enc(domainId)}`, { method: "DELETE" }),
+      workspaces: async () =>
+        (await request<{ workspaces: DomainWorkspace[] }>("/api/app/domain-workspaces")).workspaces,
+      join: (orgId) => request<{ orgId: string }>(`/api/app/domain-workspaces/${enc(orgId)}/join`, { json: {} }),
     },
     joinRequests: {
       list: async (orgId) => (await request<{ requests: JoinRequest[] }>(`${org(orgId)}/join-requests`)).requests,
@@ -1566,6 +1741,13 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         request<ArtifactDetail>(`${org(orgId)}/artifacts/${enc(id)}/versions`, { json: input }),
       setSharing: (orgId, id, sharing) =>
         request<Artifact>(`${org(orgId)}/artifacts/${enc(id)}/sharing`, { method: "PUT", json: sharing }),
+      publishedPages: async (orgId, artifactId) =>
+        (
+          await request<{ pages: PublishedPage[] }>(
+            `${org(orgId)}/published-pages${artifactId ? `?artifactId=${enc(artifactId)}` : ""}`,
+          )
+        ).pages,
+      unpublish: (orgId, pageId) => request<void>(`${org(orgId)}/published-pages/${enc(pageId)}`, { method: "DELETE" }),
       remove: (orgId, id) => request<void>(`${org(orgId)}/artifacts/${enc(id)}`, { method: "DELETE" }),
       trash: async (orgId) => {
         // The server answers `{ files }`.
@@ -1876,6 +2058,8 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
       prefs: (orgId) => request<NoticePrefs>(`${org(orgId)}/notification-prefs`),
       setPref: (orgId, category, on) =>
         request<NoticePrefs>(`${org(orgId)}/notification-prefs`, { method: "PUT", json: { category, on } }),
+      setAwayEmail: (orgId, minutes) =>
+        request<NoticePrefs>(`${org(orgId)}/notification-prefs/away-email`, { method: "PUT", json: { minutes } }),
       askAdmins: (orgId, ask) => request<{ sent: number }>(`${org(orgId)}/admin-asks`, { json: ask }),
     },
     calendar: {
@@ -1910,6 +2094,10 @@ export function createHttpApi(options: TransportOptions = {}): HttpApi {
         }),
       disconnect: (orgId, serverId) =>
         request<void>(`${org(orgId)}/connectors/custom/${enc(serverId)}`, { method: "DELETE" }),
+      programComputers: async (orgId) =>
+        (await request<{ computers: ProgramComputer[] }>(`${org(orgId)}/connectors/program-computers`)).computers,
+      connectProgram: (orgId, input) =>
+        request<CustomServer>(`${org(orgId)}/connectors/custom/program`, { json: input }),
     },
     questions: {
       answer: (orgId, questionId, input) =>

@@ -1,8 +1,12 @@
 import {
+  APP_OAUTH_RETURN,
   useCatalog,
+  useCompleteOAuth,
   useConnections,
+  useConnectMine,
   useCustomServerAction,
   useCustomServers,
+  useDisconnectMine,
   useRenameConnection,
 } from "@agenteschat/client";
 import {
@@ -10,13 +14,16 @@ import {
   type ConnectedItem,
   connectedItems,
   itemName,
+  mineText,
+  outcomeText,
   reconnectAddsText,
 } from "@agenteschat/client/lib/connected";
-import { knownErrorText } from "@agenteschat/client/lib/errors";
+import { knownErrorText, oauthReturnText } from "@agenteschat/client/lib/errors";
 import { appAccountsText } from "@agenteschat/client/lib/github-app";
 import { can } from "@agenteschat/client/lib/permissions";
 import { connectorBrand } from "@agenteschat/client/lib/scopes";
 import { useHeaderHeight } from "expo-router/react-navigation";
+import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, StyleSheet, TextInput, View } from "react-native";
@@ -45,7 +52,17 @@ import { AgentLevelList, DisconnectRow } from "./Access";
 import { ConnectorIcon } from "./ConnectorIcon";
 import { AddressSheet, ConnectSheet } from "./ConnectSheet";
 import { GitHubAppGroup } from "./GitHubApp";
-import { accountActions, headerNamesText } from "./logic";
+import {
+  APP_RETURN_URL,
+  accountActions,
+  authAnswerOf,
+  doneFinishing,
+  headerNamesText,
+  markFinishing,
+  mineActions,
+  programVariablesLine,
+  stateOf,
+} from "./logic";
 import { Problem } from "./Problem";
 import { openTools } from "./ToolsScreen";
 
@@ -104,6 +121,7 @@ function Connection({ id }: { id: string }) {
   const waiting = admin && item ? item.pending : 0;
   const actions = item ? accountActions(item) : [];
   const sent = item?.server?.headerNames ?? [];
+  const variables = item ? programVariablesLine(t, item) : "";
   // "…": renaming, the one thing about the account that isn't a step of its own.
   const more =
     admin && item && actions.includes("rename") ? (
@@ -182,6 +200,8 @@ function Connection({ id }: { id: string }) {
                 {reconnectAddsText(t, item)}
               </Text>
             ) : null}
+            {/* Each person's own account (ADR 0195): everyone's, not only who manages connectors. */}
+            {item.perPerson ? <MineGroup item={item} /> : null}
             <AgentLevelList connectionId={id} />
             {/* Everyone sees the accounts the app is installed on; only admins get its actions. */}
             {item.def?.id === "github" && !item.viaComposio ? (
@@ -242,10 +262,16 @@ function Connection({ id }: { id: string }) {
                       />
                     ))}
                 </GroupedList>
-                {/* The request headers a server by address is also sent, by name: their values are never shown. */}
-                {sent.length > 0 ? (
-                  <GroupedFooter>{headerNamesText(t, "connectors.sendsToo", sent)}</GroupedFooter>
-                ) : null}
+                {/* A program's variables (ADR 0215), or the request headers a server by address is also sent, by
+                    name: their values are never shown. */}
+                {variables ? <GroupedFooter>{variables}</GroupedFooter> : null}
+                {item.computerId ? null : (
+                  <>
+                    {sent.length > 0 ? (
+                      <GroupedFooter>{headerNamesText(t, "connectors.sendsToo", sent)}</GroupedFooter>
+                    ) : null}
+                  </>
+                )}
                 {item.custom && accountUnchecked([item.server]) ? (
                   <GroupedFooter>{t("connectFlow.replaceUnchecked")}</GroupedFooter>
                 ) : null}
@@ -266,6 +292,87 @@ function Connection({ id }: { id: string }) {
       {/* What the clear bar becomes once the page scrolls under it, as on an agent's page and Você. */}
       <CoverBarBackdrop y={y} from={0} to={12} height={headerHeight} />
     </View>
+  );
+}
+
+/**
+ * A per-person connection's own account (ADR 0195), for whoever opens it: theirs and its state, "Conectar minha
+ * conta" through the browser as any sign-in (it finishes with the app's session), and "Desconectar minha conta",
+ * a plain row as the web's link: connecting again undoes it, so it asks for no confirmation and isn't drawn red.
+ */
+function MineGroup({ item }: { item: ConnectedItem }) {
+  const { t } = useTranslation();
+  const orgId = useOrgId();
+  const toast = useToast();
+  const connect = useConnectMine(orgId);
+  const complete = useCompleteOAuth(orgId);
+  const disconnect = useDisconnectMine(orgId);
+  const [signingIn, setSigningIn] = useState(false);
+  const name = itemName(t, item);
+  const actions = mineActions(item);
+  const fail = (text: string) => {
+    errorHaptic();
+    toast({ title: text, icon: "x" });
+  };
+  const signIn = async () => {
+    setSigningIn(true);
+    let state: string | null = null;
+    try {
+      const authorizeUrl = await connect.mutateAsync({ id: item.id, returnTo: APP_OAUTH_RETURN });
+      state = stateOf(authorizeUrl);
+      if (state) markFinishing(state);
+      const result = await WebBrowser.openAuthSessionAsync(authorizeUrl, APP_RETURN_URL);
+      if (result.type !== "success") return;
+      const answer = authAnswerOf(result.url);
+      if (!answer) return fail(t("mobile.connectors.failed"));
+      if (answer.kind === "error") {
+        const own = answer.error.startsWith("connector.") ? oauthReturnText(t, answer.error) : null;
+        return fail(own ?? t("mobile.connectors.refused", { name }));
+      }
+      await complete.mutateAsync({ state: answer.state, code: answer.code });
+      successHaptic();
+      toast({ title: outcomeText(t, "connected", item) });
+    } catch (error) {
+      fail(knownErrorText(t, error) ?? t("mobile.connectors.failed"));
+    } finally {
+      if (state) doneFinishing(state);
+      setSigningIn(false);
+    }
+  };
+  return (
+    <>
+      {/* The row already says whose account it is: the group needs no header, and the sentence reads as its footer. */}
+      <View style={styles.gap} />
+      <GroupedList>
+        <GroupedRow key="mine" label={mineText(t, item) ?? t("mobile.connectors.connectedState")} />
+        {actions.includes("connect") ? (
+          <GroupedRow
+            key="connect"
+            label={t("connectors.personal.connectMine")}
+            chevron
+            disabled={signingIn}
+            onPress={() => void signIn()}
+          />
+        ) : null}
+        {actions.includes("disconnect") ? (
+          <GroupedRow
+            key="disconnect"
+            label={t("connectors.personal.disconnectMine")}
+            disabled={disconnect.isPending}
+            onPress={() =>
+              disconnect.mutate(item.id, {
+                onSuccess: () => {
+                  successHaptic();
+                  toast({ title: t("mobile.connectors.disconnected", { name }) });
+                },
+                onError: () => fail(t("mobile.connectors.disconnectFailed", { name })),
+              })
+            }
+          />
+        ) : null}
+      </GroupedList>
+      <GroupedFooter>{t("connectors.personal.perPerson")}</GroupedFooter>
+    </>
   );
 }
 

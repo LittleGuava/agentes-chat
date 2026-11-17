@@ -46,7 +46,7 @@ const ConnectionPage = z
         }),
         authType: z.string().nullable().openapi({
           description:
-            "How it signs in. A connector's `oauth`, `api_key`, `none` or `github_app`; a mailbox's `composio` or `imap`; null for a database.",
+            "How it signs in. A connector's `oauth`, `api_key`, `none`, `github_app` or `computer` (a program on a connected computer, ADR 0215); a mailbox's `composio` or `imap`; null for a database.",
         }),
         status: z.string().openapi({
           description: "`active` or `needs_reconnect`; a mailbox's also `pending` (its sign-in never finished).",

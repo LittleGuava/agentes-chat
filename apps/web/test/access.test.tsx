@@ -277,6 +277,63 @@ describe("Configurações → Agentes e acesso: the matrix", () => {
   });
 });
 
+describe("a service whose every call a person decides (Agentcard) at Nunca perguntar", () => {
+  /** Agentcard connected and given to Ada whole; `never`: Ada never asks. */
+  async function agentcardFor(never: boolean) {
+    const state = seedState();
+    const api = createFakeApi(state);
+    const res = await api.customConnectors.connect(ORG_ID, {
+      serverUrl: "https://mcp.agentcard.sh/mcp",
+      apiKey: "agentcard_secret_12345",
+      label: "Agentcard",
+      returnTo: "/",
+    });
+    if (res.status !== "connected") throw new Error("expected connected");
+    await api.customConnectors.saveTools(ORG_ID, res.server.id, {
+      label: "Agentcard",
+      tools: res.server.tools.map((x) => ({ name: x.name, access: "approval", label: x.name })),
+    });
+    await api.access.set(ORG_ID, ADA_ID, {
+      all: false,
+      connectors: { [res.server.id]: true },
+      scopes: [],
+      tools: { allow: [], deny: [] },
+    });
+    if (never) await api.agents.update(ORG_ID, ADA_ID, { approvalsLevel: "never" });
+    return { state, api };
+  }
+  const agentcardRow = () =>
+    screen().getByRole("radiogroup", { name: "Nível em Agentcard" }).closest("li") as HTMLElement;
+
+  test("the agent's access says its tools are unavailable at that level, instead of what asks", async () => {
+    const { api } = await agentcardFor(true);
+    await renderApp(`/org/${ORG_ID}/agents/${ADA_ID}?tab=access`, { api });
+    await settle(8);
+    const text = agentcardRow().textContent ?? "";
+    expect(text).toContain("Indisponível em Nunca perguntar: cada ação dele precisa da aprovação de uma pessoa");
+    expect(text).not.toContain("Pede aprovação");
+  });
+
+  test("at a level that asks, the same row says what asks, as any other", async () => {
+    const { api } = await agentcardFor(false);
+    await renderApp(`/org/${ORG_ID}/agents/${ADA_ID}?tab=access`, { api });
+    await settle(8);
+    const text = agentcardRow().textContent ?? "";
+    expect(text).toContain("Pede aprovação");
+    expect(text).not.toContain("Indisponível");
+  });
+
+  test("the matrix's cell says it too", async () => {
+    const { api } = await agentcardFor(true);
+    await renderApp(`/org/${ORG_ID}/settings/access`, { api });
+    await settle(8);
+    const section = within(screen().getByRole("region", { name: "Acesso dos agentes" }));
+    expect(
+      section.getByRole("button", { name: "Ada em Agentcard: Ler e escrever, indisponível em Nunca perguntar" }),
+    ).toBeTruthy();
+  });
+});
+
 describe("Criar agente → connector levels", () => {
   /** Opens "Criar agente" as QA (reads GitHub) and goes to "Ferramentas e acesso". */
   const toTools = async (state = seedState()) => {

@@ -1,0 +1,1 @@
+ALTER TABLE "context_items" ADD COLUMN "valid_until" timestamp with time zone;

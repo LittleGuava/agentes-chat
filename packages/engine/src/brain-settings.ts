@@ -1,5 +1,6 @@
 import {
   ACCOUNTS_PROTOCOL,
+  ACP_ENGINE_PROTOCOL,
   type AccountKind,
   ANTIGRAVITY_PROTOCOL,
   BRAIN_PROTOCOL,
@@ -66,6 +67,8 @@ import {
   planOpened,
 } from "./audience";
 import { recordAudit } from "./audit";
+import { type BrainPolicy, brainAllowed, brainPolicyRefusal, orgBrainPolicy } from "./brain-policy";
+import { MAX_RESERVES, type ReserveEntry, reserveChainOf } from "./brains/reserve-chain";
 import { BRAIN_NAMES, type BrainKind, brainRunsOn, isComputerBrain } from "./brains/types";
 import { caches } from "./cache";
 import { defaultCredentials, providerKeyOf } from "./credentials";
@@ -125,6 +128,7 @@ export const BRAIN_KINDS: readonly BrainKind[] = [
   "grok",
   "antigravity",
   "copilot",
+  "acp",
 ];
 export const isBrainKind = (v: unknown): v is BrainKind =>
   typeof v === "string" && (BRAIN_KINDS as readonly string[]).includes(v);
@@ -269,7 +273,8 @@ export function defaultBrainModel(kind: BrainKind): string | null {
     kind === "opencode" ||
     kind === "grok" ||
     kind === "antigravity" ||
-    kind === "copilot"
+    kind === "copilot" ||
+    kind === "acp"
   )
     return null;
   const options = brainModelOptions(kind);
@@ -333,7 +338,9 @@ export type BrainUnavailable =
   /** It is there and can't start (`executors.broken`, with its own error): not missing, so installing it won't help. */
   | "cant_start"
   /** Its runner doesn't run this CLI on the computer's system (`brainRunsOn`): Cursor on Windows, for one. */
-  | "system";
+  | "system"
+  /** The workspace's rule leaves it out (ADR 0191); the API brain too, when the rule leaves the API out. */
+  | "not_allowed";
 
 export interface CodexVersionRequirement {
   detected: string;
@@ -347,6 +354,22 @@ export interface BrainOption {
   codexVersion?: CodexVersionRequirement;
   models: BrainModelOption[];
   defaultModel: string | null;
+}
+
+/**
+ * "Quem pensa"'s ACP agents (ADR 0216): the agents the computer declares, each with the models it offered (`models`
+ * stays empty). Kept out of `options`, whose readers take every kind there for a plan's.
+ */
+export interface AcpBrainOption extends BrainOption {
+  kind: "acp";
+  engines: AcpEngineOption[];
+}
+
+/** An ACP agent a computer declares, as "Quem pensa" offers it. */
+export interface AcpEngineOption {
+  id: string;
+  name: string;
+  models: BrainModelOption[];
 }
 
 type MachineLike = Parameters<typeof machineExecutors>[0] & {
@@ -364,6 +387,7 @@ type MachineLike = Parameters<typeof machineExecutors>[0] & {
       grok?: boolean;
       antigravity?: boolean;
       copilot?: boolean;
+      commands?: boolean;
     };
   } | null;
 } & Parameters<typeof machineOnline>[0];
@@ -384,7 +408,13 @@ const missingCli = (
  * check the engine makes per run): an older runner is `runner_old`.
  * (Missions' legacy executor tasks keep their own check, `machineExecutors`.)
  */
-export function brainOptions(machine: MachineLike | null): BrainOption[] {
+export function brainOptions(machine: MachineLike | null, policy: BrainPolicy | null = null): BrainOption[] {
+  return computerBrainOptions(machine).map((o) =>
+    brainAllowed(policy, o.kind) ? o : { ...o, available: false, reason: "not_allowed" as const },
+  );
+}
+
+function computerBrainOptions(machine: MachineLike | null): BrainOption[] {
   // Only which CLIs are installed: `machineExecutors` lists none with commands off, but commands are judged below.
   const found = machine ? machineExecutors({ ...machine, execAllowed: true }) : null;
   const computer = (kind: "claude_code" | "codex", executor: "claude" | "codex"): BrainOption => {
@@ -421,6 +451,27 @@ export function brainOptions(machine: MachineLike | null): BrainOption[] {
     cliOption(machine, "antigravity"),
     cliOption(machine, "copilot"),
   ];
+}
+
+/**
+ * ACP agents the computer's owner declared (ADR 0216, runner protocol 71): by the commands switch, each engine with
+ * the models it offered (any id the agent lists; none: its own default). Not in `brainOptions`: the apps take every
+ * kind listed there for a plan's (an unknown one as Claude's), so this goes in a field of its own.
+ */
+export function acpBrainOption(machine: MachineLike | null): AcpBrainOption {
+  const tools = machine?.access?.tools;
+  const engines: AcpEngineOption[] = (machine?.executors?.acp ?? []).map((e) => ({
+    id: e.id,
+    name: e.name,
+    models: (e.models ?? []).map((m) => ({ value: m.id, label: m.label || m.id })),
+  }));
+  let reason: BrainUnavailable | undefined;
+  if (!machine) reason = "no_computer";
+  else if (!tools && !machine.execAllowed) reason = "exec_off";
+  else if (machine.protocol < ACP_ENGINE_PROTOCOL) reason = "runner_old";
+  else if (tools && tools.commands !== true) reason = "tool_off";
+  else if (!engines.length) reason = machine.executors?.detectedAt ? "not_installed" : "not_reported";
+  return { kind: "acp", available: !reason, ...(reason ? { reason } : {}), models: [], defaultModel: null, engines };
 }
 
 /**
@@ -498,6 +549,8 @@ export interface AgentBrainView {
   /** The team's right hand, `mine` only. */
   workspaceAi?: RightHandWorkspaceAi;
   brain: BrainKind;
+  /** `acp` (ADR 0216): the id of the ACP agent its computer declares that it thinks with. */
+  engine?: string;
   /** As stored (null = the brain's default). */
   model: string | null;
   /** What it runs with (`model ?? defaultModel`), null for the model brain: its model is the agent's own `model`. */
@@ -507,6 +560,8 @@ export interface AgentBrainView {
   extraUsage: boolean;
   computer: BrainComputer | null;
   options: BrainOption[];
+  /** The ACP agents its computer declares (ADR 0216); not for the team's right hand, which can't think with one. */
+  acp?: AcpBrainOption;
   /** Every computer the caller may give the agent (admins: all; its owner: the ones they connected), with its options. */
   machines: BrainMachineOptions[];
   /** The caller may change it (an admin or the agent's owner). */
@@ -515,6 +570,11 @@ export interface AgentBrainView {
   account: string | null;
   /** How hard its computer brain thinks; `auto` = picked per run; null = the CLI's default. */
   effort: BrainEffortSetting | null;
+  /**
+   * Its reserve AIs in order (ADR 0118 addendum 2026-11-15): accounts in `accounts` that answer a conversation while
+   * its own plan is at its limit or signed out. Entries on another computer, or whose account went, aren't listed.
+   */
+  fallbackChain: ReserveEntry[];
   /** How fast it answers in conversations (ADR 0149): kept whatever it thinks with, applied only where it fits. */
   speed: BrainSpeed;
   /** The most context it reads, in tokens (`CONTEXT_LIMITS`, any brain); null = its model's window. */
@@ -597,7 +657,7 @@ interface BrainDeps {
  * Admins (`manage_agents`) and the agent's owner see and change it; anyone else gets a 403. The team's right hand's
  * `mine` (ADR 0137 §11) is every member's own: theirs to see and change.
  */
-async function agentBrainAccess(db: Database, userId: string, orgId: string, agentId: string, scope?: unknown) {
+export async function agentBrainAccess(db: Database, userId: string, orgId: string, agentId: string, scope?: unknown) {
   const membership = await requirePermission(db, userId, orgId, "read");
   const agent = await getAgent(db, orgId, agentId);
   if (!agent || agent.archivedAt) throw new NotFoundError("Agent not found");
@@ -648,17 +708,20 @@ async function candidateMachines(
   admin: boolean,
   current: string | null,
 ): Promise<BrainMachineOptions[]> {
-  const rows = await db
-    .select()
-    .from(schema.machines)
-    .where(and(eq(schema.machines.orgId, orgId), isNull(schema.machines.deletedAt)));
+  const [rows, policy] = await Promise.all([
+    db
+      .select()
+      .from(schema.machines)
+      .where(and(eq(schema.machines.orgId, orgId), isNull(schema.machines.deletedAt))),
+    orgBrainPolicy(db, orgId),
+  ]);
   return rows
     .filter(
       (m) =>
         (admin || m.kind !== "connected" || m.pairedByUserId === userId || m.id === current) &&
         (mayBeHome(m) || m.id === current),
     )
-    .map((m) => ({ machineId: m.id, name: m.name, online: machineOnline(m), options: brainOptions(m) }));
+    .map((m) => ({ machineId: m.id, name: m.name, online: machineOnline(m), options: brainOptions(m, policy) }));
 }
 
 async function agentMachine(db: Database, orgId: string, machineId: string | null) {
@@ -679,21 +742,28 @@ function view(
   machines: BrainMachineOptions[],
   accounts: BrainAccounts,
   userId: string,
+  /** The workspace's rule (`orgBrainPolicy`): what it leaves out shows, greyed with why. */
+  policy: BrainPolicy | null,
 ): AgentBrainView {
   const brain = brainOf(agent.brain);
   return {
     agentId: agent.id,
     brain,
+    ...(brain === "acp" && agent.brainEngine ? { engine: agent.brainEngine } : {}),
     model: brain === "model" ? null : agent.brainModel,
     effectiveModel: brain === "model" ? null : (agent.brainModel ?? defaultBrainModel(brain)),
     fallback: agent.brainFallback,
     extraUsage: agent.brainExtraUsage,
     computer: machine ? { machineId: machine.id, name: machine.name, online: machineOnline(machine) } : null,
-    options: offeredTo(agent, brainOptions(machine)),
+    options: offeredTo(agent, brainOptions(machine, policy)),
+    ...(isRightHand(agent) ? {} : { acp: acpBrainOption(machine) }),
     machines: isRightHand(agent) ? machines.map((m) => ({ ...m, options: offeredTo(agent, m.options) })) : machines,
     canEdit: true,
     account: agent.brainAccountId,
     effort: isBrainEffortSetting(agent.brainEffort) ? agent.brainEffort : null,
+    fallbackChain: reserveChainOf(agent.brainFallbackChain).filter((e) =>
+      accounts.accounts.some((a) => a.id === e.accountId),
+    ),
     speed: isBrainSpeed(agent.brainSpeed) ? agent.brainSpeed : "standard",
     contextTokens: isContextLimit(agent.contextTokens) ? agent.contextTokens : null,
     ...accounts,
@@ -799,7 +869,7 @@ async function personalView(db: Database, userId: string, orgId: string, agent: 
     workspaceAi(db, agent, userId),
   ]);
   return {
-    ...view(mine, machine, [], accounts, userId),
+    ...view(mine, machine, [], accounts, userId, await orgBrainPolicy(db, orgId)),
     scope: "mine",
     workspaceAi: fallback,
     // It serves the caller alone, never through a computer's own sign-in.
@@ -987,7 +1057,7 @@ export async function getAgentBrain(
       .where(and(eq(providerCredentials.orgId, orgId), isNull(providerCredentials.revokedAt))),
   ]);
   return {
-    ...view(agent, machine, machines, accounts, userId),
+    ...view(agent, machine, machines, accounts, userId, await orgBrainPolicy(deps.db, orgId)),
     keys,
     ...(access.scope ? { workspaceAi: await workspaceAi(deps.db, access.agent, userId) } : {}),
   };
@@ -1034,8 +1104,18 @@ export interface AgentBrainInput {
   effort?: unknown;
   /** `standard` or `fast`, kept through any change of brain, account or model. Omitted = keep it. */
   speed?: unknown;
+  /**
+   * Its reserve AIs in order (`ReserveEntry[]`, at most `MAX_RESERVES`): accounts on its computer it may think with,
+   * other than its own. Omitted = keep it (less the account it now thinks with); [] = none.
+   */
+  fallbackChain?: unknown;
   /** One of `CONTEXT_LIMITS`, or null for the model's window; kept through brain switches. Omitted = keep it. */
   contextTokens?: unknown;
+  /**
+   * `acp` (ADR 0216): the id of an ACP agent its computer declares (`executors.acp`). Required when switching to
+   * `acp`; omitted = keep it. Cleared by any other brain.
+   */
+  engine?: unknown;
 }
 
 const EVERYONE: AgentAudience = { mode: "everyone", userIds: [], roleIds: [] };
@@ -1097,12 +1177,16 @@ export async function setAgentBrain(
   if (rightHand && RIGHT_HAND_NO_BRAINS.has(brain))
     throw new ValidationError(RIGHT_HAND_BRAIN_REFUSED, "brain.invalid");
   const changed = brain !== from;
+  // The workspace's rule (ADR 0191) refuses a new brain it leaves out; one saved before it stays, its page saying why.
+  const policy = await orgBrainPolicy(deps.db, orgId);
+  const refused = changed ? brainPolicyRefusal(policy, brain) : null;
+  if (refused) throw refused;
   const [machine, machines] = await Promise.all([
     agentMachine(deps.db, orgId, agent.machineId),
     candidateMachines(deps.db, userId, orgId, admin, agent.machineId),
   ]);
   if (changed && isComputerBrain(brain)) {
-    const option = brainOptions(machine).find((o) => o.kind === brain);
+    const option = brain === "acp" ? acpBrainOption(machine) : brainOptions(machine).find((o) => o.kind === brain);
     if (!option?.available) {
       throw new ConflictError(
         machine
@@ -1117,6 +1201,11 @@ export async function setAgentBrain(
   // the next one), so an agent born automatic is automatic on Claude Code or Codex too. A fixed model belongs to
   // its brain: another brain starts on its default.
   const carried = isAutoModel(agent.brainModel) ? AUTO_MODEL : null;
+  const engine = acpEngineOf(brain, changed, agent.brainEngine, input.engine, machine);
+  // An ACP agent keeps its own sign-in on the computer: no account of ours (ADR 0216 §6).
+  if (brain === "acp" && input.account !== undefined && input.account !== null) {
+    throw new ValidationError("An ACP agent thinks with its own sign-in on the computer", "account.invalid");
+  }
   const model =
     input.model !== undefined
       ? normalizeBrainModel(brain, input.model, changed ? null : agent.brainModel)
@@ -1208,6 +1297,8 @@ export async function setAgentBrain(
       );
   }
   const accounts = await brainAccounts(deps.db, userId, orgId, agent, machine);
+  const fallbackChain = nextFallbackChain(agent, account, accounts.accounts, input.fallbackChain);
+  const chainChanged = JSON.stringify(fallbackChain) !== JSON.stringify(reserveChainOf(agent.brainFallbackChain));
   const thinks =
     changed ||
     model !== agent.brainModel ||
@@ -1217,8 +1308,10 @@ export async function setAgentBrain(
     effort !== agent.brainEffort ||
     speed !== agent.brainSpeed ||
     contextTokens !== agent.contextTokens ||
-    planForOthers !== agent.planForOthers;
-  if (!thinks && !audience) return view(agent, machine, machines, accounts, userId);
+    planForOthers !== agent.planForOthers ||
+    engine !== agent.brainEngine ||
+    chainChanged;
+  if (!thinks && !audience) return view(agent, machine, machines, accounts, userId, policy);
   const { row, released } = await deps.db.transaction(async (tx) => {
     // A login made for one agent thinks for one: the check is taken again under its row's lock, so two agents
     // picking it at once can't both have it.
@@ -1256,6 +1349,7 @@ export async function setAgentBrain(
       .update(schema.agents)
       .set({
         brain,
+        brainEngine: engine,
         brainModel: model,
         brainFallback: fallback,
         brainExtraUsage: extraUsage,
@@ -1263,6 +1357,7 @@ export async function setAgentBrain(
         brainAccountLentBy: lentBy,
         brainEffort: effort,
         brainSpeed: speed,
+        brainFallbackChain: fallbackChain,
         contextTokens,
         planForOthers,
         // The people and roles lists stay while it is its owner's only, for when it is let out again.
@@ -1325,8 +1420,21 @@ export async function setAgentBrain(
           effort: agent.brainEffort,
           speed: agent.brainSpeed,
           contextTokens: agent.contextTokens,
+          engine: agent.brainEngine,
+          reserves: reserveChainOf(agent.brainFallbackChain),
         },
-        to: { brain, model, fallback, extraUsage, account, effort, speed, contextTokens },
+        to: {
+          brain,
+          model,
+          fallback,
+          extraUsage,
+          account,
+          effort,
+          speed,
+          contextTokens,
+          engine,
+          reserves: fallbackChain,
+        },
         ...(rightHand ? { planForOthers: { from: agent.planForOthers, to: planForOthers } } : {}),
         ...options.audit,
       },
@@ -1353,6 +1461,7 @@ export async function setAgentBrain(
   const saved = row ?? {
     ...agent,
     brain,
+    brainEngine: engine,
     brainModel: model,
     brainFallback: fallback,
     brainExtraUsage: extraUsage,
@@ -1360,6 +1469,7 @@ export async function setAgentBrain(
     brainAccountLentBy: lentBy,
     brainEffort: effort,
     brainSpeed: speed,
+    brainFallbackChain: fallbackChain,
     contextTokens,
     planForOthers,
     ...(audience ? { audienceMode: audience.mode } : {}),
@@ -1386,7 +1496,70 @@ export async function setAgentBrain(
     account !== agent.brainAccountId || shownMachine !== machine
       ? await brainAccounts(deps.db, userId, orgId, shown, shownMachine)
       : accounts;
-  return view(shown, shownMachine, machines, fresh, userId);
+  return view(shown, shownMachine, machines, fresh, userId, policy);
+}
+
+/**
+ * The ACP agent an `acp` brain thinks with (ADR 0216): one its computer declares, chosen by id; kept when nothing asks
+ * otherwise, null for every other brain.
+ */
+function acpEngineOf(
+  brain: BrainKind,
+  changed: boolean,
+  stored: string | null,
+  input: unknown,
+  machine: MachineRow | null,
+): string | null {
+  if (brain !== "acp") return null;
+  const wanted = input === undefined ? (changed ? null : stored) : input;
+  // Kept as it is: the computer may stop declaring it, and its turns then say so (`acp_engine_missing`).
+  if (!changed && stored !== null && wanted === stored) return stored;
+  const declared = machine?.executors?.acp ?? [];
+  if (typeof wanted !== "string" || !declared.some((e) => e.id === wanted)) {
+    throw new ValidationError("Choose an ACP agent the agent's computer declares", "brain.invalid_engine", {
+      engines: declared.map((e) => e.id),
+    });
+  }
+  return wanted;
+}
+
+/**
+ * The agent's reserve AIs after this save (ADR 0118 addendum 2026-11-15): omitted, the ones it had less the account it
+ * thinks with now; else at most `MAX_RESERVES` distinct accounts on its computer that it may think with (`listed`:
+ * its owner's, or one that serves the whole workspace), never its own account, never on the team's right hand.
+ */
+function nextFallbackChain(
+  agent: Pick<Agent, "brainFallbackChain" | "ownerUserId" | "builtin">,
+  account: string | null,
+  listed: MachineAccountView[],
+  input: unknown,
+): ReserveEntry[] {
+  if (input === undefined) return reserveChainOf(agent.brainFallbackChain).filter((e) => e.accountId !== account);
+  const invalid = (message: string) => new ValidationError(message, "brain.reserve_invalid");
+  if (!Array.isArray(input)) throw invalid("Reserves are a list of accounts");
+  if (input.length > MAX_RESERVES) throw invalid(`At most ${MAX_RESERVES} reserves`);
+  if (input.length > 0 && isRightHand(agent)) throw invalid("The team's right hand has no reserves");
+  const seen = new Set<string>();
+  return input.map((raw): ReserveEntry => {
+    const { accountId, model } = (raw && typeof raw === "object" ? raw : {}) as {
+      accountId?: unknown;
+      model?: unknown;
+    };
+    if (typeof accountId !== "string") throw invalid("Each reserve is an account");
+    if (model !== undefined && model !== null && (typeof model !== "string" || model.length > 80))
+      throw invalid("A reserve's model is a name, or null for its brain's default");
+    if (accountId === account) throw invalid("The account it thinks with isn't a reserve of its own");
+    if (seen.has(accountId)) throw invalid("Each account is a reserve once");
+    seen.add(accountId);
+    const found = listed.find(
+      (a) =>
+        a.id === accountId &&
+        ((a.ownerId !== null && a.serves === "everyone") ||
+          (agent.ownerUserId !== null && a.ownerId === agent.ownerUserId)),
+    );
+    if (!found) throw invalid("Choose an account on the agent's computer that it may think with");
+    return { accountId, ...(typeof model === "string" ? { model } : {}) };
+  });
 }
 
 /**
@@ -1691,7 +1864,7 @@ async function missionBrainView(
     effectiveBrain,
     effectiveModel:
       effectiveBrain === "model" ? null : (mission.brainModel ?? agentModel ?? defaultBrainModel(effectiveBrain)),
-    options: brainOptions(machine),
+    options: brainOptions(machine, await orgBrainPolicy(deps.db, mission.orgId)),
     canSetBrain: actor && mission.status === "proposed",
     canSetModel: actor && open,
   };
@@ -1753,6 +1926,13 @@ export async function setMissionBrain(
     throw new ValidationError("Choose a model for the mission", "brain.invalid_model", { brain: effective });
   }
   if (!brainChanged && model === mission.brainModel) return missionBrainView(deps, mission, role);
+  // The workspace's rule (ADR 0191): a mission's new brain, or its API model, only inside it.
+  const refused = brainPolicyRefusal(
+    await orgBrainPolicy(deps.db, orgId),
+    effective,
+    effective === "model" ? model : null,
+  );
+  if (refused) throw refused;
   const row = await deps.db.transaction(async (tx) => {
     const [next] = await tx
       .update(schema.missions)
@@ -1790,6 +1970,8 @@ export interface AgentBrainSummary {
   kind: BrainKind;
   model: string | null;
   computer?: string;
+  /** `acp` (ADR 0216): the ACP agent it thinks with, by the name its computer declares (else its id). */
+  engine?: string;
   /** A key account's coding plan (`zai`…): its maker's model thinks, through Claude Code. */
   provider?: string;
   /** The account's name ("Claude 2"); a computer's own sign-in by its maker and plan ("Claude Max"). */
@@ -1832,6 +2014,7 @@ export async function agentBrainSummaries(
     machineId: string | null;
     ownerUserId: string | null;
     brainAccountId?: string | null;
+    brainEngine?: string | null;
     brainSpeed?: string;
     builtin?: string | null;
   }[],
@@ -1882,8 +2065,9 @@ export async function agentBrainSummaries(
     const provider = kind === "claude_code" ? (row?.provider ?? undefined) : undefined;
     const ownPlan = kind === "claude_code" ? machine?.executors?.claude?.plan : undefined;
     // With no account, the computer's own sign-in thinks only for its pairer's agents (ADR 0059 §3).
+    // An ACP agent (ADR 0216) has no plan of ours to show: its sign-in is its own.
     const own =
-      kind !== "model" && !a.brainAccountId && machine?.pairer && machine.pairer === a.ownerUserId
+      kind !== "model" && kind !== "acp" && !a.brainAccountId && machine?.pairer && machine.pairer === a.ownerUserId
         ? {
             account: ownPlan
               ? `${defaultAccountLabel(kind)} ${ownPlan[0]?.toUpperCase()}${ownPlan.slice(1)}`
@@ -1892,9 +2076,16 @@ export async function agentBrainSummaries(
           }
         : null;
     const plan = row ? { account: row.label, usage: row.usage ?? undefined } : own;
+    // An ACP agent by the name its computer declares, its model by the label that agent gave it.
+    const engine =
+      kind === "acp" && a.brainEngine
+        ? (machine?.executors?.acp?.find((e) => e.id === a.brainEngine) ?? { id: a.brainEngine, name: a.brainEngine })
+        : null;
+    const engineModel = engine && "models" in engine ? engine.models?.find((m) => m.id === a.brainModel) : undefined;
     out.set(a.id, {
       kind,
-      model: brainModelLabel(kind, a.brainModel, provider),
+      model: engineModel?.label || brainModelLabel(kind, a.brainModel, provider),
+      ...(engine ? { engine: engine.name } : {}),
       ...(kind !== "model" && computer ? { computer } : {}),
       ...(provider ? { provider } : {}),
       ...(plan ? { account: plan.account } : {}),

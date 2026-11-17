@@ -56,6 +56,7 @@ import type { ControlBrowser, ControlBrowserDoing } from "@agenteschat/adapters/
 import { SECRET_NAME } from "@agenteschat/adapters/secret-box";
 import { vaultRuleLabel, vaultRuleMatches } from "@agenteschat/adapters/vault/site";
 import type { BrowserPorts } from "./browser-ports";
+import { cookiesOf, partsOfSite, readStorageKeys, signedInSites, storageOriginsOf } from "./browser-sites";
 import { type CrashedPage, countChromeTraffic, emulationCommands, type TrafficCounter } from "./browser-traffic";
 import { BROWSER_WM_CLASS } from "./desktop-look";
 import type { DesktopSessions } from "./desktop-session";
@@ -75,6 +76,7 @@ import {
 } from "./human-input";
 import { GOOGLE_CHROME_LINUX, SYSTEM_BROWSER_DIR } from "./install-script";
 import { readJson, readSmallJson, writeJson } from "./json-file";
+import { reachesLentChrome } from "./lent-chrome-port";
 import { bootId } from "./lock";
 import { CRASH_WORDS, pageLocale } from "./page-words";
 import { agentFolderName, isInside, ownedSafely } from "./paths";
@@ -91,6 +93,7 @@ import {
   newFillMark,
   parseSecretRefs,
   parseTypeVault,
+  parseTypeVaultCode,
   type RunnerVault,
   runnerVault,
   UNGUARDED,
@@ -230,6 +233,26 @@ const VERSION_CHECK_MS = 5 * 60_000;
  * (`BROWSER_IDLE_MS`) comes later.
  */
 const UPDATE_IDLE_MS = 10 * 60_000;
+
+/**
+ * How long an agent's list of sites through a person's computer (ADR 0203) holds still, and its browser goes unused,
+ * before its Chrome restarts on the new list: a lender's laptop asleep and awake again in a moment restarts nothing.
+ */
+export const RELAY_SETTLE_MS = 30_000;
+
+/**
+ * Whether an agent's Chrome restarts on its new proxy script (ADR 0203): Chrome reads `--proxy-pac-url` once, at its
+ * start, so a new list of sites takes a restart. Only once the script differs from the one it started with (a site
+ * added or gone, the first or the last one), the list held still and the agent left it alone for `RELAY_SETTLE_MS`,
+ * and nobody uses it now (a command, its live view, a person's turn).
+ */
+export function relayRestartDue(
+  s: { started: string | null; now: string | null; changedAt: number; lastUsed: number; busy: boolean },
+  at: number,
+): boolean {
+  if (s.started === s.now || s.busy) return false;
+  return at - Math.max(s.changedAt, s.lastUsed) >= RELAY_SETTLE_MS;
+}
 /**
  * A browser its agent holds (`keep_running`) waits this long at most for a newer Chrome, from when a sweep first found
  * it on disk, then restarts on it as any other does: a hold can be renewed for good, and the updates carry Chrome's
@@ -238,6 +261,9 @@ const UPDATE_IDLE_MS = 10 * 60_000;
 const KEPT_UPDATE_WAIT_MS = 24 * 3600_000;
 const DOWNLOAD_TIMEOUT_MS = 5 * 60_000;
 const QUICK_TIMEOUT_MS = 15_000;
+/** How long the list after signing out of a site waits for Chrome to drop the cleared origins' rows, and how often it looks. */
+const SITE_FORGET_SETTLE_MS = 3_000;
+const SITE_FORGET_POLL_MS = 200;
 /** One input command on the relay: a click or a key answers in milliseconds. */
 const INPUT_TIMEOUT_MS = 5_000;
 /**
@@ -411,6 +437,8 @@ const FILL_STEPS = 4;
 const FILL_AT = 2;
 /** How a typed login's password shows where redacted (`[secret:VAULT_PASSWORD]`). */
 const VAULT_PASSWORD = "VAULT_PASSWORD";
+/** How a typed login's one-time code shows where redacted (`[secret:VAULT_CODE]`). */
+const VAULT_CODE = "VAULT_CODE";
 
 /** For the runner's log: `worker 1.2 s, install 28.1 s, launch 1.4 s`. */
 export function browserSetupText(setup: BrowserSetup): string {
@@ -698,6 +726,7 @@ export function chromeLaunchArgs(
   debuggingPort = 0,
   startPage?: string,
   privateNetwork = false,
+  relayPac: string | null = null,
 ): string[] {
   const ua = headed ? null : chromeUserAgent(version, platform);
   return [
@@ -709,6 +738,8 @@ export function chromeLaunchArgs(
     ...(ua ? [`--user-agent=${ua}`] : []),
     ...(lang ? [`--lang=${lang}`] : []),
     ...(privateNetwork ? ["--force-webrtc-ip-handling-policy=disable_non_proxied_udp"] : []),
+    // The sites a person's computer opens for this agent go through the entrance on loopback (ADR 0203).
+    ...(relayPac ? [`--proxy-pac-url=${relayPac}`] : []),
     ...(typeof page === "string" ? [startPage && page === "about:blank" ? pathToFileURL(startPage).href : page] : page),
   ];
 }
@@ -1635,6 +1666,11 @@ export interface StreamSocket {
 }
 
 export interface BrowserManagerOptions {
+  /**
+   * The debugging ports of a person's lent Chromes (ADR 0202): no agent's own browser opens them, before a navigation
+   * or after an action that moved the page there.
+   */
+  lentPorts?: () => ReadonlySet<number>;
   /** The runner's home: `bin/` for the downloaded binary, `browser/` for our config. */
   home: string;
   log: (line: string) => void;
@@ -1653,6 +1689,8 @@ export interface BrowserManagerOptions {
   locale?: (agent: AgentScope) => string | undefined;
   /** Restrict WebRTC to the configured network path, without Chrome managed policies. */
   privateNetwork?: () => boolean;
+  /** The proxy script for the agent's Chrome when another computer lends it sites (ADR 0203); read at each start. */
+  relayPac?: (agentId: string) => Promise<string | null>;
   /** Tests: how to start `agent-browser` (default: the sidecar or the downloaded binary). */
   command?: string[];
   /** The runner's executable (the sidecar sits next to it). */
@@ -1854,6 +1892,10 @@ interface Session {
   version?: string;
   /** The newer version on disk it restarts on, or restarted on: once per version. */
   updatedTo?: string;
+  /** The proxy script its running Chrome started with (ADR 0203); null: none. */
+  relayPac?: string | null;
+  /** When its list of sites through a person's computer last changed, until its Chrome takes it (`relayRestartDue`). */
+  relayChangedAt?: number;
   /** When a sweep first found a newer Chrome on disk than the one it runs (`updateDue`). */
   outdatedAt?: number;
   /** When a sweep last found someone watching it or a person's turn open on it. */
@@ -1893,6 +1935,7 @@ const DOING: Record<string, ControlBrowserDoing> = {
   press: "typing",
   "agentes:type_secret": "typing",
   "agentes:type_vault": "typing",
+  "agentes:type_vault_code": "typing",
   select: "choosing",
   check: "choosing",
   uncheck: "choosing",
@@ -2045,6 +2088,8 @@ export const isProfileKey = (key: string) => key.startsWith("profile:");
 
 export class BrowserManager {
   private readonly sessions = new Map<string, Session>();
+  /** A person's own browser's session → the agent's folder its files go to (`useFilesFolder`). */
+  private readonly filesFolders = new Map<string, string>();
   /** A person's turn in each agent's browser, as the server last told (`browser.handoff`). */
   private readonly handoffs = new Map<string, BrowserHandoffInfo>();
   /** Handoffs forgotten when the server connection dropped: their browsers stay open until it says again, or a while. */
@@ -2270,7 +2315,13 @@ export class BrowserManager {
     actor: AgentScope = agent,
   ): Promise<BrowserAnswer & { setup?: BrowserSetup; tabs?: BrowserTabs }> {
     const allowed = allowedDomainsOf(req.allowedDomains);
-    const prepared = this.checkCommand(req.command, req.args, req.timeoutSeconds, folder, allowed);
+    const prepared = this.checkCommand(
+      req.command,
+      req.args,
+      req.timeoutSeconds,
+      this.filesOf(agent.id, folder),
+      allowed,
+    );
     // A person drives the browser: only their own commands reach it (`whileDriving`), before and after the queue.
     const person = req.person === true;
     const driven = this.sessions.get(String(agent.id ?? ""));
@@ -2383,7 +2434,7 @@ export class BrowserManager {
     }
     const allowed = allowedDomainsOf(req.allowedDomains);
     const prepared = list.map((c) => ({
-      ...this.checkCommand(c?.command, c?.args, c?.timeoutSeconds, folder, allowed),
+      ...this.checkCommand(c?.command, c?.args, c?.timeoutSeconds, this.filesOf(agent.id, folder), allowed),
       tolerate: c?.tolerate === true,
     }));
     // Only the agent sends batches: none reaches the browser while a person drives it (`whileDriving`).
@@ -2620,7 +2671,7 @@ export class BrowserManager {
         throw new RunnerError("bad_request", "The browser isn't open: open a page first");
       }
       // Like every read: a page that moved off the allowed sites by itself isn't looked at.
-      if (allowed.length > 0) {
+      if (this.checksSites(allowed)) {
         const left = await this.leftAllowedSites(session, allowed, signal);
         if (left) throw new RunnerError("not_allowed", left);
       }
@@ -2701,6 +2752,10 @@ export class BrowserManager {
       parseTypeVault(args);
       return { command, args, timeoutMs };
     }
+    if (command === "agentes:type_vault_code") {
+      parseTypeVaultCode(args);
+      return { command, args, timeoutMs };
+    }
     if (!COMMANDS.has(command)) throw new RunnerError("bad_request", `The browser doesn't take ${command}`);
     for (const a of args) {
       const flag = a.split("=")[0] as string;
@@ -2738,10 +2793,13 @@ export class BrowserManager {
       this.noteAct(session, command, [], answer, link);
       return answer;
     }
-    if (command === "agentes:type_vault") {
+    if (command === "agentes:type_vault" || command === "agentes:type_vault_code") {
       const opening = vault?.opening ?? this.vaultOpening(actor, session);
       try {
-        const answer = await this.typeVault(actor, session, args, timeoutMs, opening, stops);
+        const answer =
+          command === "agentes:type_vault"
+            ? await this.typeVault(actor, session, args, timeoutMs, opening, stops)
+            : await this.typeVaultCode(actor, session, args, timeoutMs, opening, stops);
         this.noteAct(session, command, [], answer, link);
         return answer;
       } finally {
@@ -2751,7 +2809,9 @@ export class BrowserManager {
     // A screenshot or PDF into a folder that isn't there yet (`screenshots/…`): made first.
     if (FILE_OUTPUTS.has(command)) {
       for (const a of args) {
-        if (path.isAbsolute(a) && isInside(session.folder, a)) await mkdir(path.dirname(a), { recursive: true });
+        if (path.isAbsolute(a) && isInside(this.filesOf(session.agentId, session.folder), a)) {
+          await mkdir(path.dirname(a), { recursive: true });
+        }
       }
     }
     if (command === "close") {
@@ -2779,7 +2839,7 @@ export class BrowserManager {
         return { success: false, data: null, error: "The browser isn't open: open a page first" };
       }
       // A page can move off the allowed sites by itself (a script redirect): checked before it is read.
-      if (allowed.length > 0) {
+      if (this.checksSites(allowed)) {
         const left = await this.leftAllowedSites(session, allowed, signal);
         if (left) return { success: false, data: null, error: left };
       }
@@ -2821,7 +2881,7 @@ export class BrowserManager {
     session.aliveAt = answer.success ? this.now() : null;
     this.noteAct(session, command, args, answer, link);
     // After anything that may move the page (a click, a tab switch, a new tab…): still on an allowed site?
-    if (allowed.length > 0 && !READS.has(command)) {
+    if (this.checksSites(allowed) && !READS.has(command)) {
       const left = await this.leftAllowedSites(session, allowed, signal);
       if (left) return { success: false, data: null, error: left };
     }
@@ -3055,6 +3115,17 @@ export class BrowserManager {
     return null;
   }
 
+  /** Whether pages are checked after each action: the agent has a site list, or a person's Chrome is lent (ADR 0202). */
+  private checksSites(allowed: readonly string[]): boolean {
+    return allowed.length > 0 || (this.opts.lentPorts?.().size ?? 0) > 0;
+  }
+
+  /** On the agent's sites, and never a lent Chrome's debugging endpoint (ADR 0202). */
+  private siteAllowed(url: string, allowed: readonly string[]): boolean {
+    const lent = this.opts.lentPorts?.();
+    return domainAllowed(url, allowed) && !(lent && reachesLentChrome(url, lent));
+  }
+
   /** Paths stay in the agent's folder; URLs go only to allowed sites. Returns the args to run. */
   private checkArgs(command: string, args: string[], folder: string, allowed: string[]): string[] {
     const positional = args.filter((a) => !a.startsWith("-"));
@@ -3062,7 +3133,7 @@ export class BrowserManager {
       const url = asUrl(positional[0]);
       if (!isWebPage(url))
         throw new RunnerError("not_allowed", "The agent browser only opens web pages (http or https)");
-      if (!domainAllowed(url, allowed)) {
+      if (!this.siteAllowed(url, allowed)) {
         throw new RunnerError("not_allowed", `${hostOf(url)} is outside the sites this agent may use`);
       }
     }
@@ -3070,7 +3141,7 @@ export class BrowserManager {
       const url = asUrl(positional[1]);
       if (!isWebPage(url))
         throw new RunnerError("not_allowed", "The agent browser only opens web pages (http or https)");
-      if (!domainAllowed(url, allowed)) {
+      if (!this.siteAllowed(url, allowed)) {
         throw new RunnerError("not_allowed", `${hostOf(url)} is outside the sites this agent may use`);
       }
     }
@@ -3258,6 +3329,9 @@ export class BrowserManager {
           ? path.join(this.opts.startPageDirectory, START_FILE)
           : prepareStartPage(this.startDir(agent, session.folder, exe), agent, this.opts.startPageData?.(agent));
         await forgetTabs(profile);
+        const relayPac = (await this.opts.relayPac?.(agent.id).catch(() => null)) ?? null;
+        session.relayPac = relayPac;
+        session.relayChangedAt = undefined;
         const args = chromeLaunchArgs(
           version,
           profile,
@@ -3268,6 +3342,7 @@ export class BrowserManager {
           this.opts.fixedPorts?.cdp ?? 0,
           startPage,
           this.opts.privateNetwork?.(),
+          relayPac,
         );
         try {
           const display = on && confinedChrome(exe) ? readableDisplay(on, session.folder) : on;
@@ -3602,8 +3677,41 @@ export class BrowserManager {
       if (disk && this.updateDue(s, disk)) {
         s.updatedTo = disk;
         void this.enqueue(s, () => this.restartOnUpdate(s, disk)).catch(() => undefined);
+      } else if (s.chrome && s.relayChangedAt !== undefined) {
+        await this.restartOnRelay(s).catch(() => undefined);
       }
     }
+  }
+
+  /** The agents' sites through a person's computer changed (ADR 0203): each running Chrome takes its list once due. */
+  relayChanged() {
+    const at = this.now();
+    for (const s of this.sessions.values()) if (s.chrome || s.chromeStarting) s.relayChangedAt = at;
+  }
+
+  /**
+   * Its Chrome restarts on its new proxy script where it was, on the page it showed (`relayRestartDue`); a list back
+   * to the one it started with leaves it be. Not a use: its idle time keeps counting from the last one.
+   */
+  private async restartOnRelay(s: Session) {
+    const now = (await this.opts.relayPac?.(s.agent.id).catch(() => null)) ?? null;
+    const started = s.relayPac ?? null;
+    if (started === now) {
+      s.relayChangedAt = undefined;
+      return;
+    }
+    const busy = !!s.queued || !!s.chromeStarting || this.watched(s);
+    const due = relayRestartDue(
+      { started, now, changedAt: s.relayChangedAt ?? this.now(), lastUsed: s.lastUsed, busy },
+      this.now(),
+    );
+    if (!due || this.closed) return;
+    s.relayChangedAt = undefined;
+    this.opts.log(`the browser of ${s.name} restarts on its new list of sites through a person's computer`);
+    await this.enqueue(s, async () => {
+      if (!s.chrome) return;
+      await this.ensureOwnChrome(s.agent, s, s.chrome.display !== undefined, s.allowed ?? [], false, undefined, true);
+    });
   }
 
   /** The browser `reclaimIdle` would close: a running Chrome nobody holds, no command under way, unused for a while. */
@@ -3774,6 +3882,11 @@ export class BrowserManager {
     return true;
   }
 
+  /** The debugging ports of the Chromes this runner runs (agents' and profiles'): never lent as a person's own (ADR 0202). */
+  ownPorts(): Set<number> {
+    return new Set([...this.sessions.values()].map((s) => s.chrome?.port).filter((p) => p !== undefined));
+  }
+
   private livePids() {
     return new Set([...this.sessions.values()].map((s) => s.chrome?.pid).filter((p) => p !== undefined));
   }
@@ -3783,11 +3896,105 @@ export class BrowserManager {
     return path.join(this.opts.home, "browser-profiles", profileId);
   }
 
+  /**
+   * Protocol 70 (ADR 0110 addendum 2026-11-15): a person's own browser of an agent keeps that agent's files in its
+   * folder (`files`), as its own browser does, while its Chrome stays in the profile's. Said by every agent command
+   * there and kept until the runner stops; a person's own commands (Fazer login) carry no agent, so before the
+   * agent's first command since the runner started their downloads land in the profile's folder.
+   */
+  async useFilesFolder(sessionId: string, files: string) {
+    await mkdir(path.join(files, "screenshots"), { recursive: true });
+    await mkdir(path.join(files, "downloads"), { recursive: true });
+    this.filesFolders.set(sessionId, files);
+  }
+
+  /** Where a session's files are read and written: its own folder, unless `useFilesFolder` said another. */
+  private filesOf(sessionId: string, folder: string) {
+    return this.filesFolders.get(sessionId) ?? folder;
+  }
+
   /** `browser.profile.delete`: its Chrome stops and its folder goes (logins with it). */
   async deleteProfile(agent: AgentScope, folder: string): Promise<{ deleted: boolean }> {
+    this.filesFolders.delete(agent.id);
     await this.stop(agent);
     await rm(folder, { recursive: true, force: true });
     return { deleted: true };
+  }
+
+  /**
+   * `browser.sites` (protocol 74, ADR 0110 addendum 2026-11-15): the sites the session's profile is signed in to,
+   * from Chrome's cookies and its quota database. Hosts and counts only.
+   */
+  async sites(agent: AgentScope, folder: string): Promise<MachineReplies["browser.sites"]> {
+    return this.withDevtools(agent, folder, async (devtools, profile) => ({
+      sites: signedInSites(await this.liveCookies(devtools), storageOriginsOf(readStorageKeys(profile))),
+    }));
+  }
+
+  /**
+   * `browser.sites.forget`: the profile signs out of `site`. Each of its cookies is deleted, then each of its origins
+   * with stored data is cleared, on a tab's session (Chrome refuses the clearing on the browser's own target).
+   * Clearing all of an origin's data removes its row from the quota database, a moment later: the list after waits
+   * up to `SITE_FORGET_SETTLE_MS` for those rows to go.
+   */
+  async forgetSite(agent: AgentScope, folder: string, site: string): Promise<MachineReplies["browser.sites.forget"]> {
+    return this.withDevtools(agent, folder, async (devtools, profile) => {
+      const origins = storageOriginsOf(readStorageKeys(profile));
+      const parts = partsOfSite(await this.liveCookies(devtools), origins, site);
+      for (const c of parts.cookies) {
+        await devtools.ask(
+          "Network.deleteCookies",
+          { name: c.name, domain: c.domain, path: c.path, ...(c.partitionKey ? { partitionKey: c.partitionKey } : {}) },
+          { page: true },
+        );
+      }
+      for (const origin of parts.origins) {
+        await devtools.ask("Storage.clearDataForOrigin", { origin, storageTypes: "all" }, { page: true });
+      }
+      let left = storageOriginsOf(readStorageKeys(profile));
+      for (let waited = 0; waited < SITE_FORGET_SETTLE_MS && left.some((o) => parts.origins.includes(o)); ) {
+        waited += SITE_FORGET_POLL_MS;
+        await Bun.sleep(SITE_FORGET_POLL_MS);
+        left = storageOriginsOf(readStorageKeys(profile));
+      }
+      return {
+        cookies: parts.cookies.length,
+        storage: parts.origins.length,
+        sites: signedInSites(await this.liveCookies(devtools), left),
+      };
+    });
+  }
+
+  private async liveCookies(devtools: TrafficCounter) {
+    return cookiesOf(await devtools.ask("Storage.getCookies", {}));
+  }
+
+  /**
+   * `fn` in the session's queue with its Chrome running (started where it already is, or headless) and the runner's
+   * DevTools socket to it. Chrome's refusals and silences come back as `browser_unavailable`.
+   */
+  private async withDevtools<T>(
+    agent: AgentScope,
+    folder: string,
+    fn: (devtools: TrafficCounter, profile: string) => Promise<T>,
+  ): Promise<T> {
+    const session = await this.session(agent, folder);
+    return this.enqueue(session, async () => {
+      const chrome = await this.ensureOwnChrome(agent, session, session.chrome?.display !== undefined, []);
+      const devtools = this.counters.get(chrome);
+      if (!devtools) {
+        throw new RunnerError(
+          "browser_unavailable",
+          "This computer's browser can't say which sites it is signed in to",
+        );
+      }
+      try {
+        return await fn(devtools, path.join(session.folder, AGENT_BROWSER_PROFILE));
+      } catch (err) {
+        if (err instanceof RunnerError) throw err;
+        throw new RunnerError("browser_unavailable", err instanceof Error ? err.message : String(err));
+      }
+    });
   }
 
   /** Chromes a previous run of this runner home left (it crashed or was killed), or only `on` that profile: stopped. */
@@ -3836,9 +4043,9 @@ export class BrowserManager {
       `${Math.round(this.idleMs / 1000)}s`,
       "--no-webmcp",
       "--download-path",
-      path.join(session.folder, "downloads"),
+      path.join(this.filesOf(session.agentId, session.folder), "downloads"),
       "--screenshot-dir",
-      path.join(session.folder, "screenshots"),
+      path.join(this.filesOf(session.agentId, session.folder), "screenshots"),
     ];
   }
 
@@ -4039,10 +4246,10 @@ export class BrowserManager {
    */
   private async leftAllowedSites(session: Session, allowed: string[], signal?: AbortSignal): Promise<string | null> {
     const url = await this.pageUrl(session, signal);
-    if (!url || domainAllowed(url, allowed)) return null;
+    if (!url || this.siteAllowed(url, allowed)) return null;
     await this.run(session, ["back"], { timeoutMs: QUICK_TIMEOUT_MS });
     const after = await this.pageUrl(session);
-    if (after && domainAllowed(after, allowed)) {
+    if (after && this.siteAllowed(after, allowed)) {
       return `The page went to ${hostOf(url)}, outside the sites this agent may use; it went back`;
     }
     await this.run(session, ["open", "about:blank"], { timeoutMs: QUICK_TIMEOUT_MS });
@@ -4280,6 +4487,88 @@ export class BrowserManager {
     }
     this.typed(session, actor, VAULT_PASSWORD, value);
     return { success: true, data: { typed: "vault", into: ref, origin: top } };
+  }
+
+  /**
+   * `agentes:type_vault_code [ref, rule, boxJson, ...moreRefs]` (protocol 86, ADR 0144 addendum of 2026-11-15): a
+   * login's one-time code, as its password manager gave it now, sealed to one of `actor`'s one-use keys for codes on
+   * this rule. The page's own address must match the rule; each field is checked where it is typed (a text, number or
+   * one-time-code input, in a frame on the rule's sites) and gets the whole code, or one character each when the code
+   * is split in boxes. A code isn't guarded from addresses (it is short, and over in seconds), only redacted.
+   */
+  private async typeVaultCode(
+    actor: AgentScope,
+    session: Session,
+    args: string[],
+    timeoutMs: number,
+    opening: VaultOpening,
+    signal?: AbortSignal,
+  ): Promise<BrowserAnswer> {
+    const { refs, rule, ruleText, keyId, box } = parseTypeVaultCode(args);
+    const agentId = String(actor.id ?? "");
+    if (!agentId || isProfileKey(agentId)) {
+      throw new RunnerError("bad_request", "agentes:type_vault_code needs the agent whose turn it is");
+    }
+    const label = vaultRuleLabel(rule);
+    if (!(await this.browserOpen(session, signal))) {
+      return { success: false, data: null, error: "The browser isn't open: open a page first" };
+    }
+    const at = await this.pageUrl(session, signal);
+    const top = at ? originOf(at) : null;
+    if (!top || !vaultRuleMatches(rule, top)) {
+      return refused(
+        "wrong_site",
+        `This login's code is for ${label}, and the page is on ${at ? hostOf(at) : "no site"}. It wasn't typed.`,
+      );
+    }
+    let value: string;
+    try {
+      value = await opening.open(keyId, box, { kind: "code", rule: ruleText }, VAULT_CODE);
+    } catch (err) {
+      if (err instanceof VaultRefusal) return refused(err.code, err.message);
+      throw err;
+    }
+    const chars = Array.from(value);
+    if (refs.length > 1 && chars.length !== refs.length) {
+      return {
+        success: false,
+        data: null,
+        error: `The code doesn't have one character for each of the ${refs.length} fields given, so it wasn't typed. Give the one field it goes in, or every box of it in order`,
+      };
+    }
+    // Redacted from what the browser answers from before it is typed.
+    this.typed(session, actor, VAULT_CODE, value);
+    const fields =
+      refs.length > 1
+        ? refs.map((ref, i) => ({ ref, text: chars[i] as string }))
+        : [{ ref: refs[0] as string, text: value }];
+    const result = await this.fillChecked(session, fields, fieldWant(rule, top, "code"), timeoutMs, signal);
+    if (!result.ok) {
+      const where = result.ref ?? refs[0];
+      switch (result.verdict) {
+        case "wrong_site":
+          return refused(
+            "wrong_site",
+            `This login's code is for ${label}, and ${where} is in a frame on another site. It wasn't typed.`,
+          );
+        case "in_frame":
+          return refused(
+            "in_frame",
+            `${where} is inside an embedded frame, where a code isn't typed. It wasn't typed.`,
+          );
+        case "not_code_field":
+        case "not_password_field":
+        case "get_form":
+          return refused(
+            "not_code_field",
+            `${where} isn't a text, number or one-time-code field; a code is only typed into those`,
+          );
+        default:
+          // Its own words could hold a character of the code: only where it stopped.
+          return { success: false, data: null, error: `Couldn't type the code into ${where}` };
+      }
+    }
+    return { success: true, data: { typed: "vault_code", into: refs[0], fields: refs, origin: top } };
   }
 
   /**

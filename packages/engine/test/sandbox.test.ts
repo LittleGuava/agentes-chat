@@ -799,7 +799,10 @@ describe("commands the computer holds for a person (ADR 0053 §3)", () => {
 describe("the agent's computer API", () => {
   test("owner or admins only; other organizations see nothing", async () => {
     f = await setup();
-    expect(await getAgentComputer(f.db, f.owner.id, f.org.id, f.agent.id)).toEqual({ target: { kind: "none" } });
+    expect(await getAgentComputer(f.db, f.owner.id, f.org.id, f.agent.id)).toEqual({
+      target: { kind: "none" },
+      relay: [],
+    });
     const bia = await addMember(f.db, f.org.id, "member", "bia");
     await expect(getAgentComputer(f.db, bia.id, f.org.id, f.agent.id)).rejects.toBeInstanceOf(ForbiddenError);
     const zed = await addUser(f.db, "zed");

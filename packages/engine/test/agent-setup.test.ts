@@ -592,6 +592,120 @@ describe("the Autonomia goes with the setup", () => {
   });
 });
 
+describe("the approvals level goes with the setup (ADR 0173)", () => {
+  const audits = (w: Awaited<ReturnType<typeof world>>, id: string, action: string) =>
+    w.fx.db
+      .select()
+      .from(schema.auditLog)
+      .where(and(eq(schema.auditLog.action, action), eq(schema.auditLog.targetId, id)));
+
+  test("an admin sets it on every agent picked, whatever each one's AI takes; each change audited as its own", async () => {
+    const w = await world();
+    const { fx, deps } = w;
+    await fx.db.update(schema.agents).set({ approvalsLevel: "always" }).where(eq(schema.agents.id, w.theo));
+    const setup = { ...ANA_CLAUDE(w.mac), approvalsLevel: "never" };
+    const ids = [w.dev, w.theo, w.lia, w.zoe];
+    const expected: SetupResult[] = [
+      { agentId: w.dev, status: "applied", approvalsLevel: { from: "risky", to: "never" } },
+      { agentId: w.theo, status: "applied", approvalsLevel: { from: "always", to: "never" } },
+      // Lia can't take the AI (another computer), Zoe keeps Bia's plan: both still take the level.
+      {
+        agentId: w.lia,
+        status: "skipped",
+        reason: "other_computer",
+        params: { computer: "PC" },
+        approvalsLevel: { from: "risky", to: "never" },
+      },
+      {
+        agentId: w.zoe,
+        status: "skipped",
+        reason: "model_missing",
+        params: { plan: "GLM Coding", model: "Opus 5.5" },
+        approvalsLevel: { from: "risky", to: "never" },
+      },
+    ];
+    // A preview says what each would do and keeps nothing.
+    expect(await applyAgentSetup(deps, fx.owner.id, fx.org.id, { setup, agentIds: ids, preview: true })).toEqual(
+      expected,
+    );
+    for (const id of ids) {
+      expect(await w.row(id)).toMatchObject({ approvalsLevel: id === w.theo ? "always" : "risky" });
+      expect(await audits(w, id, "agent.updated")).toHaveLength(0);
+    }
+
+    expect(await applyAgentSetup(deps, fx.owner.id, fx.org.id, { setup, agentIds: ids })).toEqual(expected);
+    for (const id of ids) {
+      expect(await w.row(id)).toMatchObject({ approvalsLevel: "never" });
+      // The same row changing one agent's level writes, saying where it came from.
+      const rows = await audits(w, id, "agent.updated");
+      expect(rows).toHaveLength(1);
+      expect(rows[0]?.details).toMatchObject({ changed: ["approvalsLevel"], approvalsLevel: "never", via: "setup" });
+    }
+    expect(await w.row(w.lia)).toMatchObject({ brain: "model", machineId: w.pc });
+
+    // Already at that level: nothing to change, nothing audited again.
+    expect(await applyAgentSetup(deps, fx.owner.id, fx.org.id, { setup, agentIds: [w.dev] })).toEqual([
+      { agentId: w.dev, status: "same" },
+    ]);
+    expect(await audits(w, w.dev, "agent.updated")).toHaveLength(1);
+    // Left out of the setup, each keeps its own.
+    await applyAgentSetup(deps, fx.owner.id, fx.org.id, { setup: ANA_CLAUDE(w.mac), agentIds: [w.dev] });
+    expect(await w.row(w.dev)).toMatchObject({ approvalsLevel: "never" });
+    // A new agent still starts asking for what is risky: the level is not part of what new agents start with.
+    expect(await w.stored()).not.toHaveProperty("approvalsLevel");
+    const eva = await createAgent(
+      fx.db,
+      fx.owner.id,
+      fx.org.id,
+      { name: "Eva", handle: "eva", model: "claude-haiku-5-5" },
+      NEW_AGENT_DEFAULTS,
+    );
+    expect(eva.approvalsLevel).toBe("risky");
+  });
+
+  test("only who manages agents: an agent's owner is refused before anything changes, a wrong level too", async () => {
+    const w = await world();
+    const { fx, deps, bia, caio } = w;
+    // Bia may take her own agent's Autonomia (she owns Zoe), but not how much it asks.
+    const glm = {
+      brain: "claude_code",
+      machineId: w.mac,
+      account: BIAS,
+      model: null,
+      effort: "high",
+      autonomy: "never",
+      approvalsLevel: "never",
+    };
+    for (const preview of [true, false]) {
+      await expect(
+        applyAgentSetup(deps, bia.id, fx.org.id, { setup: glm, agentIds: [w.zoe], preview }),
+      ).rejects.toBeInstanceOf(ForbiddenError);
+    }
+    expect(await w.row(w.zoe)).toMatchObject({
+      approvalsLevel: "risky",
+      missionCommandApproval: null,
+      brainAccountId: BIAS,
+      brainEffort: null,
+    });
+    for (const action of ["agent.updated", "agent.brain", "agent.mission_command_approval"]) {
+      expect(await audits(w, w.zoe, action)).toHaveLength(0);
+    }
+    // Without it, her own agent takes the rest as before.
+    const { approvalsLevel: _, ...rest } = glm;
+    expect(await applyAgentSetup(deps, bia.id, fx.org.id, { setup: rest, agentIds: [w.zoe] })).toEqual([
+      { agentId: w.zoe, status: "applied", autonomy: { from: "low_risk_auto", to: "never" } },
+    ]);
+
+    await expect(
+      applyAgentSetup(deps, caio.id, fx.org.id, {
+        setup: { brain: "model", model: "claude-opus-5-5", approvalsLevel: "sometimes" },
+        agentIds: [w.dev],
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(await w.row(w.dev)).toMatchObject({ approvalsLevel: "risky", model: "claude-sonnet-5-5" });
+  });
+});
+
 test("a proposed agent's role may say what it does in full, not a word or two", async () => {
   // The tools depend on whose run it is (the right hand gets one more, ADR 0137): an ordinary agent's.
   const fx = await setup();

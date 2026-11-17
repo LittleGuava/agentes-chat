@@ -6,6 +6,7 @@ import {
   useAgentDetail,
   useAiStatus,
   useApi,
+  useBrainPolicy,
   useCatalog,
   useConfirmSetup,
   useCredentials,
@@ -912,7 +913,8 @@ function WhoDialog({ agent, onClose, onSaved }: { agent: Agent; onClose: () => v
   const confirm = useConfirmSetup(org.id, agent.id);
   const admin = can(org, "manage_agents");
   const g = agentGrammar(agent.name);
-  const planKind = agent.brain && agent.brain.kind !== "model" ? agent.brain.kind : null;
+  // An ACP agent (ADR 0216) has no plan of ours to share.
+  const planKind = agent.brain && agent.brain.kind !== "model" && agent.brain.kind !== "acp" ? agent.brain.kind : null;
   const brain = useAgentBrain(org.id, agent.id, planKind !== null).data;
   const saved = audienceOf(agent);
   const [audience, setAudience] = useState<AgentAudience>(saved);
@@ -1106,6 +1108,7 @@ function HowDialog({ agent, onClose, onSaved }: { agent: Agent; onClose: () => v
   const models = useModels();
   const credentials = useCredentials(org.id, can(org, "manage_credentials"));
   const platform = usePlatformKey(org.id);
+  const policy = useBrainPolicy(org.id);
   const detail = useAgentDetail(org.id, agent.id);
   const g = agentGrammar(agent.name);
   const onApi = !agent.brain || agent.brain.kind === "model";
@@ -1121,7 +1124,7 @@ function HowDialog({ agent, onClose, onSaved }: { agent: Agent; onClose: () => v
   const list = modelOptions(
     t,
     i18n.language,
-    modelChoices(models.data?.models ?? [], credentials.data ?? [], platform.data ?? false),
+    modelChoices(models.data?.models ?? [], credentials.data ?? [], platform.data ?? false, policy),
   );
   const save = () =>
     run(async () => {

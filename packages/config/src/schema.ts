@@ -117,6 +117,13 @@ export const envVars = {
     section: "Server",
     example: "https://agentes.chat",
   },
+  PUBLISHED_PAGES_URL: {
+    schema: z.url().optional(),
+    description:
+      "Base URL public pages are served from, without a trailing slash (ADR 0211): an agent may then publish a page it made (`publish_page`, after a person approves) at `<this URL>/p/<token>/`, which anyone with the link opens. Its host must differ from `PUBLIC_URL`'s, ideally on a domain of its own: point it at this server and keep the `Host` header in the proxy. That host serves only pages, and the app's host never does. Unset (default): nothing is published.",
+    section: "Server",
+    example: "https://pages.example.net",
+  },
   APP_VERSION: {
     schema: z
       .string()
@@ -126,6 +133,13 @@ export const envVars = {
       "This deploy's version: the release error reports are filed under, and `version` in `GET /api/instance` and `/api/health`. `deploy/deploy.sh` sets it in the image it deploys, from its second argument. Unset (default): the server's own version.",
     section: "Server",
     example: "2026.10.31.4",
+  },
+  SERVER_UPDATER_DIR: {
+    schema: z.string().min(1).optional(),
+    description:
+      "Updates from the app (ADR 0200): the folder where the `updater` service of docker-compose.yml and this server meet, `/updater` there. The server leaves a request in its `requests` folder and reads `status/status.json`; the updater pulls the app's image, copies the database, starts the new version and goes back when it isn't healthy. With it, the installation's owner gets Update server in Settings › General (never on agentes.chat itself). Set it only with `updater` in COMPOSE_PROFILES (SELF_HOSTING.md, Updating from the app). Unset (default): no updates from the app.",
+    section: "Server",
+    example: "/updater",
   },
   // Mirror: PUBLIC_SOURCE_URL in packages/client/src/lib/about.ts.
   SOURCE_URL: {
@@ -399,6 +413,12 @@ export const envVars = {
       "Small OpenAI model for the organization's own calls on an OpenAI key: picking who answers when Jev doesn't, summaries, reflection.",
     section: "Agents",
   },
+  IMAGES_PER_DAY: {
+    schema: z.coerce.number().int().min(0).max(100_000).default(50),
+    description:
+      "Most pictures one workspace's agents may make with `generate_image` in 24 hours, on the workspace's own OpenAI or Gemini key (ADR 0213). Each also counts against its agent's budget, and one reply makes at most 4. 0 turns image generation off on this server.",
+    section: "Agents",
+  },
   ROUTER_MIN_SCORE: {
     schema: z.coerce.number().min(0).max(1).default(0.5),
     description: "Minimum router score (0–1) for an agent to answer a message without mentions.",
@@ -584,7 +604,8 @@ export const envVars = {
   },
   ELEVENLABS_API_KEY: {
     schema: z.string().optional(),
-    description: "ElevenLabs key for voice messages, optional (ADR 0100). The audio goes to ElevenLabs to become text.",
+    description:
+      "ElevenLabs key for voice messages, optional (ADR 0100): the audio goes to ElevenLabs to become text. With `READ_ALOUD_ENGINE=elevenlabs`, also the key that reads agents' replies aloud (ADR 0209).",
     section: "Chat",
     secret: true,
   },
@@ -660,6 +681,74 @@ export const envVars = {
   VOICE_LIMIT_ORG_MIN_MINUTES_PER_DAY: {
     schema: z.coerce.number().int().min(0).default(300),
     description: "agentes.chat's own servers: the least a workspace's limit above may be, however few its members.",
+    section: "Chat",
+  },
+  VOICE_CALL_SPEECH_URL: {
+    schema: z.url().optional(),
+    description:
+      "Voice calls with an agent (ADR 0198): the base of a text-to-speech server in the OpenAI format, which reads the agent's replies aloud; requests go to `/audio/speech` under it. OpenAI itself (`https://api.openai.com/v1`, the replies' words go to OpenAI) or one of your own (Kokoro-FastAPI, Speaches: the words stay with you). Unset: no calls. Calls also need voice messages (a speech engine above).",
+    section: "Chat",
+    example: "http://tts:8880/v1",
+  },
+  VOICE_CALL_SPEECH_API_KEY: {
+    schema: z.string().optional(),
+    description: "The key that text-to-speech server asks for, if it asks for one (sent as `Authorization: Bearer`).",
+    section: "Chat",
+    secret: true,
+  },
+  VOICE_CALL_SPEECH_MODEL: {
+    schema: z.string().optional(),
+    description: "The model that text-to-speech server reads with (default `tts-1`).",
+    section: "Chat",
+  },
+  VOICE_CALL_SPEECH_VOICE: {
+    schema: z.string().max(100).optional(),
+    description: "The voice it reads in, a name that server knows (default `alloy`).",
+    section: "Chat",
+  },
+  READ_ALOUD_ENGINE: {
+    schema: z.enum(["off", "elevenlabs", "local"]).default("off"),
+    description:
+      "Reads agents' replies aloud, for the \"Ouvir\" button (ADR 0209). `off`: no button. `elevenlabs`: ElevenLabs with `ELEVENLABS_API_KEY`; the reply's words go to ElevenLabs. `local`: a server of your own speaking the OpenAI speech format at `READ_ALOUD_URL` (Kokoro, Speaches); the words stay with you. A key set for voice messages alone never turns this on.",
+    section: "Chat",
+  },
+  READ_ALOUD_VOICE: {
+    schema: z
+      .string()
+      .regex(/^[A-Za-z0-9_.-]{1,100}$/)
+      .optional(),
+    description:
+      "The voice replies are read in when the agent has none of its own: an ElevenLabs voice id, or a voice name your server knows. Default: ElevenLabs' `JBFqnCBsd6RMkjVDRZzb`, or `alloy` on the OpenAI format.",
+    section: "Chat",
+  },
+  READ_ALOUD_URL: {
+    schema: z.url().optional(),
+    description:
+      "With `READ_ALOUD_ENGINE=local`: the base of a speech server of your own in the OpenAI format; requests go to `/audio/speech` under it. It may be on your own network: only this server calls it.",
+    section: "Chat",
+    example: "http://tts:8880/v1",
+  },
+  READ_ALOUD_MODEL: {
+    schema: z.string().optional(),
+    description: "The model that speech server loads (default `tts-1`).",
+    section: "Chat",
+  },
+  READ_ALOUD_API_KEY: {
+    schema: z.string().optional(),
+    description: "The key that speech server asks for, if it asks for one (sent as `Authorization: Bearer`).",
+    section: "Chat",
+    secret: true,
+  },
+  READ_ALOUD_CACHE_DAYS: {
+    schema: z.coerce.number().int().min(1).default(7),
+    description:
+      "Days a reply read aloud is kept, so everyone who listens hears the same file (ADR 0209). After that it is made again when someone listens. At least 1.",
+    section: "Chat",
+  },
+  READ_ALOUD_LIMIT_PERSON_CHARS_PER_DAY: {
+    schema: z.coerce.number().int().min(0).default(20000),
+    description:
+      "agentes.chat's own servers: characters of replies one person may have read aloud in 24 hours (ADR 0209); a reply already read plays for free. 0 = no limit. Never applies on a self-hosted server.",
     section: "Chat",
   },
   CONNECTOR_GITHUB_CLIENT_ID: {
@@ -1063,7 +1152,7 @@ export const envVars = {
       .regex(/^[\w.-]+\/[\w.-]+$/, "must be owner/repo")
       .default("agentes-chat/agentes-chat"),
     description:
-      "GitHub repository (`owner/repo`) whose releases tagged `desktop-v<version>` hold the desktop app, and `v<version>` the packages without Docker.",
+      "GitHub repository (`owner/repo`) whose releases tagged `desktop-v<version>` hold the desktop app, and `v<version>` the packages without Docker. The update check (`UPDATE_CHECK`) reads its `v<version>` releases too.",
     section: "Sandbox",
   },
   OPERATOR_API_TOKEN: {
@@ -1196,6 +1285,15 @@ export const envVars = {
     description:
       "How this server was installed, as the usage report says it: `docker`, `native` or `desktop`. The desktop app sets it, and `agentes-server` (no Docker) when it isn't set. Unset: `docker` inside a container, else `native`.",
     section: "Usage report",
+  },
+  UPDATE_CHECK: {
+    schema: z
+      .stringbool()
+      .transform((on) => (on ? "on" : "off") as "on" | "off")
+      .default("on"),
+    description:
+      "Tell the installation's owner, in Settings → General, when a newer agentes.chat release is out, with its notes and the command that installs it. The server asks GitHub's public API for the releases of `DESKTOP_RELEASES_REPO`, only while the owner has Settings open and at most once every 12 hours: a GET that sends nothing about this server beyond the request's own address. `off` stops it. Never on agentes.chat itself, nor in the desktop app's server, which updates with the app.",
+    section: "Server",
   },
   LOG_LEVEL: {
     schema: z.enum(["debug", "info", "warn", "error"]).default("info"),

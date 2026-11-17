@@ -1,6 +1,6 @@
 # 0061. No AI connected, and agents that set up the workspace
 
-- Status: Accepted; amended 2026-11-04 (§5, a plan's panel never waits with no end; §5, the real reason a plan can't sign in yet)
+- Status: Accepted; amended 2026-11-04 (§5, a plan's panel never waits with no end; §5, the real reason a plan can't sign in yet); addendum 2026-11-15 (who can connect one hears it)
 - Date: 2026-10-24
 - Extends: ADR 0032 (brains and the fallback to the model), ADR 0037 (act with undo), ADR 0041 (plan sign-ins on a computer), ADR 0043 (tool groups chosen by the judge), ADR 0053 (who is behind a run)
 - Out of scope for now: invitation and app cards, agents creating agents or changing their own brain, plan sign-in from the phone app
@@ -126,3 +126,15 @@ The key step gets "Conectar depois". The agents are created without one, and the
 - **Leave the run waiting, and resume the organization's waiting runs when a key or account is added** (like runs waiting for a computer): no endpoint and no deleted runs, but it answers old messages nobody is waiting for anymore.
 - **Guess the intent from keywords without Jev:** wrong too often, in both languages. The Connect button is enough.
 - **Agents that connect an AI or send invitations themselves:** they would hold credentials or act for a person without a click.
+
+## Addendum (2026-11-15): who can connect one hears it
+
+The card (§2) tells the person who asked, in the conversation. Whoever can connect an AI for that agent didn't see it, and in a workspace where members talk to agents an admin set up, the card often lands in front of someone who can't press Connect (`noAi.locked`). So now they hear it too:
+
+- **When:** a run that isn't background work fails with `no_ai` and a person is behind it (`humanBehindRun`), for a reason that means nothing is connected for the agent: `no_key`, `no_computer`, `cli_missing`, or `not_signed_in` of the computer's own sign-in, never made (`own`). Not for waits and limits (the computer away, a plan's limit), plans that serve only their owner (`plan_not_shared`, `plans_not_yours`: the way out is the person's own), a billing hold (`plan_hold`), nor an account's sign-in that ended: the right hand already tells its owner (`team_watch`, `sign_in`). It is sent whether or not the card was repeated, since the card is once per conversation.
+- **Who:** the agent's owner and whoever manages agents or keys (`manage_agents`, `manage_credentials`), the same people the apps let press Connect (`maySetAgentAi`). Never the person who asked: they are the actor, and the card is theirs.
+- **How often:** one notification per agent per UTC day and person (`agent_needs_ai:{agentId}:{day}`, a kind that doesn't merge): more people trying that day, read or not, add nothing and push nothing again. Its push follows the person's choices under "Respostas dos agentes", where a run that failed (`run_failed`) already is, so it is not in "Esperando você", which nothing would empty while no one talks to the agent.
+- **What it says and opens:** who tried and which agent (`latest.reason` why, coded); opening it opens "Conectar uma IA" for that agent (web `connect.open({ agentId })`, phone `/connect-ai?agentId=`), else the agent's page.
+- **Done:** the agent's next run that ends well (`resolveAgentNeedsAi`, background work included).
+
+Left out: a message nobody mentioned in a workspace with no AI at all (§3, the routing decision `no_ai`) names no agent and tells no one; its own card already offers Connect to whoever posted it.

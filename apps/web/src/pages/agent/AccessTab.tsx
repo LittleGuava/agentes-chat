@@ -1,5 +1,6 @@
 import { useAgentSkills } from "@agenteschat/client";
-import { type AccessResource, asksAt, LEVELS, type Level } from "@agenteschat/client/lib/access-levels";
+import { type AccessResource, asksAt, LEVELS, type Level, offAtNever } from "@agenteschat/client/lib/access-levels";
+import { approvalsLevelOf } from "@agenteschat/client/lib/approvals-level";
 import { modeKey } from "@agenteschat/client/lib/workspace-mode";
 import { Button, Card, Chip, EmptyState, Icon, Menu, MenuItem, SearchField, Segmented, Toolbar } from "@agenteschat/ui";
 import { Link } from "@tanstack/react-router";
@@ -44,7 +45,9 @@ export function AccessTab({ part = "all" }: { part?: "all" | "basic" | "advanced
   const editable = can("levels");
   const level = (r: AccessResource) => draft.levels[r.id] ?? "none";
   const isGithub = (r: AccessResource) => r.kind === "connector" && r.connector === "github";
-  const asksOf = (r: AccessResource) => asksAt(r, level(r)).map((x) => toolLabel(t, r, x));
+  const off = (r: AccessResource) => offAtNever(r, approvalsLevelOf(agent));
+  // At "Nunca perguntar" an every-call service asks nothing: its tools aren't offered at all, and its row says so.
+  const asksOf = (r: AccessResource) => (off(r) ? [] : asksAt(r, level(r)).map((x) => toolLabel(t, r, x)));
   const needle = q.trim().toLowerCase();
   const shown = resources.filter((r) => {
     if (needle && !resourceName(t, r, items).toLowerCase().includes(needle)) return false;
@@ -76,7 +79,19 @@ export function AccessTab({ part = "all" }: { part?: "all" | "basic" | "advanced
         onChange={editable ? (l) => setLevel(r.id, l) : undefined}
         changed={changed || (isGithub(r) && Boolean(changeOf("repos")))}
         tag={changed ? <ChangedTag changeKey={key} /> : undefined}
-        extra={changed ? <WasLine changeKey={key} /> : undefined}
+        extra={
+          off(r) || changed ? (
+            <>
+              {off(r) && (
+                <span className="level-row__asks ac-iconline">
+                  <Icon name="block" size={14} />
+                  <span>{t("access.everyCallNever")}</span>
+                </span>
+              )}
+              {changed && <WasLine changeKey={key} />}
+            </>
+          ) : undefined
+        }
         below={
           isGithub(r) && level(r) !== "none" ? (
             <>

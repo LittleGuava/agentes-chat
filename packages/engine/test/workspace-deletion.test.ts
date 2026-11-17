@@ -1075,6 +1075,35 @@ describe("the purge", () => {
     expect(composio.state.revokedAccounts).toEqual([]);
   });
 
+  test("each person's own account on a per-person connection goes away at Composio too (ADR 0195)", async () => {
+    f = await setup();
+    const id = crypto.randomUUID();
+    await f.db.insert(schema.connectorConnections).values({
+      id,
+      orgId: f.org.id,
+      connector: `custom:${id}`,
+      label: "Google Drive",
+      toolPrefix: "google_drive",
+      serverUrl: "https://backend.composio.dev/api/v3.1/toolkits/googledrive",
+      authType: "oauth",
+      composioAccountId: "ca_team",
+      perPerson: true,
+    });
+    await f.db.insert(schema.connectorPersonalAccounts).values({
+      orgId: f.org.id,
+      connectionId: id,
+      ownerUserId: f.owner.id,
+      composioAccountId: "ca_ana",
+    });
+    const composio = createFakeComposioClient();
+    const mail = { composio: { client: composio.client, connector: createFakeMailConnector().connector }, imap: null };
+    await scheduleDeletion({ db: f.db, pubsub: f.pubsub }, f.owner.id, f.org.id, "owner");
+    await pastItsDate();
+    expect(await purgeWorkspace({ db: f.db, mail }, f.org.id)).toBe(true);
+    expect(composio.state.deletedAccounts.sort()).toEqual(["ca_ana", "ca_team"]);
+    expect(composio.state.revokedAccounts).toEqual([]);
+  });
+
   test("a hold that commits while the purge revokes grants wins: the workspace stays, its grants revoked", async () => {
     f = await setup();
     await f.db.insert(schema.mailAccounts).values({

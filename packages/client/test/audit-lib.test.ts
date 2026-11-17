@@ -56,6 +56,31 @@ describe("Auditoria in words (web and phone)", () => {
     expect(set({})).toBe("audit.change.pattern(audit.change.verb.other,audit.change.area.other)");
   });
 
+  test("editing a message (ADR 0207) reads as edited a message", () => {
+    const person = { type: "person" as const, id: "u1", name: "Bia" };
+    const edited = row({ actor: person, action: "message.edited", details: { before: 14, after: 14, redo: false } });
+    expect(auditSentence(t, edited, "pt-BR").text).toBe(
+      "audit.change.pattern(audit.change.verb.edited,audit.change.area.message)",
+    );
+  });
+
+  test("a domain named or removed for joining says which domain (ADR 0068, addendum 2026-11-15)", () => {
+    const person = { type: "person" as const, id: "u1", name: "Bia" };
+    const said = (action: string) =>
+      auditSentence(t, row({ actor: person, action, details: { domain: "acme.com" } }), "pt-BR").text;
+    expect(said("join_domain.added")).toBe("audit.change.joinDomain.added(acme.com)");
+    expect(said("join_domain.removed")).toBe("audit.change.joinDomain.removed(acme.com)");
+  });
+
+  test("an agent's API key is named in its rows, as it was then", () => {
+    const person = { type: "person" as const, id: "u1", name: "Bia" };
+    const said = (action: string, details: Record<string, unknown>) =>
+      auditSentence(t, row({ actor: person, action, details }), "pt-BR").text;
+    expect(said("agent_api.key_created", { app: "CI bot" })).toBe("audit.change.agent_api.key_created(CI bot)");
+    expect(said("agent_api.key_revoked", { app: "CI bot" })).toBe("audit.change.agent_api.key_revoked(CI bot)");
+    expect(said("agent_api.message_sent", { app: "CI bot" })).toBe("audit.change.agent_api.message_sent(CI bot)");
+  });
+
   test("a billing hold's reason is said in words, never as its code; any other reason as written", () => {
     expect(auditReason(t, standing({ from: "active", to: "hold", reason: "unpaid" }))).toBe(
       "standing.notification.billing.unpaid",
@@ -145,6 +170,13 @@ describe("Auditoria in words (web and phone)", () => {
       details: {},
     });
     expect(auditSentence(t, merged, "en").text).toBe("audit.change.mergedWithoutAsking(acme/app)");
+  });
+
+  test("a page put on the internet and taken down says so, with the version it shows (ADR 0211)", () => {
+    const page = (action: string) =>
+      auditSentence(t, row({ action, target: { type: "artifact", id: "f1" }, details: { version: 3 } }), "en").text;
+    expect(page("artifact.page_published")).toBe("audit.change.artifact.page_published(3)");
+    expect(page("artifact.page_unpublished")).toBe("audit.change.artifact.page_unpublished(3)");
   });
 
   test("a waiting call says what became of its approval or of the secret it asked for", () => {

@@ -49,6 +49,8 @@ export interface PushTextInput {
   screen?: string | null;
   /** `browser_handoff` still unanswered an hour later: the title says the agent still needs them. */
   reminder?: boolean;
+  /** `routine_failed` once its automatic retry failed too: the title says it was tried again. */
+  retried?: boolean;
   /** One reminder for all the person left unread: how many things still wait, this one included (`latest.still`). */
   still?: number | null;
   /** `usage_limit`: what happened (`latest.statusTo`) and the share of the limit used. */
@@ -111,9 +113,12 @@ function renderOne(locale: PushLocale, input: PushTextInput): { title: string; b
       // Only its name: the reason it stopped may carry technical details.
       return out(s.missionStoppedTitle, what || s.openBody);
     case "routine_failed":
-      return out(s.routineFailedTitle, what || s.routineFailedBody);
+      return out(input.retried ? s.routineFailedRetriedTitle : s.routineFailedTitle, what || s.routineFailedBody);
     case "run_failed":
       return out(s.runFailedTitle(actor), s.routineFailedBody);
+    case "agent_needs_ai":
+      // The agent's name (`label`), then who asked it: the person is the actor.
+      return out(s.needsAiTitle(input.label?.trim() || s.anAgent), s.needsAiBody(actor));
     case "routine_paused":
       // Its name only: the app says why, in the person's words.
       return out(s.routinePausedTitle, what || s.routinePausedBody);
@@ -160,6 +165,9 @@ function renderOne(locale: PushLocale, input: PushTextInput): { title: string; b
     case "secret_request":
       // What it is for, in the agent's words: the value is typed in the app, sealed there, never here.
       return out(s.secretTitle(actor), text || what || s.secretBody);
+    case "mail_important":
+      // The mailbox, then who sent it and the subject: the email itself is read in the mailbox.
+      return out(s.mailImportantTitle(input.label?.trim() ?? ""), text || what || s.openBody);
     case "widget_alert":
       // What the agent saw, in its words; never in the chat (ADR 0135 §6).
       return out(s.widgetAlertTitle(actor, what), text || s.openBody);

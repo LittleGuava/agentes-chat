@@ -1,9 +1,11 @@
-import type { Agent, AgentBrain, Message } from "@agenteschat/client";
+import type { Agent, AgentBrain, ConversationPlace, Message } from "@agenteschat/client";
 import {
   keys,
   useAgentBrain,
   useAiAccounts,
   useApi,
+  useBrainPolicy,
+  useConversationModel,
   useCredentials,
   useModels,
   usePlatformKey,
@@ -47,6 +49,7 @@ import { useOrg } from "@/components/org-context";
 import { useAgentThinks } from "@/hooks/useAgentThinks";
 import { fullLook, lookOf } from "@/lib/look";
 import { useToast } from "@/lib/toast";
+import { ConversationModelSelect } from "./ConversationModels";
 import { UseKeyForAll } from "./UseKeyForAll";
 import "./model-picker.css";
 
@@ -56,21 +59,32 @@ const SEARCH_FROM = 8;
 /**
  * The agent's AI and model, changed in place (a DM's header, its profile card, its side panel): a button saying what
  * it thinks with, opening the picker under the agent's sky. Whoever can't change it (not an admin, not its owner)
- * reads the same words, with nothing to press.
+ * reads the same words, with nothing to press. In a conversation (`conversation`), a model chosen there alone shows
+ * instead, and the picker can choose one (ADR 0032, addendum 2026-11-15).
  */
 export function ModelPickerButton({
   agent,
   size = "sm",
   className,
+  conversation,
 }: {
   agent: Agent;
   size?: "sm" | "row";
   className?: string;
+  conversation?: ConversationPlace;
 }) {
   const { t } = useTranslation();
   const { org, me } = useOrg();
   const thinks = useAgentThinks(agent);
+  const here = useConversationModel(
+    org.id,
+    agent.id,
+    conversation ?? { channelId: "" },
+    Boolean(conversation) && !isRightHand(agent),
+  );
+  const hereLabel = conversation ? here.data?.label : null;
   if (!thinks?.text) return null;
+  const text = hereLabel ? t("brain.picker.conversation.line", { model: hereLabel }) : thinks.text;
   const mark = thinks.mark ? <ProviderLogo id={thinks.mark} size="xs" /> : <BrainIcon kind={thinks.kind} size={14} />;
   // The team's right hand thinks with each person's own AI ("Sua IA"), set where that is: never picked here.
   if (!mayPickModel(agent, me.user.id, can(org, "manage_agents")))
@@ -81,12 +95,13 @@ export function ModelPickerButton({
         title={isRightHand(agent) ? undefined : t("brain.picker.readOnly")}
       >
         {mark}
-        <span className="mp-label__text">{thinks.text}</span>
+        <span className="mp-label__text">{text}</span>
       </span>
     );
   return (
     <ModelPickerPopover
       agent={agent}
+      conversation={conversation}
       trigger={(open) => (
         <button
           type="button"
@@ -96,7 +111,7 @@ export function ModelPickerButton({
           aria-expanded={open}
         >
           {mark}
-          <span className="mp-label__text">{thinks.text}</span>
+          <span className="mp-label__text">{text}</span>
           <Icon name="chevronDown" size={14} className="mp-trigger__chevron" />
         </button>
       )}
@@ -105,7 +120,15 @@ export function ModelPickerButton({
 }
 
 /** The picker, opened from `trigger` (the header's button, a reply's "Escolher modelo"). */
-function ModelPickerPopover({ agent, trigger }: { agent: Agent; trigger: (open: boolean) => ReactElement }) {
+function ModelPickerPopover({
+  agent,
+  trigger,
+  conversation,
+}: {
+  agent: Agent;
+  trigger: (open: boolean) => ReactElement;
+  conversation?: ConversationPlace | undefined;
+}) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   return (
@@ -118,7 +141,7 @@ function ModelPickerPopover({ agent, trigger }: { agent: Agent; trigger: (open: 
       className="mp"
       trigger={trigger(open)}
     >
-      {open && <ModelPickerPanel agent={agent} onClose={() => setOpen(false)} />}
+      {open && <ModelPickerPanel agent={agent} conversation={conversation} onClose={() => setOpen(false)} />}
     </Popover>
   );
 }
@@ -177,13 +200,54 @@ export function ModelStandInLine({
   );
 }
 
-function ModelPickerPanel({ agent, onClose }: { agent: Agent; onClose: () => void }) {
+function ModelPickerPanel({
+  agent,
+  conversation,
+  onClose,
+}: {
+  agent: Agent;
+  conversation?: ConversationPlace | undefined;
+  onClose: () => void;
+}) {
   const brain = useAgentBrain(useOrg().org.id, agent.id);
   if (!brain.data) return <div className="mp__loading" aria-busy="true" />;
-  return <PickerBody agent={agent} view={brain.data} onClose={onClose} />;
+  return <PickerBody agent={agent} view={brain.data} conversation={conversation} onClose={onClose} />;
 }
 
-function PickerBody({ agent, view, onClose }: { agent: Agent; view: AgentBrain; onClose: () => void }) {
+/**
+ * "Só nesta conversa": another of the agent's models for this conversation alone, or back to its own. Shown only to
+ * who may change it, and only when its AI has another model to offer.
+ */
+function ConversationPick({ agent, place, onClose }: { agent: Agent; place: ConversationPlace; onClose: () => void }) {
+  const { t } = useTranslation();
+  const { org } = useOrg();
+  const view = useConversationModel(org.id, agent.id, place).data;
+  if (!view?.canEdit || view.options.length === 0) return null;
+  return (
+    <div className="mp__here">
+      <span className="mp__here-title">{t("brain.picker.conversation.title")}</span>
+      <ConversationModelSelect
+        agent={agent}
+        place={place}
+        view={view}
+        label={t("brain.picker.conversation.title")}
+        onSaved={onClose}
+      />
+    </div>
+  );
+}
+
+function PickerBody({
+  agent,
+  view,
+  conversation,
+  onClose,
+}: {
+  agent: Agent;
+  view: AgentBrain;
+  conversation?: ConversationPlace | undefined;
+  onClose: () => void;
+}) {
   const { t, i18n } = useTranslation();
   const { org } = useOrg();
   const api = useApi();
@@ -196,7 +260,8 @@ function PickerBody({ agent, view, onClose }: { agent: Agent; view: AgentBrain; 
   const credentials = useCredentials(org.id, can(org, "manage_credentials"));
   const platform = usePlatformKey(org.id);
   const all = models.data?.models ?? [];
-  const choices = modelChoices(all, credentials.data ?? view.keys ?? [], platform.data ?? false);
+  const policy = useBrainPolicy(org.id);
+  const choices = modelChoices(all, credentials.data ?? view.keys ?? [], platform.data ?? false, policy);
   const tiles = modelPickerTiles(t, view, agent.ownerUserId, choices, agent.model, all);
   const [tileKey, setTileKey] = useState(() => (tiles.find((x) => x.current) ?? tiles[0])?.key);
   const tile = tiles.find((x) => x.key === tileKey) ?? tiles[0];
@@ -211,7 +276,13 @@ function PickerBody({ agent, view, onClose }: { agent: Agent; view: AgentBrain; 
   const effort = effortOf(view.brain, view.effort);
 
   const refresh = () => {
-    for (const key of [keys.agentBrain(org.id, agent.id), keys.agents(org.id), keys.aiStatus(org.id)])
+    for (const key of [
+      keys.agentBrain(org.id, agent.id),
+      keys.agents(org.id),
+      keys.aiStatus(org.id),
+      // A conversation's model is for the brain it was chosen for: another brain passes it over.
+      keys.conversationModels(org.id, agent.id),
+    ])
       void qc.invalidateQueries({ queryKey: key });
   };
   const apply = async (brainInput: Parameters<typeof api.agents.setBrain>[2] | null, model?: string) => {
@@ -390,6 +461,7 @@ function PickerBody({ agent, view, onClose }: { agent: Agent; view: AgentBrain; 
           />
         </div>
       )}
+      {conversation && !isRightHand(agent) && <ConversationPick agent={agent} place={conversation} onClose={onClose} />}
       <div className="mp__foot">
         <small>{t("brain.picker.applies")}</small>
         {openPanel && (

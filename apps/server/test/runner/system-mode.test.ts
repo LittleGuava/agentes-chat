@@ -482,6 +482,11 @@ test("a system-mode runner (root) without workers does no agent work; machine-le
     agent: exec.agent,
   } as unknown as MachineRequest;
   expect(await errorCode(() => handleRequest(ctx, stream, scope))).toBe("bad_request");
+  // A browser profile's sites are root's to answer, and root refuses them as it does every profile op here.
+  const sites = { op: "browser.sites", profile: { id: "p1" }, agent: exec.agent } as unknown as MachineRequest;
+  expect(await errorCode(() => handleRequest(ctx, sites, scope))).toBe("not_allowed");
+  const forget = { ...sites, op: "browser.sites.forget", site: "example.com" } as unknown as MachineRequest;
+  expect(await errorCode(() => handleRequest(ctx, forget, scope))).toBe("not_allowed");
   // Every op has its place. The root process keeps a secret's key and sealed box until the server commits its
   // delivery, the computer's accounts and access settings, the desktops and streams, and the browsers' live views:
   // a stream's or a view's data socket needs the machine token, which no worker holds.
@@ -494,12 +499,17 @@ test("a system-mode runner (root) without workers does no agent work; machine-le
     "access.allow",
     // Root refuses it, and every op with a browser profile, until profiles have OS users of their own (ADR 0110).
     "browser.profile.delete",
+    // A profile's signed-in sites and signing it out of one are profile ops like the rest (ADR 0110 addendum 2026-11-15).
+    "browser.sites",
+    "browser.sites.forget",
     "desktop.session.start",
     "desktop.session.stop",
     "desktop.session.status",
     "stream.open",
     // The live view's data socket needs the machine token, which only root holds (ADR 0040 §7.1).
     "browser.view.open",
+    // A tunnel's data socket too; root then refuses it: a person's own computer lends its connection (ADR 0203).
+    "relay.open",
     // The phones belong to the computer, not to one agent: their lock and adb, simctl and devicectl stay with root.
     "phone.claim",
     "phone.release",
@@ -530,10 +540,31 @@ test("a system-mode runner (root) without workers does no agent work; machine-le
     "cli.install",
     // Opening Xcode on the Mac, beside its fix (listed in `MACHINE_OPS` order).
     "xcode.open",
+    // A person's own Chrome is never an agent user's: root takes these and refuses them in system mode (ADR 0202).
+    "mychrome.act",
+    "mychrome.list",
+    "mychrome.disconnect",
+    // The person's tools' settings live in the runner's user's home: root answers unsupported.
+    "local.config",
+    // A meeting's audio goes out on a data socket, which needs the machine token (ADR 0199 §4); root says it can't
+    // hear one yet (`meeting_audio_system_mode`), so nothing is offered there.
+    "meeting.listen",
+    "meeting.stop",
   ]);
+  const mine = { op: "mychrome.list" } as unknown as MachineRequest;
+  expect(await errorCode(() => handleRequest(ctx, mine, scope))).toBe("not_allowed");
   const install = { op: "cli.install", action: "start", tool: "claude" } as unknown as MachineRequest;
   const installer = { ...ctx, cliInstall: () => ({ install: { tool: "claude" as const, state: "running" as const } }) };
   expect(await handleRequest(installer, install, scope)).toEqual({ install: { tool: "claude", state: "unsupported" } });
+  // Root's home isn't the person's: their tools' settings are never read from it.
+  const settings = { ...ctx, localConfig: () => ({ files: [], servers: [], skills: [], skipped: [] }) };
+  expect(await handleRequest(settings, { op: "local.config" }, scope)).toEqual({
+    files: [],
+    servers: [],
+    skills: [],
+    skipped: [],
+    unsupported: true,
+  });
 
   if (posix) {
     system = false;

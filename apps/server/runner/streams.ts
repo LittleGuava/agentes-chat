@@ -212,12 +212,12 @@ export class DataSockets {
 
   async dial(
     streamId: string,
-    kind: "desktop" | "terminal" | "browserView" | "phone",
+    kind: "desktop" | "terminal" | "browserView" | "phone" | "relay" | "meetingAudio",
     signal?: AbortSignal,
   ): Promise<DataSocket> {
     const { relayed, ...dial } = this.opts;
-    // Phones are only reached by single-user runners, which count nothing.
-    const bytes = kind === "phone" ? undefined : relayed?.[kind];
+    // Phones, tunnels (ADR 0203) and meetings are only served by single-user runners, which count nothing.
+    const bytes = kind === "phone" || kind === "relay" || kind === "meetingAudio" ? undefined : relayed?.[kind];
     const turn = this.turn;
     let socket: DataSocket | null = null;
     socket = await openDataSocket({

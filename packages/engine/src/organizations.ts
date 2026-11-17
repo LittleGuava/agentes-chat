@@ -988,7 +988,7 @@ export async function announceProfile(db: Database, pubsub: PubSub | undefined, 
  * A change to who is in the workspace, in the audit log: the person's name and address as they were then
  * (the row outlives the account).
  */
-async function auditMember(
+export async function auditMember(
   tx: Executor,
   orgId: string,
   actorId: string,
@@ -1164,7 +1164,7 @@ async function offPlansNotOwners(tx: Executor, orgId: string, ids: string[]) {
   if (ids.length === 0) return;
   await tx
     .update(agents)
-    .set({ brain: "model", brainAccountId: null, updatedAt: new Date() })
+    .set({ brain: "model", brainAccountId: null, brainEngine: null, updatedAt: new Date() })
     .where(
       and(
         eq(agents.orgId, orgId),
@@ -1203,6 +1203,7 @@ export async function removeMember(
   const { dropMailOfOwner } = await import("./tools/scopes");
   const { removeSeat } = await import("./right-hand-seats");
   const { dropMemberDashboards } = await import("./dashboards/service");
+  const { dropAccountsOfLeaver } = await import("./connectors/personal");
   const { released, removed, handed, changed, heir, secrets, mailActions, tasks } = await db.transaction(async (tx) => {
     await lockOrgMembers(tx, orgId);
     if (target.role === "owner" && (await ownerCount(tx, orgId)) <= 1) {
@@ -1215,6 +1216,13 @@ export async function removeMember(
     await tx
       .delete(channelMembers)
       .where(and(eq(channelMembers.orgId, orgId), eq(channelMembers.userId, targetUserId)));
+    // And their phone tools here (ADR 0205): invited back later, their phone is off until they turn it on again.
+    await tx
+      .delete(schema.phoneToolGrants)
+      .where(and(eq(schema.phoneToolGrants.orgId, orgId), eq(schema.phoneToolGrants.userId, targetUserId)));
+    await tx
+      .delete(schema.phoneJobs)
+      .where(and(eq(schema.phoneJobs.orgId, orgId), eq(schema.phoneJobs.userId, targetUserId)));
     // And their inbox here, snippets included: invited back later, nothing from before returns.
     await tx
       .delete(schema.notifications)
@@ -1279,6 +1287,8 @@ export async function removeMember(
     await dropMemberDashboards(tx, orgId, targetUserId);
     // They leave every task they were on (ADR 0188): a task is never assigned to someone who can't open it.
     const tasks = await dropAssignee(tx, orgId, { type: "person", id: targetUserId });
+    // Their own accounts on per-person connections go, here now and at Composio by a job (ADR 0195 §6).
+    await dropAccountsOfLeaver(tx, targetUserId, orgId);
     // The secrets agents are waiting on from them won't come.
     const secrets = await cancelSecretRequestsFor(tx, orgId, targetUserId);
     // Their agents keep someone answering for them (approvals, budget alerts), before their plans are released: an
@@ -1412,6 +1422,7 @@ export async function deleteAccount(
   const { cancelMailboxApprovals, publishApproval } = await import("./approvals");
   const { dropMailOfOwner } = await import("./tools/scopes");
   const { removeSeat } = await import("./right-hand-seats");
+  const { dropAccountsOfLeaver } = await import("./connectors/personal");
   const done = await db.transaction(async (tx) => {
     // First, as creating a workspace does: one made in another tab meanwhile is in the plan below and closes with them.
     await lockWorkspacesOf(tx, userId);
@@ -1465,7 +1476,7 @@ export async function deleteAccount(
     const ownerless = plan.leaves.length
       ? await tx
           .update(agents)
-          .set({ brain: "model", brainAccountId: null, updatedAt: new Date() })
+          .set({ brain: "model", brainAccountId: null, brainEngine: null, updatedAt: new Date() })
           .where(
             and(
               inArray(
@@ -1480,6 +1491,8 @@ export async function deleteAccount(
       : [];
     if (options.emails) await queueAccountDeletedEmail(tx, userId, closed, options.emails);
     await enqueueAccountContact(tx, userId);
+    // Before the user row, whose deletion would take theirs with it and leave their accounts at Composio (ADR 0195 §6).
+    await dropAccountsOfLeaver(tx, userId, null);
     await tx.delete(users).where(eq(users.id, userId));
     for (const org of plan.leaves) await followOwner(tx, org.id);
     // The owner's own TypeSafe account would go on getting, and paying for, every workspace's Jev calls; and their
@@ -2359,19 +2372,26 @@ export async function joinOrganization(
   await restoreDms(tx, orgId, userId);
 }
 
-/** Marks a person as seen now in an organization (WebSocket connect/disconnect). */
-/** Not while the person is hidden: a "last seen" that keeps moving would give them away. */
+/**
+ * Marks a person as seen now in an organization (WebSocket connect/disconnect). `lastSeenAt` not while the person is
+ * hidden: a "last seen" that keeps moving would give them away. `activeAt`, which nobody else sees, always.
+ */
 export async function touchLastSeen(db: Database, orgId: string, userId: string, at = new Date()) {
   await db
     .update(organizationMembers)
-    .set({ lastSeenAt: at })
-    .where(
-      and(
-        eq(organizationMembers.orgId, orgId),
-        eq(organizationMembers.userId, userId),
-        ne(organizationMembers.availability, "hidden"),
-      ),
-    );
+    .set({
+      activeAt: at,
+      lastSeenAt: sql`case when ${organizationMembers.availability} = 'hidden' then ${organizationMembers.lastSeenAt} else ${at} end`,
+    })
+    .where(and(eq(organizationMembers.orgId, orgId), eq(organizationMembers.userId, userId)));
+}
+
+/** The person still has the workspace open (an open socket, every few minutes): only the private `activeAt` moves. */
+export async function markActive(db: Database, orgId: string, userId: string, at = new Date()) {
+  await db
+    .update(organizationMembers)
+    .set({ activeAt: at })
+    .where(and(eq(organizationMembers.orgId, orgId), eq(organizationMembers.userId, userId)));
 }
 
 export type InviteOutcome =

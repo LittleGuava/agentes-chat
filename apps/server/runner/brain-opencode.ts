@@ -302,7 +302,20 @@ export class OpencodeTurnReader {
   private boundary = false;
   private afterTool = false;
 
-  constructor(private readonly opts: { chat?: boolean; redact?: (text: string) => string } = {}) {}
+  constructor(
+    private readonly opts: {
+      chat?: boolean;
+      redact?: (text: string) => string;
+      /** Whether a tool is our bridge's, by the name the agent gives it (OpenCode: `<server>_<tool>`). */
+      isBridge?: (name: string) => boolean;
+      /** What the agent is called in a `chat` turn's breach. */
+      name?: string;
+    } = {},
+  ) {}
+
+  private bridge(name: string) {
+    return this.opts.isBridge ? this.opts.isBridge(name) : name.startsWith(BRIDGE_PREFIX);
+  }
 
   private clean(text: string) {
     return this.opts.redact ? this.opts.redact(text) : text;
@@ -345,8 +358,8 @@ export class OpencodeTurnReader {
         this.running.add(id);
         this.answer = "";
         this.afterTool = true;
-        if (this.opts.chat && !name.startsWith(BRIDGE_PREFIX) && !this.breach) {
-          this.breach = `OpenCode called a tool of its own (${name}), so the turn stopped.`;
+        if (this.opts.chat && !this.bridge(name) && !this.breach) {
+          this.breach = `${this.opts.name ?? "OpenCode"} called a tool of its own (${name}), so the turn stopped.`;
         }
         return [];
       }
@@ -362,7 +375,7 @@ export class OpencodeTurnReader {
         this.worked = true;
         this.boundary = true;
         // Our bridge's tools: the engine records its own calls.
-        if (tool.name.startsWith(BRIDGE_PREFIX)) return [];
+        if (this.bridge(tool.name)) return [];
         const failed = status === "failed";
         return [
           {
@@ -505,7 +518,7 @@ export function opencodeTurnEnv(input: {
 }
 
 /** `p`, or a rejection after `ms` (the timer cleared either way). */
-function within<T>(p: Promise<T>, ms: number, message: string): Promise<T> {
+export function within<T>(p: Promise<T>, ms: number, message: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   return Promise.race([
     p,
@@ -516,7 +529,7 @@ function within<T>(p: Promise<T>, ms: number, message: string): Promise<T> {
 }
 
 /** Whether the process has exited within `ms`. */
-const goneWithin = (exited: Promise<unknown>, ms: number) =>
+export const goneWithin = (exited: Promise<unknown>, ms: number) =>
   within(
     exited.then(() => true),
     ms,

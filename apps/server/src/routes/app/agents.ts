@@ -1,3 +1,4 @@
+import { READ_ALOUD_VOICE } from "@agenteschat/adapters";
 import {
   type AgentBrainSummary,
   type Agent as AgentRow,
@@ -32,11 +33,13 @@ import {
   deleteCredential,
   denyAgentProposal,
   denyTeam,
+  duplicateAgent,
   type EndpointNet,
   endpointOrgsOf,
   getAgent,
   getAgentBrain,
   getAgentProposal,
+  getConversationModel,
   getMembership,
   getNewAgentSetup,
   getTeam,
@@ -68,6 +71,7 @@ import {
   setAgentAppearance,
   setAgentAudience,
   setAgentBrain,
+  setConversationModel,
   setReportsTo,
   speakerOf,
   summaryModelReady,
@@ -110,9 +114,11 @@ import {
   BrainEffortSetting,
   BrainKind,
   BrainMachine,
+  BrainReserve,
   BrainSpeed,
   CommandApproval,
   ContextLimit,
+  ConversationModel,
   Credential,
   EndpointCheck,
   EndpointModel,
@@ -198,6 +204,10 @@ const AgentFields = z.object({
   mediaReplies: z.boolean().optional().openapi({
     description:
       "It may send a sticker or a GIF (ADR 0091): when someone asks for one, and after a light reply as often as the workspace's `agentMedia` allows; off: never. Like the other fields, editing it needs `manage_agents`. Default on.",
+  }),
+  readAloudVoice: z.string().regex(READ_ALOUD_VOICE).nullable().optional().openapi({
+    description:
+      "The voice its replies are read aloud in (ADR 0209): the engine's voice id (an ElevenLabs voice id, or a name the server's own engine knows); null = the server's default. Needs `manage_agents`.",
   }),
   brakes: AgentBrakes.partial().optional().openapi({
     description: "Its autonomy brakes (ADR 0131); the fields given change, the rest stay. Needs `manage_agents`.",
@@ -883,6 +893,18 @@ export function agentRoutes(deps: AppDeps) {
                   .openapi({
                     description:
                       "Its most important work for you (waiting on you, working, waiting on someone else, in line, a return to come; then the oldest), with where it shows if you read that conversation (ADR 0084). Null: none.",
+                  }),
+                queue: z
+                  .object({
+                    count: z.number().int().openapi({ description: "How many requests wait." }),
+                    askers: z.array(z.object({ type: z.enum(["person", "agent"]), id: z.string() })).openapi({
+                      description: "Who asked them, each once, oldest request first (at most 10).",
+                    }),
+                  })
+                  .nullable()
+                  .openapi({
+                    description:
+                      "The requests waiting for it that you read (ADR 0084 addendum of 2026-11-15): messages in its run's inbox and runs in line, by who wrote them. A DM or a channel you don't read never counts. Null: none, or an agent hidden from you.",
                   }),
               }),
             ),
@@ -1726,6 +1748,54 @@ export function agentRoutes(deps: AppDeps) {
     },
   );
 
+  app.openapi(
+    createRoute({
+      method: "post",
+      path: "/organizations/{orgId}/agents/{agentId}/duplicate",
+      tags,
+      security,
+      summary: "A new agent with this one's settings, owned by you (who may create agents and edit this one)",
+      description:
+        "Its role, instructions, AI, key, budget, approvals, brakes, look, audience, access, skills, repositories, sites and place in the team, each set by its own call with that call's rules: what you couldn't give an agent of yours stays as a new agent starts and is named in `skipped`. Never its memory, what it learned, conversations, channels, routines, mailboxes, databases or what people approved for good. Audited as `agent.created` with `duplicateOf`.",
+      request: {
+        params: AgentParams,
+        body: {
+          ...body(
+            z.object({
+              name: z.string().trim().max(80).optional().openapi({
+                description: "The copy's name, in the person's language (default \"{name} (copy)\").",
+              }),
+            }),
+          ),
+          required: false,
+        },
+      },
+      responses: {
+        201: json(
+          z.object({
+            agent: Agent,
+            skipped: z.array(z.enum(["access", "approvals", "budget", "brakes", "ai", "team"])).openapi({
+              description:
+                "What the copy didn't take because you may not set it: `access` (what it may use), `approvals`, `budget` (over the default), `brakes`, `ai` (its computer or a plan that can't think for it, ADR 0059), `team` (who it reports to, its group).",
+            }),
+          }),
+          "Created",
+        ),
+        ...errors,
+      },
+    }),
+    async (c) => {
+      const { orgId, agentId } = c.req.valid("param");
+      const userId = c.get("user").id;
+      const { agent, skipped } = await duplicateAgent({ db, pubsub: adapters.pubsub }, userId, orgId, agentId, {
+        name: c.req.valid("json")?.name,
+      });
+      if (agent.machineId) await publishMachineAgentsChanged(adapters.pubsub, orgId);
+      const [seesCost, viewer] = await Promise.all([canViewCost(db, userId, orgId), getMembership(db, userId, orgId)]);
+      return c.json({ agent: toAgent(agent, userId, seesCost, undefined, undefined, viewer), skipped }, 201);
+    },
+  );
+
   // ── Agent groups (ADR 0083) ───────────────────────────────────────────────
   // Every write answers with every group and tells the workspace's open apps (`agent.groups`).
   const groups = { db, pubsub: adapters.pubsub };
@@ -1986,9 +2056,17 @@ export function agentRoutes(deps: AppDeps) {
               .optional()
               .openapi({ description: "`auto` = picked per run; null = the CLI's default; omitted = keep." }),
             speed: BrainSpeed.optional().openapi({ description: "Omitted = keep." }),
+            fallbackChain: z.array(BrainReserve).max(3).optional().openapi({
+              description:
+                "Its reserve AIs in order (ADR 0118 addendum 2026-11-15), at most 3: accounts on its computer it may think with, not the one it thinks with (`brain.reserve_invalid`). A conversation goes to the first that can think while its own plan is at its limit or signed out, and back to its own plan once it has room. Omitted = keep; [] = none.",
+            }),
             contextTokens: ContextLimit.nullable().optional().openapi({
               description:
                 "The most context it reads, any brain (Claude Code and Codex compact there, the API brain drops old tool results); null = its model's window; omitted = keep.",
+            }),
+            engine: z.string().max(32).optional().openapi({
+              description:
+                "`acp` (ADR 0216): the id of an ACP agent the agent's computer declares (`BrainOption.engines`); required when switching to `acp`, omitted = keep (`brain.invalid_engine`). An ACP agent takes no `account`.",
             }),
           }),
         ),
@@ -2006,6 +2084,69 @@ export function agentRoutes(deps: AppDeps) {
       // the one an old plan was on may be none the view shows (the team's right hand, which is on no computer).
       await publishMachineAgentsChanged(adapters.pubsub, orgId);
       await publishAgentsChanged(adapters.pubsub, orgId);
+      return c.json(view, 200);
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/organizations/{orgId}/agents/{agentId}/conversation-model",
+      tags,
+      security,
+      summary:
+        "The model the agent thinks with in one conversation alone (ADR 0032, addendum 2026-11-15): a thread's, else its channel's. Whoever reads the conversation; the options only to who may change it.",
+      request: {
+        params: AgentParams,
+        query: z.object({ channelId: z.uuid(), threadId: z.uuid().optional() }),
+      },
+      responses: { 200: json(ConversationModel), ...errors },
+    }),
+    async (c) => {
+      const { orgId, agentId } = c.req.valid("param");
+      const { channelId, threadId } = c.req.valid("query");
+      return c.json(
+        await getConversationModel(db, c.get("user").id, orgId, agentId, { channelId, threadId: threadId ?? null }),
+        200,
+      );
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "put",
+      path: "/organizations/{orgId}/agents/{agentId}/conversation-model",
+      tags,
+      security,
+      summary:
+        "Give the agent another of its models in one conversation, or `model: null` back to its own (an admin or the agent's owner who reads the conversation; audited as `agent.conversation_model_changed`). Budget and cost stay the agent's.",
+      request: {
+        params: AgentParams,
+        body: body(
+          z.object({
+            channelId: z.uuid(),
+            threadId: z
+              .uuid()
+              .nullable()
+              .optional()
+              .openapi({ description: "Null or omitted: the channel as a whole." }),
+            model: z.string().max(200).nullable().openapi({
+              description:
+                "API brain: a model of the agent's own key's provider; a computer brain: one its own setting takes. Never `auto`. Null = the agent's own.",
+            }),
+          }),
+        ),
+      },
+      responses: { 200: json(ConversationModel), ...errors },
+    }),
+    async (c) => {
+      const { orgId, agentId } = c.req.valid("param");
+      const input = c.req.valid("json");
+      const view = await setConversationModel(db, c.get("user").id, orgId, agentId, {
+        channelId: input.channelId,
+        threadId: input.threadId ?? null,
+        model: input.model,
+      });
       return c.json(view, 200);
     },
   );
@@ -2034,7 +2175,7 @@ export function agentRoutes(deps: AppDeps) {
       tags,
       security,
       summary:
-        'Use one agent\'s "Quem pensa" and its Autonomia on these agents (ADR 0094), each by its own rules: who may change it, whose plan thinks for it. Each change is audited as its own (`agent.brain`, `agent.mission_command_approval`, `via: setup`); `preview` says what each would do and keeps nothing. Applied, it is what new agents start with.',
+        'Use one agent\'s "Quem pensa", its Autonomia and its approvals level on these agents (ADR 0094), each by its own rules: who may change it, whose plan thinks for it; the approvals level only with Manage agents (ADR 0173). Each change is audited as its own (`agent.brain`, `agent.mission_command_approval`, `agent.updated`, `via: setup`); `preview` says what each would do and keeps nothing. Applied, it is what new agents start with, the approvals level left out.',
       request: {
         params: OrgParams,
         body: body(
@@ -2054,6 +2195,9 @@ export function agentRoutes(deps: AppDeps) {
       // Their computers hear which account each agent thinks with now (system mode lends the folders by it).
       if (!input.preview && results.some((r) => r.status === "applied")) {
         await publishMachineAgentsChanged(adapters.pubsub, orgId);
+        await publishAgentsChanged(adapters.pubsub, orgId);
+      } else if (!input.preview && results.some((r) => r.approvalsLevel)) {
+        // The agents' list shows each one's level.
         await publishAgentsChanged(adapters.pubsub, orgId);
       }
       return c.json({ results }, 200);

@@ -179,12 +179,27 @@ export const organizationMembers = pgTable(
      * default. Read through `lodiPrefsOf` and saved by merging (packages/engine/src/right-hand-prefs.ts).
      */
     teamWeek: jsonb().$type<Record<string, unknown>>().notNull().default({}),
+    /**
+     * Last time the person had this workspace open: on connecting, on leaving and every few minutes while it stays
+     * open, hidden too (ADR 0069, addendum 2026-11-15). Never shown to anyone: `lastSeenAt` is what others may learn.
+     * Null: not known, so never away.
+     */
+    activeAt: timestamp({ withTimezone: true }),
+    /**
+     * How long the person is away before an email of the mentions, DMs and finished work they haven't read, and then
+     * at most how often (`AWAY_EMAIL_CHOICES` in packages/engine/src/away-email.ts); 0: never.
+     */
+    awayEmailMinutes: integer().notNull().default(60),
+    /** When the last of those emails was queued; the next one waits `awayEmailMinutes` after it. */
+    awayEmailAt: timestamp({ withTimezone: true }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     primaryKey({ columns: [t.orgId, t.userId] }),
     index().on(t.userId),
     uniqueIndex("organization_members_org_handle").on(t.orgId, t.handle),
+    // The away-email tick: people who want it, by when they were last active.
+    index("organization_members_away").on(t.activeAt).where(sql`${t.awayEmailMinutes} > 0`),
   ],
 );
 
@@ -241,6 +256,32 @@ export const organizationMemberRoles = pgTable(
     }).onDelete("cascade"),
     foreignKey({ columns: [t.orgId, t.roleId], foreignColumns: [orgRoles.orgId, orgRoles.id] }).onDelete("cascade"),
     index().on(t.orgId, t.roleId),
+  ],
+);
+
+/**
+ * Pages a person keeps at hand in their sidebar, in this workspace (ADR 0083, amendment of 2026-11-15): a title and an
+ * https address, opened in a new tab. Leaving the workspace takes them away. `packages/engine/src/sidebar-links.ts`
+ * checks the address and the limit.
+ */
+export const sidebarLinks = pgTable(
+  "sidebar_links",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    orgId: uuid().notNull(),
+    userId: text().notNull(),
+    title: text().notNull(),
+    url: text().notNull(),
+    /** Order in the sidebar, from 0. */
+    position: integer().notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.orgId, t.userId],
+      foreignColumns: [organizationMembers.orgId, organizationMembers.userId],
+    }).onDelete("cascade"),
+    index().on(t.orgId, t.userId, t.position),
   ],
 );
 
@@ -320,6 +361,26 @@ export const organizationInviteLinks = pgTable(
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index().on(t.orgId)],
+);
+
+/**
+ * A domain whose confirmed addresses join the workspace with a click, no invitation (ADR 0068, addendum 2026-11-15).
+ * Lowercased, never a public mailbox provider's; only one the admin who added it has a confirmed address at.
+ */
+export const organizationJoinDomains = pgTable(
+  "organization_join_domains",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    orgId: uuid()
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    domain: text().notNull(),
+    /** Cargos joining starts on, as far as whoever added it could still give them. */
+    roleIds: uuid().array().notNull().default(sql`'{}'::uuid[]`),
+    createdByUserId: text().references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique().on(t.orgId, t.domain), index().on(t.domain)],
 );
 
 /**

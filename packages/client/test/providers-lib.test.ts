@@ -169,3 +169,41 @@ describe("what an agent on a key thinks with, by name", () => {
     expect(apiModelName(t, "my-model", undefined, undefined)).toBe("my-model");
   });
 });
+
+describe("modelChoices under the workspace's rule (ADR 0191)", () => {
+  const models = [
+    { id: "gpt-6.1-sol", label: "Sol", provider: "openai", inputUsdPerMTok: 1, outputUsdPerMTok: 1 },
+    { id: "gpt-6-luna", label: "Luna", provider: "openai", inputUsdPerMTok: 1, outputUsdPerMTok: 1 },
+    { id: "claude-sonnet-5-5", label: "Sonnet", provider: "anthropic", inputUsdPerMTok: 1, outputUsdPerMTok: 1 },
+  ];
+  const keys = [
+    { id: "k1", provider: "openai" },
+    { id: "k2", provider: "anthropic" },
+  ];
+  const state = (policy: Parameters<typeof modelChoices>[3]) =>
+    Object.fromEntries(
+      modelChoices(models, keys, false, policy).flatMap(([, list]) =>
+        list.map((c) => [c.model.id, c.ruledOut ? "ruled" : c.available ? "ok" : "no-key"]),
+      ),
+    );
+
+  test("only the models it lists can be picked; the rest still show, marked as the rule's", () => {
+    expect(state({ brains: null, providers: null, models: ["gpt-6-luna"] })).toEqual({
+      "gpt-6.1-sol": "ruled",
+      "gpt-6-luna": "ok",
+      "claude-sonnet-5-5": "ruled",
+    });
+  });
+
+  test("a rule without the API brain leaves every model out", () => {
+    expect(Object.values(state({ brains: ["claude_code"], providers: null, models: null }))).toEqual([
+      "ruled",
+      "ruled",
+      "ruled",
+    ]);
+  });
+
+  test("no rule: the keys alone decide", () => {
+    expect(Object.values(state(null))).toEqual(["ok", "ok", "ok"]);
+  });
+});

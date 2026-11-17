@@ -1,6 +1,5 @@
-import { type ComposioClient, composioFile, FileTooLargeError } from "@agenteschat/adapters";
+import { type ComposioClient, composioFile, FileTooLargeError, MailAuthError } from "@agenteschat/adapters";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { FetchLike, Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import type { jsonSchemaValidator } from "@modelcontextprotocol/sdk/validation/types.js";
 import { ARTIFACT_LIMITS, type ArtifactDeps, createFileArtifact, fileReach } from "../artifacts";
@@ -21,6 +20,7 @@ import type { ToolContext, ToolDefinition, ToolSource } from "../tools/types";
 import { CONNECTOR_CATALOG, type ConnectorTool, connectorScope, fillTitle } from "./catalog";
 import { sqlArgOf } from "./classify";
 import { composioFailure, composioServiceOf } from "./composio";
+import { callProgramTool, storedProgramTools } from "./computer-programs";
 import {
   activeConnections,
   type ConnectorConnection,
@@ -40,8 +40,11 @@ import {
   syncCustomTools,
   type ToolAccess,
 } from "./custom";
+import { openHttpSession } from "./mcp-sse";
+import { markPersonalToReconnect, personalAccountFor, personalServiceLabel } from "./personal";
 import { applyToolPins } from "./pins";
-import { presetForServer } from "./presets";
+import { presetForServer, presetLocks, presetWithholds } from "./presets";
+import { isComputerProgram } from "./program-url";
 import type { McpServerInfo } from "./server-icon";
 
 /** A tool as an MCP server lists it. */
@@ -73,7 +76,7 @@ export interface McpSession {
 }
 
 /**
- * Opens a session to a connection's server (or one not stored yet). Default: streamable HTTP; tests: in-process. A
+ * Opens a session to a connection's server (or one not stored yet). Default: over HTTP (`connectOverHttp`); tests: in-process. A
  * service through Composio is opened by its workspace and Composio account (`withComposio`).
  */
 export type McpConnect = (
@@ -101,40 +104,57 @@ export async function mcpSessionOver(transport: Transport): Promise<McpSession> 
       let cursor: string | undefined;
       for (let page = 0; page < 20; page++) {
         const res = await client.listTools(cursor ? { cursor } : undefined);
-        for (const t of res.tools) {
-          tools.push({
-            name: t.name,
-            description: t.description,
-            inputSchema: t.inputSchema as Record<string, unknown>,
-            readOnlyHint: (t.annotations as { readOnlyHint?: boolean } | undefined)?.readOnlyHint ?? null,
-            destructiveHint: (t.annotations as { destructiveHint?: boolean } | undefined)?.destructiveHint ?? null,
-          });
-        }
+        for (const t of res.tools) tools.push(mcpToolOf(t));
         cursor = res.nextCursor;
         if (!cursor) break;
       }
       return tools;
     },
     async callTool(name, args, meta) {
-      const res = (await client.callTool({ name, arguments: args, ...(meta ? { _meta: meta } : {}) })) as {
-        content?: { type: string; text?: string; resource?: { text?: unknown } }[];
-        isError?: boolean;
-        structuredContent?: unknown;
-      };
-      // GitHub's `get_file_contents` sends the file itself as an embedded resource next to a one-line text block.
-      const parts = (res.content ?? []).map((c) =>
-        c.type === "text"
-          ? (c.text ?? "")
-          : c.type === "resource" && typeof c.resource?.text === "string"
-            ? c.resource.text
-            : `[${c.type}]`,
-      );
-      if (parts.length === 0 && res.structuredContent !== undefined) parts.push(JSON.stringify(res.structuredContent));
-      return { content: parts.join("\n"), isError: res.isError === true };
+      const res = await client.callTool({ name, arguments: args, ...(meta ? { _meta: meta } : {}) });
+      return mcpCallResultOf(res as McpCallPayload);
     },
     serverInfo: () => (client.getServerVersion() as McpServerInfo | undefined) ?? null,
     close: () => client.close(),
   };
+}
+
+/** A tool as MCP lists it, in our shape: the same for every transport (ADR 0215). */
+export function mcpToolOf(t: {
+  name: string;
+  description?: string;
+  inputSchema: unknown;
+  annotations?: { readOnlyHint?: boolean; destructiveHint?: boolean };
+}): McpTool {
+  return {
+    name: t.name,
+    description: t.description,
+    inputSchema: t.inputSchema as Record<string, unknown>,
+    readOnlyHint: t.annotations?.readOnlyHint ?? null,
+    destructiveHint: t.annotations?.destructiveHint ?? null,
+  };
+}
+
+/** The parts of a `tools/call` result `mcpCallResultOf` reads. */
+export interface McpCallPayload {
+  content?: { type: string; text?: string; resource?: { text?: unknown } }[];
+  isError?: boolean;
+  structuredContent?: unknown;
+}
+
+/** A `tools/call` result as the model reads it: the same for every transport (ADR 0215). */
+export function mcpCallResultOf(result: McpCallPayload): McpCallResult {
+  // GitHub's `get_file_contents` sends the file itself as an embedded resource next to a one-line text block.
+  const parts = (result.content ?? []).map((c) =>
+    c.type === "text"
+      ? (c.text ?? "")
+      : c.type === "resource" && typeof c.resource?.text === "string"
+        ? c.resource.text
+        : `[${c.type}]`,
+  );
+  if (parts.length === 0 && result.structuredContent !== undefined)
+    parts.push(JSON.stringify(result.structuredContent));
+  return { content: parts.join("\n"), isError: result.isError === true };
 }
 
 /**
@@ -144,53 +164,61 @@ export async function mcpSessionOver(transport: Transport): Promise<McpSession> 
 const MASKED_FROM = 8;
 
 /**
- * A session over streamable HTTP whose failures hold none of the header values it was opened with: a server may repeat
+ * The ways a secret value shows in what a server says: as it is, and as a JSON text writes it (a quote, a backslash
+ * and a tab its own way, and some encoders a slash as `\/`).
+ */
+export function writtenForms(value: string): string[] {
+  const json = JSON.stringify(value).slice(1, -1);
+  return [...new Set([value, json, json.replaceAll("/", "\\/")])];
+}
+
+/**
+ * Sessions over HTTP through `fetch`: Streamable HTTP, or the older HTTP+SSE transport for a server that has only it.
+ * A session's failures hold none of the header values it was opened with, over either transport: a server may repeat
  * what it was sent in its refusal, and that text goes to the log, the connection's last error and the agent. The
  * error thrown is the server's own (its class and code are read), with its words changed. A tool's answer flagged as
  * an error is a refusal in the server's words too; any other answer is left as it came.
  */
-export const connectOverHttp: McpConnect = async (connection, headers) => {
-  const secrets = Object.entries(headers)
-    // `Authorization` is a scheme and a credential: a server names the credential alone.
-    .flatMap(([name, value]) =>
-      name.toLowerCase() === "authorization" ? [value, value.slice(value.indexOf(" ") + 1)] : [value],
-    )
-    .filter((value) => value.length >= MASKED_FROM)
-    // A JSON body writes a quote, a backslash and a tab its own way, and some encoders a slash as `\/`.
-    .flatMap((value) => {
-      const json = JSON.stringify(value).slice(1, -1);
-      return [value, json, json.replaceAll("/", "\\/")];
-    });
-  const clean = (text: string) => maskValues(text, secrets);
-  const masked = <T>(work: Promise<T>) =>
-    work.catch((error: unknown) => {
-      if (error instanceof Error) {
-        // Written only where a value was: an abort's message (a DOMException's) can't be written at all.
-        for (const part of ["message", "stack"] as const) {
-          const text = error[part] ?? "";
-          const safe = clean(text);
-          if (safe !== text) error[part] = safe;
+export function connectOverHttpVia(fetch: FetchLike, options: { sseOpenMs?: number } = {}): McpConnect {
+  const tolerant = tolerantMcpFetch(fetch);
+  return async (connection, headers) => {
+    const secrets = Object.entries(headers)
+      // `Authorization` is a scheme and a credential: a server names the credential alone.
+      .flatMap(([name, value]) =>
+        name.toLowerCase() === "authorization" ? [value, value.slice(value.indexOf(" ") + 1)] : [value],
+      )
+      .filter((value) => value.length >= MASKED_FROM)
+      .flatMap(writtenForms);
+    const clean = (text: string) => maskValues(text, secrets);
+    const masked = <T>(work: Promise<T>) =>
+      work.catch((error: unknown) => {
+        if (error instanceof Error) {
+          // Written only where a value was: an abort's message (a DOMException's) can't be written at all.
+          for (const part of ["message", "stack"] as const) {
+            const text = error[part] ?? "";
+            const safe = clean(text);
+            if (safe !== text) error[part] = safe;
+          }
         }
-      }
-      throw error;
-    });
-  const session = await masked(
-    mcpSessionOver(
-      new StreamableHTTPClientTransport(new URL(connection.serverUrl), {
-        requestInit: { headers },
-        fetch: tolerantMcpFetch(outboundFetch({ ownRedirects: true })),
-      }),
-    ),
-  );
-  return {
-    ...session,
-    listTools: () => masked(session.listTools()),
-    callTool: async (...call) => {
-      const result = await masked(session.callTool(...call));
-      return result.isError ? { ...result, content: clean(result.content) } : result;
-    },
+        throw error;
+      });
+    const session = await masked(
+      openHttpSession(new URL(connection.serverUrl), headers, tolerant, mcpSessionOver, options.sseOpenMs),
+    );
+    return {
+      ...session,
+      listTools: () => masked(session.listTools()),
+      callTool: async (...call) => {
+        const result = await masked(session.callTool(...call));
+        return result.isError ? { ...result, content: clean(result.content) } : result;
+      },
+    };
   };
-};
+}
+
+/** The guarded `fetch` is made for each session, as before: it reads the process's `fetch` of that moment. */
+export const connectOverHttp: McpConnect = (connection, headers) =>
+  connectOverHttpVia(outboundFetch({ ownRedirects: true }))(connection, headers);
 
 const JSONRPC_MEMBERS = ["jsonrpc", "id", "method", "params", "result", "error"];
 
@@ -342,6 +370,8 @@ export function createConnectorToolSource(
   }
 
   async function serverTools(connection: ConnectorConnection) {
+    // A program on a computer (ADR 0215): what its last listing stored, so a turn starts nothing there.
+    if (isComputerProgram(connection)) return storedProgramTools(deps.db, connection);
     // A change to the connection lists again at once; a token refresh isn't one (it leaves `updatedAt` as it was).
     const key = `${connection.id}:${connection.updatedAt.getTime()}`;
     const hit = cache.get(key);
@@ -428,8 +458,9 @@ export function createConnectorToolSource(
    * any tool that asks may be approved for good for one agent.
    */
   async function customToolsOf(connection: ConnectorConnection): Promise<ToolDefinition[]> {
-    // A sign-in that stopped working (a Composio account too) has no tools until it is reconnected.
-    if (connection.status === "needs_reconnect") return [];
+    // A sign-in that stopped working (a Composio account too) has no tools until it is reconnected. A per-person
+    // connection's own account only lists them: each call goes through the account of the person behind the run.
+    if (connection.status === "needs_reconnect" && !connection.perPerson) return [];
     let classified = await classifiedTools(deps.db, connection.id);
     if (classified.length === 0) return [];
     const before = reclassified;
@@ -442,13 +473,22 @@ export function createConnectorToolSource(
     // The listing found changed tools: their levels are the ones worked out from the new version.
     if (reclassified !== before) classified = await classifiedTools(deps.db, connection.id);
     const byName = new Map(listed.map((t) => [t.name, t]));
+    // Read from the preset at each call, not from the stored levels: a tool its server lists later, or a level someone
+    // stored before the preset said so, still asks every time.
+    // Its locks go by the host, however the address was typed (`presetLocks`).
+    const locks = presetLocks(connection.serverUrl);
     const preset = presetForServer(connection.serverUrl)?.id;
+    const everyCall = locks?.everyCall === true;
     const composio = composioServiceOf(connection.serverUrl);
     const prefix = toolPrefixOfConnection(connection);
+    const perPerson = connection.perPerson && composio !== null;
+    // A per-person connection is named by its service: its own name may hold someone else's address.
+    const named = perPerson ? personalServiceLabel(connection) : connection.label;
     return classified.flatMap((row): ToolDefinition[] => {
       const tool = byName.get(row.name);
       const access = row.access as ToolAccess;
-      if (!tool) return [];
+      // Withheld by its preset, whatever a row stored before says (ADR 0016, addendum 2026-11-17).
+      if (!tool || presetWithholds(locks, row.name)) return [];
       const executor = tool.name === COMPOSIO_EXECUTOR;
       const sqlArg = composio ? null : sqlArgOf(tool, preset);
       // Our rules for a Composio action as they are now (its entry's `ask`, its tags at the pinned version), not only
@@ -460,7 +500,7 @@ export function createConnectorToolSource(
       return [
         {
           name: exposedToolName(prefix, tool.name),
-          description: cutText(`[${connection.label}] ${row.label}: ${said}`, 1024),
+          description: cutText(`[${named}] ${row.label}: ${said}`, 1024),
           inputSchema: tool.inputSchema?.type === "object" ? tool.inputSchema : { type: "object" },
           scope: customScope(connection.id, access),
           connectionId: connection.id,
@@ -468,12 +508,13 @@ export function createConnectorToolSource(
           connector: composio
             ? { key: connectorKeyOf({ toolkit: composio.way.toolkit }), via: "composio", tool: tool.name }
             : { key: connectorKeyOf(connection), via: "mcp", tool: tool.name },
-          connectorLabel: connection.label,
+          connectorLabel: named,
           service: preset,
           serviceIcon: connection.icon ?? undefined,
           toolPrefix: prefix,
           // A sensitive tool never runs without approval, whatever is stored.
-          sensitive: access === "approval" || row.sensitive || asks || COMPOSIO_ANY_ACTION.has(tool.name),
+          sensitive: everyCall || access === "approval" || row.sensitive || asks || COMPOSIO_ANY_ACTION.has(tool.name),
+          ...(everyCall ? { everyCall: true as const } : {}),
           // Its exact call may be approved ahead, except a tool that runs whatever its input says.
           ahead: !COMPOSIO_ANY_ACTION.has(tool.name),
           external: true, // whatever the server returns is third-party text
@@ -485,28 +526,65 @@ export function createConnectorToolSource(
           describe: (input) => {
             const actions = executor ? composioActions(input) : null;
             return {
-              title: `${connection.label}: ${actions ? actions.join(", ") : row.label}`,
+              title: `${named}: ${actions ? actions.join(", ") : row.label}`,
               detail: `${tool.name} · ${Object.entries(input)
                 .map(([k, v]) => `${k}=${typeof v === "object" ? JSON.stringify(v) : String(v)}`)
                 .join(" · ")}`,
             };
           },
+          // Whose account it goes through is settled before anyone is asked (ADR 0195 §3).
+          ...(perPerson
+            ? {
+                checkCall: async (_input: Record<string, unknown>, ctx: ToolContext) => {
+                  const found = await personalAccountFor(ctx.db, connection, ctx.runId);
+                  return "refused" in found
+                    ? { ok: false as const, message: found.refused.message, data: { code: found.refused.code } }
+                    : { ok: true as const };
+                },
+              }
+            : {}),
           execute: async (input, ctx) => {
             // Never through Composio: no server at its address ever reads a request of ours.
             const meta = composio ? undefined : await callerStatement(connection, ctx);
             let result: McpCallResult;
-            try {
-              result = await withSession(connection, (s) => s.callTool(tool.name, input, meta));
-            } catch (error) {
-              if (!composio) throw error;
-              return composioFailure(deps, connection, error);
+            if (perPerson) {
+              // Again at the call: an approval may come long after the check, and the account may have changed.
+              const found = await personalAccountFor(ctx.db, connection, ctx.runId);
+              if ("refused" in found) {
+                return { content: found.refused.message, isError: true, data: { code: found.refused.code } };
+              }
+              const mine = { ...connection, composioAccountId: found.account.composioAccountId };
+              try {
+                result = await withSession(mine, (s) => s.callTool(tool.name, input));
+              } catch (error) {
+                // A person's sign-in that stopped working is theirs alone (ADR 0195 §4).
+                if (!(error instanceof MailAuthError)) return composioFailure(deps, connection, error);
+                await markPersonalToReconnect(deps.db, found.account, error.message);
+                const again = await personalAccountFor(ctx.db, connection, ctx.runId);
+                const said = "refused" in again ? again.refused : null;
+                return {
+                  content: said?.message ?? error.message,
+                  isError: true,
+                  data: { code: said?.code ?? "connector.personal_needs_reconnect" },
+                };
+              }
+            } else if (isComputerProgram(connection)) {
+              // On its computer, as this run's agent; a computer that can't take it now is the tool's answer.
+              result = await callProgramTool(deps, connection, ctx, tool.name, input);
+            } else {
+              try {
+                result = await withSession(connection, (s) => s.callTool(tool.name, input, meta));
+              } catch (error) {
+                if (!composio) throw error;
+                return composioFailure(deps, connection, error);
+              }
             }
             if (composio && deps.composio && !result.isError) {
               const kept = await keepComposioFiles(
                 { client: deps.composio.client, artifacts: deps.artifacts, resolveHost: deps.resolveHost },
                 ctx,
                 result,
-                connection.label,
+                named,
               );
               result = { ...result, content: kept };
             }

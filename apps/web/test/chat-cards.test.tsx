@@ -444,6 +444,71 @@ describe("a question for one person", () => {
   });
 });
 
+describe("a card of several questions", () => {
+  const card = () => {
+    const m = answer("q-owner", []);
+    return {
+      ...m,
+      meta: {
+        ...m.meta,
+        question: {
+          id: "q-2",
+          agentId: ADA_ID,
+          channelId: ENG_ID,
+          threadId: null,
+          messageId: m.id,
+          text: "Qual ambiente?\nQuais serviços reinicio?\nAlguma janela?",
+          choices: null,
+          items: [
+            { question: "Qual ambiente?", choices: ["staging", "production"] },
+            { question: "Quais serviços reinicio?", choices: ["api", "workers", "web"], multiSelect: true },
+            { question: "Alguma janela?", choices: null },
+          ],
+          requestedForUserId: null,
+          status: "open",
+          answer: null,
+          answeredByUserId: null,
+        },
+      },
+    } as Message;
+  };
+
+  test("each question takes its picks and words; one send answers them all, and the card lists each answer", async () => {
+    const { state } = await openChannel(() => [card()]);
+    const rq = document.querySelector(".rq") as HTMLElement;
+    expect(rq.textContent).toContain("Qual ambiente?");
+    expect(rq.textContent).toContain("Escolha uma ou mais");
+    const send = within(rq).getByRole("button", { name: "Enviar respostas" }) as HTMLButtonElement;
+    expect(send.disabled).toBe(true);
+    expect(rq.textContent).toContain("Faltam 3");
+
+    // One pick: the second replaces the first. Several picks: each toggles.
+    await click(within(rq).getByRole("button", { name: "staging" }));
+    await click(within(rq).getByRole("button", { name: "production" }));
+    expect(within(rq).getByRole("button", { name: "staging" }).getAttribute("aria-pressed")).toBe("false");
+    await click(within(rq).getByRole("button", { name: "api" }));
+    await click(within(rq).getByRole("button", { name: "web" }));
+    expect(within(rq).getByRole("button", { name: "web" }).getAttribute("aria-pressed")).toBe("true");
+    expect(send.disabled).toBe(true);
+    const words = within(rq).getByRole("textbox", { name: "Sua resposta" });
+    await act(async () => fireEvent.change(words, { target: { value: "depois das 22h" } }));
+    await settle(2);
+    expect(send.disabled).toBe(false);
+    await click(send);
+
+    expect(state.calls.find((c) => c.method === "questions.answer")?.args[2]).toEqual({
+      answers: [{ choices: ["production"] }, { choices: ["api", "web"] }, { choices: [], text: "depois das 22h" }],
+    });
+    const closed = document.querySelector(".rq") as HTMLElement;
+    expect(closed.textContent).toContain("Você respondeu");
+    expect([...closed.querySelectorAll(".rq__answers dd")].map((d) => d.textContent)).toEqual([
+      "production",
+      "api, web",
+      "depois das 22h",
+    ]);
+  });
+});
+
 describe("a receipt's words stay whole", () => {
   test("a receipt is its sentence alone: no Desfazer, no time, no room kept for one", async () => {
     await openChannel((id) => [answer(id, [{ undoableUntil: inMs(200_000) }])]);

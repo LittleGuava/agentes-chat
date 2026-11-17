@@ -107,3 +107,31 @@ test("on the Cloud's rules: http, internal and private addresses are refused", a
     expect(saved.status).toBe(400);
   }
 });
+
+test("an endpoint at a maker's own host carries its mark in the pickers, never its address", async () => {
+  t = await createTestServer({ http: gatewayList, resolveHost });
+  const owner = browser(t);
+  await signUp(owner, "owner@example.com");
+  const { orgId } = await seedOrg(owner);
+  const save = async (label: string, baseURL: string) => {
+    const created = await owner(`/api/app/organizations/${orgId}/credentials`, {
+      json: { provider: "custom", label, apiKey: "k-12345678", endpoint: { ...endpoint, baseURL } },
+    });
+    expect(created.status).toBe(201);
+    return ((await created.json()) as { id: string }).id;
+  };
+  const deepseek = await save("DeepSeek direto", "https://api.deepseek.com/v1");
+  const gateway = await save("OpenGateway", "https://gw.example/v1");
+
+  const member = await joinByInvitation(t, owner, orgId, "bia@example.com");
+  const res = await member(`/api/app/organizations/${orgId}/models`);
+  expect(res.status).toBe(200);
+  const body = (await res.json()) as {
+    models: { id: string; endpoint?: { credentialId: string; name: string; mark?: string } }[];
+  };
+  const of = (id: string) => body.models.find((m) => m.id === customModelId(id, "llama-4"))?.endpoint;
+  expect(of(deepseek)).toEqual({ credentialId: deepseek, name: "DeepSeek direto", mark: "deepseek" });
+  // A host without a mark of its own: the generic endpoint's, which the apps draw when none comes.
+  expect(of(gateway)).toEqual({ credentialId: gateway, name: "OpenGateway" });
+  expect(JSON.stringify(body)).not.toContain("api.deepseek.com");
+});

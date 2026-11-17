@@ -71,7 +71,13 @@ export interface ToolOutput {
   /** Ground truth this call produced (tests passed, PR merged…), recorded by the gateway. */
   outcome?: { kind: OutcomeKind; subject?: string; summary?: string; details?: Record<string, unknown> };
   /** Built-in `ask_user` only: suspend the run until a person answers this question (its `why` is the gateway's). */
-  waitForAnswer?: { text: string; choices: string[] | null; requestedForUserId: string | null };
+  waitForAnswer?: {
+    text: string;
+    choices: string[] | null;
+    requestedForUserId: string | null;
+    /** Several questions, or one where several may be picked (`agent_questions.items`). */
+    items?: schema.QuestionItem[] | null;
+  };
   /** `request_secret` only: suspend the run until the person answers this request (ADR 0027). */
   waitForSecret?: { requestId: string };
   /** `schedule_action` only: suspend the run until a person decides this approval (`prepareAhead` made it). */
@@ -123,6 +129,11 @@ export interface ToolDefinition {
   toolPrefix?: string;
   /** Needs a person's approval for every call. Merge, deploy and rollback do by their name too. */
   sensitive?: boolean;
+  /**
+   * A service whose every call a person decides on its own (`McpPreset.everyCall`, ADR 0016 addendum 2026-11-17):
+   * set with `sensitive`, it is never kept with "Aprovar sempre", approved ahead or made a routine's own action.
+   */
+  everyCall?: true;
   /**
    * Set by the gateway's listing, never by a source: this agent never asks (ADR 0173), so a call of this tool opens
    * no card whatever its name or marks say.

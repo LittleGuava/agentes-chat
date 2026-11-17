@@ -1,6 +1,6 @@
 # 0084. Presence and written status, for people and agents
 
-- Status: Accepted (built: the server, the shared client, §7–§11, the web and the phone app). Addendum 2026-10-31: a run reads how its teammates are now. Addendum 2026-11-13: an agent's face says its work, and its work shows where it was handed off
+- Status: Accepted (built: the server, the shared client, §7–§11, the web and the phone app). Addendum 2026-10-31: a run reads how its teammates are now. Addendum 2026-11-13: an agent's face says its work, and its work shows where it was handed off. Addendum 2026-11-15: who else has a conversation open
 - Date: 2026-10-30
 - Code: `packages/engine/src/member-status.ts`, `packages/engine/src/agent-status.ts` (`loadAgentStatuses`, `statusCandidates`, `statusQuestions`, `askRunStatus`, `startRunStatus`, `followWork`, `set_status`; called from `executor.ts` and `run-tools.ts` `invokeWithChip`), `packages/engine/src/judge.ts` (`score`), `packages/engine/src/team.ts` (`find_agent`), `packages/engine/src/tools/run-policy.ts` (kind `self`), `packages/db/src/schema/tenancy.ts` (`organization_members.availability`, `status_*`), `packages/db/src/schema/agents.ts` (`agents.status_*`), `apps/server/src/routes/app/management.ts` (`/people`, `PUT …/me/status`), `apps/server/src/routes/app/agents.ts` (`GET …/agent-status`), `apps/server/src/realtime/ws.ts`; shared: `packages/client/src/lib/presence.ts`, `packages/ui/src/presence/badge.ts`; web: `packages/ui` `PresenceBadge` (Avatar `presence`), `apps/web/src/components/StatusDialog.tsx`, `Presence.tsx`, `hooks/usePresence.ts`; phone: `apps/mobile/src/ui/PresenceBadge.tsx`, `src/features/status/*` (route `/me/status`)
 
@@ -95,3 +95,54 @@ work; "Ausente" told people an agent due back later was gone.
     whichever run spoke last (`set_status` included), so it could carry someone else's private conversation. Out of
     office still says so to everyone.
 
+## Addendum (2026-11-15): who an agent's queue waits for
+
+An agent at work in a conversation said what it did, but not what waited behind it: a person whose message went into
+its run, or whose request sat in line for its computer, had only the receipt under their own message ("lê na próxima
+pausa"), and nobody else knew the agent had anything waiting.
+
+22. **A queue, per viewer** (`agentQueueFor` in `agent-work.ts`). A request is a message waiting in an active run's
+    inbox (`pending_message_ids`, `run-inbox.ts`), or the message behind a run in line (§18's `queued`: never started,
+    or waiting for room on its computer). Its asker is who wrote that message, a person or an agent, as the task
+    manager says who asked; the chain behind it (`authority.ts`) decides permissions, not this line. Not a request: a
+    notice (`meta.notice`), a deleted message, a routine's background run.
+23. **Only what the viewer reads counts, the count included.** The conversation must pass `agentWorkFor`'s rule (not
+    archived, not only agents in it, `channelReaderSql`), so a DM with an agent never shows to anyone else, and a
+    private channel only to who reads it. A count of hidden requests would itself say that someone wrote to the agent,
+    so there is none. An agent hidden from the viewer (the agents list's rule) has no queue for them, like its line.
+24. **Where it reads.** `GET …/agent-status` gains `queue` (`count` and `askers`: `{ type, id }` each once, oldest
+    request first, at most 10; null when nothing waits), in one more SQL statement whatever the number of agents. The
+    apps name the askers from their directory (`queueLine`): "Na fila: pedido de Tom", "Na fila: 3 pedidos de Tom e
+    Bia", "Na fila: seu pedido". The web's conversation bar says it after the one agent at work there (its time, who
+    types), and, while that agent's row is in view and the pill is gone, rests in the bar's box on its own; with
+    several agents at work there it says nothing, since it can't say whose. The list reads again when the open
+    conversation hears a message go into a run, be read there or get a run of its own (`agent.run.steered`, `read`,
+    `redispatched`); queues elsewhere follow its 30 s poll, no workspace-wide event per message.
+25. **Later.** The phone's chat (the shared `queueLine` is ready for it), the order the agent will take them in, and
+    a person's way to move or drop a request from the line.
+## Addendum (2026-11-15): who else has a conversation open
+
+People in a channel could see who was online in the workspace, never who was reading the same conversation with them
+right now, which is what tells you a question will be seen at once.
+
+22. **Open is subscribed.** A realtime socket subscribes to a channel only while one of its screens shows that
+    conversation (the channel, its task, a thread of it), so a subscription is the person having it open. A tab in the
+    background still counts, as its socket does for online. The `Presence` adapter counts it per connection
+    (`view`, `unview`, `viewers`), next to online; `ws.ts` adds it once the subscription is allowed and the socket is
+    still open (a socket closed during the check leaves nobody behind), and every way out of a subscription takes it
+    away (unsubscribe, a revoked membership, an archived channel, the socket closing).
+23. **Ids only, then a read.** A person's first connection opening it, or last one closing it, sends `channel.viewers`
+    (the channel's id and that person's, `userId`) to the conversation (`announceViewers`); never for a hidden person,
+    as with `member.status`, and never to that person's own sockets (they are never in their own list). It goes out for
+    every conversation a socket subscribes to (a DM, a task's) even where no screen shows it yet. The apps read `GET …/channels/{channelId}/viewers` (`channelViewers`): who reads the conversation
+    gets the people with it open, in the order they opened it, without themselves and without anyone hidden (they read
+    offline to everyone else, §1). The apps read it again on that event, on every (re)subscription and on
+    `member.status` (someone went hidden or came back), and never keep one from an earlier visit.
+24. **People only.** Agents have no socket and are never in it; their work already shows on their face (§16).
+    Administrators reading a private channel they are not in (ADR 0151) show like anyone with it open.
+25. **Where it shows.** The web's channel header shows up to three faces before "+N", every name (up to eight) in
+    the tip ("Aqui agora: Ana, Bruno e mais 2"), hidden under 761 px where the header keeps only its main glyphs. A
+    DM's header and the phone app don't show it yet.
+26. **One replica's view.** With the core's in-memory presence each replica knows only its own sockets: the event
+    reaches every replica's subscribers (pub/sub is Postgres), but the list answers for the replica that served the
+    read. Online (§1) has the same limit; a shared presence adapter (a module's, ADR 0002 §5) lifts both.

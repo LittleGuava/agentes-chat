@@ -197,8 +197,12 @@ export function vaultListText(
   ];
   const logins = of("login");
   if (logins.length > 0) {
+    // Only a password manager keeps an authenticator seed, never the Vault itself (ADR 0144, addendum of 2026-11-15).
+    const codes = shown.some((i) => i.kind === "login" && i.place.connectionId)
+      ? ". A login kept in a password manager may also keep its authenticator: when the site asks for its one-time code, the same step with `code: true` types it (into the code's field, or every box in order with `targets`). A login kept in the Vault has none: ask the person for the code with request_secret"
+      : "";
     parts.push(
-      `Logins (sign in with a \`type_secret\` step, or browser_type_secret, with \`login\` set to its id, in the password field, only on its site; type the username yourself with a \`fill\` step):\n${logins.join("\n")}`,
+      `Logins (sign in with a \`type_secret\` step, or browser_type_secret, with \`login\` set to its id, in the password field, only on its site; type the username yourself with a \`fill\` step)${codes}:\n${logins.join("\n")}`,
     );
   }
   const keys = of("key");

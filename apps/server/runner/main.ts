@@ -12,23 +12,31 @@ import path from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import {
   type AgentScope,
+  ALL_AGENTS,
   browserNeeded,
+  CLI_NAMES,
   MACHINE_PROTOCOL_VERSION,
   type RunnerTools,
+  relaySite,
 } from "@agenteschat/adapters/machine-protocol";
 import { createTerm, type Spinner, type Term } from "@agenteschat/setup/src/term";
 import {
+  APP_ONLY_TOOLS,
   addFolder,
+  allowRelaySite,
   ControlError,
   checkFolder,
   readAgents,
+  relayAgentIds,
   removeFolder,
+  removeRelaySite,
   resolveAgentHandle,
   setTool,
   TOOL_LABELS,
   TOOL_NAMES,
 } from "./access";
 import { type AgentUser, AgentUsers, agentGid, denySchedulers, systemLauncher } from "./agent-users";
+import { binaryRefusal, useBinaries } from "./binaries";
 import { findChrome } from "./browser";
 import {
   POLICY_NOT_IN_FORCE_EXIT,
@@ -156,12 +164,19 @@ Usage:
       Agents run it before something heavy.
   agentes-runner folders [list | allow <path> [--agent <handle>]... | remove <path> [--agent <handle>]...] [--org <id | name>]
       Folders agents may use besides their own (an agent's handle, as on the site).
+  agentes-runner relay [list | allow <site> (--agent <id or handle>... | --every-agent) | remove <site> [--agent <id>]...]
+      Lends this computer's internet connection to agents for sites that refuse data centers (each site and
+      agent named; only HTTPS on port 443, never a local address). The site sees this computer's address.
   agentes-runner tools [list | enable <tool> | disable <tool>] [--org <id | name>]
       Turns claude (Claude Code), codex (Codex), commands, browser, desktop or terminal on or off on
       this computer.
   agentes-runner services [list | allow <tcp|udp>/<port> | remove <tcp|udp>/<port>]
       System mode: what of this computer's own servers agents may reach besides DNS (an Ollama on
       tcp/11434, say). Each agent always reaches its own local ports, never another agent's.
+  agentes-runner binaries [list | set <cli> <path> | unset <cli>]
+      The program a brain runs instead of the one on the PATH (claude, codex, cursor, opencode, grok,
+      antigravity or copilot): a pinned version or a wrapper that passes --version through. In system
+      mode it must be root's alone (no link, nor a folder others can write) and runnable by others.
   agentes-runner desktop-check --agent <handle>
       Checks an agent's desktop and terminal here (Linux): starts its desktop, logs in to it as the
       person in control and as a watcher (who can't move the pointer), reads it and acts on it the
@@ -1142,6 +1157,83 @@ function safeReal(p: string) {
   }
 }
 
+const RELAY_USAGE =
+  "Usage: agentes-runner relay [list | allow <site> (--agent <id or handle>... | --every-agent) | remove <site> [--agent <id or handle>]...]";
+
+/**
+ * `agentes-runner relay …` (ADR 0203): the sites this computer lends its connection for, and to which agents. The
+ * same config the app edits; a running runner applies it at once and tells the server.
+ */
+function relay(p: Parsed): number {
+  const paired = pairedOrExit(p, runnerHome());
+  if (!paired) return 1;
+  const home = paired.home;
+  const [, sub = "list", site] = p.positional;
+  const access = effectiveAccess(paired.stored);
+  const agents = readAgents(home);
+  const nameOf = (id: string) => {
+    if (id === ALL_AGENTS) return "every agent";
+    const a = agents.find((x) => x.id === id);
+    return a ? `${a.name} (@${a.handle})` : id;
+  };
+  // The agents that use a site lent here work on another computer: named by their id (or every agent).
+  const named = relayAgentIds(agents, p.lists.get("agent") ?? [], p.flags.has("every-agent"));
+  if ("unknown" in named) {
+    console.error(
+      `${unknownAgent(named.unknown, agents)} An agent that works on another computer is named by its id (on its page on the site), or use --every-agent.`,
+    );
+    return 1;
+  }
+  const ids = named.ids;
+  try {
+    switch (sub) {
+      case "list": {
+        const sites = access.relay ?? [];
+        if (sites.length === 0) console.log("This computer lends its connection for no site.");
+        for (const g of sites) {
+          console.log(`${g.site}\n    ${g.agents.length ? g.agents.map(nameOf).join(", ") : "no agent uses it yet"}`);
+        }
+        return 0;
+      }
+      case "allow": {
+        if (!site || ids.length === 0) {
+          console.error("Usage: agentes-runner relay allow <site> (--agent <id or handle>... | --every-agent)");
+          return 1;
+        }
+        saveAccess(home, allowRelaySite(access, site, ids));
+        const stored = relaySite(site) ?? site;
+        console.log(
+          `${stored} now opens through this computer's connection for ${ids.map(nameOf).join(", ")}. The site sees this computer's address.`,
+        );
+        return 0;
+      }
+      case "remove": {
+        if (!site) {
+          console.error("Usage: agentes-runner relay remove <site> [--agent <handle>]...");
+          return 1;
+        }
+        let next = access;
+        if (ids.length) for (const id of ids) next = removeRelaySite(next, site, id);
+        else next = removeRelaySite(next, site);
+        saveAccess(home, next);
+        console.log(
+          ids.length ? `Stopped lending ${site} to ${ids.map(nameOf).join(", ")}.` : `Stopped lending ${site}.`,
+        );
+        return 0;
+      }
+      default:
+        console.error(RELAY_USAGE);
+        return 1;
+    }
+  } catch (err) {
+    if (err instanceof ControlError) {
+      console.error(err.message);
+      return 1;
+    }
+    throw err;
+  }
+}
+
 /** `agentes-runner tools …`. */
 function tools(p: Parsed): number {
   const paired = pairedOrExit(p, runnerHome());
@@ -1154,6 +1246,10 @@ function tools(p: Parsed): number {
   }
   if ((sub === "enable" || sub === "disable") && tool && (TOOL_NAMES as readonly string[]).includes(tool)) {
     const t = tool as keyof RunnerTools;
+    if (sub === "enable" && APP_ONLY_TOOLS.has(t)) {
+      console.error(`${TOOL_LABELS[t]}: turn it on in the agentes.chat app on this computer.`);
+      return 1;
+    }
     saveAccess(paired.home, setTool(access, t, sub === "enable"));
     console.log(`${TOOL_LABELS[t]} ${sub === "enable" ? "on" : "off"}.`);
     return 0;
@@ -1194,6 +1290,47 @@ function services(p: Parsed): number {
     sub === "allow"
       ? `Agents can reach ${service} on this computer.`
       : `Agents can't reach ${service} on this computer any more.`,
+  );
+  return 0;
+}
+
+const BINARIES_USAGE = `Usage: agentes-runner binaries [list | set <cli> <path> | unset <cli>] (cli: ${CLI_NAMES.join(", ")})`;
+
+/**
+ * `agentes-runner binaries …` (ADR 0218): the computer's own binary for a brain's CLI instead of the PATH's. One that
+ * can't run is refused here; the running runner applies a change within 2 s.
+ */
+function binaries(p: Parsed, home = runnerHome()): number {
+  const [, sub = "list", cli, file] = p.positional;
+  const stored = storedOrNull(home);
+  const system = stored?.mode === "system";
+  const set = stored?.binaries ?? {};
+  if (sub === "list") {
+    for (const name of CLI_NAMES) {
+      const own = set[name];
+      const why = own ? binaryRefusal(own, { system }) : null;
+      console.log(`${name.padEnd(12)} ${own ? (why ? `${own} (can't run: ${why})` : own) : "the one on the PATH"}`);
+    }
+    return 0;
+  }
+  const name = CLI_NAMES.find((n) => n === cli);
+  if (!name || (sub !== "set" && sub !== "unset") || (sub === "set" && !file)) {
+    console.error(BINARIES_USAGE);
+    return 1;
+  }
+  const next = { ...set };
+  if (sub === "set" && file) {
+    const abs = expandHome(file);
+    const why = binaryRefusal(abs, { system });
+    if (why) {
+      console.error(`${abs} can't be ${name}'s binary: ${why}`);
+      return 1;
+    }
+    next[name] = abs;
+  } else delete next[name];
+  updateConfig((c) => ({ ...c, binaries: Object.keys(next).length ? next : undefined }), home);
+  console.log(
+    next[name] ? `${name} runs ${next[name]} on this computer.` : `${name} runs the one on the PATH on this computer.`,
   );
   return 0;
 }
@@ -1485,6 +1622,11 @@ async function main(argv: string[]): Promise<number> {
     console.log(HELP);
     return command || p.flags.has("help") ? 0 : 1;
   }
+  // The computer's own binaries (ADR 0218) for every CLI this command starts; a worker takes root's from `worker.state`.
+  if (command !== "worker") {
+    const stored = storedOrNull();
+    useBinaries(stored?.binaries ?? {}, { system: stored?.mode === "system" });
+  }
   switch (command) {
     case "pair":
       return pair(p);
@@ -1513,6 +1655,8 @@ async function main(argv: string[]): Promise<number> {
       return folders(p);
     case "tools":
       return tools(p);
+    case "relay":
+      return relay(p);
     case "desktop-check":
       return desktopCheck(p);
     case "mcp": {
@@ -1545,6 +1689,8 @@ async function main(argv: string[]): Promise<number> {
       return bindCheck(p.positional.slice(1));
     case "services":
       return services(p);
+    case "binaries":
+      return binaries(p);
     case "desktop-browser":
       if (!sub) {
         console.error("Usage: agentes-runner desktop-browser <socket>");

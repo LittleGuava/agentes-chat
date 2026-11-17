@@ -7247,17 +7247,19 @@ html:not([data-pointer]) .msg-quote:focus-visible {
   height: 18px;
   border-radius: 5px;
 }
-/* "Parar": a small round icon button (stop square in a circle); a danger tint only on hover. */
+/* Its status lines under a live block ("A IA ainda não respondeu · Trocar IA", "sem notícias · Atualizar"), one under
+   the other. */
 .run-status {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
 }
 /* "Atualizar" hangs over its 16px line as the failed run's buttons do over theirs: the line keeps its own height. */
 .run-quiet > .ac-btn {
   margin-block: calc((16px - var(--control-h-sm)) / 2);
 }
+/* "Parar": a small round icon button (stop square in a circle); a danger tint only on hover. */
 .stop-run-wrap {
   position: relative;
   display: inline-flex;
@@ -8711,7 +8713,7 @@ html:not([data-pointer]) .machine-connect__toggle:focus-visible {
     margin-bottom: calc(var(--cap-top) - 2 * var(--cap-mid) - 0.5lh);
   }
 }
-/* A hold says why and where to ask, whole: it wraps instead of cutting the line. */
+/* A hold says why and where to ask, whole: it wraps instead of cutting the line (an announcement is drawn the same). */
 .hold-banner .outage__text {
   flex-wrap: wrap;
   row-gap: 2px;
@@ -8756,6 +8758,10 @@ html:not([data-pointer]) .machine-connect__toggle:focus-visible {
   .outage.hold-banner:has(> .outage__acts > .ac-btn:not(.ac-btn--ghost)) {
     padding-block: calc(var(--action-clear) + var(--control-h-sm) / 2 - 11px);
   }
+}
+/* An announcement's words keep the operator's line breaks. */
+.announcement__body {
+  white-space: pre-line;
 }
 /* Where to write for help: the address reads as part of the sentence. */
 .support-line a {
@@ -8991,6 +8997,23 @@ html:not([data-pointer]) .machine-connect__toggle:focus-visible {
   display: inline-flex;
   flex: none;
   align-items: center;
+}
+/* A computer's own MCP servers and skills (ADR 0055): its lines, then a part per kind under its own heading. */
+.local-setup__lead {
+  margin: 0;
+}
+.local-setup__part {
+  display: grid;
+  gap: var(--space-2);
+}
+.local-setup__heading {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.local-setup__main {
+  flex: 1 1 220px;
+  min-width: 0;
 }
 .agent-folders {
   display: flex;
@@ -11358,7 +11381,10 @@ html:not([data-pointer]) .agp-chipbtn:focus-visible {
   cursor: default;
   opacity: 0.55;
 }
-/* "Todos os repositórios" on top of the list, and "Levar a autonomia" and "Todos" over the agents a setup is used on. */
+/*
+ * "Todos os repositórios" on top of the list, and "Levar a autonomia", "Levar as aprovações" and "Todos" over the agents
+ * a setup is used on.
+ */
 .agp-repodialog__all,
 .agp-copydialog__all {
   flex: 1;
@@ -13350,6 +13376,56 @@ html:not([data-pointer]) .sidebar__grip:focus-visible {
   font-size: 12px;
   font-weight: 650;
 }
+/* The person's own links (ADR 0083, amendment of 2026-11-15): rows of the tools' group that aren't its tools, the
+   new tab's arrow at the end on hover and focus. */
+.sidebar__links {
+  display: contents;
+}
+.sidebar__link-out {
+  flex: none;
+  color: var(--faint);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.sidebar__item:is(:hover, :focus-visible) > .sidebar__link-out {
+  opacity: 1;
+}
+.sidebar[data-rail="true"] .sidebar__link-out {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar__link-out {
+    transition: none;
+  }
+}
+/* "Links" in the setup: a link's name over its address, which wraps whole rather than cut. The add form: the name and
+   the address side by side where they fit, the button under them at the end. */
+.sidebar-setup.sidebar-setup--links {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+.sidebar-setup__link {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.sidebar-setup__address {
+  overflow-wrap: anywhere;
+}
+.sidebar-links-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: var(--form-gap) var(--space-3);
+  align-items: start;
+}
+.sidebar-links-form > .ac-btn {
+  grid-column: 1 / -1;
+  justify-self: end;
+}
+@media (max-width: 680px) {
+  .sidebar-links-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 /*
  * The bell at the end of the account card: the inbox, 40 wide and as tall as the card's inside on every pointer, its
  * glyph the kit's 20, as the rail's tools have it.
@@ -14957,4 +15033,26 @@ html:not([data-pointer]) .rh-set__face-edit:focus-visible {
     width: auto;
     min-width: 0;
   }
+}
+
+/* A voice call in the composer's place (ADR 0198): what the call does, then its buttons, on the composer's card. */
+.voice-call {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  border-radius: var(--radius-xl);
+  background: var(--raised);
+  box-shadow: var(--e2), var(--top);
+}
+.voice-call__state {
+  margin: 0;
+  color: var(--ink2);
+}
+.voice-call__acts {
+  display: flex;
+  gap: var(--space-2);
+  margin-left: auto;
 }

@@ -11,6 +11,7 @@ import {
   IPHONE_WIFI_PROTOCOL,
   KEEP_RUNNING_PROTOCOL,
   MAX_FRAME_BYTES,
+  type MachineAgent,
   type MachineErrorCode,
   type MachineOp,
   type MachineReplies,
@@ -25,6 +26,8 @@ import {
   PHONES_PROTOCOL,
   type PubSub,
   parseRunnerFrame,
+  RELAY_PROTOCOL,
+  type RelayAgent,
   type RunnerAccess,
   type RunnerFrame,
   type RunnerPause,
@@ -45,6 +48,7 @@ import {
   storedExecutors,
   storeMachineAccess,
   storeMachineExecutors,
+  storeMachineMyChrome,
   storeMachineToolchains,
 } from "./machine-access";
 import {
@@ -338,6 +342,8 @@ export function requestTimeoutMs(request: MachineRequest) {
   if (request.op === "pull") return 630_000;
   // A clone of a big repository on a slow link: its own deadline plus slack.
   if (request.op === "git.sync") return (Math.max(1, request.timeoutSeconds) + 30) * 1000;
+  // ADR 0215: the program's own deadline (at most 300 s, as the runner holds it), plus its stop and the trip.
+  if (request.op === "mcp.stdio") return (Math.min(Math.max(1, request.timeoutSeconds), 300) + 30) * 1000;
   // A brain turn may wait on a person (a command approval) for up to 30 minutes, more than once.
   if (request.op === "brain.turn") return 3 * 3600_000;
   // A Maestro flow (with its recording) runs to its own deadline, at most 10 minutes; a recording to its length; an
@@ -405,6 +411,8 @@ export function isNewWork(request: MachineRequest) {
     // Its owner looking for, or installing, a coding CLI there.
     case "clis.check":
     case "cli.install":
+    // Its owner reading their own tools' settings to bring them here.
+    case "local.config":
       return false;
     case "secret":
       return request.action !== "discard" && request.action !== "remove" && request.action !== "activate";
@@ -516,6 +524,23 @@ export interface MachineBrowserHooks {
   connected?(machineId: string): void;
 }
 
+/**
+ * Sites through a person's computer (ADR 0203): a runner's `relay.want`, answered `relay.ready`, and the sites each
+ * agent is lent in its computer's `agents` frame.
+ */
+export interface MachineRelayHooks {
+  want?(
+    machine: { id: string; orgId: string },
+    frame: Extract<RunnerFrame, { type: "relay.want" }>,
+  ): Promise<Extract<ServerFrame, { type: "relay.ready" }>>;
+  agents?(orgId: string, machineId: string, agents: MachineAgent[]): Promise<MachineAgent[]>;
+  /** The workspace's agents on other computers, whom this one may lend a site to (empty where lending doesn't apply). */
+  lendable?(orgId: string, machineId: string): Promise<RelayAgent[]>;
+}
+
+/** Whether a computer lends any site (its comings, goings and pauses change other computers' lists). */
+const lendsSites = (access: { relay?: unknown[] } | null | undefined) => (access?.relay?.length ?? 0) > 0;
+
 export function createMachineHub(deps: MachineHubDeps) {
   const { db, pubsub } = deps;
   const replicaId = deps.replicaId ?? crypto.randomUUID();
@@ -538,6 +563,7 @@ export function createMachineHub(deps: MachineHubDeps) {
   const subscriptions: Unsubscribe[] = [];
   let hooks: MachineMissionHooks = {};
   let browserHooks: MachineBrowserHooks = {};
+  let relayHooks: MachineRelayHooks = {};
 
   const send = (conn: MachineConnection, frame: ServerFrame) => {
     if (conn.closed) return;
@@ -567,9 +593,11 @@ export function createMachineHub(deps: MachineHubDeps) {
       // Its last sign of life is its last pong (`last_seen_at` is written at most every 40 s while it is up).
       .set({ online: false, connectedReplica: null, lastSeenAt: new Date(conn.lastPong), updatedAt: new Date() })
       .where(and(eq(machines.id, machineId), eq(machines.connectedReplica, replicaId)))
-      .returning({ orgId: machines.orgId });
+      .returning({ orgId: machines.orgId, access: machines.access });
     if (!row) return false;
     await publishMachineStatus(pubsub, row.orgId ?? conn.orgId, machineId, false);
+    // ADR 0203: the sites it lent leave its workspace's agents' lists while it is away.
+    if (lendsSites(row.access)) await publishMachineAgentsChanged(pubsub, row.orgId);
     // Its running tasks become interrupted if it isn't back after the grace (any replica's worker runs it).
     // Our own stop: the runner dials the next server by itself and its tasks run on meanwhile, so only one
     // still away after a long backstop has them interrupted; it shows as an outage after the usual grace.
@@ -731,8 +759,11 @@ export function createMachineHub(deps: MachineHubDeps) {
         frame.desktop ||
         frame.terminal ||
         frame.desktopUse ||
+        frame.hostDesktop ||
+        frame.meetingAudio ||
         frame.claudeLoginMethods ||
-        frame.toolchains
+        frame.toolchains ||
+        frame.myChrome
           ? {
               executors: {
                 // A runner that hasn't looked yet leaves the CLIs out: the last ones stored stand.
@@ -743,6 +774,10 @@ export function createMachineHub(deps: MachineHubDeps) {
                 ...(frame.desktop ? { desktop: frame.desktop } : {}),
                 ...(frame.terminal ? { terminal: frame.terminal } : {}),
                 ...(frame.desktopUse ? { desktopUse: frame.desktopUse } : {}),
+                // Protocol 81: whether agents can use the person's own desktop there (ADR 0201).
+                ...(frame.hostDesktop ? { hostDesktop: frame.hostDesktop } : {}),
+                // ADR 0199 §4: whether it can hear a meeting an agent's browser is in.
+                ...(frame.meetingAudio ? { meetingAudio: frame.meetingAudio } : {}),
                 ...(system ? { mode: "system" as const } : {}),
                 ...(frame.claudeLoginMethods ? { claudeLoginMethods: frame.claudeLoginMethods } : {}),
                 ...(loginBlocked ? { claudeLoginBlocked: loginBlocked } : {}),
@@ -752,6 +787,9 @@ export function createMachineHub(deps: MachineHubDeps) {
                 ...((frame.toolchains ?? machine.executors?.toolchains)
                   ? { toolchains: { ...(frame.toolchains ?? machine.executors?.toolchains) } }
                   : {}),
+                // Protocol 82 (ADR 0202): who holds the person's lent Chrome. A restarted runner holds none, and an
+                // older one can't lend it, so what its hello leaves out isn't kept.
+                ...(frame.myChrome ? { myChrome: frame.myChrome } : {}),
               },
             }
           : {}),
@@ -820,6 +858,9 @@ export function createMachineHub(deps: MachineHubDeps) {
     }
     // Protocol 9: the agents that use this computer, for the desktop app.
     if (frame.protocol >= PAUSE_PROTOCOL) await sendAgents(conn);
+    // ADR 0203: a computer that lends sites (or lent some before) is back: its workspace's agents' lists change.
+    if (lendsSites(frame.access) || lendsSites(machine.access))
+      await publishMachineAgentsChanged(pubsub, machine.orgId);
     if (frame.protocol >= BROWSER_PROTOCOL) browserHooks.connected?.(machine.id);
     conn.pingTimer = setInterval(() => {
       // The runner redials after two heartbeats without a ping. Checked once a heartbeat, a pong older than
@@ -908,11 +949,22 @@ export function createMachineHub(deps: MachineHubDeps) {
   /** The `agents` frame (protocol 9): the org's agents pointed at this machine. */
   async function sendAgents(conn: MachineConnection) {
     if (!conn.machineId || !conn.orgId || conn.protocol < PAUSE_PROTOCOL) return;
-    const agents = await machineAgents(db, conn.orgId, conn.machineId).catch(() => null);
-    if (!agents) return;
+    const listed = await machineAgents(db, conn.orgId, conn.machineId).catch(() => null);
+    if (!listed) return;
+    // ADR 0203: the sites another computer lends each agent, only to a runner that knows what to do with them.
+    const lend = relayHooks.agents;
+    const agents =
+      lend && conn.protocol >= RELAY_PROTOCOL
+        ? await lend(conn.orgId, conn.machineId, listed).catch(() => listed)
+        : listed;
+    const lendableOf = relayHooks.lendable;
+    const lendable =
+      lendableOf && conn.protocol >= RELAY_PROTOCOL
+        ? await lendableOf(conn.orgId, conn.machineId).catch(() => undefined)
+        : undefined;
     const deleted =
       conn.protocol >= CLAUDE_SHARED_PROTOCOL ? await deletedAgentIds(db, conn.orgId).catch(() => []) : [];
-    send(conn, { type: "agents", agents, ...(deleted.length ? { deleted } : {}) });
+    send(conn, { type: "agents", agents, ...(deleted.length ? { deleted } : {}), ...(lendable ? { lendable } : {}) });
   }
 
   /** `runner.state` (protocol 9): paused, resumed or a new `until`; stored and told to the org. */
@@ -930,11 +982,15 @@ export function createMachineHub(deps: MachineHubDeps) {
         updatedAt: new Date(),
       })
       .where(eq(machines.id, machineId))
-      .returning({ orgId: machines.orgId });
+      .returning({ orgId: machines.orgId, access: machines.access });
     if (!row) return;
     await publishMachineUpdated(pubsub, row.orgId, machineId, {
       paused: await pauseForApps(db, row.orgId, conn.pause),
     });
+    // ADR 0203: paused, it lends nothing; resumed, its sites are back on its workspace's agents' lists.
+    if (wasPaused !== pauseActive(conn.pause) && lendsSites(row.access)) {
+      await publishMachineAgentsChanged(pubsub, row.orgId);
+    }
     // Resumed: what waited for this computer goes on (runs waiting for its brain, missions' queued work).
     if (wasPaused && !pauseActive(conn.pause) && hooks.online) {
       const online = hooks.online;
@@ -1041,6 +1097,24 @@ export function createMachineHub(deps: MachineHubDeps) {
       if (!row || Date.now() >= until) return { ok: false, error: { code: "bridge.cut_off", message: MCP_CUT_OFF } };
       await Bun.sleep(rpcPollMs);
     }
+  }
+
+  /** `relay.want` (ADR 0203): answered with `relay.ready`; never blocks other frames. */
+  function relayWant(conn: MachineConnection, frame: Extract<RunnerFrame, { type: "relay.want" }>) {
+    const machine = { id: conn.machineId as string, orgId: conn.orgId as string };
+    const refused = (message: string): Extract<ServerFrame, { type: "relay.ready" }> => ({
+      type: "relay.ready",
+      callId: frame.callId,
+      ok: false,
+      error: { code: "relay_none", message },
+    });
+    const want = relayHooks.want;
+    void (want ? want(machine, frame) : Promise.resolve(refused("This server lends no connection for sites")))
+      .catch((error: unknown) => {
+        deps.log?.warn("relay.want failed", { machineId: machine.id, error: String(error) });
+        return refused("No tunnel for that site now");
+      })
+      .then((out) => send(conn, out));
   }
 
   /** `mcp.list` (protocol 8): answered with `mcp.tools`; never blocks other frames. */
@@ -1508,6 +1582,8 @@ export function createMachineHub(deps: MachineHubDeps) {
       } else if (frame.type === "mcp.list") {
         touchBrain(conn, (b) => b.token === frame.token);
         mcpList(conn, frame);
+      } else if (frame.type === "relay.want") {
+        relayWant(conn, frame);
       } else if (frame.type === "brain.event" || frame.type === "brain.done") {
         touchBrain(conn, (b) => b.runId === frame.runId);
         // Brain turns (protocol 8, ADR 0032): to whichever replica runs the turn; it checks the machine.
@@ -1548,6 +1624,10 @@ export function createMachineHub(deps: MachineHubDeps) {
           ? storeMachineAccess({ db, pubsub }, machineId, frame.access)
           : storeMachineExecutors({ db, pubsub }, machineId, frame.executors)
         ).catch((error) => deps.log?.warn(`${frame.type} failed`, { machineId, error: String(error) }));
+        // The sites it lends changed (ADR 0203): the workspace's computers list their agents' sites again.
+        if (frame.type === "access.changed" && frame.access.relay && conn.orgId) {
+          await publishMachineAgentsChanged(pubsub, conn.orgId);
+        }
         // A tool turned on or a CLI found (Claude Code, Codex, commands): what waited for this computer goes on.
         if (hooks.online) {
           const online = hooks.online;
@@ -1561,6 +1641,10 @@ export function createMachineHub(deps: MachineHubDeps) {
       } else if (frame.type === "toolchains.changed") {
         await storeMachineToolchains({ db, pubsub }, conn.machineId, frame.toolchains).catch((error) =>
           deps.log?.warn("toolchains.changed failed", { machineId: conn.machineId, error: String(error) }),
+        );
+      } else if (frame.type === "mychrome.changed") {
+        await storeMachineMyChrome({ db, pubsub }, conn.machineId, frame.lent).catch((error) =>
+          deps.log?.warn("mychrome.changed failed", { machineId: conn.machineId, error: String(error) }),
         );
       } else if (frame.type === "phones.changed") {
         if (conn.protocol >= PHONES_PROTOCOL && conn.orgId) {
@@ -1666,6 +1750,11 @@ export function createMachineHub(deps: MachineHubDeps) {
     /** The agent browser's live view plugs in (set once the engine is built). */
     setBrowserHooks(next: MachineBrowserHooks) {
       browserHooks = next;
+    },
+
+    /** Sites through a person's computer plug in (ADR 0203, set once the engine is built). */
+    setRelayHooks(next: MachineRelayHooks) {
+      relayHooks = next;
     },
 
     /** Whether this replica holds the machine's socket. */

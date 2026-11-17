@@ -734,6 +734,73 @@ npx @modelcontextprotocol/inspector --cli https://chat.example.com/mcp --transpo
 The first prints the server's resource document, the second its sign-in challenge, the third the tools (with a
 personal token).
 
+Scripts and CI use the same endpoint through the `agentes` command (`packages/cli`, ADR 0219) with a personal
+token: `AGENTES_URL=https://chat.example.com AGENTES_TOKEN=agp_… agentes run @dev "Ship 1.4 to staging" --json`
+sends the task as the token's person, waits for it, prints the reply and exits 0 when it is done (3 when a person
+must approve or answer, 4 when the time ran out). `agentes help` lists the rest. A `write` token can send; a `read`
+one only waits, exports and follows. The command isn't on npm yet: from a checkout, run `bun packages/cli/src/index.ts`,
+or build one file for Node 18 or Bun with `bun run --filter @agenteschat/cli build` (`packages/cli/dist/index.js`).
+
+</details>
+
+<details>
+<summary><b>Your team in a file (team.yaml, CI)</b></summary>
+
+Agents, skills, channels, routines and notes can live in a `team.yaml` kept in git, reviewed in pull
+requests and applied to a workspace, with a check for CI that fails when the workspace and the file disagree
+(ADR 0055, addendum 2026-11-15):
+
+```yaml
+version: 1
+name: Launch Room
+id: launch-room               # what this file made is found by it: keep it when the name changes
+agents:
+  - handle: scout
+    name: Scout
+    role: Researcher
+    instructions: { file: agents/scout.md }
+    skills: [research]
+skills:
+  - file: skills/research/SKILL.md
+channels:
+  - name: launch
+    agents: [scout]
+routines:
+  - name: Morning digest
+    agent: scout
+    channel: launch
+    cron: "0 9 * * 1-5"
+    timezone: America/Sao_Paulo
+    prompt: Sum up what changed overnight.
+```
+
+Every agent needs `instructions`. It runs in the server's image, against its database, as a member named by `--as` and with that person's
+permissions. From the folder that holds the file:
+
+```sh
+docker compose run --rm -T -v "$PWD:/team:ro" agentes team plan  /team/team.yaml --as ana@example.com  # what would change
+docker compose run --rm -T -v "$PWD:/team:ro" agentes team check /team/team.yaml --as ana@example.com  # exit 6 if anything would
+docker compose run --rm -T -v "$PWD:/team:ro" agentes team apply /team/team.yaml --as ana@example.com  # make it so
+```
+
+`-` instead of the path reads the file from standard input (`… agentes team check - --as … < team.yaml`); its
+`{ file: … }` paths then can't be read. It needs the Postgres of the Docker setup: the server on this computer
+without Docker keeps its database to itself while it runs. `--org ID` picks the workspace
+when that person is in more than one. A problem in the file stops it before anything is planned, at its line
+(`team.yaml:12:5: unknown field "rol" in agents[0] …`, exit 2). Exit codes: 0 done or in sync, 1 refused or
+failed, 2 the file is invalid, 6 the check found differences.
+
+What the file no longer has stays, listed as kept, unless `--prune`: then what this same file made (same `id`,
+applied by the same person) is removed through the app, agents and channels archived, routines, skills and notes
+deleted. Nothing made by hand, by another file or another person is touched, nor a channel that was already
+there. Put back in the file, a skill comes back as it was; an agent or a channel comes back as the same one only
+after you unarchive it in the app (otherwise the agent returns with the next handle, `lead-2`, and the channel's
+name stays taken). Always apply as the same person, and keep the file's `id`: what one account applied is new to
+another, and a file without `id` takes it from `name`, so renaming the team makes a new one.
+
+The check compares the file with what the last apply brought, not with edits made in the app since: an agent's
+model and look, and a channel's topic, are set only when they are created.
+
 </details>
 
 <details>
@@ -871,6 +938,10 @@ except one a sign-in provider confirmed, which needs email to change.
 
 **Voice messages.** People hold the microphone and send audio; agents read its words, and the audio's words stay hidden until someone opens them on that message. The microphone shows only with a speech engine. As the server's owner, pick a provider and paste its key in **Settings**, or set it in the environment: `ASSEMBLYAI_API_KEY`, `ELEVENLABS_API_KEY`, `SONIOX_API_KEY`, `GROQ_API_KEY`, `OPENAI_SPEECH_API_KEY` or `DEEPINFRA_API_KEY`, with `SPEECH_ENGINES` for the order they are tried. With any of these, the audio goes to that provider to become text. DeepInfra is the cheapest of them, with the same Whisper as Groq. `LOCAL_SPEECH_URL` points at a server of your own that speaks the OpenAI format (Speaches, a local Whisper or Parakeet), and the audio stays with you: `LOCAL_SPEECH_API_KEY` if it asks for a key, and `LOCAL_SPEECH_WARM=on` if it loads its model on demand and can start when someone presses the microphone (`POST <LOCAL_SPEECH_URL>/warm`). Every request to it names the workspace in `X-Agentes-Org`, and one that takes more than half a minute plus twice the recording goes to the next engine. A self-hosted server has no limit on minutes. Engines hear the language in the audio: the app's language goes only to Soniox, as a hint.
 
+**Voice calls.** In a DM with an agent, the phone beside the microphone starts a call by turns: each time the person stops speaking, what they said goes as a voice message, and the agent's reply is read aloud. Calls need voice messages and a text-to-speech server in the OpenAI format at `VOICE_CALL_SPEECH_URL`: OpenAI itself (`https://api.openai.com/v1` with `VOICE_CALL_SPEECH_API_KEY`, and the replies' words go to OpenAI) or one of your own, such as Kokoro-FastAPI or Speaches, so the words stay with you. `VOICE_CALL_SPEECH_MODEL` (`tts-1`) and `VOICE_CALL_SPEECH_VOICE` (`alloy`) pick what it reads with. The audio is made when someone listens and is not kept. A key set for voice messages alone never turns calls on.
+
+**Replies read aloud.** "Ouvir" on an agent's reply plays it as speech, and each person can have new replies read on their device. It is off until you pick an engine with `READ_ALOUD_ENGINE`: `elevenlabs` uses `ELEVENLABS_API_KEY` and sends the reply's words to ElevenLabs; `local` uses a server of your own in the OpenAI speech format at `READ_ALOUD_URL` (Kokoro, Speaches), with `READ_ALOUD_MODEL` and `READ_ALOUD_API_KEY`, and the words stay with you. A key set for voice messages alone never turns it on. Each agent may have its own voice on its page; `READ_ALOUD_VOICE` is the default. The audio is kept `READ_ALOUD_CACHE_DAYS` (7) on the workspace's storage, so a reply is made once for everyone who listens. A self-hosted server has no daily limit.
+
 **Voice messages on this machine.** The `speech` profile runs NVIDIA's Parakeet on this server, as agentes.chat's Cloud does: add `speech` to `COMPOSE_PROFILES` and set `LOCAL_SPEECH_URL=http://speech:8000/v1`, then `docker compose up -d`. The first pull is about 1 GB, its models included; once it has started, it needs no internet, and its network reaches only the app. Parakeet knows 25 European languages and picks the one spoken, once a language guess gives them together at least `SPEECH_LANGUAGE_MIN` (0.7); another language, an unsure guess, a recording it hears no words in, or one that arrives when every worker is taken, goes to the next engine at once, so give it one: `SPEECH_ENGINES=local,deepinfra` with `DEEPINFRA_API_KEY`, for example. Without one, a recording in another language goes out as audio with no words, and a busy server's wait for the job's retries; `SPEECH_LANGUAGE_MIN=0` then gives Parakeet every recording, unsure ones included. By default it takes up to 4 CPUs and 4 GB of memory (`SPEECH_CPUS`, `SPEECH_MEMORY`; Docker refuses more CPUs than the machine has, so set `SPEECH_CPUS=2` on a 2-CPU server), runs 2 recordings at once on 2 threads each (`SPEECH_WORKERS`, `SPEECH_THREADS`) and lets 4 more wait up to 3 seconds each (`SPEECH_QUEUE`, `SPEECH_WAIT_SECONDS`); a short note takes a few seconds. `LOCAL_SPEECH_API_KEY`, when set, is the key both sides use. The service runs `ghcr.io/agentes-chat/speech`, published with each release under the app's tags, and `AGENTES_SPEECH_IMAGE` holds a version; from a checkout, `docker build -t agentes-speech:local deploy/speech` builds it (downloading the models from Hugging Face), with `AGENTES_SPEECH_IMAGE=agentes-speech:local`.
 
 Recordings are kept with your files, outside the Drive, for `VOICE_RETENTION_DAYS` (90 by default; 0 keeps them forever). A daily sweep then deletes the audio; the message and its words stay for agents and search, and the player says the recording is gone.
@@ -892,6 +963,14 @@ The model may give at most 1024 numbers per vector; fewer are padded with zeros.
 volume. With all four `S3_*` variables set they go to that bucket instead, and with neither, into
 Postgres. Choose before the first upload: a file stays in the store it was written to. An
 organization can also keep its files in a bucket of its own (**Settings → Storage**).
+
+**Public pages (optional).** An agent can publish a page it made at an address anyone with the link
+opens, after a person approves (`publish_page`, ADR 0211). Point a second host name at this server, on a
+domain of its own (`pages.example.net`, not a subdomain of the app's), keep the `Host` header in the proxy
+as above, and set `PUBLISHED_PAGES_URL=https://pages.example.net`. That host serves only pages, sandboxed
+and cut off from the network, and the app's host never serves one. The server refuses to start when it is
+`PUBLIC_URL`'s host. A page comes down from the file's **Compartilhar** (Despublicar), when the file goes to
+the trash, or when the workspace is held.
 
 **Services through Composio (optional).** Google Drive, Google Calendar, Sheets and Docs, Slack,
 Microsoft Teams, OneDrive, HubSpot, Salesforce, Zendesk, Instagram, Facebook Pages, LinkedIn, YouTube,
@@ -1085,6 +1164,13 @@ one, `https://app.agentes.chat/api/desktop/update` (its version and package type
 for its newest version from the browser (Connect a computer, above, says what that request carries).
 The instance itself downloads nothing from agentes.chat.
 
+**New releases.** To tell the installation's owner that a newer version is out (a card in **Settings →
+General** with its notes and the command that installs it), the server asks GitHub's public API for the
+releases of `DESKTOP_RELEASES_REPO` (`GET https://api.github.com/repos/agentes-chat/agentes-chat/releases`),
+only while the owner has Settings open and at most once every 12 hours. The request carries no token and
+nothing about the server beyond its own address. `UPDATE_CHECK=off` in `.env` stops it. agentes.chat's own
+servers and the desktop app's server never ask.
+
 **Help pages.** The app's help links ("How computers work", "About this computer") open the public docs at
 `https://agentes.chat/docs`, in the reader's language (`/pt/docs`, `/zh/docs`, `/fr/docs`…), the same pages for
 every server. They open in a new tab with no referrer and carry only the page, the language and the section, never
@@ -1268,6 +1354,16 @@ installed with `sudo npm install -g @github/copilot` is already there for every 
 Commands run as the user that runs the runner, so give it a dedicated user or a VM.
 `agentes-runner tools disable commands` (or `claude`, `codex`, `cursor`, `opencode`, `grok`, `antigravity` or `copilot`) turns a capability off on that
 computer, and `agentes-runner folders allow <path>` shares a folder besides the agents' own.
+
+**Any other ACP agent.** A coding agent that speaks the Agent Client Protocol on its standard input and
+output (agentclientprotocol.com) can think for agents too, once you declare it in the runner's
+`config.json` (`~/.agentes-runner/config.json`) and restart the runner:
+`"acpEngines": [{ "id": "vibe", "name": "Mistral Vibe", "command": "/home/me/.local/bin/vibe-acp", "args": [], "env": {} }]`
+(`id` lowercase letters, digits and `-`, up to 32; at most 8 agents). Sign it in yourself in a terminal as the
+runner's user. The runner announces each one with the models it offers, never its command, and only you
+can add or change one: the server can't. It is on while commands are (`agentes-runner tools disable commands`
+turns it off), answers its own permission requests yes, with no sandbox of ours (as OpenCode's), and isn't
+available to a runner in system mode yet (ADR 0216).
 
 On a Linux server, the installer's `--system` option (below) installs Google Chrome from Google's apt
 repository (its signing key checked against its fingerprint) when the computer has none, with a
@@ -1611,6 +1707,25 @@ kept only in the folder (`provider.json`, mode 600); the server keeps its last 4
 turn's requests go comes from the runner's own list of plans, not from anything a project can set.
 Each person adds them in **Settings → AI and usage**.
 
+**A program of your own for a brain.** The runner finds Claude Code, Codex, Cursor's `agent`, OpenCode, Grok
+Build, `agy` and Copilot on the PATH it sees. To run another one (a pinned version, or a wrapper script that
+sets something up and then starts the real CLI), point that brain at it on the computer:
+`agentes-runner binaries set claude /opt/claude-2.1.300/claude` (also `list` and `unset <cli>`; with
+`--system`, run it with `sudo`), or `"binaries": { "claude": "/opt/…" }` in the runner's `config.json`. It
+applies within 2 seconds to every CLI started after it: turns, sign-ins, usage checks and version checks;
+a brain process already open keeps its program until it closes when idle (`brainIdleMinutes`) or the runner
+restarts. A wrapper must pass `--version` (and `auth status`, `models`) through to the CLI. The computer's
+page in the desktop app shows the path under that CLI, and the version it reported. A path that isn't there
+or can't run makes that CLI "won't start" with the reason, and the one on the PATH is not used in its place.
+Only whoever runs the computer sets it, never the server: pairing again keeps it, and nothing the server
+sends can change it. With every agent running as the runner's own user (the default install) the runner
+keeps agents' commands out of its folder, as it does the account folders, but the OS doesn't; with
+`install.sh --system` the config is root's. There root runs that program too (version checks, sign-ins) and
+each agent runs it as its own user, so the file and every folder above it must be root's and writable by no
+one else, no symlink (point at its target, `readlink -f`), and runnable by others (`chmod 755`): `/opt` or
+`/usr/local`, not a home folder. On Windows, Cursor's `agent`, Grok Build and `agy` start only an `.exe`, as
+they do from the PATH; the others also take a `.cmd` wrapper.
+
 **One sign-in for all of your agents.** An account signed in once on a computer thinks for every agent
 you give it there, with no other sign-in (**Use for…** in **Settings → AI and usage**, or the account
 in an agent's **Who thinks**). With every agent running as the runner's own user, that is any account.
@@ -1643,7 +1758,8 @@ computer's backups: they hold sign-ins. The server's database never has them.
 <summary><b>Upgrades</b></summary>
 
 Download the compose file again with each release, since a release can change it, then pull and
-restart. Take it from the release's tag (here `v1.2.3`, the newest on the
+restart. When a newer release is out, the installation's owner sees it in **Settings → General**, with
+these commands for its version (`UPDATE_CHECK=off` hides it). Take it from the release's tag (here `v1.2.3`, the newest on the
 [releases page](https://github.com/agentes-chat/agentes-chat/releases)), so it matches the image:
 
 ```sh
@@ -1693,6 +1809,47 @@ only when a release's compose file moves that pin. The new file, `docker compose
 `docker compose up -d` then recreate the `postgres` container on the new image, keeping the `pgdata`
 volume. That covers Postgres 18 minor releases and pgvector updates; a new Postgres major version
 can't open the old data directory, so moving to one takes a dump and a restore into a new volume.
+
+#### Updating from the app
+
+The installation's owner (its first account) can update the app from **Settings › General › Server
+updates**, with a copy of the database first and the way back when the new version never gets
+healthy (ADR 0200). It takes the optional `updater` service: the only container that gets the Docker
+socket, which is root on this machine. It has no network and shares nothing with the app but two
+volumes: one where the app leaves a request that says nothing, and one it reads the status from. The
+updater can't be told which image, version or flag to use: it moves the `agentes` service to whatever
+`AGENTES_IMAGE` points at in the registry now, and never moves a reference pinned by digest.
+
+Its image isn't published yet, so build it here first (from a checkout of this repository, or its
+`deploy/updater` folder), then add it to `.env`:
+
+```sh
+docker build -t agentes-updater:local deploy/updater
+```
+
+```sh
+COMPOSE_PROFILES=tailscale,updater        # keep the profiles you had, and add updater
+AGENTES_UPDATER_IMAGE=agentes-updater:local
+SERVER_UPDATER_DIR=/updater
+```
+
+```sh
+docker compose up -d
+```
+
+One update pulls the app's image (nothing more happens when it's the one running), stops the app,
+dumps the database into the updater's own `update-backups` volume (the three newest stay), starts the
+new version and waits up to 5 minutes (`UPDATER_WAIT_SECONDS` on the service) for its health check.
+If it never gets healthy, the updater drops the database, restores the dump into it and starts the
+previous image again. Whatever asks, it runs one update at a time and waits 4 minutes after each one. If the updater itself stops halfway (the machine restarts), it takes the update
+back when it starts again. Uploaded files aren't copied: an update doesn't change them.
+
+The card says how the last update went. When it says one didn't finish:
+
+```sh
+docker compose logs updater                                       # what it did, step by step
+docker compose run --rm --entrypoint ls updater /var/lib/agentes-updater/backups   # the copies
+```
 
 </details>
 

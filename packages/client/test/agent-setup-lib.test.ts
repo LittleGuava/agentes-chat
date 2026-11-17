@@ -3,6 +3,7 @@ import type { TFunction } from "i18next";
 import { createHttpApi } from "../src/api/http-client";
 import type { AgentBrain, AgentSetupResult, Model, NewAgentSetup } from "../src/api/types";
 import {
+  approvalsWords,
   changes,
   newAgentStart,
   newAgentStartText,
@@ -85,6 +86,30 @@ describe("Usar em outros agentes", () => {
     );
     // After "Usar": who thinks with it now, who took only the Autonomia, who didn't change (one asked is gone).
     expect(setupOutcome(withAutonomy, 6)).toEqual({ done: 3, autonomyOnly: 1, missed: 2 });
+  });
+
+  test("the approvals level: who changes only it can take it too, and it isn't counted as a miss", () => {
+    const onPc = { reason: "other_computer", params: { computer: "PC" } } as const;
+    const level = { from: "risky", to: "never" } as const;
+    const withLevel: AgentSetupResult[] = [
+      { agentId: "a", status: "skipped", reason: "not_allowed" },
+      { agentId: "f", status: "skipped", ...onPc, approvalsLevel: level },
+      { agentId: "g", status: "skipped", ...onPc, autonomy: { from: "always", to: "never" }, approvalsLevel: level },
+      { agentId: "h", status: "skipped", ...onPc, autonomy: { from: "always", to: "never" } },
+      { agentId: "e", status: "same", approvalsLevel: level },
+    ];
+    expect(withLevel.map(changes)).toEqual([false, true, true, true, true]);
+    expect(takers(withLevel)).toEqual(["f", "g", "h", "e"]);
+    const L = "approvalsLevel";
+    expect(setupResultLine(t, withLevel[1] as AgentSetupResult, { now: "Automático" })).toBe(
+      `${W}.reasons.other_computer {"computer":"PC"} · ${W}.approvals {"from":"${L}.risky.title","to":"${L}.never.title"}`,
+    );
+    expect(setupResultLine(t, withLevel[2] as AgentSetupResult, { now: "Automático" })).toBe(
+      `${W}.reasons.other_computer {"computer":"PC"} · ${W}.autonomy {"from":"${A}.always","to":"${A}.never"} · ${W}.approvals {"from":"${L}.risky.title","to":"${L}.never.title"}`,
+    );
+    // Those that kept their AI and took the level are counted apart, never as agents that didn't change.
+    expect(setupOutcome(withLevel, 5)).toEqual({ done: 1, autonomyOnly: 1, approvalsOnly: 2, missed: 1 });
+    expect(approvalsWords(t, "never")).toBe(`${L}.changed {"value":"${L}.never.title"}`);
   });
 
   test("more agents than one call takes go in calls of 200, the results in the order asked", async () => {

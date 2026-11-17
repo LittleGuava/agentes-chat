@@ -51,6 +51,7 @@ import {
   windowKey,
 } from "./desktop-tree";
 import { RunnerError } from "./errors";
+import type { HostDialect } from "./host-desktop";
 import { readLines } from "./lines";
 import { isAbsoluteRequest, resolveInRoots, resolveInWorkspace } from "./paths";
 import { KeyedQueue } from "./queue";
@@ -119,8 +120,12 @@ const PACKAGE = /^[a-z0-9][a-z0-9.+-]{0,40}$/;
 /** What a list opened by `select` offers. */
 const OPTIONS = new Set(["menuitem", "menuitemradio", "menuitemcheckbox", "listitem", "cell", "treeitem"]);
 
-/** The session's and the panel's own apps, and the desktop's menu: their Log Out ends the agent's desktop. */
-const SESSION_APPS = /^(xfce4-panel|xfce4-session(-logout)?|xfdesktop|wrapper-[\d.]+)$/i;
+/**
+ * The session's and the panel's own apps, and the desktop's menu: their Log Out ends the agent's desktop. On a
+ * person's Windows (ADR 0201), the shell's: the Start menu's Sign out, Lock and power buttons.
+ */
+const SESSION_APPS =
+  /^(xfce4-panel|xfce4-session(-logout)?|xfdesktop|wrapper-[\d.]+|explorer|StartMenuExperienceHost|ShellExperienceHost|SearchHost)$/i;
 /** What ends the session, in English and pt-BR, as `plain` writes it. */
 const SESSION_ENDING = new Set([
   "log out",
@@ -155,6 +160,10 @@ const SESSION_ENDING = new Set([
 const SESSION_KEYS = new Set(["ctrl+alt+Delete", "ctrl+alt+l", "ctrl+alt+BackSpace"]);
 /** Desktop entries that log out or lock. */
 const SESSION_ENTRIES = /^(xfce4-session-logout|xflock4)\.desktop$/i;
+/** Windows' keys that lock the person's screen or open the secure desktop (ADR 0201 §3). */
+const HOST_SESSION_KEYS = new Set(["super+l", "ctrl+alt+Delete", "ctrl+shift+Escape"]);
+/** An app on the person's Start menu, as the Windows helper lists it: which menu, then the shortcut's path in it. */
+const HOST_APP_ID = /^(user|common):[^\0\r\n]{1,400}$/;
 
 /** A name as compared: no accents, lowercase, single spaces, no dots or ellipsis at the end. */
 const plain = (s: string) =>
@@ -319,6 +328,13 @@ export interface DesktopManagerOptions {
   system?: Pick<DesktopSystem, "platform" | "uid" | "which">;
   /** Tests: how a helper starts (default: `python3 -I -c <source>`). */
   command?: string[];
+  /**
+   * Host computer use (ADR 0201): the person's own desktop through this helper, not the agents' own. The switch
+   * and the person's yes are checked by whoever calls (`handlers.ts`, `HostConsent`).
+   */
+  host?: HostDialect;
+  /** Host use: the screen locked (or the secure desktop came up) under an agent: its session ends. */
+  onLocked?: (agentId: string) => void;
   idleMs?: number;
   requestMs?: number;
   now?: () => number;
@@ -349,6 +365,8 @@ interface Use {
   read?: string;
   /** A person took control during the `act` under way. */
   taken?: boolean;
+  /** Host use: the person's yes came since the last input; their input before it (the click on Allow) is forgotten. */
+  granted?: boolean;
 }
 
 /** Where an action lands: a point, and the element of the last look it is on. */
@@ -455,16 +473,24 @@ const tookOver = () =>
   bad(
     "A person took control of your desktop, so this stopped where it was. What it typed so far stays there: don't type it again, look at the screen before going on.",
   );
+const personMoved = () =>
+  bad(
+    "The person is using their mouse or keyboard, so this stopped where it was. What it typed so far stays there: look at the screen again, and go on only once they leave it to you.",
+  );
+const secretRefused = () =>
+  bad(
+    "That is a password field: nothing is typed into one on a person's screen. Ask them to type it themselves, then go on.",
+  );
 
 /** The helper's refusal as the agent reads it; a gone element is named by its ref, in the plan's words. */
-function helperError(err: HelperFailure, ref?: string): RunnerError {
+function helperError(err: HelperFailure, ref?: string, host = false): RunnerError {
   switch (err.code) {
     case "stale":
       return ref ? staleRef(ref) : new RunnerError("not_found", `stale: ${err.message}`);
     case "mismatch":
       return bad("the text didn't come out as written");
     case "stopped":
-      return tookOver();
+      return host ? personMoved() : tookOver();
     case "failed":
     case "bad_request":
       return bad(err.message);
@@ -481,7 +507,7 @@ class Helper {
   private next = 1;
   private pending: {
     id: number;
-    op: HelperOp;
+    op: HelperOp | "forget";
     resolve: (data: unknown) => void;
     reject: (err: Error) => void;
     timer: ReturnType<typeof setTimeout>;
@@ -492,11 +518,13 @@ class Helper {
 
   constructor(
     command: string[],
-    opts: { cwd: string; env: Record<string, string> },
+    opts: { cwd: string; env: Record<string, string>; preamble?: string },
     private readonly onGone: (helper: Helper, why: string | null) => void,
   ) {
     const [file = "", ...args] = command;
     this.child = spawn(file, args, { cwd: opts.cwd, env: opts.env, stdio: ["pipe", "pipe", "pipe"] });
+    // The Windows helper's source comes first on its stdin (`winHelperSourceLine`).
+    if (opts.preamble) this.child.stdin.write(opts.preamble);
     readLines(
       this.child.stdout,
       MAX_FRAME_BYTES,
@@ -524,7 +552,7 @@ class Helper {
     });
   }
 
-  request(op: HelperOp, body: object, timeoutMs: number): Promise<unknown> {
+  request(op: HelperOp | "forget", body: object, timeoutMs: number): Promise<unknown> {
     if (this.gone) return Promise.reject(new RunnerError("desktop_unavailable", "The desktop helper stopped"));
     const id = this.next++;
     return new Promise((resolve, reject) => {
@@ -610,6 +638,8 @@ export class DesktopManager {
   private readonly now: () => number;
   private readonly requestMs: number;
   private readonly numbered: Map<string, { last: number }>;
+  /** Host use: a yes that came before the agent's first request. */
+  private readonly grantedEarly = new Set<string>();
 
   constructor(private readonly opts: DesktopManagerOptions) {
     this.sys = opts.system ?? hostSystem();
@@ -625,6 +655,7 @@ export class DesktopManager {
 
   /** `hello.desktopUse`: whether agents can use their desktops here, and what is missing when they can't. */
   info(): RunnerDesktopUseInfo {
+    if (this.opts.host) return this.opts.host.info();
     if (this.sys.platform !== "linux") return { available: false, reason: NEEDS_LINUX, code: "desktop_use_linux" };
     const refusal = this.opts.workers ? null : ownUserRefusal(null, this.helperUid, this.opts.uids?.() ?? null);
     if (refusal) return { available: false, reason: refusal, code: "desktop_use_own_user" };
@@ -654,11 +685,32 @@ export class DesktopManager {
     settle: boolean,
     where: DesktopWhere,
   ): Promise<MachineReplies["desktop.act"]> {
-    const a = parseAction(action);
+    const a = parseAction(action, this.opts.host !== undefined);
     return this.serial(agent, (use) => {
       use.taken = false;
       return this.actNow(use, a, settle, where);
     });
+  }
+
+  /**
+   * Host use: the person said yes to `agentId` just now. Their click on Allow is their own input, which would stop
+   * the agent's first action: the helper forgets what came before it, once, before that action.
+   */
+  granted(agentId: string) {
+    const use = this.uses.get(agentId);
+    if (use) use.granted = true;
+    else this.grantedEarly.add(agentId);
+  }
+
+  /** Host use: the screen is nobody's now (Stop, the switch, the lock): the helper stops at once, input and all. */
+  release(agentId?: string) {
+    for (const use of this.uses.values()) {
+      if (agentId && use.agent.id !== agentId) continue;
+      use.taken = true;
+      this.stop(use);
+    }
+    if (agentId) this.grantedEarly.delete(agentId);
+    else this.grantedEarly.clear();
   }
 
   /** A person took control of the agent's desktop: its keys and pointer path under way stop at the next key or step. */
@@ -704,6 +756,8 @@ export class DesktopManager {
    * No look is taken, so the agent's refs and its last look stay as they were.
    */
   async text(agent: AgentScope): Promise<MachineReplies["desktop.text"]> {
+    if (this.opts.host)
+      throw new RunnerError("desktop_unavailable", "The person's own screen is never read for screening");
     const tesseract = this.sys.which("tesseract");
     if (!tesseract) throw new RunnerError("desktop_unavailable", NO_TESSERACT);
     return this.serial(agent, async (use) => {
@@ -728,8 +782,7 @@ export class DesktopManager {
             isRecord(a) &&
             isString(a.id) &&
             a.id.length <= DESKTOP_LIMITS.path &&
-            APP_ID.test(a.id) &&
-            !SESSION_ENTRIES.test(a.id) &&
+            (this.opts.host ? HOST_APP_ID.test(a.id) : APP_ID.test(a.id) && !SESSION_ENTRIES.test(a.id)) &&
             isString(a.name),
         )
         .map((a) => {
@@ -767,6 +820,7 @@ export class DesktopManager {
 
   /** The agent's desktop, started when it isn't running; a desktop that started afresh gets a new helper and refs. */
   private async use(agent: AgentScope): Promise<Use> {
+    if (this.opts.host) return this.hostUse(agent);
     if (this.sys.platform !== "linux") throw new RunnerError("desktop_unavailable", NEEDS_LINUX);
     // Root in system mode serves none: `OP_ROUTES` sends these to the agent's worker.
     const refusal = this.opts.workers
@@ -807,6 +861,38 @@ export class DesktopManager {
       };
       this.uses.set(agent.id, use);
     }
+    use.agent = agent;
+    use.lastUsed = this.now();
+    return use;
+  }
+
+  /** Host use: the person's one desktop, already running; no OS user of the agent's to check (ADR 0201 §3). */
+  private hostUse(agent: AgentScope): Use {
+    const host = this.opts.host as HostDialect;
+    const info = host.info();
+    if (!info.available) throw new RunnerError("desktop_unavailable", info.reason ?? "Not served on this computer");
+    let use = this.uses.get(agent.id);
+    if (!use) {
+      let numbered = this.numbered.get(agent.id);
+      if (!numbered) {
+        numbered = { last: 0 };
+        this.numbered.set(agent.id, numbered);
+      }
+      use = {
+        agent,
+        display: 0,
+        xauthority: "",
+        home: host.home,
+        since: 0,
+        refs: desktopRefs(numbered),
+        last: null,
+        helper: null,
+        lastUsed: 0,
+        failures: 0,
+      };
+      this.uses.set(agent.id, use);
+    }
+    if (this.grantedEarly.delete(agent.id)) use.granted = true;
     use.agent = agent;
     use.lastUsed = this.now();
     return use;
@@ -872,6 +958,7 @@ export class DesktopManager {
       }
       case "fill": {
         const spot = await this.spot(use, a.at, a.kind);
+        this.refuseSecret(use, spot);
         ref = spot.ref;
         const node = spot.target?.editable ? spot.target.node : undefined;
         goes = [{ point: spot.point, act: "type" }];
@@ -882,6 +969,7 @@ export class DesktopManager {
       }
       case "type": {
         const spot = a.at ? await this.spot(use, a.at, a.kind) : null;
+        if (spot) this.refuseSecret(use, spot);
         ref = spot?.ref;
         if (spot) goes = [{ point: spot.point, act: "type" }];
         steps = [...(spot ? [{ click: spot.point }] : []), { type: a.text }];
@@ -930,9 +1018,27 @@ export class DesktopManager {
     return { look: lookReply(look), ...(settled === false ? { settled: false } : {}) };
   }
 
+  /**
+   * Host use: a password field is never typed into (ADR 0201 §3), whether named by its ref or found under a point.
+   * The helper checks the focused element again as it types.
+   */
+  private refuseSecret(use: Use, spot: Spot) {
+    if (!this.opts.host) return;
+    const last = use.last?.look;
+    const t = spot.target ?? (last ? elementAt(last, spot.point) : undefined);
+    if (t?.secret) throw secretRefused();
+  }
+
   /** Sends input steps; `settled`: whether the screen settled before the wait's cap (with a settle). */
   private async input(use: Use, steps: HelperStep[], spec: HelperSettle | null, ref?: string) {
-    if (use.taken) throw tookOver();
+    if (use.taken && !this.opts.host) throw tookOver();
+    if (use.granted) {
+      const helper = use.helper ?? (await this.start(use));
+      await helper.request("forget", {}, this.requestMs).catch((err: unknown) => {
+        throw err instanceof HelperFailure ? helperError(err, undefined, true) : err;
+      });
+      use.granted = false;
+    }
     let typed = 0;
     let paused = 0;
     for (const s of steps) {
@@ -1058,8 +1164,10 @@ export class DesktopManager {
 
   /** `open_file`: an existing file in the agent's folder, or an absolute path in its desktop's home or a granted folder. */
   private async openable(use: Use, input: string, where: DesktopWhere): Promise<string> {
+    // On the person's own computer their home isn't the agent's: only the folders they allowed it (ADR 0201).
+    const roots = this.opts.host ? [...(where.grants ?? [])] : [await realpath(use.home), ...(where.grants ?? [])];
     const found = isAbsoluteRequest(input)
-      ? await resolveInRoots([await realpath(use.home), ...(where.grants ?? [])], input)
+      ? await resolveInRoots(roots, input)
       : await resolveInWorkspace(where.folder, input);
     if (!found.exists) throw new RunnerError("not_found", `There is no file ${input}`);
     return found.abs;
@@ -1078,12 +1186,23 @@ export class DesktopManager {
       throw new RunnerError("desktop_unavailable", "The agent's desktop stopped. Try again.");
     }
     const helper = use.helper ?? (await this.start(use));
+    const host = this.opts.host;
     try {
-      const data = await helper.request(op, body, timeoutMs);
+      const raw = await helper.request(op, host ? host.request(op, body) : body, timeoutMs);
       use.failures = 0;
-      return data;
+      if (!host) return raw;
+      try {
+        return host.reply(op, raw);
+      } catch {
+        throw this.malformed(use, op);
+      }
     } catch (err) {
       if (!(err instanceof HelperFailure)) throw err;
+      if (host && err.code === "unavailable" && /locked/i.test(err.message)) {
+        this.stop(use);
+        this.opts.onLocked?.(use.agent.id);
+        throw new RunnerError("desktop_unavailable", "The person's screen is locked: their session on it ended.");
+      }
       if (err.code === "internal" || err.code === "unavailable") {
         use.failures++;
         if (use.failures >= FAILURES_MAX) {
@@ -1093,7 +1212,7 @@ export class DesktopManager {
           this.stop(use);
         }
       } else use.failures = 0;
-      throw helperError(err, ref);
+      throw helperError(err, ref, host !== undefined);
     }
   }
 
@@ -1130,18 +1249,23 @@ export class DesktopManager {
    * cookie and a UTF-8 locale. A desktop that just started gets a few seconds for its accessibility bus to come up.
    */
   private async start(use: Use): Promise<Helper> {
-    const python = this.opts.command ? null : this.sys.which("python3");
-    if (!this.opts.command && !python) throw new RunnerError("desktop_unavailable", installReason(["python3"]));
-    const env: Record<string, string> = {
-      HOME: use.home,
-      PATH: userPath(),
-      DISPLAY: `:${use.display}`,
-      XAUTHORITY: use.xauthority,
-      ...HELPER_ENV,
-    };
+    const host = this.opts.host;
+    const python = this.opts.command || host ? null : this.sys.which("python3");
+    if (!this.opts.command && !host && !python)
+      throw new RunnerError("desktop_unavailable", installReason(["python3"]));
+    const env: Record<string, string> = host
+      ? host.env()
+      : {
+          HOME: use.home,
+          PATH: userPath(),
+          DISPLAY: `:${use.display}`,
+          XAUTHORITY: use.xauthority,
+          ...HELPER_ENV,
+        };
     const helper = new Helper(
-      this.opts.command ?? [...(this.opts.launcher?.prefix ?? []), ...helperCommand(python ?? "python3")],
-      { cwd: use.home, env },
+      this.opts.command ??
+        host?.command() ?? [...(this.opts.launcher?.prefix ?? []), ...helperCommand(python ?? "python3")],
+      { cwd: use.home, env, ...(host ? { preamble: host.preamble() } : {}) },
       (h, why) => {
         if (use.helper === h) use.helper = null;
         if (why) this.opts.log(`the desktop helper of ${use.agent.handle} stopped: ${why}`);
@@ -1152,9 +1276,15 @@ export class DesktopManager {
     this.arm();
     const hello = async () => {
       try {
-        return await helper.request("hello", {}, this.requestMs);
+        const h = await helper.request("hello", {}, this.requestMs);
+        if (!host) return h;
+        try {
+          return host.reply("hello", h);
+        } catch {
+          throw this.malformed(use, "hello");
+        }
       } catch (err) {
-        throw err instanceof HelperFailure ? helperError(err) : err;
+        throw err instanceof HelperFailure ? helperError(err, undefined, host !== undefined) : err;
       }
     };
     let h = await hello();
@@ -1171,6 +1301,7 @@ export class DesktopManager {
     this.missing = [];
     if (h.screen === null || !h.a11y) {
       this.stop(use);
+      if (host && h.problem === "the screen is locked") this.opts.onLocked?.(use.agent.id);
       throw new RunnerError(
         "desktop_unavailable",
         (h.problem ?? "The agent's desktop can't be read yet").slice(0, 300),
@@ -1274,7 +1405,7 @@ function parseRegion(v: unknown): DesktopRegion {
 }
 
 /** A `desktop.act` action, checked: its kind, where it lands, its text, key, app, path or wait. */
-export function parseAction(v: unknown): DesktopAction {
+export function parseAction(v: unknown, host = false): DesktopAction {
   if (!isRecord(v) || !isString(v.kind)) throw bad("An action has a kind");
   const { kind } = v;
   switch (kind) {
@@ -1300,7 +1431,7 @@ export function parseAction(v: unknown): DesktopAction {
     case "press": {
       const key = isString(v.key) ? xKey(v.key) : null;
       if (!key) throw bad("press takes key names joined by +, like ctrl+s, Enter or alt+F4");
-      if (SESSION_KEYS.has(key)) throw sessionRefused(key);
+      if (SESSION_KEYS.has(key) || (host && HOST_SESSION_KEYS.has(key))) throw sessionRefused(key);
       return { kind, key };
     }
     case "scroll": {
@@ -1312,6 +1443,12 @@ export function parseAction(v: unknown): DesktopAction {
       return { kind, direction, pixels: v.pixels, ...(v.at !== undefined ? { at: parsePoint(v.at) } : {}) };
     }
     case "launch":
+      if (host) {
+        if (!isString(v.app) || v.app.length > DESKTOP_LIMITS.path || !HOST_APP_ID.test(v.app)) {
+          throw bad("launch takes an app's id from desktop.apps");
+        }
+        return { kind, app: v.app };
+      }
       if (!isString(v.app) || v.app.length > DESKTOP_LIMITS.path || !APP_ID.test(v.app)) {
         throw bad("launch takes an app's id from desktop.apps, like thunar.desktop");
       }

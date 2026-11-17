@@ -104,6 +104,7 @@ export { SheetSurface } from "./SheetSurface";
 export { SkeletonList, SkeletonRow, usePulse } from "./Skeleton";
 export { type SwipeAction, SwipeRow } from "./SwipeRow";
 export { searchCancelVisible, searchShowsResults } from "./searchMode";
+export { TaskBox } from "./TaskBox";
 export {
   fieldText,
   systemText,

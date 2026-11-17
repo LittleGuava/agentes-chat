@@ -1,6 +1,13 @@
-import type { Agent, AgentSetup, CommandApproval } from "@agenteschat/client";
+import type { Agent, AgentSetup, ApprovalsLevel, CommandApproval } from "@agenteschat/client";
 import { useAgents, useModels, useSetupPreview } from "@agenteschat/client";
-import { autonomyName, changes, setupResultLine, sortedResults, takers } from "@agenteschat/client/lib/agent-setup";
+import {
+  approvalsName,
+  autonomyName,
+  changes,
+  setupResultLine,
+  sortedResults,
+  takers,
+} from "@agenteschat/client/lib/agent-setup";
 import { setupPlanOpens } from "@agenteschat/client/lib/audience";
 import { brainLine } from "@agenteschat/client/lib/brain";
 import { firstName } from "@agenteschat/client/lib/format";
@@ -17,7 +24,8 @@ import { useAgentEdit } from "../context";
 /**
  * "Usar em outros agentes" (ADR 0094): every other agent with what the setup would do to it (the server's preview),
  * those that can take it first, "Todos" on top for all of them, and "Levar a autonomia" over them, which leaves each
- * agent's own when off. "Usar" saves it on the agents picked; this agent's own is already saved.
+ * agent's own when off. "Levar as aprovações" (ADR 0173), only for who manages agents, starts off. "Usar" saves it on
+ * the agents picked; this agent's own is already saved.
  */
 export function SetupCopyDialog({
   setup,
@@ -25,6 +33,9 @@ export function SetupCopyDialog({
   autonomy,
   withAutonomy,
   onWithAutonomy,
+  approvals,
+  withApprovals,
+  onWithApprovals,
   busy,
   onClose,
   onUse,
@@ -35,6 +46,10 @@ export function SetupCopyDialog({
   autonomy: CommandApproval | undefined;
   withAutonomy: boolean;
   onWithAutonomy: (on: boolean) => void;
+  /** This agent's approvals level, where the person may set it on others (Manage agents); else none. */
+  approvals: ApprovalsLevel | undefined;
+  withApprovals: boolean;
+  onWithApprovals: (on: boolean) => void;
   busy: boolean;
   onClose: () => void;
   /** `opens`: the agents picked whose owner's plan it opens to more people (`setupPlanOpens`). */
@@ -94,6 +109,22 @@ export function SetupCopyDialog({
                 </span>
               </span>
               <Switch id="setup-autonomy" checked={withAutonomy} disabled={busy} onCheckedChange={onWithAutonomy} />
+            </label>
+          </div>
+        )}
+        {approvals && (
+          <div className="ac-dialog__tools">
+            <label htmlFor="setup-approvals" className="agp-copydialog__all">
+              <span className="scope-row__text">
+                <b>{t("agentPage.work.brain.copy.withApprovals")}</b>
+                <span className="small muted">
+                  {t("agentPage.work.brain.copy.withApprovalsLine", {
+                    value: approvalsName(t, approvals),
+                    text: t(`approvalsLevel.${approvals}.text`),
+                  })}
+                </span>
+              </span>
+              <Switch id="setup-approvals" checked={withApprovals} disabled={busy} onCheckedChange={onWithApprovals} />
             </label>
           </div>
         )}

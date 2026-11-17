@@ -401,3 +401,66 @@ test("suggestions: archive an idle agent, a smaller model for light work, each p
   // A code this build has no words for reads as the sentence the server sent with it.
   expect(proposalWhy(t, { why: "It is new.", whyCode: "a_later_reason" as never })).toBe("It is new.");
 });
+
+test("the day ahead leads the day's card, in words in every language, and opens the calendar", () => {
+  const today = {
+    id: "today",
+    kind: "today",
+    meetings: 2,
+    routines: 1,
+    deadlines: 1,
+    first: { title: "Daily", at: "2026-11-06T14:00:00.000Z", allDay: false },
+  };
+  const day = { ...card, period: "day", rows: [card.rows[3]], moreRows: [today] };
+  const parsed = teamWeekCardOf({ actionCard: day }) as TeamWeekCard;
+  expect(parsed.rows.map((r) => r.kind)).toEqual(["today", "unanswered"]);
+  const [row] = parsed.rows;
+  if (!row) throw new Error("no row");
+  const time = new Intl.DateTimeFormat("pt-BR", { hour: "numeric", minute: "2-digit" }).format(
+    new Date(today.first.at),
+  );
+  const t = tOf("pt-BR");
+  expect(teamWeekRowText(t, "pt-BR", row, names)).toEqual({
+    title: "Hoje: 2 reuniões, 1 rotina, 1 tarefa com prazo",
+    line: `A primeira: Daily às ${time}.`,
+    action: "Ver agenda",
+  });
+  const allDay = { ...row, first: { title: "Feriado", at: today.first.at, allDay: true } } as typeof row;
+  expect(teamWeekRowText(t, "pt-BR", allDay, names).line).toBe("O dia todo: Feriado.");
+  const noMeeting = { ...row, meetings: 0, first: null } as typeof row;
+  expect(teamWeekRowText(t, "pt-BR", noMeeting, names)).toMatchObject({
+    title: "Hoje: 1 rotina, 1 tarefa com prazo",
+    line: "Nenhuma reunião hoje.",
+  });
+  // It opens the calendar, is never applied in bulk and never counted as a suggestion.
+  expect(teamWeekRowPlace(row)).toEqual({ to: "calendar" });
+  expect(appliesInBulk(row)).toBe(false);
+  expect(teamWeekRowState(parsed, row, { proposals: [], approvals: [] })).toBe("open");
+  for (const lng of LOCALE_CODES)
+    for (const r of [row, allDay, noMeeting]) {
+      const said = teamWeekRowText(tOf(lng), lng, r, names);
+      for (const words of [said.title, said.line, said.action])
+        expect([lng, words === "" || words.includes("teamWeek.")]).toEqual([lng, false]);
+    }
+});
+
+test("the day ahead is a choice only a server that has it answers", () => {
+  expect(lodiPrefsOf({ weekOff: false, dayOff: false, agenda: true }).agenda).toBe(true);
+  expect(lodiPrefsOf({ weekOff: false, dayOff: false, agenda: false }).agenda).toBe(false);
+  // A server without it: no switch to show.
+  expect(lodiPrefsOf({ weekOff: false, dayOff: false })).not.toHaveProperty("agenda");
+});
+
+test("a summary written by the AI: read only when it is words, and a choice only a server that has it answers", () => {
+  const day = { ...card, period: "day", summary: "Duas coisas esperam você hoje." };
+  expect((teamWeekCardOf({ actionCard: day }) as TeamWeekCard).summary).toBe("Duas coisas esperam você hoje.");
+  for (const summary of [undefined, "", "   ", 42])
+    expect((teamWeekCardOf({ actionCard: { ...day, summary } }) as TeamWeekCard).summary).toBeUndefined();
+  expect(lodiPrefsOf({ weekOff: false, dayOff: false, aiSummary: true }).aiSummary).toBe(true);
+  expect(lodiPrefsOf({ weekOff: false, dayOff: false })).not.toHaveProperty("aiSummary");
+  for (const lng of LOCALE_CODES) {
+    const t = tOf(lng);
+    for (const key of ["teamWeek.settings.aiSummaryLabel", "teamWeek.settings.aiSummaryHelp", "teamWeek.aiWritten"])
+      expect([lng, key, t(key, { name: "Lodi" }) === key]).toEqual([lng, key, false]);
+  }
+});

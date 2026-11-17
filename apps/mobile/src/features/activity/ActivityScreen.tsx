@@ -618,6 +618,12 @@ const ActivityRow = memo(function ActivityRow({ item: n, divider }: { item: AppN
           <ChangeRequestCard n={n} />
         </View>
       ) : null}
+      {/* An agent someone couldn't reach has no AI: connected from here. */}
+      {n.kind === "agent_needs_ai" && href && !n.doneAt ? (
+        <View style={styles.change}>
+          <Button variant="secondary" size="sm" label={t("mobile.activity.connectAi")} onPress={open} />
+        </View>
+      ) : null}
       {/* The agent's model left its plan's list: another one chosen from here. */}
       {n.kind === "plan_model_dropped" && href && !n.doneAt ? (
         <View style={styles.change}>

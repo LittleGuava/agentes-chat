@@ -4,6 +4,7 @@ import path from "node:path";
 import { ASK_AGAIN, inBrowserProfile } from "@agenteschat/adapters/command-policy";
 import {
   type AgentScope,
+  BROWSER_SITE_HOST,
   browserSetupOf,
   type FileEntry,
   isStreamId,
@@ -17,13 +18,17 @@ import {
   type RunnerFrame,
   type RunnerPause,
   type RunnerTools,
+  relaySitesFor,
   STEER_LIMITS,
+  type TurnCheckpoint,
 } from "@agenteschat/adapters/machine-protocol";
 import { redactSecrets } from "@agenteschat/adapters/secret-box";
 import { realFoldersFor } from "./access";
 import type { AccountBrains } from "./account-brains";
 import type { AccountFolders, AccountGrant, AccountManager } from "./accounts";
+import type { AcpEngineConfig } from "./acp-engines";
 import { type BrainManager, brainKey } from "./brain";
+import { type AcpBrainTurnRequest, handleAcpBrainTurn } from "./brain-acp";
 import { type AntigravityBrainTurnRequest, handleAntigravityBrainTurn } from "./brain-antigravity";
 import { type CodexBrainEvent, type CodexBrainTurnRequest, handleCodexBrainTurn } from "./brain-codex";
 import type { CodexAppServers } from "./brain-codex-app";
@@ -32,8 +37,9 @@ import { type CursorBrainTurnRequest, handleCursorBrainTurn } from "./brain-curs
 import { type GrokBrainTurnRequest, handleGrokBrainTurn } from "./brain-grok";
 import { handleOpencodeBrainTurn, type OpencodeBrainTurnRequest, steerOpencodeTurn } from "./brain-opencode";
 import { routeWithPlan } from "./brain-route";
-import { type BrowserManager, browserSetupText } from "./browser";
+import { type BrowserManager, browserSetupText, isProfileKey } from "./browser";
 import type { BrowserViews } from "./browser-views";
+import { beginCheckpoint, restoreCheckpoint } from "./checkpoints";
 import { allowedMerge, commandApproval, mergeOf, ownBranches } from "./command-gate";
 import type { DesktopManager } from "./desktop";
 import { type DesktopSessions, hostMemAvailable, MIN_FREE_BYTES } from "./desktop-session";
@@ -41,12 +47,17 @@ import { RunnerError, toMachineError } from "./errors";
 import { runCommand } from "./exec";
 import { type CacheFill, type CloneSlots, gitSync } from "./git";
 import { isGitInternalPath, touchesGitInternals } from "./git-guard";
+import type { HostConsent } from "./host-desktop";
 import { type McpTaskInfo, redactDeep } from "./mcp";
+import { ASK_ABOUT_MCP, argvLine, redactedReply, runStdioMcp } from "./mcp-stdio";
+import type { MeetingAudio } from "./meeting-audio";
 import { missionWorktree } from "./mission-worktree";
+import type { MyChromes } from "./my-chrome";
 import { agentWorkspace, hiddenIn, isInside, resolveForAgent } from "./paths";
 import type { PhoneManager, PhoneRequest } from "./phones";
 import { pullFile } from "./pull";
 import { type FetchLike, pushPath } from "./push";
+import type { RelayExits } from "./relay";
 import { openDesktopStream } from "./rfb";
 import type { Spawn } from "./scope-gate";
 import { agentSecrets, handleSecret, holdsSecretFile } from "./secrets";
@@ -99,12 +110,15 @@ const PEOPLE_OPS: ReadonlySet<string> = new Set([
   "desktop.session.status",
   "desktop.session.stop",
   "desktop.text",
+  "mychrome.list",
+  "mychrome.disconnect",
 ]);
 export const MAX_LIST_ENTRIES = 5000;
 
 /** Ops that start new work: refused while the owner paused the computer (protocol 9). Reads of status, output and cancel still go. */
 export const NEW_WORK_OPS: ReadonlySet<string> = new Set([
   "exec",
+  "relay.open",
   "read",
   "write",
   "list",
@@ -113,12 +127,14 @@ export const NEW_WORK_OPS: ReadonlySet<string> = new Set([
   "task.start",
   "brain.turn",
   "brain.route",
+  "checkpoint.restore",
   "git.sync",
   "browser.act",
   "browser.batch",
   "browser.capture",
   "browser.warm",
   "browser.stream.start",
+  "meeting.listen",
   "desktop.session.start",
   "desktop.look",
   "desktop.act",
@@ -133,6 +149,8 @@ export const NEW_WORK_OPS: ReadonlySet<string> = new Set([
   "phone.record",
   "phone.screenshot",
   "phone.logs",
+  "mcp.stdio",
+  "mychrome.act",
 ]);
 
 /**
@@ -175,6 +193,9 @@ export const OP_ROUTES: Readonly<Record<MachineOp, "machine" | "agent">> = {
   "browser.warm": "agent",
   // Root answers it, and refuses it (and every op with `profile`) in system mode until profiles have their own users.
   "browser.profile.delete": "machine",
+  // Only a browser profile's (ADR 0110 addendum 2026-11-15), answered by root as above.
+  "browser.sites": "machine",
+  "browser.sites.forget": "machine",
   // Root's: a stream's data socket needs the machine token, which no worker holds, and a desktop's password file
   // must be one its agent can't rewrite.
   "desktop.session.start": "machine",
@@ -183,6 +204,11 @@ export const OP_ROUTES: Readonly<Record<MachineOp, "machine" | "agent">> = {
   "stream.open": "machine",
   // The live view's data socket is the process's that holds the server connection (only it has the token).
   "browser.view.open": "machine",
+  // The person's own computer lends its connection (ADR 0203): a data socket, which only this process can dial.
+  "relay.open": "machine",
+  // ADR 0199 §4: its data socket needs the machine token; a system-mode runner doesn't serve it yet (`MeetingAudio`).
+  "meeting.listen": "machine",
+  "meeting.stop": "machine",
   // The helper runs as the agent's own user, in its worker; the worker asks the supervisor for the desktop.
   "desktop.look": "agent",
   "desktop.act": "agent",
@@ -223,6 +249,17 @@ export const OP_ROUTES: Readonly<Record<MachineOp, "machine" | "agent">> = {
   // Installed as the runner's own user. Root answers unsupported: the agents' users get their CLIs from the
   // computer's setup, never from an install run as root.
   "cli.install": "machine",
+  // ADR 0215: the program is one of the agent's commands, so it runs as the agent's own user.
+  "mcp.stdio": "agent",
+  // As the agent's own user, in the worker that keeps its shadows (ADR 0193).
+  "checkpoint.restore": "agent",
+  // ADR 0202: the person's own Chrome is lent to the process that runs as the person, never to an agent's user; a
+  // system-mode runner refuses these outright (`handleMyChrome`).
+  "mychrome.act": "machine",
+  "mychrome.list": "machine",
+  "mychrome.disconnect": "machine",
+  // The person's own settings are in the runner's user's home: root's isn't theirs, so it answers unsupported.
+  "local.config": "machine",
 };
 
 type AccessRequestOp = Extract<MachineRequest, { op: "access.request" }>;
@@ -251,6 +288,11 @@ export interface HandlerContext {
   gitDir?: string;
   /** Tests: the git command (default `git` on the PATH). */
   gitCommand?: string;
+  /**
+   * `<runner home>/checkpoints` (the worker's home in system mode): the shadows that record a work turn's folder
+   * (ADR 0193). Without it turns run with no checkpoint and `checkpoint.restore` answers `gone`.
+   */
+  checkpointsDir?: string;
   /** `<runner home>/git-cache`: shared read-only mirrors for clones (ADR 0116); single-user runners only. */
   gitCache?: string;
   /** A system-mode worker: root's clone slots and shared cache (ADR 0116), so both are the computer's. */
@@ -288,6 +330,8 @@ export interface HandlerContext {
     accounts?: AccountFolders;
     /** How `codex exec` starts (a worker under systemd: in the agent's AI CLIs slice, `scope-gate.ts`). */
     spawn?: Spawn;
+    /** ADR 0216: the ACP agents `config.json` declares (none in system mode). */
+    acpEngines?: readonly AcpEngineConfig[];
   };
   /** Protocol 9: whether the owner paused this computer (new work is refused with `paused`). */
   paused?: () => boolean;
@@ -319,6 +363,8 @@ export interface HandlerContext {
   ownHome?: string;
   /** Protocol 12: the agents' browsers (ADR 0040); without it the runner refuses `browser.*`. */
   browser?: BrowserManager;
+  /** Protocol 82: the person's own Chrome, lent to an agent (ADR 0202); without it `mychrome.*` is `unsupported`. */
+  myChrome?: MyChromes;
   /** Protocol 13: the computer brains' accounts (ADR 0041); without it the runner refuses `account`. */
   accounts?: AccountManager;
   /** Set per request in a worker (protocol 29): what root handed this turn for its account (`AccountManager.grant`). */
@@ -331,10 +377,19 @@ export interface HandlerContext {
   streams?: DataSockets;
   /** Protocol 49: the live views of the agents' browsers (`browser.view.open`, ADR 0040 §7.1). */
   browserViews?: BrowserViews;
+  /** `RELAY_PROTOCOL`: the tunnels this computer serves for agents' browsers (ADR 0203); without it `relay.open` is refused. */
+  relayExits?: RelayExits;
+  /** `MEETING_PROTOCOL`: hearing the meetings agents' browsers are in (ADR 0199 §4); without it `meeting.*` is refused. */
+  meetingAudio?: MeetingAudio;
   /** Protocol 21: the agents' use of their own desktops (ADR 0062); without it the runner refuses `desktop.look`… */
   desktopUse?: DesktopManager;
   /** A person takes control of the agent's desktop: what the agent's pointer and keys are doing stops. */
   desktopTaken?: (agentId: string) => void;
+  /**
+   * Protocol 81 (ADR 0201): the person's own desktop, on their own computer. With it, `desktop.look`, `.act`,
+   * `.capture` and `.apps` reach the person's screen behind the `hostDesktop` switch, commands and the person's yes.
+   */
+  hostDesktop?: { manager: DesktopManager; consent: HostConsent };
   /** The phones this computer reaches (`PHONES_PROTOCOL`); without it every phone op answers `phone_missing`. */
   phones?: PhoneManager;
   /** `KEEP_RUNNING_PROTOCOL` (system mode under systemd): the agents' holds; without it `keep.*` is `unsupported`. */
@@ -346,6 +401,8 @@ export interface HandlerContext {
   xcodeFix?: (req: Extract<MachineRequest, { op: "xcode.fix" }>) => MachineReplies["xcode.fix"];
   /** `CLI_INSTALL_PROTOCOL`: the coding CLIs looked up now, and installed from the apps. */
   clisCheck?: () => Promise<MachineReplies["clis.check"]>;
+  /** `LOCAL_CONFIG_PROTOCOL`: the MCP servers and skills of the person's coding tools (`local-config.ts`). */
+  localConfig?: () => MachineReplies["local.config"];
   cliInstall?: (req: Extract<MachineRequest, { op: "cli.install" }>) => MachineReplies["cli.install"];
   /** `IPHONE_DEV_MODE_PROTOCOL`: opening Xcode on this Mac; without it the op answers `opened: false`. */
   xcodeOpen?: () => Promise<MachineReplies["xcode.open"]>;
@@ -383,6 +440,7 @@ const TOOL_LABEL: Record<keyof RunnerTools, string> = {
   browser: "Browser",
   desktop: "The desktop",
   terminal: "The terminal",
+  hostDesktop: "Using the person's screen",
 };
 
 /** Whether a tool is on: from the machine's access (protocol 10), or `exec` for a runner without it. */
@@ -400,6 +458,12 @@ function requireTool(ctx: HandlerContext, tool: keyof RunnerTools) {
   }
   // The apps match "<Tool> is turned off" (`browserOffMessage`) to offer the one-click switch: keep those words.
   const how = "its owner can turn it on from agentes.chat";
+  if (tool === "hostDesktop") {
+    throw new RunnerError(
+      "not_allowed",
+      `${TOOL_LABEL[tool]} is turned off on this computer (the person turns it on in the agentes.chat app there)`,
+    );
+  }
   if (tool === "commands") throw new RunnerError("exec_disabled", `Commands are turned off on this computer (${how})`);
   throw new RunnerError("not_allowed", `${TOOL_LABEL[tool]} is turned off on this computer (${how})`);
 }
@@ -469,6 +533,75 @@ async function doExec(
     ...(redact ? { redact: redact.redact, redactHold: redact.hold } : {}),
   });
   return merge ? { ...result, merge } : result;
+}
+
+const NUL = String.fromCharCode(0);
+const ENV_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+/**
+ * ADR 0215: one MCP operation of a stdio program, as one of the agent's commands: the Commands switch, the agent's
+ * folder, and the command policy on the very argv that starts (`argvLine`). A held program doesn't start.
+ */
+async function doMcpStdio(
+  ctx: HandlerContext,
+  req: Extract<MachineRequest, { op: "mcp.stdio" }>,
+  scope: RequestScope,
+  secrets: Secrets,
+): Promise<MachineReplies["mcp.stdio"]> {
+  requireTool(ctx, "commands");
+  // `MCP_STDIO_LISTING_PROTOCOL`: registering lists the tools for no agent, in this runner's workspace (only outside
+  // system mode: there root sends every `agent` op to a worker, and one with no agent goes nowhere). A call is an agent's.
+  if (!req.agent && req.call?.method !== "tools/list") {
+    throw new RunnerError("bad_request", "An MCP program's tool runs for an agent");
+  }
+  // From the wire: read as unknown and checked word by word.
+  const raw: unknown = req.server;
+  const server: Record<string, unknown> = isRecordLike(raw) ? raw : {};
+  const command = requireString(server.command, "server.command");
+  if (command.trim() === "") throw new RunnerError("bad_request", "server.command is empty");
+  const args = Array.isArray(server.args) ? server.args : [];
+  if (!args.every((a): a is string => typeof a === "string")) throw new RunnerError("bad_request", "server.args");
+  const env: Record<string, string> = {};
+  for (const [name, value] of Object.entries(isRecordLike(server.env) ? server.env : {})) {
+    if (!ENV_NAME.test(name) || typeof value !== "string") throw new RunnerError("bad_request", `server.env ${name}`);
+    env[name] = value;
+  }
+  if ([command, ...args, ...Object.values(env)].some((v) => v.includes(NUL))) {
+    throw new RunnerError("bad_request", "The program's words can't hold a NUL");
+  }
+  const call = req.call;
+  if (call?.method !== "tools/list" && !(call?.method === "tools/call" && typeof call.name === "string")) {
+    throw new RunnerError("bad_request", "call: tools/list or tools/call with a name");
+  }
+  if (call.method === "tools/call" && !isRecordLike(call.arguments))
+    throw new RunnerError("bad_request", "call.arguments");
+  let cwd = ctx.workspaceReal;
+  if (typeof server.cwd === "string" && server.cwd.trim() !== "") {
+    const resolved = await resolvePath(ctx, server.cwd);
+    if (!resolved.exists) throw new RunnerError("not_found", `The folder ${server.cwd} doesn't exist`);
+    if (!(await stat(resolved.abs)).isDirectory())
+      throw new RunnerError("bad_request", `${server.cwd} is not a folder`);
+    cwd = resolved.abs;
+  }
+  const held = await commandApproval(argvLine([command, ...args]), {
+    cwd,
+    own: ownBranches(req.agent),
+    how: ASK_ABOUT_MCP,
+    script: true,
+  });
+  if (held?.never) throw new RunnerError("not_allowed", held.message);
+  if (held) throw new RunnerError("approval_needed", held.message);
+  const reply = await runStdioMcp({
+    command,
+    args,
+    env,
+    cwd,
+    call,
+    timeoutMs: clampInt(req.timeoutSeconds, 1, 300, 60) * 1000,
+    signal: scope.signal,
+  });
+  // What leaves the computer is redacted like a command's output (ADR 0215 §4).
+  return secrets ? redactedReply(reply, secrets.redact) : reply;
 }
 
 /**
@@ -642,8 +775,20 @@ async function routeRequest(ctx: HandlerContext, req: MachineRequest, scope: Req
   }
   // Protocol 49: an agent's (or a profile's) live view socket, this process's in every mode (ADR 0040 §7.1).
   if (req.op === "browser.view.open") return openBrowserView(ctx, req);
+  if (req.op === "mychrome.act" || req.op === "mychrome.list" || req.op === "mychrome.disconnect") {
+    return handleMyChrome(ctx, req);
+  }
+  if (req.op === "relay.open") return openRelay(ctx, req);
+  if (req.op === "meeting.listen" || req.op === "meeting.stop") return meetingOp(ctx, req);
   // Protocol 34: a browser profile's session, never an agent's worker or folder (ADR 0110).
-  if (req.profile || req.op === "browser.profile.delete") return handleProfileBrowser(ctx, req, scope);
+  if (
+    req.profile ||
+    req.op === "browser.profile.delete" ||
+    req.op === "browser.sites" ||
+    req.op === "browser.sites.forget"
+  ) {
+    return handleProfileBrowser(ctx, req, scope);
+  }
   if (ctx.systemMode?.() && OP_ROUTES[req.op] !== "machine") {
     if (!ctx.workers) {
       throw new RunnerError(
@@ -736,6 +881,10 @@ async function routeRequest(ctx: HandlerContext, req: MachineRequest, scope: Req
     if (!ctx.clisCheck) throw new RunnerError("bad_request", "This runner doesn't look up its programs on request");
     return ctx.clisCheck();
   }
+  if (req.op === "local.config") {
+    const unsupported = { files: [], servers: [], skills: [], skipped: [], unsupported: true as const };
+    return (ctx.systemMode?.() ? undefined : ctx.localConfig?.()) ?? unsupported;
+  }
   if (req.op === "cli.install") {
     return (
       (ctx.systemMode?.() ? undefined : ctx.cliInstall?.(req)) ?? {
@@ -769,12 +918,21 @@ async function routeRequest(ctx: HandlerContext, req: MachineRequest, scope: Req
     req.op === "desktop.apps" ||
     req.op === "desktop.text"
   ) {
-    return handleDesktopUse(ctx, req);
+    return handleDesktopUse(ctx, req, scope);
   }
   const secrets = await agentSecrets(ctx.secretsDir, req.agent);
   switch (req.op) {
     case "brain.turn":
-      return doBrainTurn(ctx, req, scope, secrets);
+      return withTurnCheckpoint(ctx, req, scope, (s) => doBrainTurn(ctx, req, s, secrets));
+    case "checkpoint.restore":
+      if (!req.agent) throw new RunnerError("bad_request", "A checkpoint belongs to an agent");
+      if (!ctx.checkpointsDir) return { status: "gone", paths: [] } satisfies MachineReplies["checkpoint.restore"];
+      return restoreCheckpoint({
+        dir: ctx.checkpointsDir,
+        agentId: String(req.agent.id),
+        id: requireString(req.id, "id"),
+        direction: req.direction === "redo" ? "redo" : "undo",
+      });
     case "brain.route":
       // Never the agent's secrets: the route reads other people's messages.
       requireTool(ctx, req.kind === "codex" ? "codex" : "claude");
@@ -815,6 +973,8 @@ async function routeRequest(ctx: HandlerContext, req: MachineRequest, scope: Req
       return missionWorktree(ctx.workspaceReal, req);
     case "exec":
       return doExec(ctx, req, scope, secrets);
+    case "mcp.stdio":
+      return doMcpStdio(ctx, req, scope, secrets);
     case "read":
       await refuseSecretFile(ctx, secrets, requireString(req.path, "path"));
       return doRead(ctx, req, secrets);
@@ -906,18 +1066,31 @@ function handleDesktop(
  * desktop switch and its commands switch. Protocol 25's `desktop.text` goes
  * through the same helper, behind the same switches.
  */
-function handleDesktopUse(
+async function handleDesktopUse(
   ctx: HandlerContext,
   req: Extract<
     MachineRequest,
     { op: "desktop.look" | "desktop.act" | "desktop.capture" | "desktop.apps" | "desktop.text" }
   >,
+  scope: RequestScope,
 ) {
-  const desktop = ctx.desktopUse;
-  if (!desktop) throw new RunnerError("desktop_unavailable", "This runner doesn't serve desktop use");
   if (!req.agent) throw new RunnerError("bad_request", "A desktop belongs to an agent");
-  requireTool(ctx, "desktop");
-  requireTool(ctx, "commands");
+  const host = ctx.hostDesktop;
+  let desktop = ctx.desktopUse;
+  if (host) {
+    // The person's own screen (ADR 0201 §3): their switch, commands, and their yes on this computer, every time.
+    requireTool(ctx, "hostDesktop");
+    requireTool(ctx, "commands");
+    if (req.op === "desktop.text") {
+      throw new RunnerError("desktop_unavailable", "The person's own screen is never read for screening");
+    }
+    if (await host.consent.require(req.agent, scope.signal)) host.manager.granted(req.agent.id);
+    desktop = host.manager;
+  } else {
+    requireTool(ctx, "desktop");
+    requireTool(ctx, "commands");
+  }
+  if (!desktop) throw new RunnerError("desktop_unavailable", "This runner doesn't serve desktop use");
   switch (req.op) {
     case "desktop.look":
       return desktop.look(req.agent);
@@ -1076,6 +1249,33 @@ export const PROFILES_SYSTEM_MODE =
 const PROFILE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
+ * Protocol 82 (ADR 0202): the person's own Chrome. The server lists, acts in the agent's own tab and disconnects;
+ * lending it is the person's alone, on the computer (the control channel), so no op connects one.
+ */
+async function handleMyChrome(
+  ctx: HandlerContext,
+  req: Extract<MachineRequest, { op: "mychrome.act" | "mychrome.list" | "mychrome.disconnect" }>,
+): Promise<unknown> {
+  if (ctx.systemMode?.()) {
+    throw new RunnerError("not_allowed", "A person's own Chrome is never lent on a computer in system mode.");
+  }
+  const chromes = ctx.myChrome;
+  if (!chromes) throw new RunnerError("unsupported", "This runner can't use a person's own Chrome.");
+  if (req.op === "mychrome.list") return { sessions: chromes.list() } satisfies MachineReplies["mychrome.list"];
+  if (req.op === "mychrome.disconnect") {
+    const agentId = typeof req.agentId === "string" ? req.agentId : undefined;
+    return { disconnected: chromes.disconnect(agentId) } satisfies MachineReplies["mychrome.disconnect"];
+  }
+  if (!req.agent) throw new RunnerError("bad_request", "An action in a person's Chrome belongs to an agent");
+  const action = req.action;
+  if (!(action?.kind === "read" || (action?.kind === "open" && typeof action.url === "string"))) {
+    throw new RunnerError("bad_request", "Unknown action");
+  }
+  const allowed = Array.isArray(req.allowedDomains) ? req.allowedDomains.filter((d) => typeof d === "string") : [];
+  return chromes.act(req.agent, action, allowed);
+}
+
+/**
  * `browser.view.open` (protocol 49): the data socket of an agent's live view, or a browser profile's (its frames
  * carry `profile:<id>` where an agent's id would be). Dialed here, whichever process runs that browser: in system
  * mode root's, which passes the worker's frames on to it.
@@ -1093,6 +1293,51 @@ async function openBrowserView(
   const key = typeof profileId === "string" ? profileKey(profileId) : String(req.agent?.id ?? "");
   if (!key || !isStreamId(req.streamId)) throw new RunnerError("bad_request", "A live view needs an agent and its id");
   return ctx.browserViews.open(key, req.streamId);
+}
+
+/** `meeting.listen` / `meeting.stop` (ADR 0199 §4): the agent's capture, in the process that holds the token. */
+async function meetingOp(
+  ctx: HandlerContext,
+  req: Extract<MachineRequest, { op: "meeting.listen" | "meeting.stop" }>,
+): Promise<MachineReplies["meeting.listen"] | MachineReplies["meeting.stop"]> {
+  const audio = ctx.meetingAudio;
+  if (!audio) throw new RunnerError("unsupported", "This runner can't hear meetings. Update it on this computer.");
+  const meetingId = requireString(req.meetingId, "meetingId");
+  if (req.op === "meeting.stop") return audio.stop(meetingId);
+  if (ctx.access) requireTool(ctx, "browser");
+  const agentId = String(req.agent?.id ?? "");
+  if (!agentId || !isStreamId(req.streamId))
+    throw new RunnerError("bad_request", "Hearing a meeting needs an agent and a stream");
+  return audio.listen(agentId, meetingId, req.streamId);
+}
+
+/**
+ * `relay.open` (`RELAY_PROTOCOL`, ADR 0203): this computer lends its connection to one tunnel of `agentId`. It dials
+ * the data socket and serves the `CONNECT` that comes through it, deciding by its own access only: the server's word
+ * that a site is lent counts for nothing here. Never in system mode (a person's own computer is in single mode).
+ */
+async function openRelay(
+  ctx: HandlerContext,
+  req: Extract<MachineRequest, { op: "relay.open" }>,
+): Promise<MachineReplies["relay.open"]> {
+  const { streams, access, relayExits } = ctx;
+  if (!streams || !access || !relayExits)
+    throw new RunnerError("unsupported", "This runner lends its connection to no site");
+  if (ctx.systemMode?.()) {
+    throw new RunnerError(
+      "not_allowed",
+      "A computer where each agent runs as its own user lends its connection to no site",
+    );
+  }
+  const agentId = typeof req.agentId === "string" ? req.agentId : "";
+  if (!agentId || !isStreamId(req.streamId)) throw new RunnerError("bad_request", "A tunnel needs an agent and its id");
+  if (relaySitesFor(access(), agentId).length === 0) {
+    throw new RunnerError("not_allowed", "This computer lends its connection to that agent for no site");
+  }
+  if (!relayExits.hasRoom()) throw new RunnerError("no_slot", "This computer serves as many tunnels as it can");
+  const socket = await streams.dial(req.streamId, "relay");
+  relayExits.serve(socket, () => relaySitesFor(access(), agentId));
+  return { opened: true };
 }
 
 /**
@@ -1114,15 +1359,31 @@ async function handleProfileBrowser(ctx: HandlerContext, req: MachineRequest, sc
   // The agent whose turn it is: its Vault keys open here (ADR 0144); the session isn't its own.
   const actor: AgentScope = req.agent && typeof req.agent.id === "string" && req.agent.id ? req.agent : agent;
   const folder = browser.profileFolder(id.toLowerCase());
+  // Protocol 70: an agent's command in a person's own browser of it; its files are the agent's own, in its folder.
+  const agentsFiles = async () => {
+    if (req.profile?.personal !== true || !req.agent?.id || isProfileKey(req.agent.id)) return;
+    await browser.useFilesFolder(agent.id, await agentWorkspace(ctx.workspaceReal, req.agent));
+  };
   switch (req.op) {
     case "browser.profile.delete":
       return browser.deleteProfile(agent, folder);
+    case "browser.sites":
+      requireTool(ctx, "browser");
+      return browser.sites(agent, folder);
+    case "browser.sites.forget": {
+      requireTool(ctx, "browser");
+      const site = req.site;
+      if (typeof site !== "string" || !BROWSER_SITE_HOST.test(site))
+        throw new RunnerError("bad_request", "Which site?");
+      return browser.forgetSite(agent, folder, site);
+    }
     case "browser.stop":
       return browser.stop(agent);
     case "browser.stream.stop":
       return browser.streamStop(agent);
     case "browser.act":
       requireTool(ctx, "browser");
+      await agentsFiles();
       return profileRedacted(
         ctx,
         actor,
@@ -1131,6 +1392,7 @@ async function handleProfileBrowser(ctx: HandlerContext, req: MachineRequest, sc
       );
     case "browser.batch":
       requireTool(ctx, "browser");
+      await agentsFiles();
       return profileRedacted(
         ctx,
         actor,
@@ -1240,10 +1502,12 @@ async function doBrainTurn(
     req.kind === "opencode" ||
     req.kind === "grok" ||
     req.kind === "antigravity" ||
-    req.kind === "copilot"
+    req.kind === "copilot" ||
+    req.kind === "acp"
       ? req.kind
       : null;
-  requireTool(ctx, cli ?? "claude");
+  // An ACP agent the computer's owner declared runs by the commands switch (ADR 0216 §6).
+  requireTool(ctx, cli === "acp" ? "commands" : (cli ?? "claude"));
   if (!req.agent) throw new RunnerError("bad_request", "A brain turn belongs to an agent");
   const runId = requireString(req.runId, "runId");
   // A locked-down turn (protocol 41) gets neither the agent's secrets nor its folders, and stops at the first tool
@@ -1263,6 +1527,64 @@ async function doBrainTurn(
   signedOut(ctx, req, final);
   scope.emit?.({ type: "brain.done", runId });
   return { runId, final };
+}
+
+/** Where a turn works: its `cwd` resolved as the brains resolve it (its agent's folder when empty), if it is a folder. */
+async function turnFolder(ctx: HandlerContext, req: Extract<MachineRequest, { op: "brain.turn" }>) {
+  if (typeof req.cwd !== "string" || !req.cwd.trim()) return ctx.workspaceReal;
+  const found = await resolvePath(ctx, req.cwd);
+  return found.exists && (await stat(found.abs)).isDirectory() ? found.abs : null;
+}
+
+/**
+ * ADR 0193: a work turn's folder is recorded before and after it. The final event and `brain.done` wait for the
+ * second snapshot, so the `done` the engine ends the turn on says what the turn changed (`checkpoint`). A turn whose
+ * folder can't be recorded runs as it would have.
+ */
+async function withTurnCheckpoint(
+  ctx: HandlerContext,
+  req: Extract<MachineRequest, { op: "brain.turn" }>,
+  scope: RequestScope,
+  turn: (scope: RequestScope) => Promise<MachineReplies["brain.turn"]>,
+): Promise<MachineReplies["brain.turn"]> {
+  const dir = ctx.checkpointsDir;
+  if (!dir || !req.agent || (req.permissions?.mode ?? "work") !== "work") return turn(scope);
+  const agentId = String(req.agent.id);
+  const folder = await turnFolder(ctx, req).catch(() => null);
+  const open = folder ? await beginCheckpoint({ dir, agentId, folder }) : null;
+  if (!open) return turn(scope);
+  const { emit } = scope;
+  const held: RunnerFrame[] = [];
+  const isEnd = (frame: RunnerFrame) =>
+    frame.type === "brain.done" ||
+    (frame.type === "brain.event" && (frame.event.type === "done" || frame.event.type === "error"));
+  const holding: RequestScope = {
+    ...scope,
+    ...(emit ? { emit: (frame: RunnerFrame) => (isEnd(frame) ? held.push(frame) : emit(frame)) } : {}),
+  };
+  let checkpoint: TurnCheckpoint | null = null;
+  let finished = false;
+  const finish = async () => {
+    if (finished) return;
+    finished = true;
+    checkpoint = await open.finish();
+  };
+  try {
+    const reply = await turn(holding);
+    await finish();
+    const cp: TurnCheckpoint | null = checkpoint;
+    return cp && reply.final.type === "done" ? { ...reply, final: { ...reply.final, checkpoint: cp } } : reply;
+  } finally {
+    await finish().catch(() => {});
+    const cp: TurnCheckpoint | null = checkpoint;
+    for (const frame of held) {
+      emit?.(
+        cp && frame.type === "brain.event" && frame.event.type === "done"
+          ? { ...frame, event: { ...frame.event, checkpoint: cp } }
+          : frame,
+      );
+    }
+  }
 }
 
 /** `brain.turn` on a Claude sign-in several agents share: root runs its CLI (`account-brains.ts`). */
@@ -1287,7 +1609,7 @@ async function doHostedTurn(
  * Cursor, Grok, Antigravity and Copilot turns in progress, by run: `brain.steer` answers `unsupported` for them (`agent -p`,
  * `grok -p`, `agy -p` and `copilot` take nothing mid-turn).
  */
-const turnOnlyRuns = new Map<string, "Cursor" | "Grok Build" | "Antigravity CLI" | "Copilot CLI">();
+const turnOnlyRuns = new Map<string, string>();
 
 /** OpenCode turns in progress, by run: `no_turn` until the turn can take messages (`steerOpencodeTurn`). */
 const opencodeRuns = new Set<string>();
@@ -1383,21 +1705,24 @@ async function doCodexTurn(
   const grok = req.kind === "grok";
   const agy = req.kind === "antigravity";
   const copilot = req.kind === "copilot";
-  const name = cursor
-    ? "Cursor"
-    : opencode
-      ? "OpenCode"
-      : grok
-        ? "Grok Build"
-        : agy
-          ? "Antigravity CLI"
-          : copilot
-            ? "Copilot CLI"
-            : "Codex";
+  const acp = req.kind === "acp";
+  const name = acp
+    ? "ACP agent"
+    : cursor
+      ? "Cursor"
+      : opencode
+        ? "OpenCode"
+        : grok
+          ? "Grok Build"
+          : agy
+            ? "Antigravity CLI"
+            : copilot
+              ? "Copilot CLI"
+              : "Codex";
   if (!codex) throw new RunnerError("bad_request", `This runner runs no ${name} brain turns`);
   let final: CodexBrainEvent = {
     type: "error",
-    code: `${cursor ? "cursor" : opencode ? "opencode" : grok ? "grok" : agy ? "antigravity" : copilot ? "copilot" : "codex"}_failed`,
+    code: `${acp ? "acp" : cursor ? "cursor" : opencode ? "opencode" : grok ? "grok" : agy ? "antigravity" : copilot ? "copilot" : "codex"}_failed`,
     message: `${name} ended without an answer.`,
   };
   let ended = false;
@@ -1424,11 +1749,29 @@ async function doCodexTurn(
     scope.emit?.({ type: "brain.event", runId, event });
   };
   if (opencode) opencodeRuns.add(runId);
-  else if (cursor || grok || agy || copilot) {
+  else if (acp) {
+    const declared = codex.acpEngines?.find((e) => e.id === req.engine);
+    turnOnlyRuns.set(runId, declared?.name ?? name);
+  } else if (cursor || grok || agy || copilot) {
     turnOnlyRuns.set(runId, cursor ? "Cursor" : grok ? "Grok Build" : agy ? "Antigravity CLI" : "Copilot CLI");
   }
   try {
-    if (copilot) {
+    if (acp) {
+      await handleAcpBrainTurn(
+        {
+          folder,
+          exec: toolOn(ctx, "commands"),
+          runnerHome: codex.runnerHome,
+          engines: codex.acpEngines ?? [],
+          ...(ctx.secretsDir && !chat ? { secretsDir: ctx.secretsDir } : {}),
+          ...(codex.mcp ? { mcp: codex.mcp } : {}),
+          ...(ctx.grants && !chat ? { grants: ctx.grants } : {}),
+          ...(codex.spawn ? { spawn: codex.spawn } : {}),
+        },
+        req as unknown as AcpBrainTurnRequest,
+        { signal: scope.signal, emit },
+      );
+    } else if (copilot) {
       await handleCopilotBrainTurn(
         {
           folder,
@@ -1599,6 +1942,8 @@ function describeOp(req: MachineRequest): string {
       return `task.output ${String(req.taskId ?? "")}`;
     case "brain.turn":
       return `brain.turn ${String(req.runId ?? "")} (${String(req.kind ?? "")}${req.model ? `, ${String(req.model)}` : ""})`;
+    case "checkpoint.restore":
+      return `checkpoint.restore ${String(req.id ?? "").slice(0, 8)} (${String(req.direction ?? "")})`;
     case "brain.steer":
       // Never the text: how many messages, for which run.
       return `brain.steer ${String(req.runId ?? "")} (${Array.isArray(req.messages) ? req.messages.length : 0} messages)`;
@@ -1633,6 +1978,8 @@ function describeOp(req: MachineRequest): string {
       return `browser.input ${Array.isArray(req.events) ? req.events.length : 0} events`;
     case "browser.view.open":
       return "browser.view.open";
+    case "relay.open":
+      return "relay.open";
     case "stream.open":
       return req.kind === "terminal"
         ? `stream.open terminal ${String(req.cols)}×${String(req.rows)}`
@@ -1659,6 +2006,11 @@ function describeOp(req: MachineRequest): string {
       return `${req.op} ${String(req.platform)}/${String(req.serial)}${"app" in req && req.app ? ` ${String(req.app)}` : ""}`;
     case "access.allow":
       return `access.allow tool ${String(req.tool)}`;
+    case "mcp.stdio": {
+      // The program and the tool; never the arguments or the env's values.
+      const tool = req.call?.method === "tools/call" ? ` ${String(req.call.name).slice(0, 80)}` : "";
+      return `mcp.stdio ${String(req.server?.command ?? "").slice(0, 80)} ${String(req.call?.method)}${tool}`;
+    }
     case "access.reduce":
       return `access.reduce${req.removeFolder ? ` folder ${String(req.removeFolder.path ?? "")}` : ""}${req.disableTool ? ` tool ${String(req.disableTool)}` : ""}`;
     default:

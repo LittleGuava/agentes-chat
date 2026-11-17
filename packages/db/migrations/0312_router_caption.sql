@@ -1,0 +1,1 @@
+ALTER TABLE "organization_settings" ADD COLUMN "router_caption" boolean DEFAULT false NOT NULL;

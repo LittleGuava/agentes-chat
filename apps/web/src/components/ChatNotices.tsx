@@ -166,13 +166,22 @@ export function NoticeLine({ message }: { message: Message }) {
       label={t(view.key as "chat.notice.other", view.values as { name: string })}
       detail={view.detail}
       labels={{ show: t("chat.notice.show"), hide: t("chat.notice.hide") }}
-      action={view.answer ? <AnswerGitHub messageId={message.id} /> : undefined}
+      action={
+        view.answer ? (
+          <AnswerGitHub messageId={message.id} />
+        ) : view.leave ? (
+          <LeaveMeeting meetingId={view.leave} />
+        ) : undefined
+      }
     />
   );
 }
 
-/** Under a reply that came at standard speed because Fast was refused (`meta.speedFallback`), with the way to the agent. */
-export function SpeedFallbackLine({ agent }: { agent: Agent | undefined }) {
+/**
+ * A quiet line under a reply, with the way to the agent: it came at standard speed because Fast was refused
+ * (`meta.speedFallback`), or one of the agent's reserve AIs gave it (`meta.brainReserve`).
+ */
+export function ReplyNoteLine({ agent, text }: { agent: Agent | undefined; text: string }) {
   const { t } = useTranslation();
   const openPanel = useOpenAgentPanel();
   return (
@@ -185,7 +194,7 @@ export function SpeedFallbackLine({ agent }: { agent: Agent | undefined }) {
         ) : undefined
       }
     >
-      {t("chat.speedFallback.text")}
+      {text}
     </EventPill>
   );
 }
@@ -372,6 +381,32 @@ function AnswerGitHub({ messageId }: { messageId: string }) {
       }}
     >
       {t("chat.notice.github.ask")}
+    </EventPillAction>
+  );
+}
+
+/**
+ * "Sair da reunião" on the line of an agent taking notes in a meeting (ADR 0199): anyone in the conversation may make it
+ * leave. Its notes come as the meeting ends; a meeting already over says so.
+ */
+function LeaveMeeting({ meetingId }: { meetingId: string }) {
+  const { t } = useTranslation();
+  const api = useApi();
+  const { org } = useOrg();
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  return (
+    <EventPillAction
+      disabled={busy}
+      onClick={() => {
+        setBusy(true);
+        void api.chat
+          .leaveMeeting(org.id, meetingId)
+          .catch((error: unknown) => toast.show(errorText(t, error), "error"))
+          .finally(() => setBusy(false));
+      }}
+    >
+      {t("chat.notice.leaveMeeting")}
     </EventPillAction>
   );
 }

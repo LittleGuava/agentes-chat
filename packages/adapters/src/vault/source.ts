@@ -10,6 +10,8 @@
  * Rules every source keeps (a shared contract test runs them):
  * - `list` returns metadata only. A password, a key or anything secret never appears in a `VaultSourceItem`.
  * - `reveal` returns one value for one field of one item and keeps nothing.
+ * - `currentCode` returns a login's one-time code as it is now, never the authenticator seed behind it: the seed
+ *   stays in the password manager (ADR 0144 §1 and its addendum of 2026-11-15).
  * - Every failure is a `VaultSourceError` with a code. A provider's own message is never stored or shown: it may
  *   carry a token.
  * - A write a credential may not make is `read_only`, never `auth_failed`: the connection still reads.
@@ -154,6 +156,12 @@ export interface VaultSource {
   list(connection: VaultConnection, signal?: AbortSignal): Promise<VaultSourceItem[]>;
   /** One value, read now and kept nowhere. Throws `VaultSourceError` (`not_found` when the item or field is gone). */
   reveal(connection: VaultConnection, ref: string, field: VaultSecretField, signal?: AbortSignal): Promise<string>;
+  /**
+   * The one-time code (TOTP) of a login whose password manager keeps its authenticator seed, as it is now, read now
+   * and kept nowhere. The seed never comes out of the source. Absent: the source can't. Throws `VaultSourceError`
+   * (`not_found` when the login keeps no code, `unsupported` when its seed can't make one).
+   */
+  currentCode?(connection: VaultConnection, ref: string, signal?: AbortSignal): Promise<string>;
   /**
    * Keeps a new login where the connection reads from, and returns it as `list` would (never its password). Absent:
    * the source can't. Throws `VaultSourceError` (`read_only` when the credential may only read).

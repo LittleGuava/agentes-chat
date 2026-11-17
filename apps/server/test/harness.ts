@@ -11,6 +11,7 @@ import {
   createMemoryPubSub,
   createMemoryRateLimiter,
   createPostgresSearchResolver,
+  createServerUpdater,
   type DatabaseDriver,
   type ErrorReporter,
   type GifProvider,
@@ -39,7 +40,7 @@ import {
   type ToolSource,
 } from "@agenteschat/engine";
 import { PROVIDER_IDS } from "@agenteschat/providers";
-import { createFakeEmbeddings, createFakeProvider } from "@agenteschat/providers/testing";
+import { createFakeEmbeddings, createFakeImages, createFakeProvider } from "@agenteschat/providers/testing";
 import { createApp } from "../src/app";
 import { type AppleTokenRevoker, createAuth } from "../src/auth";
 import { buildEngine } from "../src/engine";
@@ -75,6 +76,8 @@ export async function createTestServer(
     http?: typeof fetch;
     /** Use fake embeddings (hybrid search). Off by default: full-text only, and no embedding usage rows. */
     embeddings?: boolean;
+    /** Image providers (ADR 0213); absent: fakes for OpenAI and Gemini, so no test reaches a real one. */
+    images?: Parameters<typeof buildEngine>[0]["imageProviders"];
     /** Fake S3 server and DNS for org buckets. */
     s3Fetch?: S3Fetch;
     resolveHost?: ResolveHost;
@@ -166,6 +169,7 @@ export async function createTestServer(
     databases: options.databases ?? null,
     humanCheck: options.humanCheck ?? null,
     gifs,
+    serverUpdater: createServerUpdater(config.SERVER_UPDATER_DIR),
   };
   const provider = createFakeProvider(options.reply);
   const embeddings = createFakeEmbeddings();
@@ -179,6 +183,7 @@ export async function createTestServer(
     mcpConnect: options.mcpConnect,
     http: options.http,
     embeddings: options.embeddings ? { provider: embeddings, apiKey: "test" } : undefined,
+    imageProviders: options.images ?? { openai: createFakeImages("openai"), gemini: createFakeImages("gemini") },
     s3Fetch: options.s3Fetch,
     speechFetch: options.speechFetch,
     resolveHost: options.resolveHost,
@@ -238,6 +243,8 @@ export async function createTestServer(
         githubApp: engine.githubApp,
         speech: engine.speech,
         voice: engine.voice,
+        readAloud: engine.readAloud,
+        meetings: engine.meetingAudio,
       },
     },
     log,

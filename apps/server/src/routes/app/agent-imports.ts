@@ -11,6 +11,7 @@ import {
   NEW_AGENT_DEFAULTS,
   NOTE_KINDS,
   readGithubImport,
+  undoImport,
   ValidationError,
 } from "@agenteschat/engine";
 import { createRoute, z } from "@hono/zod-openapi";
@@ -21,6 +22,7 @@ import {
   type AppDeps,
   body,
   createAppRouter,
+  csv,
   errors,
   json,
   MULTIPART_SLACK_BYTES,
@@ -31,6 +33,11 @@ import {
 } from "./context";
 
 const tags = ["Agents"];
+
+const ExportQuery = z.object({
+  agents: csv("Comma-separated agent ids to export, with the agents of `groups`.", z.uuid(), IMPORT_LIMITS.agents),
+  groups: csv("Comma-separated setor (agent group) ids: their agents are exported.", z.uuid(), IMPORT_LIMITS.agents),
+});
 
 const ImportedFiles = z
   .object({
@@ -72,7 +79,7 @@ const BundleRule = z.object({
  * `MigrationBundle` (ADR 0055). Text may be longer than our limits (the
  * import cuts it and reports `trimmed`); these caps only bound the request.
  */
-const Bundle = z
+export const Bundle = z
   .object({
     format: z.literal("agenteschat.bundle"),
     version: z.literal(1),
@@ -173,10 +180,12 @@ const ImportPlan = z
             "invalid",
             "failed",
             "too_many_routines",
+            "edited_here",
           ])
           .optional()
           .openapi({
-            description: "Why it is skipped; on a create or update, a note (default model, channel joined).",
+            description:
+              "Why it is skipped; on a create or update, a note (default model, channel joined). edited_here: changed here since the import and at the source too, kept unless in overwrite.",
           }),
         trimmed: z.array(z.string()).optional().openapi({ description: "Fields cut to fit our limits." }),
         renamedTo: z.string().optional().openapi({
@@ -205,6 +214,7 @@ const ImportedSources = z
       z.object({
         app: z.string().openapi({ description: "The app it came from (`openbotrun`, `openmausbot`, `agenteschat`…)." }),
         ref: z.string().openapi({ description: "The package or workspace in that app." }),
+        mine: z.boolean().openapi({ description: "The caller imported some of it: they may undo it." }),
         counts: z.object({
           agent: z.number().int(),
           skill: z.number().int(),
@@ -216,6 +226,24 @@ const ImportedSources = z
     ),
   })
   .openapi("ImportedSources");
+
+const ImportUndo = z
+  .object({
+    items: z.array(
+      z.object({
+        kind: z.enum(IMPORT_KINDS),
+        key: z.string(),
+        label: z.string(),
+        action: z.enum(["remove", "keep"]),
+        reason: z.enum(["edited_here", "in_use", "failed"]).optional().openapi({
+          description:
+            "Why it stays: changed here since the import, a channel people talked in, or taking it back failed.",
+        }),
+        targetId: z.string(),
+      }),
+    ),
+  })
+  .openapi("ImportUndo");
 
 /**
  * Bring agents and what's around them from another app (or another
@@ -319,6 +347,10 @@ export function agentImportRoutes(deps: AppDeps) {
               .max(20_000)
               .optional()
               .openapi({ description: "`kind:key` of the items to apply; default every item." }),
+            overwrite: z.array(z.string().max(300)).max(20_000).optional().openapi({
+              description:
+                "`kind:key` of items changed here since the import (`edited_here`) to overwrite with the source's version; the rest stay as they are.",
+            }),
           }),
         ),
       },
@@ -391,6 +423,38 @@ export function agentImportRoutes(deps: AppDeps) {
 
   app.openapi(
     createRoute({
+      method: "post",
+      path: "/organizations/{orgId}/imports/undo",
+      tags,
+      security,
+      summary: "Undo what one source package brought (who manages agents)",
+      description:
+        "Only what the caller's own import made: each item nobody changed here since is taken back the way it can come back (a note and a channel archived, a routine and a skill deleted, an agent archived); what was changed here stays (`edited_here`), and so does a channel with messages (`in_use`). A channel that was here already is never listed. `dryRun` only says what would go. Importing the package again brings the same agents, channels and skills back. Safe to repeat.",
+      request: {
+        params: OrgParams,
+        body: body(
+          z.object({
+            app: z.string().min(1).max(200),
+            ref: z.string().min(1).max(500),
+            dryRun: z.boolean(),
+          }),
+        ),
+      },
+      responses: { 200: json(ImportUndo), ...errors },
+    }),
+    async (c) => {
+      const undone = await undoImport(
+        { db: deps.db, pubsub: deps.adapters.pubsub, connectors: routineConnectorDeps(deps) },
+        c.get("user").id,
+        c.req.valid("param").orgId,
+        c.req.valid("json"),
+      );
+      return c.json(undone, 200);
+    },
+  );
+
+  app.openapi(
+    createRoute({
       method: "get",
       path: "/organizations/{orgId}/imports",
       tags,
@@ -413,14 +477,16 @@ export function agentImportRoutes(deps: AppDeps) {
       path: "/organizations/{orgId}/export",
       tags,
       security,
-      summary: "Download this workspace as an import bundle (admins)",
+      summary: "Download this workspace, or a part of it, as an import bundle (admins)",
       description:
-        "Agents, skills (SKILL.md), public channels with their agents, scheduled routines and the memory everyone can see. Never keys, connections, computers, runs, usage, audit or messages.",
-      request: { params: OrgParams },
+        "Agents, skills (SKILL.md), public channels with their agents, scheduled routines and the memory everyone can see. Never keys, connections, computers, runs, usage, audit or messages. With `agents` or `groups` (setores), only those agents together and what they use: the skills they have on, the public channels they're in, their routines and their own memory; the workspace's memory stays. An id not in this workspace is a 404.",
+      request: { params: OrgParams, query: ExportQuery },
       responses: { 200: json(Bundle), ...errors },
     }),
     async (c) => {
-      const bundle = await exportBundle(deps.db, c.get("user").id, c.req.valid("param").orgId);
+      const { agents, groups } = c.req.valid("query");
+      const scope = agents || groups ? { agentIds: agents, groupIds: groups } : undefined;
+      const bundle = await exportBundle(deps.db, c.get("user").id, c.req.valid("param").orgId, scope);
       const day = new Date().toISOString().slice(0, 10);
       return c.json(bundle, 200, { "content-disposition": attachmentDisposition(`agentes-chat-${day}.json`) });
     },

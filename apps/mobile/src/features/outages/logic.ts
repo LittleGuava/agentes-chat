@@ -66,6 +66,8 @@ export const BRAIN_NAME: Record<ComputerBrain, string> = {
   grok: "Grok Build",
   antigravity: "Antigravity CLI",
   copilot: "Copilot CLI",
+  // An ACP agent (ADR 0216) by its protocol: the outage carries no engine's name.
+  acp: "ACP",
 };
 
 // ── Words ───────────────────────────────────────────────────────────────────

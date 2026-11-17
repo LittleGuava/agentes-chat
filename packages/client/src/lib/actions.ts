@@ -49,6 +49,18 @@ export const actionTextKey = (a: Pick<AgentAction, "kind">) =>
 /** The i18n key of an action error code (`action.changed_since` → `agentActions.errors.changed_since`). */
 export const actionErrorKey = (code: string) => `agentActions.errors.${code.replace(/^action\./, "")}`;
 
+/** A path in a receipt's sentence: whole up to 48 characters, past that its end (folder and name) after "…/". */
+function shortPath(p: string): string {
+  const max = 48;
+  if (p.length <= max) return p;
+  const parts = p.split("/").filter(Boolean);
+  for (const n of [2, 1]) {
+    const tail = `…/${parts.slice(-n).join("/")}`;
+    if (tail.length <= max) return tail;
+  }
+  return `…${p.slice(-(max - 1))}`;
+}
+
 const str = (v: unknown) => (typeof v === "string" ? v : typeof v === "number" ? String(v) : "");
 
 /** A created routine's actions in connected apps it does without asking (its receipt's `ownActions`). */
@@ -177,6 +189,14 @@ export function actionTextValues(
         ...workspaceActionWords(action, words, t),
         context: KNOWN_ACTIONS.has(action) ? workspaceActionContext(action, words) : "",
       };
+    }
+    case "files.changed": {
+      const paths = Array.isArray(p.paths) ? p.paths.filter((f): f is string => typeof f === "string") : [];
+      const count = typeof p.count === "number" ? p.count : paths.length;
+      const [only] = paths;
+      if (count === 1 && only) return { file: shortPath(only), context: "single" };
+      const shown = paths.slice(0, 3).map(shortPath);
+      return { count: String(count), files: `${shown.join(", ")}${count > shown.length ? ", …" : ""}` };
     }
     default:
       // A kind the server knows and this build doesn't yet (an open tab, an older app): the key's own words.

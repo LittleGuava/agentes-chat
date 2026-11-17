@@ -17,8 +17,7 @@ import { useToast } from "@/ui";
 import { router } from "@/ui/navigation";
 import { useColors, useOrgId } from "../shared/hooks";
 import { errorHaptic, goBack, successHaptic } from "../shared/parts";
-import { installationIdOf, isFinishing } from "./logic";
-import { returnHref } from "./review";
+import { installationIdOf, isFinishing, landingAfter } from "./logic";
 
 /**
  * A connector's sign-in that came back to the app through its link (Android opens the app with it; iOS hands
@@ -90,8 +89,7 @@ export function ConnectorOAuthReturn() {
           ).find((i) => i.id === done.connectionId);
           toast({ title: item ? outcomeText(t, outcome, item) : t("mobile.connectors.connectedDone") });
           // A new account on its tools, as the web lands on "O que faz" for the connection that came in.
-          if (outcome === "connected") router.replace(returnHref(done.connectionId));
-          else router.replace(`/connectors/${done.connectionId}`);
+          router.replace(landingAfter(done));
         },
       },
     );

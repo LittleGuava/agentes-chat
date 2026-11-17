@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import { createHmac } from "node:crypto";
 import { schema } from "@agenteschat/db";
+import { composioToolkitUrl } from "@agenteschat/engine";
 import { browser, createTestServer, seedOrg, signUp, type TestServer } from "./harness";
 
 let t: TestServer;
@@ -119,4 +120,75 @@ test("the schedule parsers need org membership even when a timezone is given", a
     json: { phrase: "weekdays at 9", timezone: "America/Sao_Paulo" },
   });
   expect(r.status).toBe(401);
+});
+
+test("a meeting routine (ADR 0190) through the API: made on a calendar its agent may read, shown with its lead", async () => {
+  const owner = browser(t);
+  await signUp(owner, "owner@example.com");
+  const { orgId, channelId, agentId } = await seedOrg(owner);
+  const api = (path: string, init?: Parameters<typeof owner>[1]) =>
+    owner(`/api/app/organizations/${orgId}${path}`, init);
+  const [calendar] = await t.db
+    .insert(schema.connectorConnections)
+    .values({
+      orgId,
+      connector: "mcp_google_calendar",
+      label: "Google Calendar",
+      serverUrl: composioToolkitUrl("googlecalendar"),
+      authType: "oauth",
+      toolPrefix: "google_calendar",
+      composioAccountId: "ca_cal",
+    })
+    .returning();
+  if (!calendar) throw new Error("no connection");
+  const make = (leadMinutes?: number) =>
+    api("/routines", {
+      json: {
+        agentId,
+        prompt: "Prepare a reunião.",
+        target: { type: "channel", channelId },
+        trigger: { type: "meeting", connectionId: calendar.id, ...(leadMinutes ? { leadMinutes } : {}) },
+      },
+    });
+  // The agent can't read the calendar yet.
+  expect(await (await make()).json()).toMatchObject({ error: { code: "routine.connector_agent_cannot_read" } });
+  await t.db.insert(schema.agentScopes).values({ orgId, agentId, connectionId: calendar.id, scope: "connector:*" });
+  expect((await make(1)).status).toBe(400);
+  const created = await make(20);
+  expect(created.status).toBe(201);
+  const routine = (await created.json()) as { id: string };
+  const list = (await (await api("/routines")).json()) as {
+    routines: { id: string; trigger: unknown; report: string }[];
+  };
+  expect(list.routines.find((r) => r.id === routine.id)).toMatchObject({
+    report: "always",
+    trigger: { type: "meeting", connectionId: calendar.id, leadMinutes: 20, status: "active", lastError: null },
+  });
+});
+
+test("trying again once if it fails: off unless asked, set on create and edit (ADR 0177 addendum 2026-11-16)", async () => {
+  const owner = browser(t);
+  await signUp(owner, "owner@example.com");
+  const { orgId, channelId, agentId } = await seedOrg(owner);
+  const api = (path: string, init?: Parameters<typeof owner>[1]) =>
+    owner(`/api/app/organizations/${orgId}${path}`, init);
+  const make = (extra: Record<string, unknown>) =>
+    api("/routines", {
+      json: {
+        agentId,
+        prompt: "Resuma o dia",
+        target: { type: "channel", channelId },
+        trigger: { type: "schedule", phrase: "dias úteis às 9h" },
+        ...extra,
+      },
+    });
+  const plain = (await (await make({})).json()) as { id: string; retryOnce: boolean };
+  expect(plain.retryOnce).toBe(false);
+  const asked = (await (await make({ name: "De novo", retryOnce: true })).json()) as { retryOnce: boolean };
+  expect(asked.retryOnce).toBe(true);
+  const on = await api(`/routines/${plain.id}`, { method: "PATCH", json: { retryOnce: true } });
+  expect(await on.json()).toMatchObject({ retryOnce: true });
+  const listed = (await (await api("/routines")).json()) as { routines: { id: string; retryOnce: boolean }[] };
+  expect(listed.routines.find((r) => r.id === plain.id)?.retryOnce).toBe(true);
+  expect((await api(`/routines/${plain.id}`, { method: "PATCH", json: { retryOnce: "sim" } })).status).toBe(400);
 });

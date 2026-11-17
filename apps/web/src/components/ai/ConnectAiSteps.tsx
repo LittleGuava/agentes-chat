@@ -29,7 +29,7 @@ import {
   setupView,
   statusRestatesChip,
 } from "@agenteschat/client/lib/computer";
-import { CUSTOM_PROVIDER } from "@agenteschat/client/lib/endpoints";
+import { CUSTOM_PROVIDER, credentialMark } from "@agenteschat/client/lib/endpoints";
 import { errorText, holdText, keyRefusal } from "@agenteschat/client/lib/errors";
 import { NAMES_SHOWN, namesText } from "@agenteschat/client/lib/format";
 import { agentGrammar } from "@agenteschat/client/lib/grammar";
@@ -484,7 +484,7 @@ export function ExistingRows({
           className="ai-picker__key ac-mediarow ac-mediarow--row"
         >
           <span className="ac-mediarow__face">
-            <ProviderLogo id={k.provider} size="sm" />
+            <ProviderLogo id={credentialMark(k)} size="sm" />
           </span>
           <span className="ac-mediarow__head">
             <span className="ac-option__title">{k.label}</span>

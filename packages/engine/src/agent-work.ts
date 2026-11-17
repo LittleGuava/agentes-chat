@@ -260,6 +260,68 @@ export async function agentWorkFor(
   return new Map([...out].map(([id, { rank: _rank, ...work }]) => [id, work]));
 }
 
+/** Who asked for something an agent hasn't taken up yet: a person, or an agent writing where people read. */
+export interface QueueAsker {
+  type: "person" | "agent";
+  id: string;
+}
+
+/**
+ * What waits for an agent, for one viewer (ADR 0084 addendum of 2026-11-15): the apps' "Na fila: pedido de Bia".
+ * Only what the viewer reads counts, so a DM or a private channel never shows, not even in the count.
+ */
+export interface AgentQueue {
+  /** How many requests wait. */
+  count: number;
+  /** Who asked them, each once, oldest request first (at most `QUEUE_ASKERS_MAX`). */
+  askers: QueueAsker[];
+}
+
+/** The most askers a queue names: the apps say the first one or two and how many more. */
+export const QUEUE_ASKERS_MAX = 10;
+
+type QueueRow = { agent_id: string; author_type: "person" | "agent"; asker: string };
+
+/**
+ * Each agent's queue for `viewerId`, by agent id (none: nothing waits that they read). A request is a message waiting in
+ * an active run's inbox (`run-inbox.ts`), or the message behind a run in line (`workStateOf`'s `queued`: never started,
+ * or waiting for room on its computer). Its asker is who wrote that message, as the task manager says who asked. Not a
+ * request: a notice (`deliverNotice`), a deleted message, a routine's background run, and anything in a conversation
+ * the viewer doesn't read or only agents are in (`agentWorkFor`'s `readable`). One statement for every agent.
+ */
+export async function agentQueueFor(db: Executor, viewerId: string, orgId: string): Promise<Map<string, AgentQueue>> {
+  const viewer = sql`${viewerId}::text`;
+  const rows = rowsOf<QueueRow>(
+    await db.execute(sql`with waiting as (
+        select r.agent_id, p.id as message_id from agent_runs r
+        cross join lateral unnest(r.pending_message_ids) as p(id)
+        where r.org_id = ${orgId}::uuid and r.status in ${OPEN} and not r.background
+        union all
+        select r.agent_id, r.trigger_message_id from agent_runs r
+        where r.org_id = ${orgId}::uuid and not r.background and (r.status = 'queued'
+          or (r.status = 'running' and r.waiting_machine_id is not null)
+          or (r.status = 'waiting_input' and r.transcript->'waitingForBrain'->>'code' in ('busy', 'work_queue')))
+      )
+      select w.agent_id, m.author_type, coalesce(m.author_user_id, m.author_agent_id::text) as asker
+      from waiting w
+      join messages m on m.org_id = ${orgId}::uuid and m.id = w.message_id
+      join channels c on c.id = m.channel_id
+      where m.deleted_at is null and m.meta->'notice' is null
+        and coalesce(m.author_user_id, m.author_agent_id::text) is not null
+        and c.archived_at is null and not ${agentsOnlyIn("c")} and ${channelReaderSql(sql`c.id`, viewer)}
+      order by m.created_at, m.id`),
+  );
+  const out = new Map<string, AgentQueue>();
+  for (const r of rows) {
+    const queue = out.get(r.agent_id) ?? { count: 0, askers: [] };
+    queue.count += 1;
+    const named = queue.askers.some((a) => a.type === r.author_type && a.id === r.asker);
+    if (!named && queue.askers.length < QUEUE_ASKERS_MAX) queue.askers.push({ type: r.author_type, id: r.asker });
+    out.set(r.agent_id, queue);
+  }
+  return out;
+}
+
 /** The work without where it is: what an agent hidden from the viewer, or a place they don't read, shows. */
 export const bareWork = (w: AgentWork): AgentWork => ({
   ...w,

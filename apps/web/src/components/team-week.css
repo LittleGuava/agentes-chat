@@ -46,6 +46,19 @@
 .tw__sec {
   margin-top: var(--space-4);
 }
+/* "Resumo escrito pela IA": the paragraph a small model wrote, between the head and the numbers. */
+.tw__summary {
+  margin: var(--space-3) 0 0;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 20px;
+}
+.tw__summary-by {
+  margin: var(--space-1) 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 16px;
+}
 .tw__sec-t {
   margin: 0 0 var(--space-2);
   color: var(--muted);

@@ -151,6 +151,8 @@ export function createFakeHost(
   } = {},
 ): FakeHost {
   const runners = new Map<string, FakeRunner>();
+  /** The agents' folder: path → hash. */
+  const folder = new Map<string, string>();
   const lineListeners = new Set<(homeId: string, line: string) => void>();
   const stateListeners = new Set<(c: RunnerStateChange) => void>();
   const shownListeners = new Set<(n: WindowName) => void>();
@@ -416,6 +418,20 @@ export function createFakeHost(
     pickFolder: async () => {
       const picks = ["/Users/voce/Documents/Notas", "/Users/voce/Projects/Personal/site", "/Users/voce/Desktop/Fotos"];
       return picks[Math.floor(Math.random() * picks.length)] ?? null;
+    },
+    // The agents' folder (ADR 0204): no server's files in design work, and a folder kept in memory.
+    folderSyncList: async () => [],
+    folderSyncRoot: async () =>
+      platform === "windows" ? "C:\\Users\\voce\\Documents\\agentes.chat" : "/Users/voce/Documents/agentes.chat",
+    folderSyncScan: async (hash) => ({
+      files: [...folder.keys()],
+      hashes: Object.fromEntries(hash.flatMap((p) => (folder.has(p) ? [[p, folder.get(p) as string]] : []))),
+    }),
+    folderSyncFetch: async (request) => {
+      if ((folder.get(request.path) ?? null) !== request.expect) throw new Error("changed");
+      const sha = `${request.artifactId}@${request.version}`;
+      folder.set(request.path, sha);
+      return sha;
     },
     setTrayState: async (state) => {
       if (tray !== state) {

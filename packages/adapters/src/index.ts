@@ -10,12 +10,14 @@ import type { PubSub } from "./pubsub";
 import type { PushSender } from "./push";
 import type { RateLimiter } from "./rate-limiter";
 import type { SearchIndexResolver } from "./search";
+import type { ServerUpdater } from "./server-updater";
 import type { VaultSources } from "./vault/source";
 import type { WebPushSender } from "./web-push";
 
 export * from "./blob";
 export * from "./blob-disk";
 export * from "./blob-postgres";
+export * from "./call-voice";
 export * from "./command-policy";
 export * from "./composio";
 export { parseAddressList } from "./composio-mail";
@@ -40,6 +42,7 @@ export * from "./push-apns";
 export * from "./push-fcm";
 export * from "./push-relay";
 export * from "./rate-limiter";
+export * from "./read-aloud";
 export * from "./read-capped";
 export * from "./redact";
 export * from "./s3";
@@ -47,6 +50,7 @@ export * from "./s3-fake";
 export * from "./sandbox";
 export * from "./search";
 export * from "./secret-box";
+export * from "./server-updater";
 export * from "./speech";
 export * from "./standard-webhooks";
 export * from "./stopwords";
@@ -98,4 +102,6 @@ export interface Adapters {
    * The built-in source is the engine's own. null/absent = only built-in items.
    */
   vaultSources?: VaultSources | null;
+  /** Updates from the app (ADR 0200), with `SERVER_UPDATER_DIR`; null/absent = none. */
+  serverUpdater?: ServerUpdater | null;
 }

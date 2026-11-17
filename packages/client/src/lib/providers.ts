@@ -1,7 +1,8 @@
 import { customModelId, endpointModelId, parseCustomModel } from "@agenteschat/providers/catalog";
 import type { TFunction } from "i18next";
-import type { AiStatus, Credential, Model } from "../api/types";
-import { CUSTOM_PROVIDER } from "./endpoints";
+import type { AiStatus, BrainPolicy, Credential, Model } from "../api/types";
+import { modelAllowedBy } from "./brain-policy";
+import { CUSTOM_PROVIDER, modelMark } from "./endpoints";
 import { serverHost } from "./server";
 
 interface ProviderEntry {
@@ -219,6 +220,8 @@ export function providersWithKeys(credentials: readonly KeyLike[]) {
 export interface ModelChoice {
   model: Model;
   available: boolean;
+  /** The workspace's rule leaves it out (ADR 0191): not available whatever the keys. */
+  ruledOut?: boolean;
 }
 
 /**
@@ -228,20 +231,30 @@ export interface ModelChoice {
  * platform key is on (the only one a server offers). A long list's models the
  * workspace can't use are left out: only its good picks show, to say a key opens them.
  */
-export function modelChoices(models: Model[], credentials: readonly KeyLike[], platform: boolean) {
+export function modelChoices(
+  models: Model[],
+  credentials: readonly KeyLike[],
+  platform: boolean,
+  /** The workspace's rule (`OrgSettings.allowedBrains`, ADR 0191): what it leaves out shows, never usable. */
+  policy?: BrainPolicy | null,
+) {
   const withKey = providersWithKeys(credentials);
   const live = new Set(credentials.filter((c) => !c.revokedAt).map((c) => c.id));
   const groups = new Map<string, ModelChoice[]>();
   for (const model of models) {
     // A workspace endpoint's models (ADR 0146), under its name: only this workspace's, only while its key lives.
     const group = model.endpoint?.name ?? model.provider;
-    const available =
+    const keyed =
       model.available ??
       (model.endpoint
         ? live.has(model.endpoint.credentialId)
         : withKey.has(model.provider) || (platform && model.provider === "anthropic"));
-    if ((model.pick === false || model.endpoint) && !available) continue;
-    groups.set(group, [...(groups.get(group) ?? []), { model, available }]);
+    if ((model.pick === false || model.endpoint) && !keyed) continue;
+    const ruledOut = !modelAllowedBy(policy, model);
+    groups.set(group, [
+      ...(groups.get(group) ?? []),
+      { model, available: keyed && !ruledOut, ...(ruledOut ? { ruledOut } : {}) },
+    ]);
   }
   return [...groups.entries()];
 }
@@ -302,6 +315,15 @@ export function apiProviderOf(model: string | null | undefined, models: readonly
   if (!isAuto(model)) return models.find((m) => m.id === model)?.provider;
   const usable = new Set(models.filter((m) => m.available).map((m) => m.provider));
   return usable.size === 1 ? [...usable][0] : undefined;
+}
+
+/**
+ * The mark of the API an agent's model runs on (a `ProviderLogo` id): `apiProviderOf`'s, but a workspace endpoint's
+ * model (ADR 0146) shows the maker its host names, not the generic endpoint's.
+ */
+export function apiMarkOf(model: string | null | undefined, models: readonly Model[]): string | undefined {
+  const own = isAuto(model) ? undefined : models.find((m) => m.id === model);
+  return own ? modelMark(own) : apiProviderOf(model, models);
 }
 
 /** The maker of the key an agent on Automático thinks with, as the AI status says (none while it can't think). */

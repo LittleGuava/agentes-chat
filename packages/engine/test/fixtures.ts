@@ -13,7 +13,7 @@ import {
 } from "@agenteschat/adapters";
 import { and, arrayContains, type Database, eq, schema, sql } from "@agenteschat/db";
 import { createTestDatabase } from "@agenteschat/db/testing";
-import { PROVIDER_IDS } from "@agenteschat/providers";
+import { type ImageProvider, type ImageProviderId, PROVIDER_IDS } from "@agenteschat/providers";
 import { createFakeEmbeddings, createFakeProvider, type FakeProvider } from "@agenteschat/providers/testing";
 import {
   type AgentRun,
@@ -37,6 +37,7 @@ import {
   createFindAgentToolSource,
   createFollowUpToolSource,
   createHandOffToolSource,
+  createImageToolSource,
   createIssueToolSource,
   createJobHandlers,
   createLocalKeyWrapper,
@@ -195,6 +196,12 @@ export async function setup(
      * `post_message`'s `gif`).
      */
     mediaTools?: boolean;
+    /** Image providers for the gateway (ADR 0213), by id: tests pass a fake. None: no pictures. */
+    images?: Partial<Record<ImageProviderId, ImageProvider>>;
+    /** A workspace's pictures in 24 hours (`IMAGES_PER_DAY`); default 50. */
+    imagesPerDay?: number;
+    /** Add `generate_image` (listed while the workspace has an image provider's key). */
+    imageTools?: boolean;
     /** Add the built-in `follow_up` and `cancel_follow_up` tools. */
     followUps?: boolean;
     /** Add the built-in `hand_off` tool (background runs: routines). */
@@ -306,6 +313,7 @@ export async function setup(
       ? { provider: embeddings, apiKey: "test", ...(options.embeddings === true ? {} : options.embeddings) }
       : undefined,
     errors: options.errors,
+    ...(options.images ? { images: { providers: options.images, perDay: options.imagesPerDay ?? 50 } } : {}),
   });
   const search = createPostgresSearchResolver(db);
   const context: ContextDeps = {
@@ -361,6 +369,7 @@ export async function setup(
       : []),
     ...(options.react ? [createReactToolSource({ pubsub })] : []),
     ...(options.mediaTools ? [createMediaToolSource({ pubsub, gifs: options.gifs ?? null })] : []),
+    ...(options.imageTools ? [createImageToolSource({ gateway, artifacts: artifactDeps })] : []),
     ...(options.followUps ? [createFollowUpToolSource({ pubsub })] : []),
     ...(options.workTools ? [createWorkToolSource({ pubsub })] : []),
     ...(options.handOff

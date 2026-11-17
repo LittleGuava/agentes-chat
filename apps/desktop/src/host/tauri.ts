@@ -4,6 +4,7 @@ import { LogicalSize } from "@tauri-apps/api/dpi";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { Candidate } from "../control/first-run";
+import type { LocalScan, RemoteFile } from "../control/folder-sync";
 import type {
   KeepRunning,
   LocalServerStatus,
@@ -84,6 +85,11 @@ export function createTauriHost(): Host {
     onLink: (cb) => subscribe<null>("link://pending", () => cb()),
     revealFolder: (path) => invoke<void>("reveal_folder", { path }),
     pickFolder: () => invoke<string | null>("pick_folder"),
+    folderSyncList: (server, orgId, channelIds) =>
+      invoke<RemoteFile[]>("folder_sync_list", { server, orgId, channelIds }),
+    folderSyncRoot: () => invoke<string>("folder_sync_root"),
+    folderSyncScan: (hash) => invoke<LocalScan>("folder_sync_scan", { hash }),
+    folderSyncFetch: (request) => invoke<string>("folder_sync_fetch", { request }),
     setTrayState: (state: TrayState) => invoke<void>("set_tray_state", { state }),
     setTrayVisible: (show) => invoke<void>("tray_visible", { show }),
     showWindow: (w) => invoke<void>("show_window", { name: w }),

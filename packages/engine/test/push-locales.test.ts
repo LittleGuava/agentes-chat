@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { LOCALE_CODES } from "@agenteschat/i18n/locale";
+import { noticeOn } from "../src/notice-prefs";
 import { PUSH } from "../src/push/messages";
 import { strings as ru } from "../src/push/messages/ru";
 import { PUSH_BODY_MAX, PUSH_TITLE_MAX, pushStrings, renderPush } from "../src/push-messages";
@@ -13,6 +14,7 @@ const KINDS = [
   "mission_stopped",
   "routine_failed",
   "run_failed",
+  "agent_needs_ai",
   "routine_paused",
   "agent_unreached",
   "routine_stalled",
@@ -79,4 +81,30 @@ test("a language without a word says it in English", () => {
   }
   expect(pushStrings("ru").questionBody).not.toBe(pushStrings("en").questionBody);
   expect(pushStrings("pt-BR").questionBody).not.toBe(pushStrings("en").questionBody);
+});
+
+test("a routine that failed on its automatic retry says it was tried again, in every language", () => {
+  for (const locale of LOCALE_CODES) {
+    const once = renderPush(locale, { kind: "routine_failed", waiting: false, title: "Relatório" });
+    const again = renderPush(locale, { kind: "routine_failed", waiting: false, title: "Relatório", retried: true });
+    expect([locale, again.title]).not.toEqual([locale, once.title]);
+    expect(again.body).toBe(once.body);
+    expect(again.title.length).toBeLessThanOrEqual(PUSH_TITLE_MAX);
+  }
+});
+
+test("an agent someone couldn't reach for want of an AI: the agent leads, who called follows, as a reply pushes", () => {
+  const push = (locale: "en" | "pt-BR") =>
+    renderPush(locale, { kind: "agent_needs_ai", waiting: false, actorName: "Bia", actorType: "user", label: "Dev" });
+  expect(push("en")).toEqual({
+    title: "Dev has no AI connected",
+    body: "Bia called and got no answer. Connect an AI so it can answer.",
+  });
+  expect(push("pt-BR")).toEqual({
+    title: "Dev está sem IA conectada",
+    body: "Bia chamou e ficou sem resposta. Conecte uma IA para responder.",
+  });
+  // It reaches devices as an agent's reply does, and stays in the inbox when the person turned those off.
+  expect(noticeOn({}, "agent_needs_ai", false)).toBe(true);
+  expect(noticeOn({ replies: false }, "agent_needs_ai", false)).toBe(false);
 });

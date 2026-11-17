@@ -932,6 +932,8 @@ export const featureKeysEn = {
     title: "Activity",
     /** Under `plan_model_dropped`: opens the agent's model. */
     chooseModel: "Choose another model",
+    /** Under `agent_needs_ai`: opens "Conectar uma IA" for the agent. */
+    connectAi: "Connect an AI",
     /** The pills over Atividade: short, no counts (the section and the tab's badge count). */
     filter: {
       all: "All",
@@ -979,6 +981,9 @@ export const featureKeysEn = {
       routine_finished_other: "Routine finished",
       routine_failed_one: "Routine failed",
       routine_failed_other: "Routine failed",
+      /** Its automatic retry failed too (ADR 0177 addendum 2026-11-15). */
+      routine_failed_retried_one: "Routine failed after one more try",
+      routine_failed_retried_other: "Routine failed after one more try",
       run_failed_one: "Couldn't finish",
       run_failed_other: "Couldn't finish",
       admin_ask_channel_agent: "{{names}} asks you to add {{agent}} to #{{label}}",
@@ -1040,6 +1045,11 @@ export const featureKeysEn = {
       desktop_taken_other: "{{names}} took control of the screen of {{agent}}'s computer",
       desktop_taken_female_one: "{{names}} took control of the screen of {{agent}}'s computer",
       desktop_taken_female_other: "{{names}} took control of the screen of {{agent}}'s computer",
+      /** A person's message got no answer from an agent with no AI (`agent_needs_ai`). */
+      agent_needs_ai_one: "{{names}} called {{agent}}, who has no AI connected to answer",
+      agent_needs_ai_other: "{{names}} called {{agent}}, who has no AI connected to answer",
+      agent_needs_ai_female_one: "{{names}} called {{agent}}, who has no AI connected to answer",
+      agent_needs_ai_female_other: "{{names}} called {{agent}}, who has no AI connected to answer",
       plan_lent_one: "{{names}} connected your {{plan}} plan to {{agent}}",
       plan_lent_other: "{{names}} connected your {{plan}} plan to {{agent}}",
       plan_lent_female_one: "{{names}} connected your {{plan}} plan to {{agent}}",
@@ -3046,6 +3056,15 @@ export const featureKeysEn = {
       title: "Nothing to review",
       text: "When an agent does something outside the conversation, it shows up here.",
     },
+  },
+  phoneTools: {
+    /** Contatos do celular (ADR 0205): Você's page, its row and its toasts. */
+    title: "Phone contacts",
+    contacts: "Agents can search my contacts",
+    help: "Only in this workspace and only on this phone. When an agent you talk to needs someone's details, it searches your contacts by name: up to 5 matches go to the agent, each with just a name, phone numbers and emails.",
+    deniedTitle: "Contacts access is off",
+    deniedSub: "Allow it for agentes.chat in the phone's Settings.",
+    failed: "Couldn't save. Try again.",
   },
 };
 

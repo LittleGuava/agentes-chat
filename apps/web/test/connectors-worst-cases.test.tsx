@@ -139,11 +139,12 @@ describe("Conectores, worst case", () => {
       "Quem usa",
       "Ferramentas",
       "Endereços",
+      "Triagem",
       "Desconectar",
     ]);
     expect([...(rows[0]?.querySelectorAll(".ac-acts > .ac-btn") ?? [])].map((b) => b.textContent)).toEqual([
       "Reconectar",
     ]);
-    expect(rows[0]?.querySelectorAll(".ac-acts > .ac-link--action").length).toBe(4);
+    expect(rows[0]?.querySelectorAll(".ac-acts > .ac-link--action").length).toBe(5);
   });
 });

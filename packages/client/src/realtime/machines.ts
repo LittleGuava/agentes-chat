@@ -333,8 +333,9 @@ export function applyMembershipEvent(qc: QueryClient, orgId: string, event: Chan
 
 /**
  * What the open conversation says about lists shown elsewhere too: a file saved, changed or deleted there (its cards,
- * the open viewer, the Drive; a deleted one's cards say so, from the conversation read again), and an agent changing its
- * memory there (its memory list). Returns whether the event was one of these.
+ * the open viewer, the Drive; a deleted one's cards say so, from the conversation read again), an agent changing its
+ * memory there (its memory list), and a message going into an agent's run or out of it (the agents' queues). Returns
+ * whether the event was one of these.
  */
 export function applyConversationEvent(qc: QueryClient, orgId: string, event: ChannelEvent): boolean {
   const type: string = event.type;
@@ -361,6 +362,12 @@ export function applyConversationEvent(qc: QueryClient, orgId: string, event: Ch
   }
   if (event.type === "memory.updated") {
     void qc.invalidateQueries({ queryKey: keys.memory(orgId, event.agentId) });
+    return true;
+  }
+  // A message went into an agent's run, was read there or got a run of its own: who waits for that agent changed (its
+  // queue, ADR 0084 addendum of 2026-11-15). Queues of conversations not open here follow the list's own poll.
+  if (type === "agent.run.steered" || type === "agent.run.read" || type === "agent.run.redispatched") {
+    void qc.invalidateQueries({ queryKey: keys.agentStatus(orgId) });
     return true;
   }
   return false;
@@ -506,6 +513,8 @@ export function applyWorkspaceEvent(qc: QueryClient, orgId: string, event: { typ
   // Someone changed their availability or line, or an agent its line (ADR 0084): the lists follow.
   if (event.type === "member.status") {
     void qc.invalidateQueries({ queryKey: keys.people(orgId) });
+    // Hidden now, or shown again: who has a conversation open says so (ADR 0084 addendum 2026-11-15).
+    void qc.invalidateQueries({ queryKey: keys.anyViewers(orgId) });
     return true;
   }
   // An agent's run started, parked, came back or ended: its face and line follow, and so does "Trabalhando agora"
