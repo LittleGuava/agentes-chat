@@ -7,10 +7,12 @@ import {
   type LevelState,
   levelOf,
   nextLevel,
+  offAtNever,
   resourcesOf,
   saveLevels,
   toolsAt,
 } from "@agenteschat/client/lib/access-levels";
+import { approvalsLevelOf } from "@agenteschat/client/lib/approvals-level";
 import { type ConnectedItem, connectedItems, itemName } from "@agenteschat/client/lib/connected";
 import type { agentGrammar } from "@agenteschat/client/lib/grammar";
 import { addsConnectors, can, makesAgents } from "@agenteschat/client/lib/permissions";
@@ -442,8 +444,9 @@ export function AccessMatrixSection() {
                         );
                       }
                       const level = pending[`${a.id}|${r.id}`] ?? levelOf(r);
-                      const asks = asksAt(r, level).length > 0;
-                      const label = t(asks ? "access.cellAsks" : "access.cell", {
+                      const off = offAtNever(r, approvalsLevelOf(a));
+                      const asks = !off && asksAt(r, level).length > 0;
+                      const label = t(off ? "access.cellNever" : asks ? "access.cellAsks" : "access.cell", {
                         agent: a.name,
                         resource: name,
                         level: levelLabel(level),
@@ -461,7 +464,7 @@ export function AccessMatrixSection() {
                             onClick={() => cycle(a, r, level)}
                           >
                             {levelLabel(level)}
-                            {asks && <Icon name="lock" />}
+                            {off ? <Icon name="block" /> : asks && <Icon name="lock" />}
                           </button>
                         </td>
                       );

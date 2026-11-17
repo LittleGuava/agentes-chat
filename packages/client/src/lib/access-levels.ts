@@ -1,5 +1,14 @@
 import type { ApiClient } from "../api/client";
-import type { AccessInput, AccessScope, AccessState, AccessTool, AgentAccess, ScopeGrant, ToolRef } from "../api/types";
+import type {
+  AccessInput,
+  AccessScope,
+  AccessState,
+  AccessTool,
+  AgentAccess,
+  ApprovalsLevel,
+  ScopeGrant,
+  ToolRef,
+} from "../api/types";
 
 /**
  * One access model for everything an agent can use: per connector (and per
@@ -45,6 +54,8 @@ export interface AccessResource {
   whole: boolean;
   /** Not covered by "all tools" (running code). */
   notInAll: boolean;
+  /** A connector whose every call asks a person (`AgentAccess`'s `everyCall`): none of it at "Nunca perguntar". */
+  everyCall?: boolean;
 }
 
 const on = (s: AccessState) => s === "granted" || s === "inherited";
@@ -100,8 +111,16 @@ function connectorResource(c: AgentAccess["connectors"][number]): AccessResource
     tools,
     whole: on(c.state),
     notInAll: false,
+    everyCall: c.everyCall === true,
   };
 }
+
+/**
+ * Every call of its service asks a person, and an agent that never asks (ADR 0173) asks nothing: none of its tools
+ * is that agent's to use, whatever its level here (ADR 0016, addendum 2026-11-17). Its row says so instead of what asks.
+ */
+export const offAtNever = (r: Pick<AccessResource, "everyCall">, level: ApprovalsLevel | null | undefined) =>
+  r.everyCall === true && level === "never";
 
 function builtinResources(builtins: AccessScope[], all: boolean): AccessResource[] {
   const by = new Map<string, AccessScope[]>();

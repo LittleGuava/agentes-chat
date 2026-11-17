@@ -164,6 +164,7 @@ export const highRisk = (tool: string, scope: string) =>
  *   by the tool itself, and that rule covers no command that has a kind.
  * - A tool that runs SQL (`sqlReads`) is kept by the reads of its project when the Postgres guard proves the call
  *   read-only, then by the tool itself.
+ * - A tool of a service whose every call a person decides on its own (`everyCall`: Telnyx, Agentcard) is never kept.
  * - Any other is kept by its name and, when it runs other actions, by each action (none: the tool itself).
  */
 export async function rememberKinds(
@@ -172,7 +173,7 @@ export async function rememberKinds(
   authority: RunAuthority | null,
   level: ApprovalsLevel,
 ): Promise<RememberedKind[]> {
-  if (!authority || level !== "risky" || tool.scope.startsWith("mail:")) return [];
+  if (!authority || level !== "risky" || tool.scope.startsWith("mail:") || tool.everyCall) return [];
   if (tool.rememberTarget && tool.connectionId) {
     const target = tool.rememberTarget(input);
     return target ? [{ tool: tool.name, actions: [target] }] : [];
@@ -295,6 +296,8 @@ export const AHEAD_REFUSED =
  */
 export function aheadRefusal(tool: ToolDefinition, input: Record<string, unknown>): string | null {
   if (!tool.ahead || !tool.connectionId) return "Only a connected app's own action can be approved ahead.";
+  if (tool.everyCall)
+    return "A person decides each call of this service when it is made, so it can't be approved ahead.";
   const actions = tool.actions ? tool.actions(input) : [];
   if (!actions) return "This call doesn't say which actions it runs, so it can't be approved ahead.";
   if ([tool.name, tool.rememberAs ?? "", tool.scope, ...actions].some((name) => name && alwaysAsks(name))) {

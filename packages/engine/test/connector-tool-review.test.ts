@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { schema } from "@agenteschat/db";
+import { eq, schema } from "@agenteschat/db";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import {
   acceptCustomSuggestion,
+  aheadRefusal,
   type CustomDeps,
   classifyByRules,
   connectCustomServer,
@@ -13,6 +14,8 @@ import {
   createFakeJudge,
   createToolGateway,
   describeToolName,
+  getAgentAccess,
+  getApproval,
   type Judge,
   type McpConnect,
   mcpSessionOver,
@@ -21,6 +24,7 @@ import {
   saveCustomTools,
   setAgentScopes,
   sharedPrefix,
+  updateAgent,
   ValidationError,
 } from "../src";
 import { type Fixture, setup } from "./fixtures";
@@ -338,6 +342,333 @@ describe("a preset's tools that call, buy or write to people under other words",
       reason: "verb_sensitive",
       sensitive: true,
     });
+  });
+});
+
+describe("Telnyx and Agentcard: every call of theirs asks a person, one call at a time", () => {
+  /** A server with these tools that records each call; `amount_cents` and `request` as Agentcard's take them. */
+  function serverWith(name: string, tools: readonly string[]) {
+    const calls: string[] = [];
+    const connect: McpConnect = async () => {
+      const server = new McpServer({ name, version: "1" });
+      for (const tool of tools) {
+        server.registerTool(
+          tool,
+          { description: tool, inputSchema: { amount_cents: z.number().optional(), request: z.string().optional() } },
+          async () => {
+            calls.push(tool);
+            return { content: [{ type: "text", text: "ok" }] };
+          },
+        );
+      }
+      const [client, end] = InMemoryTransport.createLinkedPair();
+      await server.connect(end);
+      return mcpSessionOver(client);
+    };
+    return { connect, calls };
+  }
+
+  test("each tool they list asks, the ones the preset doesn't name too, and none can be made a read", async () => {
+    f = await setup();
+    const telnyx = serverWith("telnyx", ["list_api_endpoints", "invoke_api_endpoint"]);
+    const t = await connectCustomServer(depsOf(f, { connect: telnyx.connect }), f.owner.id, f.org.id, {
+      serverUrl: "https://api.telnyx.com/v2/mcp",
+      apiKey: "telnyx_secret_12345",
+    });
+    if (t.status !== "connected") throw new Error(`expected connected, got ${t.status}`);
+    const agentcard = serverWith("agentcard", ["get_balance", "buy", "send_support_message", "plan_a_trip"]);
+    const deps = depsOf(f, { connect: agentcard.connect });
+    const a = await connectCustomServer(deps, f.owner.id, f.org.id, {
+      serverUrl: "https://mcp.agentcard.sh/mcp",
+      apiKey: "agentcard_secret_12345",
+    });
+    if (a.status !== "connected") throw new Error(`expected connected, got ${a.status}`);
+    const row = (tools: typeof t.server.tools, name: string) => {
+      const tool = tools.find((x) => x.name === name);
+      return [tool?.level, tool?.suggestionReason, tool?.sensitive];
+    };
+    expect(row(t.server.tools, "list_api_endpoints")).toEqual(["approval", "every_call", true]);
+    expect(row(t.server.tools, "invoke_api_endpoint")).toEqual(["approval", "spends_money", true]);
+    expect(row(a.server.tools, "get_balance")).toEqual(["approval", "every_call", true]);
+    expect(row(a.server.tools, "buy")).toEqual(["approval", "spends_money", true]);
+    expect(row(a.server.tools, "send_support_message")).toEqual(["approval", "verb_sensitive", true]);
+    // A tool its server lists later, which the preset never named.
+    expect(row(a.server.tools, "plan_a_trip")).toEqual(["approval", "every_call", true]);
+    await expect(
+      saveCustomTools(deps, f.owner.id, f.org.id, a.server.id, {
+        label: "Agentcard",
+        tools: [{ name: "get_balance", access: "read", label: "x" }],
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect([...telnyx.calls, ...agentcard.calls]).toEqual([]);
+  });
+
+  test("never kept with Aprovar sempre nor approved ahead, whatever is stored; the card names the request and the amount", async () => {
+    f = await setup();
+    const fx = f;
+    const agentcard = serverWith("agentcard", ["get_balance", "buy"]);
+    const deps = depsOf(fx, { connect: agentcard.connect });
+    const started = await connectCustomServer(deps, fx.owner.id, fx.org.id, {
+      serverUrl: "https://mcp.agentcard.sh/mcp",
+      apiKey: "agentcard_secret_12345",
+    });
+    if (started.status !== "connected") throw new Error(`expected connected, got ${started.status}`);
+    const id = started.server.id;
+    await acceptCustomSuggestion(deps, fx.owner.id, fx.org.id, id);
+    await setAgentScopes(
+      fx.db,
+      fx.owner.id,
+      fx.org.id,
+      fx.agent.id,
+      [
+        { connectionId: id, scope: `custom:${id}:read` },
+        { connectionId: id, scope: `custom:${id}:write` },
+      ],
+      connectorGrantValidator,
+    );
+    const source = createConnectorToolSource(deps);
+    const gateway = createToolGateway({ sources: [source] });
+    const ctx = await runContext(fx);
+    const request = "a pack of AA batteries from Amazon";
+    const buy = await gateway.invoke(ctx, {
+      toolUseId: "t1",
+      name: "agentcard_buy",
+      input: { request, amount_cents: 1299, why: WHY },
+    });
+    const balance = await gateway.invoke(ctx, {
+      toolUseId: "t2",
+      name: "agentcard_get_balance",
+      input: { why: WHY },
+    });
+    if (buy.type !== "approval" || balance.type !== "approval") throw new Error("expected both to ask");
+    const rows = await fx.db.select().from(schema.approvals);
+    expect(rows.map((r) => r.approveAlways)).toEqual([null, null]);
+    expect((await getApproval(fx.db, fx.owner.id, fx.org.id, buy.approval.id)).callArgs).toEqual({
+      does: "request",
+      usdCents: "amount_cents",
+    });
+    expect((await getApproval(fx.db, fx.owner.id, fx.org.id, balance.approval.id)).callArgs).toBeNull();
+    const tools = (await source.tools(ctx)).filter((tool) => tool.name.startsWith("agentcard_"));
+    expect(tools.length).toBe(2);
+    // Neither approved ahead nor a routine's own action: both go through this refusal (`ownJobCovers`, `routineKind`).
+    for (const tool of tools) expect(aheadRefusal(tool, {})).toContain("decides each call of this service");
+
+    // A level stored as a free read before the preset said otherwise still asks.
+    await fx.db
+      .update(schema.customTools)
+      .set({ access: "read", sensitive: false })
+      .where(eq(schema.customTools.connectionId, id));
+    const again = await gateway.invoke(ctx, { toolUseId: "t3", name: "agentcard_get_balance", input: { why: WHY } });
+    expect(again.type).toBe("approval");
+    expect(agentcard.calls).toEqual([]);
+
+    await updateAgent(fx.db, fx.owner.id, fx.org.id, fx.agent.id, { approvalsLevel: "always" });
+    const always = await gateway.invoke(ctx, {
+      toolUseId: "t4",
+      name: "agentcard_buy",
+      input: { request, amount_cents: 1299, why: WHY },
+    });
+    expect(always.type).toBe("approval");
+    expect(agentcard.calls).toEqual([]);
+  });
+
+  test("an agent that never asks (ADR 0173) is neither offered them nor runs them, and its access says why", async () => {
+    f = await setup();
+    const fx = f;
+    const agentcard = serverWith("agentcard", ["get_balance", "buy"]);
+    const deps = depsOf(fx, { connect: agentcard.connect });
+    const started = await connectCustomServer(deps, fx.owner.id, fx.org.id, {
+      serverUrl: "https://mcp.agentcard.sh/mcp",
+      apiKey: "agentcard_secret_12345",
+    });
+    if (started.status !== "connected") throw new Error(`expected connected, got ${started.status}`);
+    const id = started.server.id;
+    await acceptCustomSuggestion(deps, fx.owner.id, fx.org.id, id);
+    await setAgentScopes(
+      fx.db,
+      fx.owner.id,
+      fx.org.id,
+      fx.agent.id,
+      [
+        { connectionId: id, scope: `custom:${id}:read` },
+        { connectionId: id, scope: `custom:${id}:write` },
+      ],
+      connectorGrantValidator,
+    );
+    const gateway = createToolGateway({ sources: [createConnectorToolSource(deps)] });
+    const ctx = await runContext(fx);
+    const offered = async () => (await gateway.list(ctx)).map((t) => t.name).filter((n) => n.startsWith("agentcard_"));
+    expect(await offered()).toEqual(["agentcard_buy", "agentcard_get_balance"]);
+
+    await updateAgent(fx.db, fx.owner.id, fx.org.id, fx.agent.id, { approvalsLevel: "never" });
+    // The agent still never asks: these tools are simply not its to use at that level.
+    expect(await offered()).toEqual([]);
+    for (const name of ["agentcard_buy", "agentcard_get_balance"]) {
+      const refused = await gateway.invoke(ctx, {
+        toolUseId: `t-${name}`,
+        name,
+        input: { request: "a pack of AA batteries", amount_cents: 1299, why: WHY },
+      });
+      if (refused.type !== "result") throw new Error(`expected a refusal, got ${refused.type}`);
+      expect(refused.output.isError).toBe(true);
+      expect(refused.output.data).toMatchObject({ code: "tool.not_allowed", refusal: "policy" });
+      expect(refused.output.content).toContain("never asks");
+    }
+    expect(agentcard.calls).toEqual([]);
+    expect(await fx.db.select().from(schema.approvals)).toEqual([]);
+
+    // Its access page says the connection's tools are unavailable at that level, by the same preset.
+    const access = await getAgentAccess(fx.db, fx.owner.id, fx.org.id, fx.agent.id);
+    expect(access.connectors.find((c) => c.connectionId === id)?.everyCall).toBe(true);
+
+    // Back at the default level they ask again, one call at a time.
+    await updateAgent(fx.db, fx.owner.id, fx.org.id, fx.agent.id, { approvalsLevel: "risky" });
+    const asked = await gateway.invoke(ctx, {
+      toolUseId: "t-again",
+      name: "agentcard_buy",
+      input: { request: "a pack of AA batteries", amount_cents: 1299, why: WHY },
+    });
+    expect(asked.type).toBe("approval");
+  });
+
+  test("a tool that would put a card's number and CVV in the agent's history is never listed, stored or offered", async () => {
+    f = await setup();
+    const fx = f;
+    const agentcard = serverWith("agentcard", ["get_balance", "get_card_details", "approve_request", "buy"]);
+    const deps = depsOf(fx, { connect: agentcard.connect });
+    const started = await connectCustomServer(deps, fx.owner.id, fx.org.id, {
+      serverUrl: "https://mcp.agentcard.sh/mcp",
+      apiKey: "agentcard_secret_12345",
+    });
+    if (started.status !== "connected") throw new Error(`expected connected, got ${started.status}`);
+    const id = started.server.id;
+    expect(started.server.tools.map((t) => t.name).sort()).toEqual(["buy", "get_balance"]);
+    await acceptCustomSuggestion(deps, fx.owner.id, fx.org.id, id);
+    await setAgentScopes(
+      fx.db,
+      fx.owner.id,
+      fx.org.id,
+      fx.agent.id,
+      [
+        { connectionId: id, scope: `custom:${id}:read` },
+        { connectionId: id, scope: `custom:${id}:write` },
+      ],
+      connectorGrantValidator,
+    );
+    // A row stored for it before the preset withheld it (here the balance's, renamed) still offers nothing.
+    await fx.db
+      .update(schema.customTools)
+      .set({ name: "get_card_details" })
+      .where(eq(schema.customTools.name, "get_balance"));
+    const gateway = createToolGateway({ sources: [createConnectorToolSource(deps)] });
+    const ctx = await runContext(fx);
+    const names = (await gateway.list(ctx)).map((t) => t.name);
+    expect(names.filter((n) => n.startsWith("agentcard_"))).toEqual(["agentcard_buy"]);
+    const tried = await gateway.invoke(ctx, {
+      toolUseId: "t1",
+      name: "agentcard_get_card_details",
+      input: { why: WHY },
+    });
+    if (tried.type !== "result") throw new Error(`expected a refusal, got ${tried.type}`);
+    expect(tried.output.isError).toBe(true);
+    expect(agentcard.calls).toEqual([]);
+    expect(await fx.db.select().from(schema.approvals)).toEqual([]);
+  });
+
+  /** Read and write on this connection for the fixture's agent. */
+  const grantAll = (fx: Fixture, id: string) =>
+    setAgentScopes(
+      fx.db,
+      fx.owner.id,
+      fx.org.id,
+      fx.agent.id,
+      [
+        { connectionId: id, scope: `custom:${id}:read` },
+        { connectionId: id, scope: `custom:${id}:write` },
+      ],
+      connectorGrantValidator,
+    );
+
+  // The locks go by the preset's host: a query, another case in the path or extra slashes don't make it another service.
+  test.each([
+    "https://mcp.agentcard.sh/mcp?team=growth",
+    "https://MCP.Agentcard.sh/MCP",
+    "https://mcp.agentcard.sh/mcp//",
+  ])("typed as %s, the preset's locks still hold", async (serverUrl) => {
+    f = await setup();
+    const fx = f;
+    const agentcard = serverWith("agentcard", ["get_balance", "get_card_details", "buy"]);
+    const deps = depsOf(fx, { connect: agentcard.connect });
+    const started = await connectCustomServer(deps, fx.owner.id, fx.org.id, {
+      serverUrl,
+      label: "Agentcard",
+      apiKey: "agentcard_secret_12345",
+    });
+    if (started.status !== "connected") throw new Error(`expected connected, got ${started.status}`);
+    const id = started.server.id;
+    expect(started.server.tools.map((t) => t.name).sort()).toEqual(["buy", "get_balance"]);
+    await acceptCustomSuggestion(deps, fx.owner.id, fx.org.id, id);
+    await grantAll(fx, id);
+    const gateway = createToolGateway({ sources: [createConnectorToolSource(deps)] });
+    const ctx = await runContext(fx);
+    const offered = async () => (await gateway.list(ctx)).map((t) => t.name).filter((n) => n.startsWith("agentcard_"));
+    expect(await offered()).toEqual(["agentcard_buy", "agentcard_get_balance"]);
+    const balance = await gateway.invoke(ctx, { toolUseId: "t1", name: "agentcard_get_balance", input: { why: WHY } });
+    expect(balance.type).toBe("approval");
+    expect((await getAgentAccess(fx.db, fx.owner.id, fx.org.id, fx.agent.id)).connectors[0]?.everyCall).toBe(true);
+    await updateAgent(fx.db, fx.owner.id, fx.org.id, fx.agent.id, { approvalsLevel: "never" });
+    expect(await offered()).toEqual([]);
+    expect(agentcard.calls).toEqual([]);
+  });
+
+  test("a connection stored before, at an address of the preset's host, gets the locks too", async () => {
+    f = await setup();
+    const fx = f;
+    const agentcard = serverWith("agentcard", ["get_balance", "get_card_details", "buy"]);
+    const deps = depsOf(fx, { connect: agentcard.connect });
+    // Stored as a plain server would have been: every tool kept, each one a free read or write.
+    const started = await connectCustomServer(deps, fx.owner.id, fx.org.id, {
+      serverUrl: "https://cards.example.com/mcp",
+      label: "Agentcard",
+      apiKey: "agentcard_secret_12345",
+    });
+    if (started.status !== "connected") throw new Error(`expected connected, got ${started.status}`);
+    const id = started.server.id;
+    expect(started.server.tools.map((t) => t.name).sort()).toEqual(["buy", "get_balance", "get_card_details"]);
+    await acceptCustomSuggestion(deps, fx.owner.id, fx.org.id, id);
+    await fx.db
+      .update(schema.customTools)
+      .set({ access: "write", sensitive: false })
+      .where(eq(schema.customTools.connectionId, id));
+    await fx.db
+      .update(schema.connectorConnections)
+      .set({ serverUrl: "https://mcp.agentcard.sh/mcp?team=growth" })
+      .where(eq(schema.connectorConnections.id, id));
+    await grantAll(fx, id);
+    const gateway = createToolGateway({ sources: [createConnectorToolSource(deps)] });
+    const ctx = await runContext(fx);
+    const offered = async () => (await gateway.list(ctx)).map((t) => t.name).filter((n) => n.startsWith("agentcard_"));
+    expect(await offered()).toEqual(["agentcard_buy", "agentcard_get_balance"]);
+    const buy = await gateway.invoke(ctx, {
+      toolUseId: "t1",
+      name: "agentcard_buy",
+      input: { request: "a pack of AA batteries", amount_cents: 1299, why: WHY },
+    });
+    expect(buy.type).toBe("approval");
+    const details = await gateway.invoke(ctx, {
+      toolUseId: "t2",
+      name: "agentcard_get_card_details",
+      input: { why: WHY },
+    });
+    if (details.type !== "result") throw new Error(`expected a refusal, got ${details.type}`);
+    expect(details.output.isError).toBe(true);
+    expect(agentcard.calls).toEqual([]);
+    // Its next sync closes the withheld tool's row.
+    await refreshCustomServer(deps, fx.owner.id, fx.org.id, id);
+    const [row] = await fx.db.select().from(schema.customTools).where(eq(schema.customTools.name, "get_card_details"));
+    expect(row?.removedAt).not.toBeNull();
+    await updateAgent(fx.db, fx.owner.id, fx.org.id, fx.agent.id, { approvalsLevel: "never" });
+    expect(await offered()).toEqual([]);
   });
 });
 

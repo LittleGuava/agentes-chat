@@ -12599,6 +12599,9 @@
     "asksMore_many": "e altri {{count}}",
     "asksMore_other": "e altri {{count}}",
     "asksLegend": "chiede l'approvazione",
+    "everyCallNever": "Non disponibile con Non chiedere mai: ogni azione richiede l'approvazione di una persona",
+    "cellNever": "{{agent}} in {{resource}}: {{level}}, non disponibile con Non chiedere mai",
+    "neverLegend": "non disponibile con Non chiedere mai",
     "customText": "Concesso strumento per strumento. Scegli un livello per semplificare.",
     "noTools": "Ancora nessuno strumento.",
     "toolsMore_one": "{{tools}} e {{count}} altro",
@@ -13739,6 +13742,16 @@
         "1": "Cercare sul web",
         "2": "Leggere pagine intere e fare ricerche con le fonti"
       },
+      "telnyx": {
+        "1": "Vedere numeri, chiamate, messaggi e consumi",
+        "2": "Chiamare qualsiasi endpoint dell'API di Telnyx",
+        "ask": "Ogni azione chiede sempre la tua approvazione"
+      },
+      "agentcard": {
+        "1": "Vedere carte, saldo e transazioni",
+        "2": "Creare carte, aggiungere fondi e acquistare",
+        "ask": "Ogni azione chiede sempre la tua approvazione, con l'importo quando c'è"
+      },
       "database": {
         "1": "Vedere le tabelle",
         "2": "Interrogare i dati per rispondere",
@@ -13900,7 +13913,9 @@
       "agentphone": "Numeri di telefono, SMS e chiamate per agenti.",
       "vapi": "Assistenti vocali, chiamate e numeri di telefono.",
       "whop": "Pagamenti, abbonamenti e prodotti.",
-      "youcom": "Ricerca web, contenuto delle pagine e ricerche."
+      "youcom": "Ricerca web, contenuto delle pagine e ricerche.",
+      "telnyx": "Numeri di telefono, chiamate, messaggi e il resto dell'API di Telnyx.",
+      "agentcard": "Carte virtuali, saldo e acquisti per agenti."
     }
   },
   "toolNames": {
@@ -14832,7 +14847,8 @@
       "verb_read": "dal nome, si limita a guardare",
       "verb_write": "dal nome, crea o modifica",
       "verb_sensitive": "dal nome, elimina, invia o spende",
-      "preset_read": "il servizio gli consente solo di guardare"
+      "preset_read": "il servizio gli consente solo di guardare",
+      "every_call": "questo servizio spende denaro o raggiunge persone: ogni azione chiede approvazione"
     },
     "asks_one": "{{count}} azione chiede prima la tua approvazione",
     "asks_many": "{{count}} azioni chiedono prima la tua approvazione",

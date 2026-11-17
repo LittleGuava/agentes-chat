@@ -130,6 +130,11 @@ export interface ToolDefinition {
   /** Needs a person's approval for every call. Merge, deploy and rollback do by their name too. */
   sensitive?: boolean;
   /**
+   * A service whose every call a person decides on its own (`McpPreset.everyCall`, ADR 0016 addendum 2026-11-17):
+   * set with `sensitive`, it is never kept with "Aprovar sempre", approved ahead or made a routine's own action.
+   */
+  everyCall?: true;
+  /**
    * Set by the gateway's listing, never by a source: this agent never asks (ADR 0173), so a call of this tool opens
    * no card whatever its name or marks say.
    */

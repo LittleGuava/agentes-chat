@@ -12065,6 +12065,9 @@
     "asksMore_one": "ve {{count}} tane daha",
     "asksMore_other": "ve {{count}} tane daha",
     "asksLegend": "onay ister",
+    "everyCallNever": "Hiç sorma seviyesinde kullanılamaz: her işlem bir kişinin onayını gerektirir",
+    "cellNever": "{{resource}} içinde {{agent}}: {{level}}, Hiç sorma seviyesinde kullanılamaz",
+    "neverLegend": "Hiç sorma seviyesinde kullanılamaz",
     "customText": "Araç araç verildi. Sadeleştirmek için bir düzey seçin.",
     "noTools": "Henüz araç yok.",
     "toolsMore_one": "{{tools}} ve {{count}} tane daha",
@@ -13185,6 +13188,16 @@
         "1": "Web'de arar",
         "2": "Sayfaları baştan sona okur ve kaynaklı araştırma yapar"
       },
+      "telnyx": {
+        "1": "Numaraları, aramaları, mesajları ve kullanımı görür",
+        "2": "Telnyx API'sinin herhangi bir uç noktasını çağırır",
+        "ask": "Her işlem her zaman onayınızı ister"
+      },
+      "agentcard": {
+        "1": "Kartları, bakiyeyi ve işlemleri görür",
+        "2": "Kart oluşturur, bakiye yükler ve satın alır",
+        "ask": "Her işlem her zaman onayınızı ister, tutar varsa onu da gösterir"
+      },
       "database": {
         "1": "Tabloları görür",
         "2": "Yanıt vermek için verileri sorgular",
@@ -13341,7 +13354,9 @@
       "agentphone": "Ajanlar için telefon numaraları, SMS ve aramalar.",
       "vapi": "Sesli asistanlar, aramalar ve telefon numaraları.",
       "whop": "Ödemeler, üyelikler ve ürünler.",
-      "youcom": "Web araması, sayfa içerikleri ve araştırma."
+      "youcom": "Web araması, sayfa içerikleri ve araştırma.",
+      "telnyx": "Telefon numaraları, aramalar, mesajlar ve Telnyx API'sinin geri kalanı.",
+      "agentcard": "Ajanlar için sanal kartlar, bakiye ve satın almalar."
     }
   },
   "toolNames": {
@@ -14259,7 +14274,8 @@
       "verb_read": "adına bakılırsa yalnızca bakar",
       "verb_write": "adına bakılırsa oluşturur ya da düzenler",
       "verb_sensitive": "adına bakılırsa siler, gönderir ya da para harcar",
-      "preset_read": "hizmet yalnızca bakmasına izin veriyor"
+      "preset_read": "hizmet yalnızca bakmasına izin veriyor",
+      "every_call": "bu hizmet para harcar ya da insanlara ulaşır: her işlem onay ister"
     },
     "asks_one": "{{count}} eylem önce onayınızı ister",
     "asks_other": "{{count}} eylem önce onayınızı ister",

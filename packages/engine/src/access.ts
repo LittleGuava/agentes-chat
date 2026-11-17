@@ -14,6 +14,7 @@ import { CONNECTOR_CATALOG } from "./connectors/catalog";
 import { connectorGrantValidator, toolPrefixOfConnection } from "./connectors/connections";
 import { classifiedTools, customScope, isCustom, type ToolAccess } from "./connectors/custom";
 import { exposedToolName } from "./connectors/mcp";
+import { presetLocks } from "./connectors/presets";
 import { sha256 } from "./crypto";
 import { ForbiddenError, NotFoundError, ValidationError } from "./errors";
 import { can, requirePermission } from "./organizations";
@@ -356,6 +357,11 @@ export interface AccessTree {
     connector: string;
     label: string;
     custom: boolean;
+    /**
+     * Every call of its service asks a person (`McpPreset.everyCall`, ADR 0016 addendum 2026-11-17): an agent that
+     * never asks is offered none of its tools.
+     */
+    everyCall: boolean;
     state: AccessState;
     scopes: AccessScope[];
   }[];
@@ -373,6 +379,7 @@ export async function orgToolCatalog(db: Database, orgId: string) {
     connector: string;
     label: string;
     custom: boolean;
+    everyCall: boolean;
     scopes: { scope: string; label: string; tools: CatalogTool[] }[];
   }[] = [];
   for (const c of connections) {
@@ -396,6 +403,7 @@ export async function orgToolCatalog(db: Database, orgId: string) {
         connector: "custom",
         label: c.label,
         custom: true,
+        everyCall: presetLocks(c.serverUrl)?.everyCall === true,
         scopes: [...byScope].map(([scope, list]) => ({
           scope,
           label: scope.endsWith(":read") ? "Read" : "Write",
@@ -411,6 +419,7 @@ export async function orgToolCatalog(db: Database, orgId: string) {
       connector: def.id,
       label: c.label,
       custom: false,
+      everyCall: false,
       scopes: Object.entries(def.scopes).map(([id, s]) => ({
         scope: `${def.id}:${id}`,
         label: s.label,
@@ -493,6 +502,7 @@ function treeFor(
       connector: c.connector,
       label: c.label,
       custom: c.custom,
+      everyCall: c.everyCall,
       state: granted.has(grantKey(c.connectionId, CONNECTOR_ALL))
         ? "granted"
         : granted.has(grantKey(null, ALL_TOOLS))

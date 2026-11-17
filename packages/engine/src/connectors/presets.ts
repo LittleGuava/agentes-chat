@@ -22,9 +22,13 @@ import { canonicalResource } from "./oauth-mcp";
  * Left out as servers of their own: HubSpot (its authorization server has
  * no dynamic registration: it needs an app registered with HubSpot). Slack,
  * Zendesk, Box, Render, PagerDuty, Front, Pipedrive, Shopify and Microsoft 365
- * also need an app registered with them. Telnyx (`api.telnyx.com/v2/mcp`) and
- * Agentcard (`mcp.agentcard.sh/mcp`) answer `initialize` without credentials
- * (checked 2026-11-15), so connecting one would store it signed in as nobody.
+ * also need an app registered with them.
+ *
+ * Telnyx and Agentcard answer `initialize` and `tools/list` without
+ * credentials and ask for them only when a tool runs (checked 2026-11-15):
+ * they declare `signInRequired`, so neither is ever stored as an open server,
+ * and `everyCall`, since one reaches a whole telephony API and the other moves
+ * money (ADR 0016, addendum 2026-11-17).
  *
  * A preset with a `composio` way (ADR 0107) also connects through Composio, on
  * Composio's own OAuth app only (`ComposioWay.auth`): a service with no server
@@ -70,6 +74,29 @@ export interface McpPreset {
    * ask, locked like a send or a payment, with why, whatever the server says of them.
    */
   askTools?: Readonly<Record<string, AskReason>>;
+  /**
+   * Its server answers `initialize` and `tools/list` to anyone and asks for credentials only when a tool runs: it is
+   * never stored as an open server, whatever its first answer. `key`: it documents an API key alone, so connecting
+   * without one asks for it and sends nothing to the server; `any`: the sign-in its metadata names, else a key.
+   */
+  signInRequired?: "key" | "any";
+  /**
+   * Every tool of its server asks a person on every call, the ones it lists later too, each call decided on its own:
+   * never kept with "Aprovar sempre", approved ahead or made a routine's own action. Its reason is `askTools`' where it
+   * names the tool, else `every_call`.
+   */
+  everyCall?: true;
+  /**
+   * The arguments that say what a call does (`does`: Agentcard's `request`) and the amount it moves in US cents
+   * (`usdCents`), the first one a call carries of each: its approval card leads with them.
+   */
+  callArgs?: { does?: readonly string[]; usdCents?: readonly string[] };
+  /**
+   * Tools of its server we never list, store or offer, whatever is stored for them: their answer would leave in the
+   * agent's history what must stay out of it (a card's full number and CVV), and nothing can hold it back once the
+   * agent reads it (ADR 0016, addendum 2026-11-17).
+   */
+  withheldTools?: readonly string[];
   /**
    * The read-only tool that lists the accounts a sign-in reaches: its answer (JSON) keeps them at `list`, each one's
    * id made of the values at `id` and its name at `name` (dotted paths). Two connections are the same account when
@@ -1335,6 +1362,60 @@ export const MCP_PRESETS: readonly McpPreset[] = [
     icon: "youcom",
     serverUrl: "https://api.you.com/mcp",
   },
+  {
+    id: "telnyx",
+    category: "dev",
+    label: "Telnyx",
+    description: "Telnyx numbers, calls, messages and the rest of its API.",
+    icon: "telnyx",
+    serverUrl: "https://api.telnyx.com/v2/mcp",
+    // "Bearer authentication with `Authorization: Bearer <TELNYX_API_KEY>`", and "No OAuth/PKCE in v1" in its server
+    // card (developers.telnyx.com/docs/development/mcp/remote-mcp, telnyx.com/.well-known/mcp/server-card.json).
+    signInRequired: "key",
+    everyCall: true,
+    // One tool runs any endpoint of its API: calls, messages, numbers bought.
+    askTools: { invoke_api_endpoint: "spends_money" },
+    callArgs: { does: ["endpoint_name"] },
+  },
+  {
+    id: "agentcard",
+    category: "payments",
+    label: "Agentcard",
+    description: "Agentcard virtual cards, balance and purchases for agents.",
+    icon: "agentcard",
+    serverUrl: "https://mcp.agentcard.sh/mcp",
+    // A browser sign-in, or `Authorization: Bearer` with an organization's client secret (docs.agentcard.com/tools/mcp).
+    signInRequired: "any",
+    everyCall: true,
+    askTools: {
+      buy: "spends_money",
+      buy_checkout: "spends_money",
+      buy_reorder: "spends_money",
+      create_card: "spends_money",
+      top_up_card: "spends_money",
+      update_card_limit: "spends_money",
+      add_funds: "spends_money",
+      redeem_rewards: "spends_money",
+      upgrade_plan: "spends_money",
+      manage_subscription: "spends_money",
+      withdraw: "spends_money",
+      recover_funds: "spends_money",
+      test_charge: "spends_money",
+      start_support_chat: "reaches_people",
+      send_support_message: "reaches_people",
+      ask_agentcard_engineer: "reaches_people",
+      report_agentcard_issue: "reaches_people",
+    },
+    // `get_card_details` answers with the card's number, expiry and CVV, and `approve_request` with them too when it
+    // approves a `card_details` request (it would also let the agent approve its own request): what the agent reads
+    // stays in its history, the run's steps and the audit. Purchases go through `buy`, which never shows a number.
+    withheldTools: ["get_card_details", "approve_request"],
+    // Every amount in its tools is an integer in US cents; `tokens` are rewards worth a cent each.
+    callArgs: {
+      does: ["request"],
+      usdCents: ["amount_cents", "spend_limit_cents", "new_limit_cents", "amount", "tokens"],
+    },
+  },
 ];
 
 export const mcpPreset = (id: string) => MCP_PRESETS.find((p) => p.id === id) ?? null;
@@ -1342,6 +1423,66 @@ export const mcpPreset = (id: string) => MCP_PRESETS.find((p) => p.id === id) ??
 /** Whether this server asks for an API key as a way in: never for `oauthOnly`, nor on the Cloud for `cloudOAuthOnly`. */
 export const takesKey = (preset: Pick<McpPreset, "oauthOnly" | "cloudOAuthOnly"> | null, cloud: boolean) =>
   !preset?.oauthOnly && !(preset?.cloudOAuthOnly && cloud);
+
+/** Why each of these tools of a preset always asks: its `askTools`, and with `everyCall` every one of them. */
+export function presetAsks(
+  preset: Pick<McpPreset, "askTools" | "everyCall"> | null | undefined,
+  names: readonly string[],
+): Readonly<Record<string, AskReason>> {
+  const named = preset?.askTools ?? {};
+  if (!preset?.everyCall) return named;
+  return Object.fromEntries(names.map((n) => [n, Object.hasOwn(named, n) ? (named[n] ?? "every_call") : "every_call"]));
+}
+
+/** Whether its preset withholds this tool of a server (`withheldTools`): never listed, stored or offered. */
+export const presetWithholds = (preset: Pick<McpPreset, "withheldTools"> | null | undefined, name: string) =>
+  preset?.withheldTools?.includes(name) === true;
+
+/** Which arguments of a call to this preset's server its card leads with (`callArgs`): the first it carries of each. */
+export function presetCallArgs(
+  preset: Pick<McpPreset, "callArgs"> | null | undefined,
+  params: Record<string, unknown>,
+): { does: string | null; usdCents: string | null } | null {
+  const said = preset?.callArgs;
+  if (!said) return null;
+  const carried = (names: readonly string[] | undefined, ok: (v: unknown) => boolean) =>
+    names?.find((n) => Object.hasOwn(params, n) && ok(params[n])) ?? null;
+  const does = carried(said.does, (v) => typeof v === "string" && v.trim() !== "");
+  const usdCents = carried(said.usdCents, (v) => v !== null && v !== undefined && v !== "");
+  return does || usdCents ? { does, usdCents } : null;
+}
+
+/** A preset's safety locks, the part of it that holds for any address on its server's host. */
+export type PresetLocks = Pick<McpPreset, "signInRequired" | "everyCall" | "withheldTools" | "askTools" | "callArgs">;
+
+/** An address's host as one service owns it: any case, no trailing dot; null for what isn't a URL. */
+const hostOf = (serverUrl: string) =>
+  URL.canParse(serverUrl) ? new URL(serverUrl).hostname.toLowerCase().replace(/\.$/, "") : null;
+
+const LOCKED = MCP_PRESETS.filter((p) => p.signInRequired || p.everyCall || p.withheldTools);
+
+/**
+ * The locks of every preset on this address's host, together (ADR 0016, addendum 2026-11-17): a path, a query, the
+ * path's case or its slashes never make a connection to that service a plain server, so it signs in, every call asks
+ * and the withheld tools stay out however the address was typed, pasted or stored. `presetForServer` still names and
+ * draws only the preset's own address.
+ */
+export function presetLocks(serverUrl: string | null | undefined): PresetLocks | null {
+  const host = serverUrl ? hostOf(serverUrl) : null;
+  const on = host ? LOCKED.filter((p) => hostOf(p.serverUrl) === host) : [];
+  if (on.length === 0) return null;
+  const signIn = on.map((p) => p.signInRequired).filter((s) => s !== undefined);
+  const withheld = [...new Set(on.flatMap((p) => p.withheldTools ?? []))];
+  const callArgs = on.find((p) => p.callArgs)?.callArgs;
+  return {
+    // A key alone asks the least of the server: it wins when two presets on one host differ.
+    ...(signIn.length > 0 ? { signInRequired: signIn.includes("key") ? "key" : "any" } : {}),
+    ...(on.some((p) => p.everyCall) ? { everyCall: true as const } : {}),
+    ...(withheld.length > 0 ? { withheldTools: withheld } : {}),
+    askTools: Object.assign({}, ...on.map((p) => p.askTools ?? {})),
+    ...(callArgs ? { callArgs } : {}),
+  };
+}
 
 /** The preset a connection came from, by either of its addresses (its server's or its Composio toolkit's), if any. */
 export function presetForServer(serverUrl: string | null | undefined) {

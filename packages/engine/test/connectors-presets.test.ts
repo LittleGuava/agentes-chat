@@ -199,9 +199,6 @@ describe("agents' email, phone and calls, Whop and You.com", () => {
       ["You.com", "data", "https://api.you.com/mcp"],
     ]);
     expect(presetForServer("https://mcp.vapi.ai/mcp/")?.id).toBe("vapi");
-    // Telnyx and Agentcard answer without credentials, which would connect them with none: left out.
-    expect(presetForServer("https://api.telnyx.com/v2/mcp")).toBeNull();
-    expect(presetForServer("https://mcp.agentcard.sh/mcp")).toBeNull();
   });
 
   test("a server that takes no key offers only the sign-in, on the Cloud and self-hosted", () => {
@@ -303,6 +300,139 @@ describe("agents' email, phone and calls, Whop and You.com", () => {
     expect((await authServerMetadata(deps, youIssuer))?.registration_endpoint).toBe(
       `https://auth.you.com/v1/mgmt/mcp/client/${youApp}/register`,
     );
+  });
+});
+
+describe("Telnyx and Agentcard: they answer anyone and ask for credentials only when a tool runs", () => {
+  const AGENTCARD = "https://mcp.agentcard.sh/mcp";
+  const TELNYX = "https://api.telnyx.com/v2/mcp";
+  /** What Agentcard published on 2026-11-15 (its authorization server's own metadata is not replayed here). */
+  const agentcardDocs: Record<string, unknown> = {
+    "https://mcp.agentcard.sh/.well-known/oauth-protected-resource/mcp": {
+      resource: AGENTCARD,
+      authorization_servers: ["https://mcp.agentcard.sh/"],
+    },
+  };
+  /** A server that answers `initialize` with 200 and no challenge, as both did on 2026-11-15; every request kept. */
+  const answersAnyone = (docs: Record<string, unknown>) => {
+    const asked: string[] = [];
+    const http = (async (url: string) => {
+      asked.push(url);
+      if (url === AGENTCARD || url === TELNYX || url === "https://open.example.com/mcp") {
+        return Response.json({ jsonrpc: "2.0", id: 1, result: { protocolVersion: "2025-06-18", capabilities: {} } });
+      }
+      return docs[url] ? Response.json(docs[url]) : new Response("not found", { status: 404 });
+    }) as unknown as typeof fetch;
+    return { http, asked };
+  };
+  const depsWith = (fx: Fixture, http: typeof fetch) => ({
+    db: fx.db,
+    keyWrappers: [fx.keyWrapper],
+    publicUrl: "https://chat.example.com",
+    http,
+    resolveHost: async () => ["93.184.216.34"],
+  });
+
+  test("their vendors' own servers: Telnyx by its API key alone, Agentcard by signing in or a key", () => {
+    const of = (id: string) => {
+      const p = mcpPreset(id);
+      return p && [p.label, p.category, p.serverUrl];
+    };
+    expect(["telnyx", "agentcard"].map(of)).toEqual([
+      ["Telnyx", "dev", TELNYX],
+      ["Agentcard", "payments", AGENTCARD],
+    ]);
+    expect(presetForServer(`${AGENTCARD}/`)?.id).toBe("agentcard");
+    expect(presetForServer("https://API.Telnyx.com/v2/mcp/")?.id).toBe("telnyx");
+    const auth = (cloud: boolean) =>
+      Object.fromEntries(
+        connectorListing({ oauthApps: {}, cloud })
+          .filter((e) => e.id === "telnyx" || e.id === "agentcard")
+          .map((e) => [e.id, e.auth]),
+      );
+    const expected: Record<string, ("oauth" | "api_key")[]> = { telnyx: ["api_key"], agentcard: ["oauth", "api_key"] };
+    expect(auth(true)).toEqual(expected);
+    expect(auth(false)).toEqual(expected);
+  });
+
+  test("a preset that requires signing in is never connected as an open server, whatever its first answer", async () => {
+    f = await setup();
+    const fx = f;
+    const agentcard = answersAnyone(agentcardDocs);
+    // Agentcard answers without credentials, but its metadata names where to sign in: the sign-in, never "open".
+    expect(await probeMcpServer(depsWith(fx, agentcard.http), AGENTCARD, {}, { signInRequired: true })).toEqual({
+      kind: "oauth",
+      resource: AGENTCARD,
+      issuer: "https://mcp.agentcard.sh/",
+      scopes: [],
+    });
+    const started = await connectCustomServer(depsWith(fx, agentcard.http), fx.owner.id, fx.org.id, {
+      serverUrl: AGENTCARD,
+    });
+    expect(started.status).not.toBe("connected");
+    // Headers a person typed are no sign-in either.
+    const withHeaders = await connectCustomServer(depsWith(fx, agentcard.http), fx.owner.id, fx.org.id, {
+      serverUrl: AGENTCARD,
+      headers: [{ name: "X-Team", value: "growth" }],
+    }).catch((e: unknown) => e);
+    expect(withHeaders).toBeInstanceOf(ValidationError);
+    // Telnyx documents its API key alone: without one it asks for it, and nothing goes to Telnyx.
+    const telnyx = answersAnyone({});
+    expect(
+      await connectCustomServer(depsWith(fx, telnyx.http), fx.owner.id, fx.org.id, {
+        serverUrl: TELNYX,
+        headers: [{ name: "X-Team", value: "growth" }],
+      }),
+    ).toEqual({ status: "needs_key" });
+    expect(await connectCustomServer(depsWith(fx, telnyx.http), fx.owner.id, fx.org.id, { serverUrl: TELNYX })).toEqual(
+      { status: "needs_key" },
+    );
+    expect(telnyx.asked).toEqual([]);
+    expect(await fx.db.select().from(schema.connectorConnections)).toEqual([]);
+  });
+
+  test("on the preset's host, however the address is written, the sign-in is still required", async () => {
+    f = await setup();
+    const fx = f;
+    // Every address answers `initialize` to anyone; no metadata anywhere.
+    const asked: string[] = [];
+    const http = (async (url: string) => {
+      asked.push(url);
+      if (new URL(url).pathname.startsWith("/.well-known/")) return new Response("not found", { status: 404 });
+      return Response.json({ jsonrpc: "2.0", id: 1, result: { protocolVersion: "2025-06-18", capabilities: {} } });
+    }) as unknown as typeof fetch;
+    const variants = (base: string) => [
+      `${base}?team=growth`,
+      base.toUpperCase().replace("HTTPS://", "https://"),
+      `${base}//`,
+    ];
+    for (const serverUrl of variants(TELNYX)) {
+      expect([serverUrl, await connectCustomServer(depsWith(fx, http), fx.owner.id, fx.org.id, { serverUrl })]).toEqual(
+        [serverUrl, { status: "needs_key" }],
+      );
+    }
+    // Another path on Telnyx's host is still Telnyx's.
+    expect(
+      await connectCustomServer(depsWith(fx, http), fx.owner.id, fx.org.id, {
+        serverUrl: "https://api.telnyx.com/mcp",
+      }),
+    ).toEqual({ status: "needs_key" });
+    expect(asked).toEqual([]);
+    for (const serverUrl of variants(AGENTCARD)) {
+      const started = await connectCustomServer(depsWith(fx, http), fx.owner.id, fx.org.id, { serverUrl });
+      expect([serverUrl, started.status]).toEqual([serverUrl, "needs_key"]);
+    }
+    expect(await fx.db.select().from(schema.connectorConnections)).toEqual([]);
+  });
+
+  test("the probe that must find a sign-in: none named anywhere asks for a key; without the rule, open stays open", async () => {
+    f = await setup();
+    const open = answersAnyone({});
+    const deps = depsWith(f, open.http);
+    expect(await probeMcpServer(deps, "https://open.example.com/mcp")).toEqual({ kind: "open" });
+    expect(await probeMcpServer(deps, "https://open.example.com/mcp", {}, { signInRequired: true })).toEqual({
+      kind: "needs_key",
+    });
   });
 });
 
