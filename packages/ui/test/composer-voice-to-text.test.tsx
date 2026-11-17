@@ -125,7 +125,8 @@ describe("dictation in the message box", () => {
       fireEvent.pointerUp(window);
     });
     await act(() => Bun.sleep(50));
-    expect(screen.queryByRole("group", { name: "Gravando áudio" })?.closest("[data-voice]")).toBeNull();
+    // No take: the recording's row is only there while one is under way.
+    expect(screen.queryByRole("group", { name: "Gravando áudio" })).toBeNull();
     await act(async () => h.answer("Ada, puxa as vendas"));
     expect(box().value).toBe("Ada, puxa as vendas");
     expect(button("Gravar áudio")).toBeTruthy();

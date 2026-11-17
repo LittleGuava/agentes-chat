@@ -4335,15 +4335,16 @@ function profileWithSites(cookies: Record<string, unknown>[], storageKeys: strin
     const reply = (result: unknown) => s.push({ id: m.id, ...(m.sessionId ? { sessionId: m.sessionId } : {}), result });
     const refuse = () => s.push({ id: m.id, error: { code: -32603, message: "Internal error" } });
     switch (m.method) {
-      case "Target.setAutoAttach":
-        reply({});
-        if (!m.sessionId) {
-          s.push({
-            method: "Target.attachedToTarget",
-            params: { sessionId: "tab-1", targetInfo: { type: "page", targetId: "t1" } },
-          });
-        }
-        return;
+      // Chrome tells of its tab and attaches it when asked: the runner never auto-attaches at the browser's level.
+      case "Target.setDiscoverTargets":
+        s.push({ method: "Target.targetCreated", params: { targetInfo: { type: "page", targetId: "t1" } } });
+        return reply({});
+      case "Target.attachToTarget":
+        s.push({
+          method: "Target.attachedToTarget",
+          params: { sessionId: "tab-1", targetInfo: { type: "page", targetId: "t1" } },
+        });
+        return reply({ sessionId: "tab-1" });
       case "Storage.getCookies":
         return m.sessionId ? refuse() : reply({ cookies: jar });
       case "Network.deleteCookies": {
