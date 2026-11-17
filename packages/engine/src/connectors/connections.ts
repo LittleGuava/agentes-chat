@@ -1,11 +1,12 @@
 import { createHash } from "node:crypto";
-import type { KeyWrapper } from "@agenteschat/adapters";
-import { and, asc, type Database, type Executor, eq, isNull, lt, ne, or, schema, sql } from "@agenteschat/db";
+import type { KeyWrapper, McpStdioServer } from "@agenteschat/adapters";
+import { and, asc, type Database, type Executor, eq, isNull, like, lt, ne, or, schema, sql } from "@agenteschat/db";
 import { type AuditEntry, recordAudit } from "../audit";
 import { caches } from "../cache";
 import { openSecret, randomToken, sealSecret, sha256 } from "../crypto";
 import { ConflictError, ForbiddenError, MisconfiguredError, NotFoundError, ValidationError } from "../errors";
 import { forgetInstallationTokens } from "../git/github-app";
+import type { MachineCaller } from "../machine-hub";
 import { outboundFetch, type ResolveHost } from "../net-guard";
 import { requireChangePermission, requirePermission } from "../organizations";
 import { CONNECTOR_ALL } from "../tools/scopes";
@@ -19,6 +20,7 @@ import { clientAuth, getOAuthClient, type McpOAuthDeps, probeMcpServer } from ".
 import { oauthReturnTo } from "./oauth-return";
 import { completePersonalConnect, forgetPersonalAccounts } from "./personal";
 import { presetForServer } from "./presets";
+import { programUrlPrefix } from "./program-url";
 
 const { connectorConnections, oauthStates, agentScopes, agents, approvalRules, githubAppInstallations } = schema;
 
@@ -159,6 +161,11 @@ export interface ConnectionSecret {
   apiKey?: string;
   /** A server by address: the request headers a person typed for it, names as typed (ADR 0186). */
   headers?: Record<string, string>;
+  /**
+   * A stdio program on a connected computer (ADR 0215, addendum 2026-11-17): what starts there, its variables'
+   * values included. Opened only to send it to that computer.
+   */
+  program?: McpStdioServer;
 }
 
 export interface ConnectorDeps {
@@ -179,6 +186,8 @@ export interface ConnectorDeps {
   composio?: ComposioConnectors | null;
   /** Between reads of a Composio account still finishing its sign-in (tests: 0). */
   composioPollMs?: number;
+  /** Connected computers, for the programs registered on them (ADR 0215); none: those programs can't run. */
+  machines?: MachineCaller | null;
 }
 
 const aadFor = (orgId: string, id: string) => `connector-connection|${orgId}|${id}`;
@@ -494,6 +503,20 @@ async function dropConnection(tx: Executor, orgId: string, row: ConnectorConnect
     details: { connector: row.connector, label: row.label },
   });
   return row;
+}
+
+/**
+ * A computer removed (ADR 0215, addendum 2026-11-17): the programs registered on it are disconnected in the caller's
+ * transaction, as `dropConnection` does, by the system. The caller clears the org's connection and scope caches.
+ */
+export async function dropComputerPrograms(tx: Executor, orgId: string, machineId: string) {
+  const rows = await tx
+    .select()
+    .from(connectorConnections)
+    .where(and(activeOf(orgId), like(connectorConnections.serverUrl, `${programUrlPrefix(machineId)}%`)))
+    .for("update");
+  for (const row of rows) await dropConnection(tx, orgId, row, { type: "system", id: null });
+  return rows.length;
 }
 
 /** `auth_type` of GitHub through the workspace's GitHub App installations alone (ADR 0156): no secret of its own. */

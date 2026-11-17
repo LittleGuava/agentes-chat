@@ -13323,6 +13323,10 @@
     "connected": "Gekoppeld",
     "connectedAs": "Gekoppeld als {{account}}",
     "reconnectAdds": "Verbind {{name}} opnieuw zodat agents ook {{what}}.",
+    "program": {
+      "on": "Draait op {{computer}}",
+      "variables": "Variabelen: <names/>. Voeg het programma opnieuw toe om ze te wijzigen."
+    },
     "sendsToo": "Stuurt ook mee: <names/>. Gebruik Opnieuw koppelen om dat te wijzigen.",
     "adds": {
       "github_project": "GitHub Projects kunnen gebruiken (borden lezen en kaarten verplaatsen)"
@@ -14410,10 +14414,34 @@
     "oauthHelp": "Je geeft toestemming op de pagina van {{name}} en komt hier terug.",
     "customText": "Elke MCP-server via zijn https-adres. Ondersteunt hij OAuth, dan geef je toestemming op zijn pagina.",
     "urlHelp": "Het https-adres van de server, of het commando claude mcp add of het mcpServers-blok dat je kreeg.",
+    "way": {
+      "label": "Hoe het draait",
+      "address": "Via adres",
+      "program": "Programma op deze computer"
+    },
+    "program": {
+      "text": "Een MCP-server die als opdracht start op een computer die je hebt gekoppeld. De opdrachtregels van die computer bepalen wat mag starten.",
+      "computer": "Computer",
+      "runsOn": "Draait op {{computer}}.",
+      "command": "Opdracht",
+      "commandMissing": "Typ de opdracht die het programma start.",
+      "commandQuote": "Er staat nog een aanhalingsteken open in de opdracht.",
+      "variablesHelp": "Variabelen worden versleuteld bewaard en gaan alleen naar die computer als het programma start. Niemand ziet hun waarden nog.",
+      "variable": "Variabele",
+      "variableOf": "Naam van variabele {{n}}",
+      "valueOf": "Waarde van variabele {{n}}",
+      "removeVariable": "Variabele {{n}} verwijderen",
+      "addVariable": "Variabele toevoegen",
+      "add": "Programma toevoegen",
+      "note": "Geen agent gebruikt het tot je toegang geeft.",
+      "starting": "Bezig met starten op {{computer}}…"
+    },
     "paste": {
       "command": "Dat is een server die als commando draait (stdio). Agents bereiken MCP-servers alleen via hun https-adres.",
       "urlAsked": "Vul {{names}} in het adres in.",
-      "keyAsked": "Typ de sleutel die de geplakte tekst uit {{names}} haalde."
+      "keyAsked": "Typ de sleutel die de geplakte tekst uit {{names}} haalde.",
+      "program": "Dat is een server die als opdracht draait (stdio). Hij kan draaien op een computer die je hebt gekoppeld.",
+      "useProgram": "Als programma gebruiken"
     },
     "name": "Naam",
     "namePlaceholder": "Bijv. Support",
@@ -14508,7 +14536,8 @@
       "asks_one": "{{count}} actie vraagt om goedkeuring in de chat.",
       "asks_other": "{{count}} acties vragen om goedkeuring in de chat.",
       "adjust": "Aanpassen",
-      "ok": "Klaar"
+      "ok": "Klaar",
+      "program": "Nog geen agent gebruikt het. Kies wie bij Aanpassen."
     }
   },
   "database": {
@@ -15214,7 +15243,10 @@
       "headerAndKey": "De API-sleutel wordt al als Authorization meegestuurd. Wis de sleutel, of verwijder deze header.",
       "headersTooMany": "Een server neemt hooguit {{max}} headers. Verwijder er één om een andere toe te voegen.",
       "headersWithSignIn": "Deze server vraagt om in te loggen, en een login kan nog geen headers meesturen. Verwijder de headers om in te loggen, of koppel met een API-sleutel.",
-      "headersUnreadable": "De opgeslagen headers konden niet worden gelezen. Vul ze opnieuw in of verwijder ze."
+      "headersUnreadable": "De opgeslagen headers konden niet worden gelezen. Vul ze opnieuw in of verwijder ze.",
+      "programComputer": "{{computer}} kan nu geen programma's draaien. Het moet een computer zijn die jij hebt gekoppeld, buiten de systeemmodus, online en met Opdrachten aan.",
+      "programInvalid": "Controleer de opdracht en de variabelen. Een naam bestaat uit letters, cijfers en _, elk maar één keer. Variabelen die andere code laden (NODE_OPTIONS, LD_PRELOAD, PATH en dergelijke) worden niet geaccepteerd.",
+      "programFailed": "Het programma is niet gestart op {{computer}}. De computer meldde: {{detail}}"
     },
     "wiki": {
       "githubNoNotes": "Geen Markdown-notities in deze link.",

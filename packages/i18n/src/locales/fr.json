@@ -13736,6 +13736,10 @@
     "connected": "Connecté",
     "connectedAs": "Connecté en tant que {{account}}",
     "reconnectAdds": "Reconnectez {{name}} pour que les agents puissent aussi {{what}}.",
+    "program": {
+      "on": "S'exécute sur {{computer}}",
+      "variables": "Variables : <names/>. Pour les changer, ajoutez le programme à nouveau."
+    },
     "sendsToo": "Envoie aussi : <names/>. Pour changer cela, utilisez Reconnecter.",
     "adds": {
       "github_project": "utiliser GitHub Projects (lire les tableaux et déplacer les cartes)"
@@ -14843,10 +14847,34 @@
     "oauthHelp": "Vous autorisez l'accès sur la page de {{name}} puis revenez ici.",
     "customText": "N'importe quel serveur MCP, via son adresse https. S'il prend en charge OAuth, vous autorisez l'accès sur sa page.",
     "urlHelp": "L'adresse https du serveur, ou la commande claude mcp add ou le bloc mcpServers qu'on vous a donné.",
+    "way": {
+      "label": "Comment il s'exécute",
+      "address": "Par adresse",
+      "program": "Programme sur cet ordinateur"
+    },
+    "program": {
+      "text": "Un serveur MCP qui démarre comme une commande sur un ordinateur que vous avez connecté. Les règles de commandes de cet ordinateur décident de ce qui peut démarrer.",
+      "computer": "Ordinateur",
+      "runsOn": "S'exécute sur {{computer}}.",
+      "command": "Commande",
+      "commandMissing": "Saisissez la commande qui démarre le programme.",
+      "commandQuote": "Un guillemet reste ouvert dans la commande.",
+      "variablesHelp": "Les variables sont gardées chiffrées et ne vont qu'à cet ordinateur au démarrage du programme. Personne ne revoit leurs valeurs.",
+      "variable": "Variable",
+      "variableOf": "Nom de la variable {{n}}",
+      "valueOf": "Valeur de la variable {{n}}",
+      "removeVariable": "Retirer la variable {{n}}",
+      "addVariable": "Ajouter une variable",
+      "add": "Ajouter le programme",
+      "note": "Aucun agent ne l'utilise tant que vous ne lui donnez pas accès.",
+      "starting": "Démarrage sur {{computer}}…"
+    },
     "paste": {
       "command": "C'est un serveur lancé comme une commande (stdio). Les agents n'atteignent les serveurs MCP que par leur adresse https.",
       "urlAsked": "Complétez {{names}} dans l'adresse.",
-      "keyAsked": "Saisissez la clé que le texte collé prenait de {{names}}."
+      "keyAsked": "Saisissez la clé que le texte collé prenait de {{names}}.",
+      "program": "C'est un serveur qui s'exécute comme une commande (stdio). Il peut s'exécuter sur un ordinateur que vous avez connecté.",
+      "useProgram": "Utiliser comme programme"
     },
     "name": "Nom",
     "namePlaceholder": "Ex. : Support client",
@@ -14945,7 +14973,8 @@
       "asks_many": "{{count}} actions demandent une approbation dans le chat.",
       "asks_other": "{{count}} actions demandent une approbation dans le chat.",
       "adjust": "Ajuster",
-      "ok": "Terminé"
+      "ok": "Terminé",
+      "program": "Aucun agent ne l'utilise encore. Choisissez qui dans Ajuster."
     }
   },
   "database": {
@@ -15664,7 +15693,10 @@
       "headerAndKey": "La clé API est déjà envoyée dans Authorization. Effacez la clé, ou retirez cet en-tête.",
       "headersTooMany": "Un serveur accepte {{max}} en-têtes au plus. Retirez-en un pour en ajouter un autre.",
       "headersWithSignIn": "Ce serveur demande une connexion à un compte, et celle-ci ne peut pas encore transmettre d'en-têtes. Retirez les en-têtes pour vous connecter, ou connectez-le avec une clé API.",
-      "headersUnreadable": "Les en-têtes enregistrés n'ont pas pu être lus. Saisissez-les à nouveau ou retirez-les."
+      "headersUnreadable": "Les en-têtes enregistrés n'ont pas pu être lus. Saisissez-les à nouveau ou retirez-les.",
+      "programComputer": "{{computer}} ne peut pas exécuter de programmes maintenant. Ce doit être un ordinateur que vous avez connecté, hors du mode système, en ligne, avec Commandes activé.",
+      "programInvalid": "Vérifiez la commande et les variables. Un nom contient des lettres, des chiffres et _, une seule fois chacun. Les variables qui chargent un autre code (NODE_OPTIONS, LD_PRELOAD, PATH et autres) ne sont pas acceptées.",
+      "programFailed": "Le programme n'a pas démarré sur {{computer}}. L'ordinateur a répondu : {{detail}}"
     },
     "wiki": {
       "githubNoNotes": "Aucune note Markdown dans ce lien.",

@@ -46,12 +46,13 @@ export function connectionOf(def: ConnectorDef, items: ConnectedItem[]): Connect
 /**
  * What an admin does with a connected account on its screen: rename it and sign it in again; an MCP server also
  * takes another account (a catalog connector has one). GitHub through the agentes.chat app alone has no sign-in to
- * renew: its accounts are the app's installations.
+ * renew: its accounts are the app's installations. Nor has a program on a computer (ADR 0215): it is registered again
+ * on the web.
  */
 export function accountActions(
-  item: Pick<ConnectedItem, "custom" | "viaGithubApp">,
+  item: Pick<ConnectedItem, "custom" | "viaGithubApp" | "computerId">,
 ): ("rename" | "reconnect" | "add")[] {
-  if (item.viaGithubApp) return ["rename"];
+  if (item.viaGithubApp || item.computerId) return ["rename"];
   return item.custom ? ["rename", "reconnect", "add"] : ["rename", "reconnect"];
 }
 
@@ -143,9 +144,23 @@ export function needsKeyText(
  */
 export const headerNamesText = (
   t: TFunction,
-  key: "connectors.sendsToo" | "connectFlow.headers.saved" | "connectFlow.headers.dropping",
+  key:
+    | "connectors.sendsToo"
+    | "connectFlow.headers.saved"
+    | "connectFlow.headers.dropping"
+    | "connectors.program.variables",
   names: readonly string[],
 ) => t(key, { count: names.length }).replace("<names/>", () => joinNames(names.map(heldWhole), t));
+
+/**
+ * The line under a program's account (ADR 0215): its variables on its computer, by name, changed by adding it again.
+ * Empty for anything else, or a program with none.
+ */
+export const programVariablesLine = (t: TFunction, item: Pick<ConnectedItem, "server" | "computerId">) => {
+  const names = item.server?.headerNames ?? [];
+  if (!item.computerId || names.length === 0) return "";
+  return headerNamesText(t, "connectors.program.variables", names);
+};
 
 /** How a service connects on the phone: signing in in the browser, a key, or either. */
 export type ConnectHow = "signIn" | "key" | "either";

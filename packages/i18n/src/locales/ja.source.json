@@ -32176,6 +32176,12 @@
   "connectors.reconnectAdds": {
     "value": "Reconnect {{name}} so agents can also {{what}}."
   },
+  "connectors.program.on": {
+    "value": "Runs on {{computer}}"
+  },
+  "connectors.program.variables": {
+    "value": "Variables: <names/>. To change them, add the program again."
+  },
   "connectors.sendsToo": {
     "value": "Also sends: <names/>. To change that, use Reconnect."
   },
@@ -35323,6 +35329,60 @@
   "connectFlow.urlHelp": {
     "value": "The server's https address, or the claude mcp add command or mcpServers block you were given."
   },
+  "connectFlow.way.label": {
+    "value": "How it runs"
+  },
+  "connectFlow.way.address": {
+    "value": "By address"
+  },
+  "connectFlow.way.program": {
+    "value": "Program on this computer"
+  },
+  "connectFlow.program.text": {
+    "value": "An MCP server that starts as a command on a computer you connected. That computer's command rules decide what can start."
+  },
+  "connectFlow.program.computer": {
+    "value": "Computer"
+  },
+  "connectFlow.program.runsOn": {
+    "value": "Runs on {{computer}}."
+  },
+  "connectFlow.program.command": {
+    "value": "Command"
+  },
+  "connectFlow.program.commandMissing": {
+    "value": "Type the command that starts the program."
+  },
+  "connectFlow.program.commandQuote": {
+    "value": "A quote is left open in the command."
+  },
+  "connectFlow.program.variablesHelp": {
+    "value": "Variables are kept encrypted and go only to that computer when the program starts. Nobody sees their values again."
+  },
+  "connectFlow.program.variable": {
+    "value": "Variable"
+  },
+  "connectFlow.program.variableOf": {
+    "value": "Name of variable {{n}}"
+  },
+  "connectFlow.program.valueOf": {
+    "value": "Value of variable {{n}}"
+  },
+  "connectFlow.program.removeVariable": {
+    "value": "Remove variable {{n}}"
+  },
+  "connectFlow.program.addVariable": {
+    "value": "Add variable"
+  },
+  "connectFlow.program.add": {
+    "value": "Add program"
+  },
+  "connectFlow.program.note": {
+    "value": "No agent uses it until you give it access."
+  },
+  "connectFlow.program.starting": {
+    "value": "Starting it on {{computer}}…"
+  },
   "connectFlow.paste.command": {
     "value": "That's a server run as a command (stdio). Agents reach MCP servers only by their https address."
   },
@@ -35331,6 +35391,12 @@
   },
   "connectFlow.paste.keyAsked": {
     "value": "Type the key the paste took from {{names}}."
+  },
+  "connectFlow.paste.program": {
+    "value": "That's a server run as a command (stdio). It can run on a computer you connected."
+  },
+  "connectFlow.paste.useProgram": {
+    "value": "Use as a program"
   },
   "connectFlow.name": {
     "value": "Name"
@@ -35586,6 +35652,9 @@
   },
   "connectFlow.done.ok": {
     "value": "Done"
+  },
+  "connectFlow.done.program": {
+    "value": "No agent uses it yet. Choose who in Adjust."
   },
   "database.name": {
     "value": "Database"
@@ -37246,6 +37315,15 @@
   },
   "errors.connector.headersUnreadable": {
     "value": "The saved headers couldn't be read. Type them again, or remove them."
+  },
+  "errors.connector.programComputer": {
+    "value": "{{computer}} can't run programs now. It must be a computer you connected, outside system mode, online, with Commands on."
+  },
+  "errors.connector.programInvalid": {
+    "value": "Check the command and the variables. A name takes letters, digits and _, once each. Variables that load other code (NODE_OPTIONS, LD_PRELOAD, PATH and the like) aren't accepted."
+  },
+  "errors.connector.programFailed": {
+    "value": "The program didn't start on {{computer}}. The computer said: {{detail}}"
   },
   "errors.wiki.githubNoNotes": {
     "value": "No Markdown notes in this link."

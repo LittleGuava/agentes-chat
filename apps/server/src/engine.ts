@@ -150,6 +150,7 @@ import {
   type VoiceDeps,
   warmAgentBrowser,
   withComposio,
+  withComputerPrograms,
   withJudgeFallback,
 } from "@agenteschat/engine";
 import {
@@ -320,14 +321,28 @@ export function buildEngine(o: EngineOptions) {
   });
   // Services through Composio (ADR 0107) share the mailboxes' client and its per-workspace count of calls.
   const composio = composioConnectorsOf(adapters.mail);
+  // Agents' computers (ADR 0025): connected machines, through the hub that holds their sockets.
+  const machineHub = createMachineHub({
+    db,
+    pubsub: adapters.pubsub,
+    replicaId: o.replicaId,
+    readyEmail: adapters.email.delivers ? { publicUrl: config.PUBLIC_URL, gateway } : null,
+    errors: o.errors,
+  });
   const connectorDeps = {
     db,
     keyWrappers,
     oauthApps: connectorOAuthApps(config),
     publicUrl: config.PUBLIC_URL,
     http: o.http,
-    connect: withComposio(o.mcpConnect ?? connectOverHttp, composio),
+    // Programs registered on connected computers (ADR 0215) are listed there; any other server over the network.
+    connect: withComputerPrograms(withComposio(o.mcpConnect ?? connectOverHttp, composio), {
+      db,
+      keyWrappers,
+      machines: machineHub,
+    }),
     composio,
+    machines: machineHub,
   };
   const storage: StorageDeps = {
     db,
@@ -337,14 +352,6 @@ export function buildEngine(o: EngineOptions) {
     resolveHost: o.resolveHost,
   };
   const artifacts: ArtifactDeps = { db, blobs: createBlobStoreResolver(storage), pubsub: adapters.pubsub };
-  // Agents' computers (ADR 0025): connected machines, through the hub that holds their sockets.
-  const machineHub = createMachineHub({
-    db,
-    pubsub: adapters.pubsub,
-    replicaId: o.replicaId,
-    readyEmail: adapters.email.delivers ? { publicUrl: config.PUBLIC_URL, gateway } : null,
-    errors: o.errors,
-  });
   const workspaceComputer =
     config.MACHINE_PROVISIONING === "external" ? { billing: Boolean(config.BILLING_URL) } : undefined;
   const sandbox: SandboxDeps = {

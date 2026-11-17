@@ -12739,6 +12739,10 @@
     "connected": "연결됨",
     "connectedAs": "{{account}}(으)로 연결됨",
     "reconnectAdds": "{{name}}을(를) 다시 연결하면 에이전트가 {{what}} 수도 있어요.",
+    "program": {
+      "on": "{{computer}}에서 실행",
+      "variables": "변수: <names/>. 바꾸려면 프로그램을 다시 추가하세요."
+    },
     "sendsToo": "함께 보냄: <names/>. 바꾸려면 다시 연결을 사용하세요.",
     "adds": {
       "github_project": "GitHub Projects를 쓸(보드를 읽고 카드를 옮길)"
@@ -13806,10 +13810,34 @@
     "oauthHelp": "{{name}} 페이지에서 승인한 뒤 여기로 돌아와요.",
     "customText": "https 주소만 있으면 어떤 MCP 서버든 연결할 수 있어요. OAuth를 지원하면 해당 페이지에서 승인해요.",
     "urlHelp": "서버의 https 주소, 또는 전달받은 claude mcp add 명령이나 mcpServers 블록.",
+    "way": {
+      "label": "실행 방식",
+      "address": "주소로",
+      "program": "이 컴퓨터의 프로그램"
+    },
+    "program": {
+      "text": "연결한 컴퓨터에서 명령으로 시작되는 MCP 서버입니다. 무엇을 시작할 수 있는지는 그 컴퓨터의 명령 규칙이 정합니다.",
+      "computer": "컴퓨터",
+      "runsOn": "{{computer}}에서 실행됩니다.",
+      "command": "명령",
+      "commandMissing": "프로그램을 시작하는 명령을 입력하세요.",
+      "commandQuote": "명령에 닫히지 않은 따옴표가 있습니다.",
+      "variablesHelp": "변수는 암호화되어 저장되고 프로그램이 시작될 때 그 컴퓨터로만 전달됩니다. 값은 다시 볼 수 없습니다.",
+      "variable": "변수",
+      "variableOf": "변수 {{n}} 이름",
+      "valueOf": "변수 {{n}} 값",
+      "removeVariable": "변수 {{n}} 삭제",
+      "addVariable": "변수 추가",
+      "add": "프로그램 추가",
+      "note": "접근 권한을 주기 전에는 어떤 에이전트도 사용하지 않습니다.",
+      "starting": "{{computer}}에서 시작하는 중…"
+    },
     "paste": {
       "command": "명령으로 실행되는 서버(stdio)입니다. 에이전트는 https 주소로만 MCP 서버에 연결합니다.",
       "urlAsked": "주소의 {{names}}을(를) 채워 주세요.",
-      "keyAsked": "붙여 넣은 텍스트가 {{names}}에서 가져오던 키를 입력하세요."
+      "keyAsked": "붙여 넣은 텍스트가 {{names}}에서 가져오던 키를 입력하세요.",
+      "program": "명령으로 실행되는 서버(stdio)입니다. 연결한 컴퓨터에서 실행할 수 있습니다.",
+      "useProgram": "프로그램으로 사용"
     },
     "name": "이름",
     "namePlaceholder": "예: 고객 지원",
@@ -13898,7 +13926,8 @@
       "waiting": "계속해야 에이전트가 도구를 받아요. 저희가 제안한 수준이 적용돼요.",
       "asks_other": "작업 {{count}}개는 채팅에서 승인을 요청해요.",
       "adjust": "조정",
-      "ok": "완료"
+      "ok": "완료",
+      "program": "아직 사용하는 에이전트가 없습니다. 조정에서 누가 쓸지 고르세요."
     }
   },
   "database": {
@@ -14591,7 +14620,10 @@
       "headerAndKey": "API 키는 이미 Authorization으로 보내져요. 키를 지우거나 이 헤더를 삭제하세요.",
       "headersTooMany": "서버 하나에 헤더는 {{max}}개까지예요. 추가하려면 하나를 삭제하세요.",
       "headersWithSignIn": "이 서버는 로그인을 요구하는데, 로그인으로는 아직 헤더를 보낼 수 없어요. 헤더를 삭제하고 로그인하거나 API 키로 연결하세요.",
-      "headersUnreadable": "저장된 헤더를 읽지 못했어요. 다시 입력하거나 삭제하세요."
+      "headersUnreadable": "저장된 헤더를 읽지 못했어요. 다시 입력하거나 삭제하세요.",
+      "programComputer": "{{computer}}에서는 지금 프로그램을 실행할 수 없습니다. 직접 연결한 컴퓨터여야 하고, 시스템 모드가 아니며, 온라인이고 명령이 켜져 있어야 합니다.",
+      "programInvalid": "명령과 변수를 확인하세요. 이름에는 영문자, 숫자, _만 쓰고 같은 이름은 한 번만 씁니다. 다른 코드를 불러오는 변수(NODE_OPTIONS, LD_PRELOAD, PATH 등)는 받지 않습니다.",
+      "programFailed": "{{computer}}에서 프로그램이 시작되지 않았습니다. 컴퓨터의 응답: {{detail}}"
     },
     "wiki": {
       "githubNoNotes": "이 링크에는 Markdown 노트가 없어요.",

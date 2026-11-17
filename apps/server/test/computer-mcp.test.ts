@@ -1,7 +1,12 @@
 import { afterEach, expect, test } from "bun:test";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
-import { type MachineOp, type MachineRequest, MCP_STDIO_PROTOCOL } from "@agenteschat/adapters";
+import {
+  type MachineOp,
+  type MachineRequest,
+  MCP_STDIO_LISTING_PROTOCOL,
+  MCP_STDIO_PROTOCOL,
+} from "@agenteschat/adapters";
 import {
   connectOnComputer,
   type MachineCaller,
@@ -94,4 +99,16 @@ test("an older runner is told to update before anything is sent", async () => {
   const refused = await connectOnComputer(hub, "m1", AGENT, SERVER).catch((err: Error) => err.message);
   expect(refused).toStartWith("The runner on the computer Build box is too old to run MCP programs.");
   expect(sent).toEqual([]);
+});
+
+test("registering lists a program for no agent, on a runner that knows how; an older one is told to update", async () => {
+  const { hub, sent } = computerAt(MCP_STDIO_LISTING_PROTOCOL);
+  const session = await connectOnComputer(hub, "m1", null, SERVER);
+  expect((await session.listTools()).map((t) => t.name)).toEqual(["echo", "read_text"]);
+  expect(sent.map((r) => r.agent ?? null)).toEqual([null]);
+  // A runner that lists only for an agent is never sent a listing for nobody.
+  const older = computerAt(MCP_STDIO_LISTING_PROTOCOL - 1);
+  const refused = await connectOnComputer(older.hub, "m1", null, SERVER).catch((err: Error) => err.message);
+  expect(refused).toStartWith("The runner on the computer Build box is too old to run MCP programs.");
+  expect(older.sent).toEqual([]);
 });

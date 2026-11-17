@@ -1,6 +1,7 @@
 import type { ConnectorCategory } from "./catalog";
 import type { AskReason } from "./classify";
 import { canonicalResource } from "./oauth-mcp";
+import { isComputerProgram } from "./program-url";
 
 /**
  * One-click connectors: vendors' official remote MCP servers that speak MCP
@@ -1366,9 +1367,13 @@ export function composioAction(way: ComposioWay, name: string): string | null {
 
 /**
  * A server's address without what may be its secret: a path or a query can be the only credential of a server that
- * asks for no sign-in. An address the catalog publishes (a preset's, a Composio toolkit's) stays whole.
+ * asks for no sign-in. An address the catalog publishes (a preset's, a Composio toolkit's) stays whole, and so does a
+ * program's on a computer (ADR 0215), which holds only ids.
  */
 export const serverUrlShown = (serverUrl: string) =>
-  presetForServer(serverUrl) || composioToolkitOf(serverUrl) || !URL.canParse(serverUrl)
+  presetForServer(serverUrl) ||
+  composioToolkitOf(serverUrl) ||
+  isComputerProgram({ serverUrl }) ||
+  !URL.canParse(serverUrl)
     ? serverUrl
     : new URL(serverUrl).origin;

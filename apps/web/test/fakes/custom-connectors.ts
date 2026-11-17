@@ -11,13 +11,26 @@
  * - PUT    /api/app/organizations/{orgId}/connectors/custom/{id}/tools { label, tools: [{ name, access, label, confirmed? }] }
  *          (`access`: read | write | approval | off; sensitive tools only approval | off)
  * - DELETE /api/app/organizations/{orgId}/connectors/custom/{id}
+ * - GET    /api/app/organizations/{orgId}/connectors/program-computers → the person's connected computers, each
+ *          `available` while online, unpaused and allowed to run commands (ADR 0215)
+ * - POST   /api/app/organizations/{orgId}/connectors/custom/program { machineId, command, args, env, label? }
+ *          → the server, `authType: "computer"`, its variables by name only; 409 `connector.program_computer`
+ *          for a computer that can't run it
  * The mock never talks to the URL: it pretends the server offers a ticket
  * tool set, needs an API key unless the URL contains "oauth", and gains one
  * new tool on the first refresh. Tools come classified as the backend does
  * (annotations, the verb; `close_ticket` is ambiguous: the judge suggests
  * "write" and it waits for a decision; `delete_customer` is sensitive).
  */
-import { type ApiClient, ApiError, type CustomServer, type CustomTool, type ToolAccess } from "@agenteschat/client";
+import {
+  type ApiClient,
+  ApiError,
+  type CustomServer,
+  type CustomTool,
+  type Machine,
+  type ProgramComputer,
+  type ToolAccess,
+} from "@agenteschat/client";
 import { partsOf } from "@agenteschat/client/lib/tool-review";
 import { clone, type MockContext, MockNotFoundError, mockId } from "./context";
 
@@ -67,6 +80,9 @@ export function createMockCustomConnectors(
   log: (method: string, ...args: unknown[]) => void = () => {},
   /** An account connected (the backend gives it to every agent). */
   onConnected: (orgId: string, serverId: string) => Promise<void> = async () => {},
+  /** The workspace's computers and who is signed in, for programs on a computer. */
+  computers: () => Machine[] = () => [],
+  me = "u-walter",
 ): ApiClient["customConnectors"] & {
   rename(orgId: string, id: string, label: string): CustomServer | null;
 } {
@@ -85,6 +101,11 @@ export function createMockCustomConnectors(
     if (!s) throw new MockNotFoundError("Server not found");
     return s;
   };
+  const programComputers = (): ProgramComputer[] =>
+    computers()
+      .filter((m) => m.pairedBy?.id === me && (m.kind ?? "connected") === "connected")
+      .map((m) => ({ id: m.id, name: m.name, available: m.online && m.execAllowed && !m.paused }))
+      .sort((a, b) => a.name.localeCompare(b.name));
   return {
     list: async (orgId) => clone(list(orgId)),
     connect: async (orgId, input) => {
@@ -128,6 +149,34 @@ export function createMockCustomConnectors(
       await onConnected(orgId, server.id);
       // A real OAuth flow leaves for the provider; the mock connects at once.
       return { status: "connected", server: clone(server), outcome: "connected" };
+    },
+    programComputers: async () => programComputers(),
+    connectProgram: async (orgId, input) => {
+      log("customConnectors.connectProgram", orgId, {
+        ...input,
+        env: input.env.map((v) => ({ name: v.name, value: "[redacted]" })),
+      });
+      const computer = programComputers().find((c) => c.id === input.machineId);
+      if (!computer?.available) {
+        throw new ApiError(409, "connector.program_computer", "That computer can't run programs now", {
+          computer: computer?.name ?? "",
+        });
+      }
+      const now = ctx.now();
+      const server: CustomServer = {
+        id: mockId("mcp"),
+        serverUrl: `computer://${computer.id}/${mockId("program")}`,
+        label: input.label?.trim() || input.command,
+        accountLabel: null,
+        authType: "computer",
+        headerNames: input.env.map((v) => v.name),
+        tools: TOOLS.map((t) => tool(t, now)),
+        reviewedAt: null,
+        createdAt: now.toISOString(),
+        program: { machineId: computer.id },
+      };
+      list(orgId).push(server);
+      return clone(server);
     },
     rename: (orgId, id, label) => {
       const s = list(orgId).find((x) => x.id === id);

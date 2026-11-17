@@ -14221,6 +14221,10 @@
     "connected": "Połączono",
     "connectedAs": "Połączono jako {{account}}",
     "reconnectAdds": "Połącz ponownie {{name}}, aby agenci mogli też {{what}}.",
+    "program": {
+      "on": "Działa na {{computer}}",
+      "variables": "Zmienne: <names/>. Aby je zmienić, dodaj program ponownie."
+    },
     "sendsToo": "Wysyła też: <names/>. Aby to zmienić, użyj Połącz ponownie.",
     "adds": {
       "github_project": "korzystać z GitHub Projects (czytać tablice i przenosić karty)"
@@ -15348,10 +15352,34 @@
     "oauthHelp": "Autoryzujesz na stronie {{name}} i wracasz tutaj.",
     "customText": "Dowolny serwer MCP po jego adresie https. Jeśli obsługuje OAuth, autoryzujesz na jego stronie.",
     "urlHelp": "Adres https serwera albo polecenie claude mcp add lub blok mcpServers, które dostałeś.",
+    "way": {
+      "label": "Jak działa",
+      "address": "Przez adres",
+      "program": "Program na tym komputerze"
+    },
+    "program": {
+      "text": "Serwer MCP uruchamiany jako polecenie na komputerze, który połączyłeś. Reguły poleceń tego komputera decydują, co może się uruchomić.",
+      "computer": "Komputer",
+      "runsOn": "Działa na {{computer}}.",
+      "command": "Polecenie",
+      "commandMissing": "Wpisz polecenie, które uruchamia program.",
+      "commandQuote": "W poleceniu został otwarty cudzysłów.",
+      "variablesHelp": "Zmienne są przechowywane zaszyfrowane i trafiają tylko na ten komputer przy starcie programu. Nikt już nie zobaczy ich wartości.",
+      "variable": "Zmienna",
+      "variableOf": "Nazwa zmiennej {{n}}",
+      "valueOf": "Wartość zmiennej {{n}}",
+      "removeVariable": "Usuń zmienną {{n}}",
+      "addVariable": "Dodaj zmienną",
+      "add": "Dodaj program",
+      "note": "Żaden agent go nie używa, dopóki nie dasz mu dostępu.",
+      "starting": "Uruchamianie na {{computer}}…"
+    },
     "paste": {
       "command": "To serwer uruchamiany jako polecenie (stdio). Agenci docierają do serwerów MCP tylko przez ich adres https.",
       "urlAsked": "Uzupełnij {{names}} w adresie.",
-      "keyAsked": "Wpisz klucz, który wklejony tekst brał z {{names}}."
+      "keyAsked": "Wpisz klucz, który wklejony tekst brał z {{names}}.",
+      "program": "To serwer uruchamiany jako polecenie (stdio). Może działać na komputerze, który połączyłeś.",
+      "useProgram": "Użyj jako programu"
     },
     "name": "Nazwa",
     "namePlaceholder": "Np. Wsparcie",
@@ -15458,7 +15486,8 @@
       "asks_many": "{{count}} akcji prosi o zatwierdzenie na czacie.",
       "asks_other": "{{count}} akcji prosi o zatwierdzenie na czacie.",
       "adjust": "Dostosuj",
-      "ok": "Gotowe"
+      "ok": "Gotowe",
+      "program": "Żaden agent jeszcze go nie używa. Wybierz kto w Dostosuj."
     }
   },
   "database": {
@@ -16190,7 +16219,10 @@
       "headerAndKey": "Klucz API jest już wysyłany jako Authorization. Wyczyść klucz albo usuń ten nagłówek.",
       "headersTooMany": "Serwer przyjmuje najwyżej {{max}} nagłówków. Usuń jeden, aby dodać kolejny.",
       "headersWithSignIn": "Ten serwer wymaga logowania, a logowanie nie może jeszcze przenosić nagłówków. Usuń nagłówki, aby się zalogować, albo połącz go kluczem API.",
-      "headersUnreadable": "Nie udało się odczytać zapisanych nagłówków. Wpisz je ponownie albo usuń."
+      "headersUnreadable": "Nie udało się odczytać zapisanych nagłówków. Wpisz je ponownie albo usuń.",
+      "programComputer": "{{computer}} nie może teraz uruchamiać programów. Musi to być komputer, który połączyłeś, poza trybem systemowym, online i z włączonymi Poleceniami.",
+      "programInvalid": "Sprawdź polecenie i zmienne. Nazwa zawiera litery, cyfry i _, każda tylko raz. Zmienne, które ładują inny kod (NODE_OPTIONS, LD_PRELOAD, PATH i podobne), nie są przyjmowane.",
+      "programFailed": "Program nie uruchomił się na {{computer}}. Komputer odpowiedział: {{detail}}"
     },
     "wiki": {
       "githubNoNotes": "Pod tym linkiem nie ma notatek Markdown.",

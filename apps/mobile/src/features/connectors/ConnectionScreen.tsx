@@ -60,6 +60,7 @@ import {
   headerNamesText,
   markFinishing,
   mineActions,
+  programVariablesLine,
   stateOf,
 } from "./logic";
 import { Problem } from "./Problem";
@@ -120,6 +121,7 @@ function Connection({ id }: { id: string }) {
   const waiting = admin && item ? item.pending : 0;
   const actions = item ? accountActions(item) : [];
   const sent = item?.server?.headerNames ?? [];
+  const variables = item ? programVariablesLine(t, item) : "";
   // "…": renaming, the one thing about the account that isn't a step of its own.
   const more =
     admin && item && actions.includes("rename") ? (
@@ -260,10 +262,16 @@ function Connection({ id }: { id: string }) {
                       />
                     ))}
                 </GroupedList>
-                {/* The request headers a server by address is also sent, by name: their values are never shown. */}
-                {sent.length > 0 ? (
-                  <GroupedFooter>{headerNamesText(t, "connectors.sendsToo", sent)}</GroupedFooter>
-                ) : null}
+                {/* A program's variables (ADR 0215), or the request headers a server by address is also sent, by
+                    name: their values are never shown. */}
+                {variables ? <GroupedFooter>{variables}</GroupedFooter> : null}
+                {item.computerId ? null : (
+                  <>
+                    {sent.length > 0 ? (
+                      <GroupedFooter>{headerNamesText(t, "connectors.sendsToo", sent)}</GroupedFooter>
+                    ) : null}
+                  </>
+                )}
                 {item.custom && accountUnchecked([item.server]) ? (
                   <GroupedFooter>{t("connectFlow.replaceUnchecked")}</GroupedFooter>
                 ) : null}

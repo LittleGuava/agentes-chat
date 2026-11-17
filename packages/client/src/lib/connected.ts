@@ -53,6 +53,8 @@ export interface ConnectedItem {
   /** Never reviewed, or new tools to review. */
   needsReview: boolean;
   server: CustomServer | null;
+  /** A program on a connected computer (ADR 0215): that computer's id. It has no address, sign-in or other account. */
+  computerId?: string | null;
 }
 
 const host = (url: string) => {
@@ -97,8 +99,13 @@ export function fromServer(s: CustomServer, catalog: ConnectorDef[]): ConnectedI
     label: s.label,
     def: catalog.find((d) => d.kind === "remote_mcp" && sameServer(d.serverUrl, s.serverUrl)) ?? null,
     image: s.iconUrl ?? null,
-    // Composio's address means nothing to people: only the account, when it is known.
-    account: s.accountLabel ? accountNote(s.label, s.accountLabel) : s.via === "composio" ? null : host(s.serverUrl),
+    // Composio's address means nothing to people, nor a program's: only the account, when it is known.
+    account: s.accountLabel
+      ? accountNote(s.label, s.accountLabel)
+      : s.via === "composio" || s.program
+        ? null
+        : host(s.serverUrl),
+    computerId: s.program?.machineId ?? null,
     viaComposio: s.via === "composio",
     needsReconnect: s.status === "needs_reconnect",
     perPerson: s.perPerson === true,
@@ -229,8 +236,10 @@ export function asksCount(t: TFunction, item: Pick<ConnectedItem, "server" | "de
  * that instead: agents get none of them until someone does (`pending`). Nothing asking adds no second sentence.
  */
 export function connectedSummary(t: TFunction, item: Pick<ConnectedItem, "server" | "def" | "pending">) {
-  const lead =
-    item.pending > 0 ? t("connectFlow.done.waiting", { count: item.pending }) : t("connectFlow.done.everyone");
+  const waiting = item.pending > 0 ? t("connectFlow.done.waiting", { count: item.pending }) : null;
+  // A program on a person's computer (ADR 0215) is no agent's until someone gives it.
+  const who = item.server?.program ? t("connectFlow.done.program") : t("connectFlow.done.everyone");
+  const lead = item.server?.program && waiting ? t("common.joinSentences", { a: waiting, b: who }) : (waiting ?? who);
   const asks = asksCount(t, item);
   return asks > 0 ? t("common.joinSentences", { a: lead, b: t("connectFlow.done.asks", { count: asks }) }) : lead;
 }

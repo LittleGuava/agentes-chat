@@ -310,6 +310,7 @@
       "settings.section.webhooks"
     ],
     "es": [
+      "connectFlow.program.variable",
       "browser.profiles.sitesCookies",
       "devices.iphone.path.general",
       "devices.cpus",
@@ -571,6 +572,7 @@
       "settings.section.webhooks"
     ],
     "fr": [
+      "connectFlow.program.variable",
       "usage.kinds.routines",
       "settings.import.agents",
       "settings.import.setorAgents",
@@ -1021,6 +1023,8 @@
       "webhooks.event.ping"
     ],
     "de": [
+      "connectFlow.program.computer",
+      "connectFlow.program.variable",
       "members.domains.domain",
       "shell.sidebarSetup.links",
       "shell.sidebarSetup.linkTitle",
@@ -1496,6 +1500,7 @@
       "webhooks.form.urlExample"
     ],
     "it": [
+      "connectFlow.program.computer",
       "settings.import.countSkills",
       "settings.import.countRoutines",
       "browser.profiles.sitesCookies",
@@ -1877,6 +1882,7 @@
       "webhooks.inChannels"
     ],
     "nl": [
+      "connectFlow.program.computer",
       "usage.kinds.routines",
       "brain.acp.models",
       "settings.import.agents",

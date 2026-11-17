@@ -7,7 +7,7 @@ import type { MergeDone } from "./command-policy";
  */
 
 /** Bumped on breaking changes; the server refuses runners older than `MIN_RUNNER_PROTOCOL`. */
-export const MACHINE_PROTOCOL_VERSION = 86;
+export const MACHINE_PROTOCOL_VERSION = 87;
 export const MIN_RUNNER_PROTOCOL = 1;
 /** From this protocol on, requests carry `agent` and each agent works in its own folder. */
 export const AGENT_FOLDERS_PROTOCOL = 2;
@@ -768,6 +768,12 @@ export interface CheckpointRestoreReply {
  * before the answer. The server never sends it to an older runner.
  */
 export const MCP_STDIO_PROTOCOL = 69;
+/**
+ * From this protocol on (ADR 0215, addendum 2026-11-17): a `mcp.stdio` `tools/list` may come with no `agent`, outside
+ * system mode: registering a program as a workspace's connector lists its tools in the runner's own workspace, under
+ * the same Commands switch and command policy. A `tools/call` is always an agent's. Older runners refuse it.
+ */
+export const MCP_STDIO_LISTING_PROTOCOL = 87;
 
 /** `MCP_STDIO_PROTOCOL`: the program, started with this argv and no shell. */
 export interface McpStdioServer {

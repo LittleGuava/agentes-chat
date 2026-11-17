@@ -4379,6 +4379,7 @@ export function createFakeApi(state: FakeState = seedState(), options: { seed?: 
     ctx,
     (method, ...args) => state.calls.push({ method, args }),
     async (orgId, serverId) => access.connected(serverId, await agentIds(orgId)),
+    () => machines.all(),
   );
   const access = createFakeAccess(
     (orgId) => http.connectors.list(orgId),

@@ -12800,6 +12800,10 @@
     "connected": "Terhubung",
     "connectedAs": "Terhubung sebagai {{account}}",
     "reconnectAdds": "Hubungkan ulang {{name}} agar agen juga bisa {{what}}.",
+    "program": {
+      "on": "Berjalan di {{computer}}",
+      "variables": "Variabel: <names/>. Untuk mengubahnya, tambahkan program lagi."
+    },
     "sendsToo": "Juga mengirim: <names/>. Untuk mengubahnya, pakai Hubungkan ulang.",
     "adds": {
       "github_project": "memakai GitHub Projects (membaca papan dan memindahkan kartu)"
@@ -13867,10 +13871,34 @@
     "oauthHelp": "Kamu memberi izin di halaman {{name}} lalu kembali ke sini.",
     "customText": "Server MCP apa pun lewat alamat https-nya. Kalau mendukung OAuth, kamu memberi izin di halamannya.",
     "urlHelp": "Alamat https server, atau perintah claude mcp add atau blok mcpServers yang kamu terima.",
+    "way": {
+      "label": "Cara berjalan",
+      "address": "Lewat alamat",
+      "program": "Program di komputer ini"
+    },
+    "program": {
+      "text": "Server MCP yang berjalan sebagai perintah di komputer yang kamu hubungkan. Aturan perintah komputer itu menentukan apa yang boleh berjalan.",
+      "computer": "Komputer",
+      "runsOn": "Berjalan di {{computer}}.",
+      "command": "Perintah",
+      "commandMissing": "Ketik perintah yang menjalankan program.",
+      "commandQuote": "Ada tanda kutip yang masih terbuka di perintah.",
+      "variablesHelp": "Variabel disimpan terenkripsi dan hanya dikirim ke komputer itu saat program dimulai. Tidak ada yang melihat nilainya lagi.",
+      "variable": "Variabel",
+      "variableOf": "Nama variabel {{n}}",
+      "valueOf": "Nilai variabel {{n}}",
+      "removeVariable": "Hapus variabel {{n}}",
+      "addVariable": "Tambah variabel",
+      "add": "Tambah program",
+      "note": "Tidak ada agen yang memakainya sampai kamu memberi akses.",
+      "starting": "Memulai di {{computer}}…"
+    },
     "paste": {
       "command": "Itu server yang berjalan sebagai perintah (stdio). Agen hanya menjangkau server MCP lewat alamat https-nya.",
       "urlAsked": "Isi {{names}} di alamat.",
-      "keyAsked": "Ketik kunci yang diambil teks tempelan dari {{names}}."
+      "keyAsked": "Ketik kunci yang diambil teks tempelan dari {{names}}.",
+      "program": "Itu server yang berjalan sebagai perintah (stdio). Server ini bisa berjalan di komputer yang kamu hubungkan.",
+      "useProgram": "Pakai sebagai program"
     },
     "name": "Nama",
     "namePlaceholder": "Mis. Dukungan",
@@ -13959,7 +13987,8 @@
       "waiting": "Agen baru mendapat alat-alatnya setelah kamu melanjutkan, dengan level yang kami sarankan.",
       "asks_other": "{{count}} tindakan meminta persetujuan di chat.",
       "adjust": "Sesuaikan",
-      "ok": "Selesai"
+      "ok": "Selesai",
+      "program": "Belum ada agen yang memakainya. Pilih siapa di Sesuaikan."
     }
   },
   "database": {
@@ -14652,7 +14681,10 @@
       "headerAndKey": "Kunci API sudah dikirim sebagai Authorization. Kosongkan kuncinya, atau hapus header ini.",
       "headersTooMany": "Satu server menerima paling banyak {{max}} header. Hapus satu untuk menambah yang lain.",
       "headersWithSignIn": "Server ini meminta proses masuk, dan proses masuk belum bisa membawa header. Hapus header untuk masuk, atau hubungkan dengan kunci API.",
-      "headersUnreadable": "Header yang tersimpan tidak bisa dibaca. Ketik lagi, atau hapus."
+      "headersUnreadable": "Header yang tersimpan tidak bisa dibaca. Ketik lagi, atau hapus.",
+      "programComputer": "{{computer}} tidak bisa menjalankan program sekarang. Harus komputer yang kamu hubungkan, di luar mode sistem, online, dengan Perintah aktif.",
+      "programInvalid": "Periksa perintah dan variabelnya. Nama berisi huruf, angka, dan _, masing-masing sekali. Variabel yang memuat kode lain (NODE_OPTIONS, LD_PRELOAD, PATH, dan sejenisnya) tidak diterima.",
+      "programFailed": "Program tidak berjalan di {{computer}}. Komputer menjawab: {{detail}}"
     },
     "wiki": {
       "githubNoNotes": "Tidak ada catatan Markdown di tautan ini.",

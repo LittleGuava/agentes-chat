@@ -294,6 +294,8 @@ import type {
   PlanServes,
   Poll,
   PostMedia,
+  ProgramComputer,
+  ProgramInput,
   Proposal,
   PublishedPage,
   PushDeviceInput,
@@ -1527,6 +1529,14 @@ export interface ApiClient {
       input: { label: string; tools: { name: string; access: ToolDecision; label: string; confirmed?: boolean }[] },
     ): Promise<CustomServer>;
     disconnect(orgId: string, serverId: string): Promise<void>;
+    /** The caller's own connected computers, and which can run a program now (managers of connectors). */
+    programComputers(orgId: string): Promise<ProgramComputer[]>;
+    /**
+     * Registers a stdio MCP program on a computer the caller paired (ADR 0215): listed there once, then a custom server
+     * whose tools wait for a level, given to no agent. Refusals: 409 `connector.program_computer`, 400
+     * `connector.program_invalid`, 400 `connector.program_failed` (the computer's words in `params.detail`).
+     */
+    connectProgram(orgId: string, input: ProgramInput): Promise<CustomServer>;
   };
   dms: {
     /** My direct conversations, with unread counts. */

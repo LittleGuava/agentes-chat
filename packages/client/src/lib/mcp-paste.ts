@@ -4,7 +4,8 @@ import type { RequestHeader } from "../api/types";
  * What a person pastes to connect an MCP server, read without running anything (ADR 0016, addendum 2026-11-15): a
  * `claude mcp add …` or `claude mcp add-json …` line, an `mcpServers` block (Claude, Cursor; VS Code's `servers` and
  * a single entry too), an `npx`/`uvx`/`docker run` line, or the address alone. A server run as a command (stdio) is
- * recognized so the form can say the server can't run it. Pure: never throws, never reaches the network.
+ * recognized, and `parseMcpProgram` reads it word by word for a program on a connected computer (ADR 0215). Pure:
+ * never throws, never reaches the network.
  */
 
 /** A header the paste sends. `missing`: terminal variables or placeholders in its value, which can't go as written. */
@@ -19,12 +20,43 @@ export type McpPaste =
   | { kind: "command"; name: string | null; command: string }
   | { kind: "none" };
 
-const NONE: McpPaste = { kind: "none" };
+/** What the paste says, a program's words kept apart (`parseMcpPaste` joins them, `parseMcpProgram` keeps them). */
+type Read =
+  | Extract<McpPaste, { kind: "url" | "none" }>
+  | { kind: "program"; name: string | null; argv: string[]; env: Record<string, string> };
+
+const NONE = { kind: "none" } as const;
 const COMMANDS = /^(npx|bunx|pnpm|yarn|uvx|uv|pipx|python3?|node|deno|bun|docker|podman)$/;
 const isUrl = (s: string) => /^https?:\/\/\S+$/i.test(s);
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
 export function parseMcpPaste(text: string): McpPaste {
+  const read = readPaste(text);
+  return read.kind === "program" ? { kind: "command", name: read.name, command: read.argv.join(" ") } : read;
+}
+
+/** A program to run on a connected computer, as the form takes it (ADR 0215). */
+export interface PastedProgram {
+  name: string | null;
+  command: string;
+  args: string[];
+  /** Its variables: a value written with a variable or a placeholder comes empty, for the person to type. */
+  env: RequestHeader[];
+}
+
+/** The stdio program a paste runs, word for word; null when it names a server by address, or nothing. */
+export function parseMcpProgram(text: string): PastedProgram | null {
+  const read = readPaste(text);
+  if (read.kind !== "program") return null;
+  const [command = "", ...args] = read.argv;
+  const env = Object.entries(read.env).map(([name, value]) => ({
+    name,
+    value: missingIn(value).length > 0 ? "" : value,
+  }));
+  return { name: read.name, command, args, env };
+}
+
+function readPaste(text: string): Read {
   const trimmed = text.trim();
   if (!trimmed) return NONE;
   if (trimmed.startsWith("{") || trimmed.startsWith('"')) return fromJsonText(trimmed);
@@ -33,7 +65,7 @@ export function parseMcpPaste(text: string): McpPaste {
   if (words[0] === "claude" && words[1] === "mcp" && words[2] === "add") return fromClaudeAdd(words.slice(3));
   if (words[0] === "claude" && words[1] === "mcp" && words[2] === "add-json") return fromClaudeAddJson(words.slice(3));
   if (words.length === 1 && isUrl(words[0] ?? "")) return byAddress(null, words[0] ?? "", [], {});
-  if (COMMANDS.test(words[0] ?? "")) return { kind: "command", name: null, command: words.join(" ") };
+  if (COMMANDS.test(words[0] ?? "")) return { kind: "program", name: null, argv: words, env: {} };
   return NONE;
 }
 
@@ -60,7 +92,7 @@ function byAddress(
   url: string,
   headers: [string, string][],
   env: Record<string, string>,
-): McpPaste {
+): Extract<McpPaste, { kind: "url" }> {
   const filledUrl = fill(url.trim(), env);
   return {
     kind: "url",
@@ -88,7 +120,7 @@ function envOf(raw: unknown): Record<string, string> {
 }
 
 /** One server's entry, as Claude, Cursor, VS Code, Windsurf or Gemini write it. */
-function fromEntry(name: string | null, entry: Record<string, unknown>): McpPaste {
+function fromEntry(name: string | null, entry: Record<string, unknown>): Read {
   const env = envOf(entry.env);
   const url = [entry.url, entry.serverUrl, entry.httpUrl].find((u): u is string => typeof u === "string");
   if (url) {
@@ -109,7 +141,7 @@ function fromEntry(name: string | null, entry: Record<string, unknown>): McpPast
       return byAddress(name, target, headers, env);
     }
   }
-  return { kind: "command", name, command: [entry.command, ...args].join(" ") };
+  return { kind: "program", name, argv: [entry.command, ...args], env };
 }
 
 /** The servers a JSON block names, in order: `mcpServers`, `servers`, `mcp.servers`, a name → entry map or one entry. */
@@ -122,9 +154,9 @@ function entriesOf(json: unknown): [string | null, Record<string, unknown>][] {
   return Object.entries(map).filter((e): e is [string, Record<string, unknown>] => isEntry(e[1]));
 }
 
-function fromJson(json: unknown, name: string | null = null): McpPaste {
+function fromJson(json: unknown, name: string | null = null): Read {
   const all = entriesOf(json).map(([n, e]) => fromEntry(n ?? name, e));
-  return all.find((p) => p.kind === "url") ?? all.find((p) => p.kind === "command") ?? NONE;
+  return all.find((p) => p.kind === "url") ?? all.find((p) => p.kind === "program") ?? NONE;
 }
 
 function parseJson(text: string): unknown {
@@ -136,7 +168,7 @@ function parseJson(text: string): unknown {
 }
 
 /** A whole block, or one entry cut from inside one (`"name": { … },`). */
-function fromJsonText(text: string): McpPaste {
+function fromJsonText(text: string): Read {
   const json = parseJson(text) ?? parseJson(`{${text.replace(/,\s*$/, "")}}`);
   return fromJson(json);
 }
@@ -155,7 +187,7 @@ const ADD_VALUE_OPTIONS = new Set([
   "--callback-port",
 ]);
 
-function fromClaudeAdd(words: string[]): McpPaste {
+function fromClaudeAdd(words: string[]): Read {
   const headers: [string, string][] = [];
   const env: Record<string, string> = {};
   const positional: string[] = [];
@@ -185,10 +217,10 @@ function fromClaudeAdd(words: string[]): McpPaste {
   const [name, target, ...rest] = positional;
   if (!name || !target) return NONE;
   if (isUrl(target)) return byAddress(name, target, headers, env);
-  return { kind: "command", name, command: [target, ...rest].join(" ") };
+  return { kind: "program", name, argv: [target, ...rest], env };
 }
 
-function fromClaudeAddJson(words: string[]): McpPaste {
+function fromClaudeAddJson(words: string[]): Read {
   const positional = words.filter((w, i) => !w.startsWith("-") && !["-s", "--scope"].includes(words[i - 1] ?? ""));
   const [name, json] = positional;
   return name && json ? fromJson(parseJson(json), name) : NONE;
@@ -233,6 +265,13 @@ function shellWords(text: string): string[] | null {
   if (started) words.push(word);
   return words;
 }
+
+/** A program's command line as a person types it, split into its words as a shell would; null for an open quote. */
+export const commandWords = (line: string): string[] | null => shellWords(line);
+
+/** Words joined into a line that `commandWords` splits back into the same words: any but plain ones single-quoted. */
+export const commandLine = (words: readonly string[]): string =>
+  words.map((w) => (/^[A-Za-z0-9_@%+=:,./-]+$/.test(w) ? w : `'${w.replace(/'/g, "'\\''")}'`)).join(" ");
 
 /**
  * What the connect form takes from a server by address: one key, sent as `Authorization: Bearer`, and the request

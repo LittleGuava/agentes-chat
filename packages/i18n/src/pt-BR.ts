@@ -13534,6 +13534,10 @@ export const ptBR = {
     connected: "Conectado",
     connectedAs: "Conectado como {{account}}",
     reconnectAdds: "Reconecte o {{name}} para os agentes também poderem {{what}}.",
+    program: {
+      on: "Roda em {{computer}}",
+      variables: "Variáveis: <names/>. Para mudar, adicione o programa de novo.",
+    },
     sendsToo: "Envia também: <names/>. Para mudar, use Reconectar.",
     adds: { github_project: "usar o GitHub Projects (ler quadros e mover cards)" },
     toolsCount_one: "{{count}} ferramenta",
@@ -14605,11 +14609,36 @@ export const ptBR = {
     oauthHelp: "Você autoriza na página do {{name}} e volta para cá.",
     customText: "Qualquer servidor MCP pelo endereço https. Se ele aceitar OAuth, você autoriza na página dele.",
     urlHelp: "O endereço https do servidor, ou o comando claude mcp add ou o bloco mcpServers que te passaram.",
+    way: {
+      label: "Como ele roda",
+      address: "Por endereço",
+      program: "Programa neste computador",
+    },
+    program: {
+      text: "Um servidor MCP que roda como comando num computador que você conectou. As regras de comandos desse computador decidem o que pode rodar.",
+      computer: "Computador",
+      runsOn: "Roda em {{computer}}.",
+      command: "Comando",
+      commandMissing: "Digite o comando que inicia o programa.",
+      commandQuote: "Ficou uma aspa aberta no comando.",
+      variablesHelp:
+        "As variáveis ficam cifradas e vão só para esse computador quando o programa inicia. Ninguém vê os valores de novo.",
+      variable: "Variável",
+      variableOf: "Nome da variável {{n}}",
+      valueOf: "Valor da variável {{n}}",
+      removeVariable: "Remover variável {{n}}",
+      addVariable: "Adicionar variável",
+      add: "Adicionar programa",
+      note: "Nenhum agente usa até você dar acesso.",
+      starting: "Iniciando em {{computer}}…",
+    },
     paste: {
       command:
         "Esse é um servidor que roda como comando (stdio). Os agentes só alcançam servidores MCP pelo endereço https.",
       urlAsked: "Preencha {{names}} no endereço.",
       keyAsked: "Digite a chave que o texto colado tirava de {{names}}.",
+      program: "Esse é um servidor que roda como comando (stdio). Ele pode rodar num computador que você conectou.",
+      useProgram: "Usar como programa",
     },
     name: "Nome",
     namePlaceholder: "Ex.: Suporte",
@@ -14714,6 +14743,7 @@ export const ptBR = {
       asks_other: "{{count}} ações pedem aprovação no chat.",
       adjust: "Ajustar",
       ok: "Pronto",
+      program: "Nenhum agente usa ainda. Escolha quem em Ajustar.",
     },
   },
   database: {
@@ -15381,6 +15411,11 @@ export const ptBR = {
       headersWithSignIn:
         "Este servidor pede login, e o login ainda não leva cabeçalhos. Remova os cabeçalhos para entrar, ou conecte com uma chave de API.",
       headersUnreadable: "Não deu para ler os cabeçalhos salvos. Digite de novo, ou remova.",
+      programComputer:
+        "{{computer}} não pode rodar programas agora. Precisa ser um computador que você conectou, fora do modo sistema, online e com Comandos ligado.",
+      programInvalid:
+        "Confira o comando e as variáveis. Um nome leva letras, números e _, uma vez cada. Variáveis que carregam outro código (NODE_OPTIONS, LD_PRELOAD, PATH e parecidas) não são aceitas.",
+      programFailed: "O programa não iniciou em {{computer}}. O computador disse: {{detail}}",
     },
     /** Restricted wiki pages (ADR 0023). */
     wiki: {
