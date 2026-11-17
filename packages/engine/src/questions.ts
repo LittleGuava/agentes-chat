@@ -187,8 +187,8 @@ export function createAskUserToolSource(deps: ResourcefulDeps = {}): ToolSource 
           text,
           choices: asked.length === 1 ? (only?.choices ?? null) : null,
           requestedForUserId,
-          // One question with one pick is the card it always was: nothing new is stored for it.
-          items: asked.length === 1 && !only?.multiSelect ? null : asked,
+          // One question with one pick is the card it always was: nothing new is stored for it, nor said of it.
+          ...(asked.length === 1 && !only?.multiSelect ? {} : { items: asked }),
         },
       };
     },
