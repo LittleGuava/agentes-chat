@@ -29664,6 +29664,15 @@
   "access.asksLegend": {
     "value": "asks for approval"
   },
+  "access.everyCallNever": {
+    "value": "Unavailable at Never ask: each of its actions needs a person's approval"
+  },
+  "access.cellNever": {
+    "value": "{{agent}} in {{resource}}: {{level}}, unavailable at Never ask"
+  },
+  "access.neverLegend": {
+    "value": "unavailable at Never ask"
+  },
   "access.customText": {
     "value": "Granted tool by tool. Pick a level to simplify it."
   },
@@ -32155,6 +32164,24 @@
   "connectors.can.youcom.2": {
     "value": "Read whole pages and research with sources"
   },
+  "connectors.can.telnyx.1": {
+    "value": "See its numbers, calls, messages and usage"
+  },
+  "connectors.can.telnyx.2": {
+    "value": "Call any endpoint of the Telnyx API"
+  },
+  "connectors.can.telnyx.ask": {
+    "value": "Every action always asks for your approval"
+  },
+  "connectors.can.agentcard.1": {
+    "value": "See cards, balance and transactions"
+  },
+  "connectors.can.agentcard.2": {
+    "value": "Create cards, add funds and buy"
+  },
+  "connectors.can.agentcard.ask": {
+    "value": "Every action always asks for your approval, with the amount when there is one"
+  },
   "connectors.can.database.1": {
     "value": "See the tables"
   },
@@ -32589,6 +32616,12 @@
   },
   "connectors.descriptions.youcom": {
     "value": "Web search, page contents and research."
+  },
+  "connectors.descriptions.telnyx": {
+    "value": "Phone numbers, calls, messages and the rest of the Telnyx API."
+  },
+  "connectors.descriptions.agentcard": {
+    "value": "Virtual cards, balance and purchases for agents."
   },
   "toolNames.order": {
     "value": "modifiers-first"
@@ -35271,6 +35304,9 @@
   },
   "toolReview.reason.preset_read": {
     "value": "the service only lets it look"
+  },
+  "toolReview.reason.every_call": {
+    "value": "this service spends money or reaches people: each action asks"
   },
   "toolReview.asks": {
     "value": {

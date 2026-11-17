@@ -12193,6 +12193,9 @@
     "asksMore_one": "en nog {{count}}",
     "asksMore_other": "en nog {{count}}",
     "asksLegend": "vraagt om goedkeuring",
+    "everyCallNever": "Niet beschikbaar bij Nooit vragen: elke actie heeft goedkeuring van een persoon nodig",
+    "cellNever": "{{agent}} in {{resource}}: {{level}}, niet beschikbaar bij Nooit vragen",
+    "neverLegend": "niet beschikbaar bij Nooit vragen",
     "customText": "Per tool toegekend. Kies een niveau om het te vereenvoudigen.",
     "noTools": "Nog geen tools.",
     "toolsMore_one": "{{tools}} en nog {{count}}",
@@ -13313,6 +13316,16 @@
         "1": "Op het web zoeken",
         "2": "Hele pagina's lezen en onderzoeken met bronnen"
       },
+      "telnyx": {
+        "1": "Nummers, gesprekken, berichten en gebruik bekijken",
+        "2": "Elk endpoint van de Telnyx-API aanroepen",
+        "ask": "Elke actie vraagt altijd om jouw goedkeuring"
+      },
+      "agentcard": {
+        "1": "Kaarten, saldo en transacties bekijken",
+        "2": "Kaarten maken, saldo opwaarderen en kopen",
+        "ask": "Elke actie vraagt altijd om jouw goedkeuring, met het bedrag als er een is"
+      },
       "database": {
         "1": "De tabellen bekijken",
         "2": "De data bevragen om te antwoorden",
@@ -13469,7 +13482,9 @@
       "agentphone": "Telefoonnummers, sms'jes en gesprekken voor agenten.",
       "vapi": "Spraakassistenten, gesprekken en telefoonnummers.",
       "whop": "Betalingen, lidmaatschappen en producten.",
-      "youcom": "Zoeken op het web, pagina-inhoud en onderzoek."
+      "youcom": "Zoeken op het web, pagina-inhoud en onderzoek.",
+      "telnyx": "Telefoonnummers, gesprekken, berichten en de rest van de Telnyx-API.",
+      "agentcard": "Virtuele kaarten, saldo en aankopen voor agenten."
     }
   },
   "toolNames": {
@@ -14387,7 +14402,8 @@
       "verb_read": "aan zijn naam te zien kijkt hij alleen",
       "verb_write": "aan zijn naam te zien maakt of bewerkt hij",
       "verb_sensitive": "aan zijn naam te zien verwijdert, verstuurt of besteedt hij",
-      "preset_read": "de dienst laat hem alleen kijken"
+      "preset_read": "de dienst laat hem alleen kijken",
+      "every_call": "deze dienst geeft geld uit of bereikt mensen: elke actie vraagt goedkeuring"
     },
     "asks_one": "{{count}} actie vraagt eerst je goedkeuring",
     "asks_other": "{{count}} acties vragen eerst je goedkeuring",

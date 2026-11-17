@@ -11686,6 +11686,9 @@
     "asksList": "Meminta persetujuan: {{tools}}",
     "asksMore_other": "dan {{count}} lainnya",
     "asksLegend": "meminta persetujuan",
+    "everyCallNever": "Tidak tersedia di Jangan pernah tanya: setiap tindakannya perlu persetujuan seseorang",
+    "cellNever": "{{agent}} di {{resource}}: {{level}}, tidak tersedia di Jangan pernah tanya",
+    "neverLegend": "tidak tersedia di Jangan pernah tanya",
     "customText": "Diberikan per alat. Pilih level untuk menyederhanakannya.",
     "noTools": "Belum ada alat.",
     "toolsMore_other": "{{tools}} dan {{count}} lainnya",
@@ -12790,6 +12793,16 @@
         "1": "Mencari di web",
         "2": "Membaca halaman utuh dan meriset dengan sumber"
       },
+      "telnyx": {
+        "1": "Melihat nomor, panggilan, pesan, dan pemakaiannya",
+        "2": "Memanggil endpoint apa pun di API Telnyx",
+        "ask": "Setiap tindakan selalu meminta persetujuanmu"
+      },
+      "agentcard": {
+        "1": "Melihat kartu, saldo, dan transaksi",
+        "2": "Membuat kartu, menambah saldo, dan membeli",
+        "ask": "Setiap tindakan selalu meminta persetujuanmu, dengan jumlahnya jika ada"
+      },
       "database": {
         "1": "Melihat tabel",
         "2": "Menjalankan query ke data untuk menjawab",
@@ -12941,7 +12954,9 @@
       "agentphone": "Nomor telepon, SMS, dan panggilan untuk agen.",
       "vapi": "Asisten suara, panggilan, dan nomor telepon.",
       "whop": "Pembayaran, keanggotaan, dan produk.",
-      "youcom": "Pencarian web, isi halaman, dan riset."
+      "youcom": "Pencarian web, isi halaman, dan riset.",
+      "telnyx": "Nomor telepon, panggilan, pesan, dan bagian lain API Telnyx.",
+      "agentcard": "Kartu virtual, saldo, dan pembelian untuk agen."
     }
   },
   "toolNames": {
@@ -13845,7 +13860,8 @@
       "verb_read": "dari namanya, ini hanya melihat",
       "verb_write": "dari namanya, ini membuat atau mengedit",
       "verb_sensitive": "dari namanya, ini menghapus, mengirim, atau mengeluarkan uang",
-      "preset_read": "layanannya hanya mengizinkan melihat"
+      "preset_read": "layanannya hanya mengizinkan melihat",
+      "every_call": "layanan ini mengeluarkan uang atau menjangkau orang: setiap tindakan meminta persetujuan"
     },
     "asks_other": "{{count}} tindakan minta persetujuanmu dulu",
     "see": "Lihat",

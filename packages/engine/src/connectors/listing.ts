@@ -98,6 +98,8 @@ export const CONNECTOR_BRANDS: Record<string, { file: string; color: string | nu
   vapi: { file: "vapi", color: null },
   whop: { file: "whop", color: "#FA4616" },
   youcom: { file: "youcom", color: "#5368EE" },
+  telnyx: { file: "telnyx", color: null },
+  agentcard: { file: "agentcard", color: null },
 };
 
 export interface ConnectorListingEntry {
@@ -214,8 +216,14 @@ export function connectorListing(server: ServerCatalog): ConnectorListingEntry[]
       description: p.description,
       kind: "remote_mcp",
       category: p.category,
-      // A service through Composio signs in there; a vendor's own server takes a key too.
-      auth: way.via !== "composio" && takesKey(p, Boolean(server.cloud)) ? ["oauth", "api_key"] : ["oauth"],
+      // A service through Composio signs in there; a vendor's own server takes a key too, and one that documents a
+      // key alone takes only that.
+      auth:
+        way.via === "composio" || !takesKey(p, Boolean(server.cloud))
+          ? ["oauth"]
+          : p.signInRequired === "key"
+            ? ["api_key"]
+            : ["oauth", "api_key"],
       oauthConfigured: true,
       ...way,
       ...brand(p.icon),

@@ -12125,6 +12125,9 @@
     "asksMore_one": "und {{count}} weiteres",
     "asksMore_other": "und {{count}} weitere",
     "asksLegend": "fragt nach einer Freigabe",
+    "everyCallNever": "Nicht verfügbar bei Nie fragen: jede Aktion braucht die Freigabe einer Person",
+    "cellNever": "{{agent}} in {{resource}}: {{level}}, nicht verfügbar bei Nie fragen",
+    "neverLegend": "nicht verfügbar bei Nie fragen",
     "customText": "Pro Tool vergeben. Wähle eine Stufe, um es zu vereinfachen.",
     "noTools": "Noch keine Tools.",
     "toolsMore_one": "{{tools}} und {{count}} weiteres",
@@ -13249,6 +13252,16 @@
         "1": "Im Web suchen",
         "2": "Ganze Seiten lesen und mit Quellen recherchieren"
       },
+      "telnyx": {
+        "1": "Nummern, Anrufe, Nachrichten und Nutzung ansehen",
+        "2": "Jeden Endpunkt der Telnyx-API aufrufen",
+        "ask": "Jede Aktion fragt immer nach deiner Freigabe"
+      },
+      "agentcard": {
+        "1": "Karten, Guthaben und Transaktionen ansehen",
+        "2": "Karten erstellen, Guthaben aufladen und einkaufen",
+        "ask": "Jede Aktion fragt immer nach deiner Freigabe, mit dem Betrag, wenn es einen gibt"
+      },
       "database": {
         "1": "Tabellen ansehen",
         "2": "Daten abfragen, um zu antworten",
@@ -13405,7 +13418,9 @@
       "agentphone": "Telefonnummern, SMS und Anrufe für Agenten.",
       "vapi": "Sprachassistenten, Anrufe und Telefonnummern.",
       "whop": "Zahlungen, Mitgliedschaften und Produkte.",
-      "youcom": "Websuche, Seiteninhalte und Recherche."
+      "youcom": "Websuche, Seiteninhalte und Recherche.",
+      "telnyx": "Telefonnummern, Anrufe, Nachrichten und der Rest der Telnyx-API.",
+      "agentcard": "Virtuelle Karten, Guthaben und Einkäufe für Agenten."
     }
   },
   "toolNames": {
@@ -14323,7 +14338,8 @@
       "verb_read": "laut Name schaut es nur",
       "verb_write": "laut Name erstellt oder bearbeitet es",
       "verb_sensitive": "laut Name löscht, sendet oder bezahlt es",
-      "preset_read": "der Dienst lässt es nur schauen"
+      "preset_read": "der Dienst lässt es nur schauen",
+      "every_call": "dieser Dienst gibt Geld aus oder erreicht Personen: jede Aktion fragt"
     },
     "asks_one": "{{count}} Aktion fragt zuerst nach deiner Freigabe",
     "asks_other": "{{count}} Aktionen fragen zuerst nach deiner Freigabe",

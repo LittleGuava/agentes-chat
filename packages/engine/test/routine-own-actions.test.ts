@@ -32,6 +32,7 @@ import {
   RUN_APPROVED_ACTION,
   setMemberRoles,
   type ToolContext,
+  updateAgent,
   updateRoutine,
 } from "../src";
 import { addMember, type Fixture, setup } from "./fixtures";
@@ -1021,5 +1022,105 @@ describe('"Sempre nesta rotina": a routine\'s card keeps its kind for that routi
     const bob = await addMember(f.db, f.org.id, "member", "bob");
     await expect(decide(card.id, bob.id)).rejects.toThrow();
     expect((await routineRow(id))?.ownActions).toEqual([]);
+  });
+});
+
+describe("a service whose every call a person decides (Agentcard): no run does it on its own", () => {
+  /** Agentcard's server in process, its tools as the preset knows them, each call kept. */
+  async function agentcardWorld(fx: Fixture) {
+    const calls: string[] = [];
+    const connect: McpConnect = async () => {
+      const server = new McpServer({ name: "agentcard", version: "1" });
+      for (const name of ["get_balance", "buy"]) {
+        server.registerTool(
+          name,
+          { description: name, inputSchema: { request: z.string().optional(), amount_cents: z.number().optional() } },
+          async () => {
+            calls.push(name);
+            return { content: [{ type: "text" as const, text: "ok" }] };
+          },
+        );
+      }
+      const [client, end] = InMemoryTransport.createLinkedPair();
+      await server.connect(end);
+      return mcpSessionOver(client);
+    };
+    const deps: CustomDeps = {
+      db: fx.db,
+      keyWrappers: [fx.keyWrapper],
+      publicUrl: "https://chat.example.com",
+      resolveHost: async () => ["93.184.216.34"],
+      connect,
+    };
+    const started = await connectCustomServer(deps, fx.owner.id, fx.org.id, {
+      serverUrl: "https://mcp.agentcard.sh/mcp",
+      apiKey: "agentcard_secret_12345",
+    });
+    if (started.status !== "connected") throw new Error(`expected connected, got ${started.status}`);
+    await acceptCustomSuggestion(deps, fx.owner.id, fx.org.id, started.server.id);
+    const gateway = createToolGateway({
+      sources: [createConnectorToolSource(deps), createScheduleToolSource({ pubsub: fx.pubsub, context: fx.context })],
+    });
+    return { calls, gateway };
+  }
+  const buy = { request: "a pack of AA batteries", amount_cents: 1299, why: WHY };
+
+  test("a routine's run asks even for an action stored as its own, and its card offers no Sempre nesta rotina", async () => {
+    f = await setup();
+    const { calls, gateway } = await agentcardWorld(f);
+    const { id } = await created(gateway, []);
+    await f.db
+      .update(schema.routines)
+      .set({ ownActions: ["agentcard_buy", "agentcard_get_balance"] })
+      .where(eq(schema.routines.id, id));
+    const run = await routineRun(f, id);
+    expect(asked(await invoke(gateway, run, "agentcard_buy", buy)).approveAlways).toBeNull();
+    expect(asked(await invoke(gateway, run, "agentcard_get_balance", { why: WHY })).approveAlways).toBeNull();
+    expect(calls).toEqual([]);
+  });
+
+  test("a run nobody is behind asks a person too, and an agent that never asks runs neither", async () => {
+    f = await setup();
+    const { calls, gateway } = await agentcardWorld(f);
+    // Another agent's message woke it: nobody is behind the run.
+    const msg = await insertMessage(f.db, {
+      orgId: f.org.id,
+      channelId: f.general.id,
+      author: { type: "agent", agentId: f.agent.id, runId: null, hop: 0, stretchId: null },
+      body: "compra pilhas",
+    });
+    const [row] = await f.db
+      .insert(schema.agentRuns)
+      .values({
+        orgId: f.org.id,
+        agentId: f.agent.id,
+        channelId: f.general.id,
+        threadRootId: msg.id,
+        triggerMessageId: msg.id,
+        trigger: "mention",
+        hop: 1,
+        status: "running",
+      })
+      .returning();
+    if (!row) throw new Error("no run");
+    const unattended: ToolContext = {
+      db: f.db,
+      orgId: f.org.id,
+      agentId: f.agent.id,
+      runId: row.id,
+      channelId: f.general.id,
+      threadRootId: msg.id,
+      triggerMessageId: msg.id,
+    };
+    asked(await invoke(gateway, unattended, "agentcard_buy", buy));
+
+    await updateAgent(f.db, f.owner.id, f.org.id, f.agent.id, { approvalsLevel: "never" });
+    const { id } = await created(gateway, []);
+    for (const ctx of [unattended, await routineRun(f, id)]) {
+      const refused = answered(await invoke(gateway, ctx, "agentcard_buy", buy));
+      expect(refused.isError).toBe(true);
+      expect(refused.data).toMatchObject({ refusal: "policy" });
+    }
+    expect(calls).toEqual([]);
   });
 });

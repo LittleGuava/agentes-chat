@@ -2216,6 +2216,11 @@ export interface Approval {
   connectorAccount?: string | null;
   /** The email itself, for mail drafts and sends; null for every other action. */
   email?: ApprovalEmail | null;
+  /**
+   * Which of `params` its service says is what the call does and the amount it moves in US cents (ADR 0016, addendum
+   * 2026-11-17): its card leads with them. Null or absent: its service names none.
+   */
+  callArgs?: { does: string | null; usdCents: string | null } | null;
   /** Why it asks (ADR 0053 §8): what the agent found and why this action. Shown above the action. */
   why?: string | null;
   /** Asked while nobody watched: by a routine (its name) or by an unattended run. Null: a person was there. */
@@ -4750,6 +4755,11 @@ export interface AgentAccess {
     connector: string;
     label: string;
     custom: boolean;
+    /**
+     * Every call of its service asks a person (ADR 0016, addendum 2026-11-17): an agent that never asks is offered
+     * none of its tools. Absent from older servers.
+     */
+    everyCall?: boolean;
     state: AccessState;
     scopes: AccessScope[];
   }[];

@@ -36,8 +36,11 @@ export const JUDGE_REASONS = [
   "deletes_data",
 ] as const;
 export type JudgeReason = (typeof JUDGE_REASONS)[number];
-/** Why a preset's tool asks (`McpPreset.askTools`): the judge's own words for it. */
-export type AskReason = Extract<JudgeReason, "spends_money" | "reaches_people">;
+/**
+ * Why a preset's tool asks (`McpPreset.askTools`): the judge's own words for it, or `every_call` for a tool of a
+ * service whose every call asks (`McpPreset.everyCall`) and that names nothing more of its own.
+ */
+export type AskReason = Extract<JudgeReason, "spends_money" | "reaches_people"> | "every_call";
 export type ReasonCode =
   | "read_only_hint"
   | "destructive_hint"
@@ -46,6 +49,7 @@ export type ReasonCode =
   | "verb_sensitive"
   | "preset_read"
   | "unknown"
+  | "every_call"
   | JudgeReason;
 
 export interface ToolClass {

@@ -158,6 +158,53 @@ describe("an approval's values", () => {
     );
   });
 
+  test("a service that names what a call does and the money it moves: the card leads with both, long or not", () => {
+    const request =
+      "order two packs of AA batteries and a USB-C cable from Amazon, delivered to the office on Rua Augusta before Friday";
+    const buy = {
+      tool: "agentcard_buy",
+      params: { conversation_id: "cv_8f3a21", request, amount_cents: 129999 },
+      connector: "custom",
+      email: null,
+      callArgs: { does: "request", usdCents: "amount_cents" },
+    };
+    expect(approvalValues(buy, { max: 2, locale: "en" })).toEqual([
+      ["Request", request],
+      ["Amount", "$1,299.99"],
+    ]);
+    expect(approvalSummary(buy, "en", 2)).toBe(`Request: ${request} · Amount: $1,299.99`);
+
+    const longer = `${request} ${request} ${request} ${request}`;
+    const cut = approvalValues({ ...buy, params: { ...buy.params, request: longer } }, { max: 1 })[0]?.[1] ?? "";
+    expect(cut).toHaveLength(200);
+    expect(cut.endsWith("…")).toBe(true);
+    expect(approvalValues({ ...buy, params: { ...buy.params, request: longer } }, { max: 1, long: true })[0]?.[1]).toBe(
+      longer,
+    );
+
+    // An amount that isn't a whole number of cents is shown as it came, never read as money.
+    expect(
+      approvalValues({
+        ...buy,
+        params: { spend_limit_cents: "lots" },
+        callArgs: { does: null, usdCents: "spend_limit_cents" },
+      }),
+    ).toEqual([["Spend limit cents", "lots"]]);
+
+    const invoke = {
+      tool: "telnyx_invoke_api_endpoint",
+      params: { endpoint_name: "dial_call", args: { to: "+15551234567", from: "+15557654321" } },
+      connector: "custom",
+      email: null,
+      callArgs: { does: "endpoint_name", usdCents: null },
+    };
+    expect(approvalValues(invoke, { locale: "en" })).toEqual([
+      ["Endpoint name", "dial_call"],
+      ["To", "+15551234567"],
+      ["From", "+15557654321"],
+    ]);
+  });
+
   test("on an engine whose Intl takes useGrouping as a boolean (Hermes), a year still reads as is", () => {
     const Real = Intl.NumberFormat;
     function hermes(locale?: string | string[], options?: Intl.NumberFormatOptions) {

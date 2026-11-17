@@ -64,7 +64,10 @@ import {
   composioToolkitTyped,
   composioToolName,
   type McpPreset,
+  presetAsks,
   presetForServer,
+  presetLocks,
+  presetWithholds,
   serverUrlShown,
   takesKey,
 } from "./presets";
@@ -659,6 +662,8 @@ export class ToolsUnreadable extends Error {}
  */
 export async function syncCustomTools(deps: CustomDeps, c: ConnectorConnection) {
   const preset = presetForServer(c.serverUrl);
+  // The locks go by the host: an address typed or stored another way is still that service (ADR 0016, 2026-11-17).
+  const locks = presetLocks(c.serverUrl);
   let listed: McpTool[];
   let info: McpServerInfo | null = null;
   let account: ProviderAccount | null = null;
@@ -666,7 +671,8 @@ export async function syncCustomTools(deps: CustomDeps, c: ConnectorConnection) 
     if (!deps.connect) throw new Error("no MCP connect configured");
     const session = await deps.connect(c, await connectionHeaders(deps, c));
     try {
-      listed = await session.listTools();
+      // A tool its preset withholds is as if the server never listed it: a row stored for it before is closed below.
+      listed = (await session.listTools()).filter((t) => !presetWithholds(locks, t.name));
       info = session.serverInfo?.() ?? null;
       if (listed.some((t) => t.name === preset?.account?.tool)) {
         account = await askAccount(session, preset?.account).catch(() => null);
@@ -707,13 +713,18 @@ export async function syncCustomTools(deps: CustomDeps, c: ConnectorConnection) 
       });
     }
   }
+  // A service whose every call asks names each tool it lists now, so none slips through as a read or a write.
+  const askTools = presetAsks(
+    locks ?? preset,
+    listed.map((t) => t.name),
+  );
   const classes = await classifyTools(listed, {
     orgId: c.orgId,
     server: c.label,
     judge: deps.judge,
     readTools: preset?.readTools,
     writeTools,
-    askTools: preset?.askTools,
+    askTools,
     cached,
   });
   const seen = new Set<string>();
@@ -722,7 +733,7 @@ export async function syncCustomTools(deps: CustomDeps, c: ConnectorConnection) 
     const old = byName.get(tool.name);
     const description = (tool.description ?? "").slice(0, 2000);
     const cls =
-      classes.get(tool.name) ?? classifyByRules(tool, preset?.readTools, writeTools, preset?.askTools) ?? UNKNOWN_CLASS;
+      classes.get(tool.name) ?? classifyByRules(tool, preset?.readTools, writeTools, askTools) ?? UNKNOWN_CLASS;
     const suggestion = {
       suggestedAccess: cls.level,
       suggestionSource: cls.source,
@@ -837,7 +848,8 @@ export async function connectCustomServer(
   const target = input.connectionId ? await reconnectTarget(deps.db, orgId, input.connectionId, url.toString()) : null;
   // Reconectar asks at the account's own address, however it was typed again: what it keeps goes nowhere else.
   const serverUrl = target?.serverUrl ?? url.toString();
-  const label = input.label?.trim() || presetForServer(serverUrl)?.label || url.hostname;
+  const preset = presetForServer(serverUrl);
+  const label = input.label?.trim() || preset?.label || url.hostname;
   const apiKey = input.apiKey?.trim();
   // The account's own secret is opened only to carry its headers over; a list in the request replaces them unread.
   const saved = !input.headers && target?.headerNames?.length ? await savedHeaders(deps, target) : {};
@@ -864,12 +876,17 @@ export async function connectCustomServer(
   if (apiKey && apiKey.length < 8) throw new ValidationError("The key looks too short", "connector.key_too_short");
   // Its server takes no key, or on the Cloud the vendor's terms forbid asking for one (ADR 0016, ADR 0107): it
   // signs in only, and takes no headers in a key's place either.
-  if ((apiKey || headers) && !takesKey(presetForServer(serverUrl), isAgentesCloud(deps.publicUrl))) {
+  if ((apiKey || headers) && !takesKey(preset, isAgentesCloud(deps.publicUrl))) {
     throw signInOnly();
   }
   if (apiKey) return stored("api_key", { apiKey, ...(headers ? { headers } : {}) });
+  // It documents a key alone and answers anyone until a tool runs: without one there is nothing to ask its server
+  // (ADR 0016, addendum 2026-11-17).
+  const signInRequired = presetLocks(serverUrl)?.signInRequired;
+  if (signInRequired === "key") return { status: "needs_key" };
   const probe = await probeMcpServer(deps, serverUrl, secretHeaders({ headers }, serverUrl), {
     ownApp: app !== undefined,
+    signInRequired: signInRequired !== undefined,
   });
   // Headers a person typed are a secret of theirs, as a key is.
   if (probe.kind === "open") return headers ? stored("api_key", { headers }) : stored("none", null);

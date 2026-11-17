@@ -12582,6 +12582,9 @@
     "asksMore_many": "et {{count}} autres",
     "asksMore_other": "et {{count}} autres",
     "asksLegend": "demande une approbation",
+    "everyCallNever": "Indisponible avec Ne jamais demander : chaque action demande l'approbation d'une personne",
+    "cellNever": "{{agent}} dans {{resource}} : {{level}}, indisponible avec Ne jamais demander",
+    "neverLegend": "indisponible avec Ne jamais demander",
     "customText": "Accordé outil par outil. Choisissez un niveau pour simplifier.",
     "noTools": "Aucun outil pour l'instant.",
     "toolsMore_one": "{{tools}} et {{count}} autre",
@@ -13726,6 +13729,16 @@
         "1": "Chercher sur le web",
         "2": "Lire des pages entières et faire des recherches sourcées"
       },
+      "telnyx": {
+        "1": "Voir ses numéros, appels, messages et sa consommation",
+        "2": "Appeler n'importe quel endpoint de l'API Telnyx",
+        "ask": "Chaque action demande toujours votre approbation"
+      },
+      "agentcard": {
+        "1": "Voir les cartes, le solde et les transactions",
+        "2": "Créer des cartes, ajouter des fonds et acheter",
+        "ask": "Chaque action demande toujours votre approbation, avec le montant quand il y en a un"
+      },
       "database": {
         "1": "Voir les tables",
         "2": "Interroger les données pour répondre",
@@ -13887,7 +13900,9 @@
       "agentphone": "Numéros de téléphone, SMS et appels pour agents.",
       "vapi": "Assistants vocaux, appels et numéros de téléphone.",
       "whop": "Paiements, abonnements et produits.",
-      "youcom": "Recherche web, contenu des pages et recherches."
+      "youcom": "Recherche web, contenu des pages et recherches.",
+      "telnyx": "Numéros de téléphone, appels, messages et le reste de l'API Telnyx.",
+      "agentcard": "Cartes virtuelles, solde et achats pour agents."
     }
   },
   "toolNames": {
@@ -14819,7 +14834,8 @@
       "verb_read": "d'après son nom, il ne fait que regarder",
       "verb_write": "d'après son nom, il crée ou modifie",
       "verb_sensitive": "d'après son nom, il supprime, envoie ou dépense",
-      "preset_read": "le service lui permet seulement de regarder"
+      "preset_read": "le service lui permet seulement de regarder",
+      "every_call": "ce service dépense de l'argent ou touche des personnes : chaque action demande"
     },
     "asks_one": "{{count}} action demande d'abord votre approbation",
     "asks_many": "{{count}} actions demandent d'abord votre approbation",

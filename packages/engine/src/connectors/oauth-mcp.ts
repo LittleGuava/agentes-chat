@@ -80,13 +80,14 @@ export const serverKey = (serverUrl: string) => serverUrl.replace(/\/+$/, "").to
  * Asks the server who it is without credentials and reads where its OAuth lives. `headers`: what a person typed for
  * this server (ADR 0186), sent with this one request to it and never with the metadata reads that follow. `ownApp`:
  * the admin brought an app registered with its authorization server, so one at the server's origin needs no
- * registration of ours.
+ * registration of ours. `signInRequired`: the server answers anyone and asks for credentials only when a tool runs
+ * (`McpPreset.signInRequired`), so no answer of its is "open": the sign-in its metadata names, else a key.
  */
 export async function probeMcpServer(
   deps: McpOAuthDeps,
   serverUrl: string,
   headers: Record<string, string> = {},
-  options: { ownApp?: boolean } = {},
+  options: { ownApp?: boolean; signInRequired?: boolean } = {},
 ): Promise<ServerProbe> {
   await assertPublicHttpsUrl(serverUrl, deps.resolveHost);
   let res: Response;
@@ -111,14 +112,19 @@ export async function probeMcpServer(
     const stream = await openStream(deps, serverUrl, headers);
     if (stream?.ok && (stream.headers.get("content-type") ?? "").includes("text/event-stream")) {
       await stream.body?.cancel().catch(() => {});
-      return { kind: "open" };
-    }
-    if (stream?.status === 401 || stream?.status === 403) res = stream;
+      if (!options.signInRequired) return { kind: "open" };
+      res = stream;
+    } else if (stream?.status === 401 || stream?.status === 403) res = stream;
     else await stream?.body?.cancel().catch(() => {});
   }
   if (res.status !== 401 && res.status !== 403) {
-    if (res.ok) return { kind: "open" };
-    throw new ValidationError(`The MCP server answered ${res.status}`, "connector.mcp_status", { status: res.status });
+    if (!res.ok) {
+      throw new ValidationError(`The MCP server answered ${res.status}`, "connector.mcp_status", {
+        status: res.status,
+      });
+    }
+    if (!options.signInRequired) return { kind: "open" };
+    await res.body?.cancel().catch(() => {});
   }
   const header = res.headers.get("www-authenticate") ?? "";
   const fromHeader = /resource_metadata="([^"]+)"/.exec(header)?.[1];
@@ -143,8 +149,8 @@ export async function probeMcpServer(
     }
   }
   // No protected-resource metadata (older servers, e.g. Atlassian or Zapier): the MCP spec's fallback
-  // is an authorization server at the server's own origin.
-  if (/^bearer\b/i.test(header)) {
+  // is an authorization server at the server's own origin. One that answered without a challenge has none to read.
+  if (/^bearer\b/i.test(header) || options.signInRequired) {
     const meta = await authServerMetadata(deps, base.origin).catch(() => null);
     if (meta && (meta.registration_endpoint || options.ownApp)) {
       return { kind: "oauth", resource: canonicalResource(serverUrl), issuer: base.origin, scopes: [] };

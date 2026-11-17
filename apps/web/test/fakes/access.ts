@@ -115,6 +115,9 @@ function customScopes(s: CustomServer): { scope: string; label: string; tools: F
   ].filter((x) => x.tools.length > 0);
 }
 
+/** The servers whose preset asks a person on every call (engine `presets.ts`, `everyCall`), by their address. */
+const EVERY_CALL_SERVERS = new Set(["https://api.telnyx.com/v2/mcp", "https://mcp.agentcard.sh/mcp"]);
+
 export function fakeAccessTree(
   input: AccessInput,
   connections: Connection[],
@@ -148,12 +151,20 @@ export function fakeAccessTree(
   const connectors = [
     ...connections
       .filter((c) => !c.revokedAt && c.connector === "github")
-      .map((c) => ({ id: c.id, connector: c.connector, label: "GitHub", custom: false, scopes: GITHUB })),
+      .map((c) => ({
+        id: c.id,
+        connector: c.connector,
+        label: "GitHub",
+        custom: false,
+        everyCall: false,
+        scopes: GITHUB,
+      })),
     ...servers.map((s) => ({
       id: s.id,
       connector: `custom:${s.id}`,
       label: s.label,
       custom: true,
+      everyCall: EVERY_CALL_SERVERS.has(s.serverUrl),
       scopes: customScopes(s),
     })),
   ].map((c) => ({
@@ -161,6 +172,7 @@ export function fakeAccessTree(
     connector: c.connector,
     label: c.label,
     custom: c.custom,
+    everyCall: c.everyCall,
     state: (input.connectors[c.id] ? "granted" : input.all ? "inherited" : "off") as AccessState,
     scopes: c.scopes.map((s) => ({
       scope: s.scope,

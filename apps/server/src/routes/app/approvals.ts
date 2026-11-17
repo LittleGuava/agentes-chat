@@ -102,6 +102,14 @@ export const Approval = z
     email: ApprovalEmail.nullable().openapi({
       description: "The email itself, for mail drafts and sends (From, To, Subject, text); null otherwise.",
     }),
+    callArgs: z
+      .object({ does: z.string().nullable(), usdCents: z.string().nullable() })
+      .nullable()
+      .openapi({
+        description:
+          "Which of `params` its service says is what the call does and the amount it moves in US cents: the card leads with them. Null: none named.",
+        example: { does: "request", usdCents: "amount_cents" },
+      }),
     why: z
       .string()
       .nullable()

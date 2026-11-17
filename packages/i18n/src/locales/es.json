@@ -12511,6 +12511,9 @@
     "asksMore_many": "y {{count}} más",
     "asksMore_other": "y {{count}} más",
     "asksLegend": "pide aprobación",
+    "everyCallNever": "No disponible con No preguntar nunca: cada acción necesita la aprobación de una persona",
+    "cellNever": "{{agent}} en {{resource}}: {{level}}, no disponible con No preguntar nunca",
+    "neverLegend": "no disponible con No preguntar nunca",
     "customText": "Concedido herramienta por herramienta. Elige un nivel para simplificarlo.",
     "noTools": "Todavía no hay herramientas.",
     "toolsMore_one": "{{tools}} y {{count}} más",
@@ -13655,6 +13658,16 @@
         "1": "Buscar en la web",
         "2": "Leer páginas completas e investigar con fuentes"
       },
+      "telnyx": {
+        "1": "Ver sus números, llamadas, mensajes y uso",
+        "2": "Llamar a cualquier endpoint de la API de Telnyx",
+        "ask": "Cada acción siempre pide tu aprobación"
+      },
+      "agentcard": {
+        "1": "Ver tarjetas, saldo y transacciones",
+        "2": "Crear tarjetas, añadir saldo y comprar",
+        "ask": "Cada acción siempre pide tu aprobación, con el importe cuando lo hay"
+      },
       "database": {
         "1": "Ver las tablas",
         "2": "Consultar los datos para responder",
@@ -13816,7 +13829,9 @@
       "agentphone": "Números de teléfono, SMS y llamadas para agentes.",
       "vapi": "Asistentes de voz, llamadas y números de teléfono.",
       "whop": "Pagos, membresías y productos.",
-      "youcom": "Búsqueda web, contenido de páginas e investigación."
+      "youcom": "Búsqueda web, contenido de páginas e investigación.",
+      "telnyx": "Números de teléfono, llamadas, mensajes y el resto de la API de Telnyx.",
+      "agentcard": "Tarjetas virtuales, saldo y compras para agentes."
     }
   },
   "toolNames": {
@@ -14748,7 +14763,8 @@
       "verb_read": "por su nombre, solo mira",
       "verb_write": "por su nombre, crea o edita",
       "verb_sensitive": "por su nombre, borra, envía o gasta",
-      "preset_read": "el servicio solo le permite mirar"
+      "preset_read": "el servicio solo le permite mirar",
+      "every_call": "este servicio gasta dinero o llega a personas: cada acción pide aprobación"
     },
     "asks_one": "{{count}} acción pide tu aprobación antes",
     "asks_many": "{{count}} acciones piden tu aprobación antes",

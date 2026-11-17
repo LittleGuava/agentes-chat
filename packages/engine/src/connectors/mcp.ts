@@ -42,7 +42,7 @@ import {
 import { openHttpSession } from "./mcp-sse";
 import { markPersonalToReconnect, personalAccountFor, personalServiceLabel } from "./personal";
 import { applyToolPins } from "./pins";
-import { presetForServer } from "./presets";
+import { presetForServer, presetLocks, presetWithholds } from "./presets";
 import type { McpServerInfo } from "./server-icon";
 
 /** A tool as an MCP server lists it. */
@@ -464,7 +464,12 @@ export function createConnectorToolSource(
     // The listing found changed tools: their levels are the ones worked out from the new version.
     if (reclassified !== before) classified = await classifiedTools(deps.db, connection.id);
     const byName = new Map(listed.map((t) => [t.name, t]));
+    // Read from the preset at each call, not from the stored levels: a tool its server lists later, or a level someone
+    // stored before the preset said so, still asks every time.
+    // Its locks go by the host, however the address was typed (`presetLocks`).
+    const locks = presetLocks(connection.serverUrl);
     const preset = presetForServer(connection.serverUrl)?.id;
+    const everyCall = locks?.everyCall === true;
     const composio = composioServiceOf(connection.serverUrl);
     const prefix = toolPrefixOfConnection(connection);
     const perPerson = connection.perPerson && composio !== null;
@@ -473,7 +478,8 @@ export function createConnectorToolSource(
     return classified.flatMap((row): ToolDefinition[] => {
       const tool = byName.get(row.name);
       const access = row.access as ToolAccess;
-      if (!tool) return [];
+      // Withheld by its preset, whatever a row stored before says (ADR 0016, addendum 2026-11-17).
+      if (!tool || presetWithholds(locks, row.name)) return [];
       const executor = tool.name === COMPOSIO_EXECUTOR;
       const sqlArg = composio ? null : sqlArgOf(tool, preset);
       // Our rules for a Composio action as they are now (its entry's `ask`, its tags at the pinned version), not only
@@ -498,7 +504,8 @@ export function createConnectorToolSource(
           serviceIcon: connection.icon ?? undefined,
           toolPrefix: prefix,
           // A sensitive tool never runs without approval, whatever is stored.
-          sensitive: access === "approval" || row.sensitive || asks || COMPOSIO_ANY_ACTION.has(tool.name),
+          sensitive: everyCall || access === "approval" || row.sensitive || asks || COMPOSIO_ANY_ACTION.has(tool.name),
+          ...(everyCall ? { everyCall: true as const } : {}),
           // Its exact call may be approved ahead, except a tool that runs whatever its input says.
           ahead: !COMPOSIO_ANY_ACTION.has(tool.name),
           external: true, // whatever the server returns is third-party text

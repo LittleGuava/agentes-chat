@@ -13051,6 +13051,9 @@
     "asksMore_many": "i jeszcze {{count}}",
     "asksMore_other": "i jeszcze {{count}}",
     "asksLegend": "prosi o zatwierdzenie",
+    "everyCallNever": "Niedostępne przy Nigdy nie pytaj: każda akcja wymaga zatwierdzenia przez osobę",
+    "cellNever": "{{agent}} w {{resource}}: {{level}}, niedostępne przy Nigdy nie pytaj",
+    "neverLegend": "niedostępne przy Nigdy nie pytaj",
     "customText": "Nadany narzędzie po narzędziu. Wybierz poziom, żeby to uprościć.",
     "noTools": "Brak narzędzi.",
     "toolsMore_one": "{{tools}} i jeszcze {{count}}",
@@ -14211,6 +14214,16 @@
         "1": "Wyszukiwanie w sieci",
         "2": "Czytanie całych stron i research ze źródłami"
       },
+      "telnyx": {
+        "1": "Podgląd numerów, połączeń, wiadomości i zużycia",
+        "2": "Wywołanie dowolnego endpointu API Telnyx",
+        "ask": "Każda akcja zawsze prosi o twoje zatwierdzenie"
+      },
+      "agentcard": {
+        "1": "Podgląd kart, salda i transakcji",
+        "2": "Tworzenie kart, doładowanie salda i zakupy",
+        "ask": "Każda akcja zawsze prosi o twoje zatwierdzenie, z kwotą, jeśli jest"
+      },
       "database": {
         "1": "Podgląd tabel",
         "2": "Zapytania do danych, żeby odpowiedzieć",
@@ -14377,7 +14390,9 @@
       "agentphone": "Numery telefonów, SMS-y i połączenia dla agentów.",
       "vapi": "Asystenci głosowi, połączenia i numery telefonów.",
       "whop": "Płatności, członkostwa i produkty.",
-      "youcom": "Wyszukiwanie w sieci, treść stron i research."
+      "youcom": "Wyszukiwanie w sieci, treść stron i research.",
+      "telnyx": "Numery telefonów, połączenia, wiadomości i reszta API Telnyx.",
+      "agentcard": "Karty wirtualne, saldo i zakupy dla agentów."
     }
   },
   "toolNames": {
@@ -15323,7 +15338,8 @@
       "verb_read": "sądząc po nazwie, tylko patrzy",
       "verb_write": "sądząc po nazwie, tworzy lub edytuje",
       "verb_sensitive": "sądząc po nazwie, usuwa, wysyła lub wydaje pieniądze",
-      "preset_read": "usługa pozwala mu tylko patrzeć"
+      "preset_read": "usługa pozwala mu tylko patrzeć",
+      "every_call": "ta usługa wydaje pieniądze lub dociera do ludzi: każda akcja prosi o zatwierdzenie"
     },
     "asks_one": "{{count}} akcja najpierw prosi o twoje zatwierdzenie",
     "asks_few": "{{count}} akcje najpierw proszą o twoje zatwierdzenie",

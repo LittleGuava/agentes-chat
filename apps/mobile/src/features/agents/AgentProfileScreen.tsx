@@ -233,7 +233,7 @@ function Profile({ id }: { id: string }) {
   );
   const memories = knownAboutMe(knows.data);
   const learned = byPlaybook(memories);
-  const uses = usesOf(access.data);
+  const uses = usesOf(access.data, agent?.approvalsLevel);
   const connected = useConnectedById();
   // A computer brain: its maker's mark and the model by the plan that pays for it ("Sonnet pelo plano do Claude"; its
   // computer only where it tells two apart).
@@ -597,6 +597,7 @@ function Profile({ id }: { id: string }) {
                     />
                   }
                   label={u.label.text}
+                  {...(u.offAtNever ? { sub: t("access.neverLegend") } : {})}
                   value={t(`mobile.intentAgents.uses.level.${u.level}`)}
                 />
               ),

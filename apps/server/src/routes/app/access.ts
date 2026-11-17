@@ -38,6 +38,10 @@ const AccessTree = z
         connector: z.string(),
         label: z.string(),
         custom: z.boolean(),
+        everyCall: z.boolean().openapi({
+          description:
+            "Every call of its service asks a person (ADR 0016, addendum 2026-11-17): an agent that never asks is offered none of its tools.",
+        }),
         state: State,
         scopes: z.array(Scope),
       }),

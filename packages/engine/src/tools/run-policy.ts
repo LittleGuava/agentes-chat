@@ -119,7 +119,10 @@ export async function approvalsLevelOf(db: Executor, orgId: string, agentId: str
 export const asksOf = (level: ApprovalsLevel): { asks?: "always" | "never" } =>
   level === "risky" ? {} : { asks: level };
 
-export type PolicyTool = Pick<ToolDefinition, "name" | "scope" | "connectionId" | "sensitive" | "opensPullRequest">;
+export type PolicyTool = Pick<
+  ToolDefinition,
+  "name" | "scope" | "connectionId" | "sensitive" | "opensPullRequest" | "everyCall"
+>;
 
 const ALLOW: PolicyDecision = { action: "allow" };
 const APPROVE: PolicyDecision = { action: "approve" };
@@ -390,6 +393,8 @@ export const REFUSALS = {
   widgetOnly:
     "This run keeps a widget up to date: it only reads (your tools' reads, the web, your browser) and answers with update_widget. Nothing else here: no posting, handing off, changing or asking anyone. If you can't get the data, call update_widget with `failed` and why.",
   widgetToolOnly: "update_widget belongs to a widget's update run; in a conversation, use create_widget instead.",
+  everyCallNever:
+    "Not available to this agent: it never asks for approval, and every call of this service (it spends money or reaches people) needs a person's yes first. Only an admin can change that, by setting the agent's approvals (in Portuguese, Aprovações) to a level that asks, on its page. Say so in plain words, and don't try to do it another way.",
 } as const;
 
 /** Tools that speak here whose refusal in a routine says what it does instead, by name; any other: `routineHere`. */
@@ -425,6 +430,9 @@ export function toolPolicy(
   /** A routine's own run whose creator still decides its agent's approvals (the gateway reads it fresh). */
   creatorDecides = false,
 ): PolicyDecision {
+  // A service whose every call a person decides (ADR 0016, addendum 2026-11-17): an agent that never asks (ADR 0173)
+  // keeps asking for nothing, so these are not its to use, on any run.
+  if (tool.everyCall && level === "never") return refuse(REFUSALS.everyCallNever);
   const what = toolKind(tool);
   const asks = level === "always" && asksAtAlways(what, tool);
   // A widget's refresh (ADR 0135 §5): reads and `update_widget`, nothing else.
