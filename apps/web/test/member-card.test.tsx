@@ -252,6 +252,7 @@ describe("an agent's card", () => {
       "Mencionar",
       "Copiar @ada",
       "Editar agente",
+      "Duplicar",
       "Copiar link",
       "Copiar ID",
     ]);

@@ -214,6 +214,11 @@ Beyond this, you can't. Never say you did or can do, offer or promise something 
             "minLength": 3,
             "type": "string",
           },
+          "until": {
+            "description": "Only when it stops holding at a known time ("until Friday", "this quarter"): the last day it holds (YYYY-MM-DD, the workspace's time zone), or a span from now (7d, 2w, 3m, 1y). After it, the memory stops reading in your work; people still see it.",
+            "maxLength": 40,
+            "type": "string",
+          },
         },
         "required": [
           "content",
@@ -299,7 +304,7 @@ Beyond this, you can't. Never say you did or can do, offer or promise something 
       "name": "search_context",
     },
     {
-      "description": "Change one of your memories (by id): when a person in this conversation asks, or on your own when it is something you or your learning saved and it turned out wrong or outdated. Keeps the old version (it can be undone).",
+      "description": "Change one of your memories (by id): when a person in this conversation asks, or on your own when it is something you or your learning saved and it turned out wrong or outdated. Keeps the old version (it can be undone). With until, also how long it holds: a memory past its end comes back with a new one.",
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
@@ -315,6 +320,11 @@ Beyond this, you can't. Never say you did or can do, offer or promise something 
             "description": "One plain line a person who doesn't code understands, in the language of the conversation, no paths, code or ids (shown first; content holds the detail).",
             "maxLength": 200,
             "minLength": 3,
+            "type": "string",
+          },
+          "until": {
+            "description": "Only when it stops holding at a known time ("until Friday", "this quarter"): the last day it holds (YYYY-MM-DD, the workspace's time zone), or a span from now (7d, 2w, 3m, 1y). After it, the memory stops reading in your work; people still see it. Left out, the memory keeps the end it had; never takes it away.",
+            "maxLength": 40,
             "type": "string",
           },
         },
