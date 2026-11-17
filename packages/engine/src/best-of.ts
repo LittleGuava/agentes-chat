@@ -175,7 +175,7 @@ async function requireBurstBudget(db: Database, agent: typeof agents.$inferSelec
   if (needed > left) {
     const usd = (n: number) => Math.round(n / 1e7) / 100;
     throw new ValidationError(
-      `${agent.name}'s budget has $${usd(left)} left this month; ${attempts} attempts and the comparison need about $${usd(needed)}`,
+      `${agent.name}'s budget has $${usd(left)} left this month. ${attempts} attempts and the comparison need about $${usd(needed)}`,
       BURST_ERRORS.overBudget,
       { agentName: agent.name, attempts, neededUsd: usd(needed), leftUsd: usd(left) },
     );

@@ -170,7 +170,7 @@ interface Ask {
 const notNow = () =>
   new RunnerError(
     "not_allowed",
-    "The person didn't let you use their screen now. Don't ask again in this task unless they tell you to; say what you needed it for.",
+    "The person didn't let you use their screen now. Don't ask again in this task unless they tell you to. Say what you needed it for.",
   );
 const held = (other: string) =>
   new RunnerError(
