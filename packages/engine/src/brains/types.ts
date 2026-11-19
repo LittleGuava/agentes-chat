@@ -26,14 +26,13 @@ export const BRAIN_NAMES: Readonly<Record<ComputerBrainKind, string>> = {
 };
 
 /**
- * Whether a computer brain runs on a computer's system (`hello.os`), as its runner allows: Cursor and Grok Build not on
- * Windows yet, the Antigravity CLI on Linux only (ADR 0143: elsewhere it keeps its sign-in in the computer user's one
- * keychain). A system nobody reported passes: the runner says.
+ * Whether a computer brain runs on a computer's system (`hello.os`), as its runner allows: Cursor, Grok Build and the
+ * Antigravity CLI not on Windows yet (ADR 0143: there it keeps its sign-in in the computer user's one Credential
+ * Manager). A system nobody reported passes: the runner says.
  */
 export function brainRunsOn(kind: ComputerBrainKind, os: string | null | undefined): boolean {
   if (!os) return true;
-  if (kind === "antigravity") return os === "linux";
-  if (kind === "cursor" || kind === "grok") return os !== "windows";
+  if (kind === "cursor" || kind === "grok" || kind === "antigravity") return os !== "windows";
   return true;
 }
 
@@ -73,7 +72,7 @@ export const isComputerBrain = (v: unknown): v is ComputerBrainKind =>
 
 /**
  * Brains whose shell runs in a sandbox of the CLI's own (ADR 0053 §3, 0114, 0142, 0143), the limit of what their turns
- * do. Claude Code's own sandbox is never switched on here, OpenCode has none, and the Copilot CLI's is off (ADR 0189).
+ * do. Claude Code's own sandbox is never switched on here, OpenCode has none, and the Copilot CLI's is off (ADR 0202).
  */
 export const isSandboxedBrain = (v: unknown) => v === "codex" || v === "cursor" || v === "grok" || v === "antigravity";
 
@@ -239,6 +238,11 @@ export type BrainEvent =
     }
   /** Messages handed mid-turn (`BrainIO.steerable`) that the turn read, by their `uuid`. */
   | { type: "steer_read"; uuids: string[] }
+  /**
+   * A computer brain finished an answer and went on (a message handed mid-turn read after it, work moved to the
+   * background): its own message now (ADR 0112). `done` holds only what came after it.
+   */
+  | { type: "answer"; text: string }
   /** Fast failed (`message`: the provider's words) and this turn answered at standard speed. */
   | { type: "speed_fallback"; message: string }
   /** A computer brain started a call of its own: shown only, its `tool_call` with `executed` follows. */

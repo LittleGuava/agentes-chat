@@ -1,39 +1,14 @@
-import { and, type Database, eq, schema } from "@agenteschat/db";
-import { planState, planWindows } from "@agenteschat/ui/plan-state";
-import { brainFor, brainModelFor } from "./brains/select";
+import type { PubSub } from "@agenteschat/adapters";
+import { planState, planWindows, windowReadAt } from "@agenteschat/ui/plan-state";
 import { ago, zoneOf } from "./context";
 import { defaultAccountLabel } from "./machine-accounts";
-import { missionTurnFor } from "./missions-engine";
 import { type AgentPlanUsageView, type ApiAgentUsage, agentUsageFor, type PlanAccountUsage } from "./plan-usage";
 import { personBehindCall } from "./requester";
 import { describeWhen } from "./schedule";
 import type { ToolDefinition, ToolSource } from "./tools/types";
+import { grantUsageOverride, IGNORE_LIMIT_TOOL } from "./usage-pause";
 
 export const USAGE_TOOL = "get_my_usage";
-
-/** The model this run thinks with (a mission's own, else the agent's): another model's own window doesn't hold it. */
-async function runModel(db: Database, orgId: string, agentId: string, runId: string) {
-  const { agents, agentRuns } = schema;
-  const [[agent], [run]] = await Promise.all([
-    db
-      .select({ brain: agents.brain, brainModel: agents.brainModel })
-      .from(agents)
-      .where(and(eq(agents.orgId, orgId), eq(agents.id, agentId))),
-    db
-      .select({
-        id: agentRuns.id,
-        orgId: agentRuns.orgId,
-        agentId: agentRuns.agentId,
-        threadRootId: agentRuns.threadRootId,
-        triggerMessageId: agentRuns.triggerMessageId,
-      })
-      .from(agentRuns)
-      .where(and(eq(agentRuns.orgId, orgId), eq(agentRuns.id, runId))),
-  ]);
-  if (!agent) return undefined;
-  const mission = run ? await missionTurnFor(db, run) : null;
-  return brainModelFor(brainFor(agent, { id: runId }, mission), agent, mission);
-}
 
 /** The apps' English names of a plan's windows (`aiAccounts.usage.window`). */
 const WINDOW_NAMES: Record<string, string> = {
@@ -53,7 +28,7 @@ function planName(a: PlanAccountUsage) {
 }
 
 /** The plan it thinks with: its windows as the apps draw them (tightest first, a reset one empty), with its part. */
-function planText(a: PlanAccountUsage, agentId: string, model: string | undefined, zone: string, now: Date) {
+function planText(a: PlanAccountUsage, agentId: string, zone: string, now: Date) {
   const head = `You think with ${planName(a)}${a.signedOut ? ", signed out on its computer" : ""}.`;
   const usage = a.usage;
   if (!usage || (usage.windows.length === 0 && !usage.limited)) {
@@ -66,9 +41,12 @@ function planText(a: PlanAccountUsage, agentId: string, model: string | undefine
     const resets = w.resetsAt && Date.parse(w.resetsAt) > at ? `, resets ${when(w.resetsAt)}` : "";
     // Null: a window of unknown length has no estimate.
     const part = w.used > 0 && w.agents ? (w.agents.find((p) => p.agentId === agentId)?.percent ?? 0) : null;
+    // Read too long ago it may have reset early (the apps show only its age): never a number to plan on.
+    if (w.stale)
+      return `- ${name}: ${w.used}% used when last read ${ago(new Date(windowReadAt(usage, w) ?? usage.at), at)}; it may have reset since.`;
     return `- ${name}: ${w.used}% used${resets}.${part === null ? "" : ` Your part: about ${part}%.`}`;
   });
-  const { state, until } = planState(usage, at, model);
+  const { state, until } = planState(usage, at);
   return [
     head,
     lines.length > 0
@@ -111,7 +89,7 @@ function budgetText(api: ApiAgentUsage, zone: string, now: Date) {
  * agent's numbers, an account's email or money, whoever asks: the result stays in the run, whose steps the agent's
  * owner reads without `view_usage`, and the answer may go to a channel where not everyone may see costs.
  */
-export function createUsageToolSource(): ToolSource {
+export function createUsageToolSource(deps: { pubsub?: PubSub } = {}): ToolSource {
   const tool: ToolDefinition = {
     name: USAGE_TOOL,
     description:
@@ -121,15 +99,14 @@ export function createUsageToolSource(): ToolSource {
     async execute(_input, ctx) {
       const now = new Date();
       const person = await personBehindCall(ctx);
-      const [{ view, brain, api }, zone, model] = await Promise.all([
+      const [{ view, brain, api }, zone] = await Promise.all([
         agentUsageFor(ctx.db, null, ctx.orgId, ctx.agentId, now),
         zoneOf(ctx.db, ctx.orgId, person),
-        runModel(ctx.db, ctx.orgId, ctx.agentId, ctx.runId).catch(() => undefined),
       ]);
       const onApi = brain === "model";
       const parts = [
         view.current
-          ? planText(view.current, ctx.agentId, model, zone, now)
+          ? planText(view.current, ctx.agentId, zone, now)
           : onApi
             ? "You think through the API (a key, not a plan): no plan limits, only your monthly budget."
             : "No plan thinks for you right now.",
@@ -140,5 +117,34 @@ export function createUsageToolSource(): ToolSource {
       return { content: parts.filter(Boolean).join("\n\n") };
     },
   };
-  return { name: "usage", tools: async () => [tool] };
+  /**
+   * `ignore_usage_limit`: a person in the chat told the agent to ignore its usage limit, so its long work goes on past
+   * the pause line up to the plan's own allowance, for this run and its paused ones (`grantUsageOverride`). Who may
+   * is who may press Continuar agora.
+   */
+  const ignore: ToolDefinition = {
+    name: IGNORE_LIMIT_TOOL,
+    description:
+      "Call it only when a person in this conversation tells you to ignore your usage limit or to keep going past it. Your long work then goes on past the usage pause up to the plan's own limit, and your work paused on usage picks up now.",
+    scope: "",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+    async execute(_input, ctx) {
+      const person = await personBehindCall(ctx);
+      const done = person
+        ? await grantUsageOverride({ db: ctx.db, pubsub: deps.pubsub }, person, ctx.orgId, ctx.agentId, ctx.runId)
+        : null;
+      if (!done?.granted) {
+        return {
+          content:
+            "Not allowed: only who asked for this work, your owner or an admin can tell you to go past the usage limit. Tell the person so.",
+          isError: true,
+        };
+      }
+      const paused = done.continued > 0 ? ` ${done.continued} of your paused tasks picked up now.` : "";
+      return {
+        content: `Done: you go on past the usage pause until the plan's own limit (100%).${paused} Tell the person, then keep working.`,
+      };
+    },
+  };
+  return { name: "usage", tools: async () => [tool, ignore] };
 }

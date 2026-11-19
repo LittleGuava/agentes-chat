@@ -9,7 +9,7 @@ import { killTree } from "./exec";
 import { cliSpawn } from "./executors";
 
 /**
- * Whether an account's Copilot CLI sign-in works and which models it offers, without a prompt (ADR 0189, protocol 68). The CLI
+ * Whether an account's Copilot CLI sign-in works and which models it offers, without a prompt (ADR 0202, protocol 74). The CLI
  * has no status or models command; its Agent Client Protocol server (`copilot --acp --stdio`, `copilot help acp`)
  * answers both when a session opens: `session/new` lists the models, or fails with "Authentication required" (-32000)
  * signed out. Both requests go on its standard input at once and it exits when that closes, so one run is the whole
@@ -109,8 +109,8 @@ export interface CopilotLookOptions {
 }
 
 /**
- * One look: starts the CLI in an empty folder of its own, sends both requests, reads its answer. The GitHub CLI's
- * config is pointed at that empty folder, so a `gh` sign-in kept in a file never answers for the account. Never throws.
+ * One look, with the account's env (`accountEnv`, where a `gh` sign-in kept in a file never answers for the account):
+ * starts the CLI in an empty folder of its own, sends both requests, reads its answer. Never throws.
  */
 export async function copilotLook(opts: CopilotLookOptions): Promise<CopilotLook & { started: boolean }> {
   let cwd: string;
@@ -125,8 +125,9 @@ export async function copilotLook(opts: CopilotLookOptions): Promise<CopilotLook
     try {
       child = (opts.spawn ?? spawn)(run.file, run.args, {
         cwd,
-        env: { ...opts.env, GH_CONFIG_DIR: cwd },
+        env: opts.env,
         stdio: ["pipe", "pipe", "ignore"],
+        detached: process.platform !== "win32",
         windowsHide: true,
         windowsVerbatimArguments: run.windowsVerbatimArguments,
       });

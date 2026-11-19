@@ -19,6 +19,7 @@ import {
   CardHeader,
   Chip,
   type ChipTone,
+  codeAndBold,
   Dialog,
   DialogFooter,
   Icon,
@@ -37,7 +38,6 @@ import { useTranslation } from "react-i18next";
 import { HelpLink } from "@/components/HelpLink";
 import { useOrg } from "@/components/org-context";
 import { OpenPage, Step, StepTitle } from "./AddAccountFlow";
-import { RouterModelRow } from "./RouterModel";
 
 /*
  * Who picks the agents for a message nobody mentioned (ADR 0074), and Jev on a self-hosted server (ADR 0073):
@@ -240,7 +240,6 @@ export function WhoPicksSection() {
       />
       {line && <p className="who-line">{t(line.key, line.params)}</p>}
       {line && status.data?.reflection === false && <p className="who-line">{t("routing.reflectionOff")}</p>}
-      {line && status.data?.routing && <RouterModelRow routing={status.data.routing} />}
       {jev.data && <JevCard routing={status.data?.routing?.by} />}
     </Card>
   );
@@ -532,7 +531,7 @@ function JevCard({ routing }: { routing?: AiRouting["by"] }) {
                     </Fragment>
                   ))}
                 </span>
-                {note && <SettingNote icon={view.state === "ok" ? "info" : "alert"}>{note}</SettingNote>}
+                {note && <SettingNote icon={view.state === "ok" ? "info" : "alert"}>{codeAndBold(note)}</SettingNote>}
               </span>
               {actions && <span className="ac-acts ac-captail">{actions}</span>}
             </div>

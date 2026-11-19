@@ -4,7 +4,7 @@ import path from "node:path";
 import type { MachineRequest } from "@agenteschat/adapters";
 import { isReservedSecretName } from "@agenteschat/adapters/secret-box";
 import { AccountManager, accountEnv, parseCopilotLogin } from "../../runner/accounts";
-import type { CodexBrainEvent } from "../../runner/brain-codex";
+import { type CodexBrainEvent, CodexThreads } from "../../runner/brain-codex";
 import {
   type CopilotBrainTurnRequest,
   CopilotEventMapper,
@@ -14,6 +14,7 @@ import {
   copilotPrompt,
   copilotTurnArgs,
   handleCopilotBrainTurn,
+  runCopilotTurn,
   totalsOf,
   totalsText,
 } from "../../runner/brain-copilot";
@@ -363,6 +364,8 @@ interface Logged {
   ghToken: string | null;
   allowAll: string | null;
   autoUpdate: string | null;
+  ghConfig: string | null;
+  pid: number;
   settings: string | null;
   mcp: string | null;
   stdin: string;
@@ -425,6 +428,8 @@ test("a fake Copilot: the first turn starts a session with the context on standa
     // The computer's own GitHub token and allow-all never reach the CLI.
     expect(first?.ghToken).toBeNull();
     expect(first?.allowAll).toBeNull();
+    // Nor does the GitHub CLI's own sign-in: its config is a folder of the account's that every turn empties.
+    expect(first?.ghConfig).toBe(path.join(accountDir, "no-gh"));
     expect(path.resolve(first?.cwd ?? "")).toBe(path.resolve(root, "ws"));
     expect(JSON.parse(first?.settings ?? "{}")).toMatchObject({ storeTokenPlaintext: true, disableAllHooks: true });
     expect(JSON.parse(first?.mcp ?? "{}").mcpServers[CODEX_MCP_SERVER]).toMatchObject({
@@ -501,6 +506,9 @@ test("an account's turn: none or gone refused, signed out is not_logged_in, a li
   });
   // The turn's own file went with it.
   expect(existsSync(path.join(accountDir, `agentes-mcp-${run7}.json`))).toBe(false);
+  // The turn at its limit never spoke, so it left no chat: this one began it, with the context.
+  expect(seen?.args.some((a) => a.startsWith("--resume"))).toBe(false);
+  expect(seen?.stdin).toStartWith("You are Dev, the team's developer.");
 }, 30_000);
 
 test("our bridge failing to start stops the turn: an agent never answers without its tools", async () => {
@@ -521,10 +529,19 @@ test("our bridge failing to start stops the turn: an agent never answers without
   dirs.push(root);
   const { ctx, accountDir } = turnContext(root);
   writeFileSync(path.join(accountDir, "fake-auth.json"), "{}");
+  const log = path.join(root, "copilot.log");
+  process.env.FAKE_COPILOT_LOG = log;
   const { events, final } = await runTurn(ctx, turn({ prompt: "NO_BRIDGE hi" }));
   expect(final).toMatchObject({ type: "error", code: "copilot_failed", retryable: true });
   expect((final as { message: string }).message).toContain("tools didn't start");
   expect(events.some((e) => e.type === "done")).toBe(false);
+  // The chat never began: the next turn starts it, with the context, and reports its usage.
+  const next = await runTurn(ctx, turn({ runId: RUN.replace(/1$/, "9"), prompt: "second" }));
+  expect(next.final).toMatchObject({ type: "done" });
+  const second = logOf(log).at(-1);
+  expect(second?.stdin).toBe("You are Dev, the team's developer.\n\nsecond");
+  expect(second?.args.some((a) => a.startsWith("--resume"))).toBe(false);
+  expect(next.events.find((e) => e.type === "usage")).toMatchObject({ input: 1000, output: 40 });
 }, 30_000);
 
 test("the team's right hand is refused before the CLI starts, and so is a model that isn't an id", async () => {
@@ -541,7 +558,171 @@ test("the team's right hand is refused before the CLI starts, and so is a model 
   });
   await expect(runTurn(ctx, turn({ model: "gpt %PATH% & calc" }))).rejects.toMatchObject({ code: "bad_request" });
   expect(existsSync(log)).toBe(false);
+  // An effort that isn't one of the levels never reaches the command line.
+  const odd = await runTurn(ctx, turn({ effort: "%PATH%" as never }));
+  expect(odd.final).toMatchObject({ type: "done" });
+  expect(logOf(log).at(-1)?.args.join(" ")).not.toContain("--reasoning-effort");
 });
+
+test("the mapper: usage goes to the model that used most, a resumed session has started, and no words at all is no answer", () => {
+  const usage = (inputTokens: number) => ({ usage: { inputTokens, outputTokens: 1 } });
+  const m = new CopilotEventMapper();
+  m.push({ type: "session.resume", data: {} });
+  expect(m.started).toBe(true);
+  m.push({ type: "assistant.message", data: { messageId: "a", content: "ok", toolRequests: [] } });
+  m.push({
+    type: "session.usage_checkpoint",
+    data: { accountingSnapshot: { modelMetrics: { "gpt-small": usage(10), "claude-big": usage(9000) } } },
+  });
+  m.push({ type: "result", sessionId: FIRST, exitCode: 0 });
+  const before = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
+  expect(m.finish({ exitCode: 0, stderr: "", sessionId: SESSION, before })[0]).toMatchObject({
+    type: "usage",
+    model: "claude-big",
+  });
+  expect(new CopilotEventMapper().started).toBe(false);
+  // The CLI ended well and said nothing, used nothing: an update that renamed its events, not an answer.
+  const silent = new CopilotEventMapper();
+  silent.push({ type: "session.start", data: { sessionId: FIRST } });
+  silent.push({ type: "result", sessionId: FIRST, exitCode: 0 });
+  expect(silent.finish({ exitCode: 0, stderr: "", sessionId: SESSION, before })).toEqual([
+    { type: "error", code: "copilot_failed", message: "Copilot CLI ended without an answer", retryable: true },
+  ]);
+});
+
+test("usage is told once: a resumed turn that spent and then died moves on what the next turn starts from", async () => {
+  const root = tempDir("brain-copilot-");
+  dirs.push(root);
+  const { ctx, accountDir } = turnContext(root);
+  writeFileSync(path.join(accountDir, "fake-auth.json"), "{}");
+  const usageOf = async (n: string, prompt: string) => {
+    const { events, final } = await runTurn(ctx, turn({ runId: RUN.replace(/1$/, n), prompt }));
+    return { final, input: (events.find((e) => e.type === "usage") as { input?: number } | undefined)?.input };
+  };
+  expect(await usageOf("a", "first")).toMatchObject({ final: { type: "done" }, input: 1000 });
+  expect(await usageOf("b", "CRASH")).toMatchObject({ final: { type: "error", code: "copilot_failed" }, input: 1000 });
+  // The session has used 3000 by now; this turn's part is its own 1000, not the dead turn's again.
+  expect(await usageOf("c", "third")).toMatchObject({ final: { type: "done" }, input: 1000 });
+}, 30_000);
+
+test("the mapper: this turn's model takes its usage, and a message with no words and no call isn't an answer", () => {
+  const m = new CopilotEventMapper();
+  m.push({ type: "session.resume", data: {} });
+  m.push({ type: "session.model_change", data: { newModel: "gpt-small" } });
+  m.push({ type: "assistant.message", data: { messageId: "a", content: "ok", toolRequests: [] } });
+  m.push({
+    type: "session.usage_checkpoint",
+    data: {
+      accountingSnapshot: {
+        modelMetrics: {
+          "claude-big": { usage: { inputTokens: 9000, outputTokens: 1 } },
+          "gpt-small": { usage: { inputTokens: 300, outputTokens: 1 } },
+        },
+      },
+    },
+  });
+  m.push({ type: "result", sessionId: FIRST, exitCode: 0 });
+  const before = { input: 9000, output: 1, cacheRead: 0, cacheWrite: 0 };
+  expect(m.finish({ exitCode: 0, stderr: "", sessionId: SESSION, before })[0]).toMatchObject({
+    type: "usage",
+    input: 300,
+    model: "gpt-small",
+  });
+  const empty = new CopilotEventMapper();
+  empty.push({ type: "session.start", data: { sessionId: FIRST } });
+  empty.push({ type: "assistant.message_delta", data: { messageId: "a", deltaContent: "" } });
+  empty.push({ type: "assistant.message", data: { messageId: "a", content: "", toolRequests: [] } });
+  empty.push({ type: "result", sessionId: FIRST, exitCode: 0 });
+  expect(empty.acted).toBe(false);
+  expect(empty.finish({ exitCode: 0, stderr: "", sessionId: SESSION, before: null })[0]).toMatchObject({
+    type: "error",
+    code: "copilot_failed",
+  });
+  // A turn that only called our bridge did act: its answer may be empty.
+  const called = new CopilotEventMapper();
+  called.push({ type: "session.start", data: { sessionId: FIRST } });
+  called.push({
+    type: "tool.execution_start",
+    data: { toolCallId: "c", toolName: "x", mcpServerName: CODEX_MCP_SERVER },
+  });
+  called.push({ type: "result", sessionId: FIRST, exitCode: 0 });
+  expect(called.finish({ exitCode: 0, stderr: "", sessionId: SESSION, before: null })).toEqual([
+    { type: "done", text: "", session: { id: SESSION } },
+  ]);
+});
+
+test("the agent's secrets never leave: not in a tool's output, not in words split across two deltas, not in the answer", async () => {
+  const root = tempDir("brain-copilot-");
+  dirs.push(root);
+  const { accountDir, home } = turnContext(root);
+  writeFileSync(path.join(accountDir, "fake-auth.json"), "{}");
+  const secret = "s3cr3t-value-0123456789";
+  const events: CodexBrainEvent[] = [];
+  await runCopilotTurn(
+    {
+      runId: RUN,
+      sessionId: SESSION,
+      cwd: path.join(root, "ws"),
+      system: "",
+      prompt: "SAY_SECRET",
+      mcp: { token: "tok_run" },
+      account: { id: ACCOUNT, home: accountDir },
+    },
+    {
+      chats: new CodexThreads(copilotChatsFile(home)),
+      emit: (e) => events.push(e),
+      signal: new AbortController().signal,
+      env: { FAKE_SECRET: secret },
+      redact: (text) => text.split(secret).join("[redacted]"),
+      redactHold: secret.length - 1,
+      bin: BIN,
+    },
+  );
+  expect(events.at(-1)).toMatchObject({ type: "done" });
+  expect(JSON.stringify(events)).not.toContain(secret);
+  expect(textOf(events)).toStartWith("key [redacted]. Let me check.");
+  expect(events.find((e) => e.type === "tool_call")).toMatchObject({
+    input: { command: "bun test [redacted]" },
+    executed: { content: "ok [redacted]" },
+  });
+  expect(events.at(-1)).toMatchObject({ text: "All good. [redacted]" });
+}, 30_000);
+
+test("a canceled turn ends as canceled, its process is gone, and the chat it never finished isn't kept", async () => {
+  const root = tempDir("brain-copilot-");
+  dirs.push(root);
+  const { ctx, accountDir, home } = turnContext(root);
+  writeFileSync(path.join(accountDir, "fake-auth.json"), "{}");
+  const log = path.join(root, "copilot.log");
+  process.env.FAKE_COPILOT_LOG = log;
+  const abort = new AbortController();
+  const events: CodexBrainEvent[] = [];
+  const started = Date.now();
+  await handleCopilotBrainTurn(ctx as never, turn({ prompt: "SLOW" }), {
+    signal: abort.signal,
+    emit: (e) => {
+      events.push(e);
+      // Its first words are out: the person stops it there.
+      if (e.type === "text_delta") abort.abort();
+    },
+  });
+  expect(events.at(-1)).toEqual({ type: "error", code: "canceled", message: "The turn was canceled." });
+  expect(Date.now() - started).toBeLessThan(20_000);
+  const pid = logOf(log).at(-1)?.pid ?? 0;
+  expect(pid).toBeGreaterThan(0);
+  const alive = () => {
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  await waitFor(() => !alive(), 10_000);
+  expect(existsSync(copilotChatsFile(home)) ? readFileSync(copilotChatsFile(home), "utf8") : "{}").not.toContain(
+    SESSION,
+  );
+}, 40_000);
 
 test("Copilot turned off on the computer refuses the turn", async () => {
   const root = tempDir("brain-copilot-");
@@ -585,7 +766,7 @@ test("a look at an account's sign-in: models when signed in, a sign-in asked for
     "--no-custom-instructions",
   ]);
   // An account's look never reads the GitHub CLI's own sign-in file.
-  expect(asked.ghConfig).not.toBeNull();
+  expect(asked.ghConfig).toBe(path.join(home, "no-gh"));
 }, 30_000);
 
 test("sign-in on the computer: GitHub's device page and code, then signed in, with the sign-in kept in the folder", async () => {

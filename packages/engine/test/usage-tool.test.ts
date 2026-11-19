@@ -166,29 +166,24 @@ test("at the limit: the plan says until when; unknown windows say so instead of 
   expect(limited).toContain("- 5 hours: 100% used, resets ");
   expect(limited).toMatch(/\nAt the limit until [^\n]+\./);
 
-  await f.db.update(schema.machineAccounts).set({ usage: null }).where(eq(schema.machineAccounts.id, PESSOAL));
-  const unknown = await check(await runFor(f.agent.id, f.owner.id));
-  expect(unknown).toContain("Its limits aren't known yet");
-  expect(unknown).not.toContain("0% used");
-});
-
-test("one model's own window full: an agent on another model isn't at the limit, one on that model is", async () => {
-  await onPlan();
+  // A week a turn's event didn't name for 7 hours may have reset early: its age, no renewal to plan on.
   await f.db
     .update(schema.machineAccounts)
     .set({
       usage: usage([
-        { kind: "other", label: "Fable", usedPercent: 100, resetsAt: hours(72) },
-        { kind: "seven_day", usedPercent: 76, resetsAt: hours(72) },
+        { kind: "five_hour", usedPercent: 20, resetsAt: hours(2) },
+        { kind: "seven_day", usedPercent: 73, resetsAt: hours(72), at: hours(-7) },
       ]),
     })
     .where(eq(schema.machineAccounts.id, PESSOAL));
-  const on = async (brainModel: string) => {
-    await f.db.update(schema.agents).set({ brainModel }).where(eq(schema.agents.id, f.agent.id));
-    return check(await runFor(f.agent.id, f.owner.id));
-  };
-  expect(await on("haiku")).not.toContain("At the limit");
-  expect(await on("fable")).toMatch(/\nAt the limit until [^\n]+\./);
+  const stale = await check(await runFor(f.agent.id, f.owner.id));
+  expect(stale).toContain("- Week: 73% used when last read 7 h ago; it may have reset since.");
+  expect(stale).toContain("- 5 hours: 20% used, resets ");
+
+  await f.db.update(schema.machineAccounts).set({ usage: null }).where(eq(schema.machineAccounts.id, PESSOAL));
+  const unknown = await check(await runFor(f.agent.id, f.owner.id));
+  expect(unknown).toContain("Its limits aren't known yet");
+  expect(unknown).not.toContain("0% used");
 });
 
 test("on the API: how much of its budget it used, for an admin and a member alike; another agent's spend stays out", async () => {
