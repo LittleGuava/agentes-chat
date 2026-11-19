@@ -40,7 +40,7 @@ import { useToast } from "../../ui/Toast";
 
 /**
  * What changes between Claude Code and Codex (names stay in the strings; sites are not words). Cursor's accounts
- * (ADR 0114), OpenCode's keys (ADR 0132), Grok's accounts (ADR 0142), Gemini's (ADR 0143) and Copilot's (ADR 0189) are added from the web app, not here yet.
+ * (ADR 0114), OpenCode's keys (ADR 0132), Grok's accounts (ADR 0142), Gemini's (ADR 0143) and Copilot's (ADR 0202) are added from the web app, not here yet.
  */
 type DesktopKind = Exclude<AccountKind, "cursor" | "opencode" | "grok" | "antigravity" | "copilot">;
 const KINDS: Record<

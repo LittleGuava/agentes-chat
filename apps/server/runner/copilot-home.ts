@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node
 import path from "node:path";
 
 /**
- * A Copilot account's folder (`COPILOT_HOME`, ADR 0189) as every sign-in and every turn finds it. Names as
+ * A Copilot account's folder (`COPILOT_HOME`, ADR 0202) as every sign-in and every turn finds it. Names as
  * `copilot help config` ("Files and directories"), `copilot help mcp`, `permissions` and `environment` list them on
  * Copilot CLI 1.0.109 (2026-11-12).
  */
@@ -27,7 +27,15 @@ export const COPILOT_SETTINGS = {
  * servers, instructions, agents, skills, hooks, plugins, extensions, prompts, saved approvals and another model
  * provider. Removed before every turn. `config.json` stays: it holds the sign-in.
  */
+/**
+ * The GitHub CLI's config folder for every Copilot process of the account (`GH_CONFIG_DIR`): the CLI thinks with
+ * `gh`'s sign-in when its own folder holds none ("Run 'gh auth login'", its words signed out), and the computer's
+ * `gh` is whoever uses the computer's. Kept empty, as `COPILOT_PLANTED`.
+ */
+export const COPILOT_NO_GH = "no-gh";
+
 export const COPILOT_PLANTED = [
+  COPILOT_NO_GH,
   "mcp-config.json",
   "copilot-instructions.md",
   "instructions",

@@ -61,7 +61,7 @@ const usedIn = (u: PlanUsage | undefined, w: PlanWindow) =>
  * (80, 90) or 100.
  */
 export function usageCrossed(prev: PlanUsage | undefined, next: PlanUsage): boolean {
-  if (!prev || Boolean(prev.limited) !== Boolean(next.limited) || prev.limitedModel !== next.limitedModel) return true;
+  if (!prev || Boolean(prev.limited) !== Boolean(next.limited)) return true;
   return next.windows.some((w) => {
     const before = usedIn(prev, w) ?? 0;
     // `PLAN_ALMOST` and `PLAN_CRITICAL` in packages/ui/src/plan-state.ts, then the limit.
@@ -81,8 +81,12 @@ const RATE_LIMIT_WINDOWS = new Map<string, Pick<PlanWindow, "kind" | "label">>([
   ["overage", { kind: "other", label: "Extra usage" }],
 ]);
 
-/** A utilization up to 1 is a fraction. */
-const usedOf = (u: number) => (u <= 1 ? u * 100 : u);
+/**
+ * The event's utilization is always a fraction: Claude Code passes the API's `anthropic-ratelimit-unified-*-utilization`
+ * header through as a number (2.1.327, read 2026-11-18). So 1 is a full window, and one past it (1.2) is over it, never
+ * 1%. `get_usage`'s 0–100 never comes here (`claudeUsage`).
+ */
+const usedOf = (u: number) => u * 100;
 const windowKey = (w: Pick<PlanWindow, "kind" | "label">) => `${w.kind}:${w.label ?? ""}`;
 
 /**
@@ -93,13 +97,7 @@ const windowKey = (w: Pick<PlanWindow, "kind" | "label">) => `${w.kind}:${w.labe
  * `get_usage` has no limits to read (Claude Code 2.1.312 to 2.1.316, read
  * 2026-10-31).
  */
-export function withRateLimit(
-  prev: PlanUsage | undefined,
-  info: unknown,
-  now = Date.now(),
-  /** The turn's model: a refusal keeps it (`limitedModel`). */
-  model?: string,
-): PlanUsage | null {
+export function withRateLimit(prev: PlanUsage | undefined, info: unknown, now = Date.now()): PlanUsage | null {
   if (!isObj(info)) return null;
   const limited = info.status === "rejected";
   const read = new Map<string, PlanWindow>();
@@ -114,17 +112,23 @@ export function withRateLimit(
     if (isObj(w) && reading !== undefined && !read.has(windowKey(at)))
       read.set(windowKey(at), planWindow(at, usedOf(reading), w.resetsAt));
   }
-  const refusedModel = limited ? model : undefined;
-  if (read.size === 0 && limited === Boolean(prev?.limited) && refusedModel === prev?.limitedModel) return null;
-  const windows = (prev?.windows ?? []).filter((w) => !read.has(windowKey(w)));
+  if (read.size === 0 && limited === Boolean(prev?.limited)) return null;
+  // A window this event didn't name keeps the time it was read: a week Claude restarted early must look old, not fresh.
+  const windows = (prev?.windows ?? [])
+    .filter((w) => !read.has(windowKey(w)))
+    .map((w) => (prev && !w.at && prev.at < iso(now) ? { ...w, at: prev.at } : w));
   windows.push(...read.values());
   return {
     windows: windows.slice(-PLAN_USAGE_LIMITS.windows),
-    ...(limited ? { limited: true, ...(refusedModel ? { limitedModel: refusedModel } : {}) } : {}),
+    ...(limited ? { limited: true } : {}),
     source: "turn",
     at: iso(now),
   };
 }
+
+/** When a reading was read, as of its oldest window (a turn that named only some windows leaves the others older); 0: none. */
+export const oldestRead = (u: PlanUsage | undefined) =>
+  Math.min(Date.parse(u?.at ?? "") || 0, ...(u?.windows ?? []).flatMap((w) => (w.at ? [Date.parse(w.at) || 0] : [])));
 
 const CLAUDE_WINDOWS: [string, Pick<PlanWindow, "kind" | "label">][] = [
   ["five_hour", { kind: "five_hour" }],

@@ -270,6 +270,7 @@ const SWITCHES: readonly string[] = [
   "opencode",
   "grok",
   "antigravity",
+  "copilot",
   "commands",
   "browser",
   "desktop",

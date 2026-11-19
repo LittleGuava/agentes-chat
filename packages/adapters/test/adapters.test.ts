@@ -99,15 +99,21 @@ test("memory presence tracks connections per user", async () => {
   expect(await p.online("other")).toEqual([]);
 });
 
-test("memory rate limiter uses fixed windows", async () => {
+test("memory rate limiter uses fixed windows; a take given back counts no more, in its window only", async () => {
   let t = 0;
   const rl = createMemoryRateLimiter(() => t);
   const rule = { limit: 2, windowMs: 1000 };
   expect((await rl.consume("k", rule)).allowed).toBe(true);
   expect((await rl.consume("k", rule)).allowed).toBe(true);
+  await rl.release("k");
+  expect((await rl.consume("k", rule)).allowed).toBe(true);
   expect((await rl.consume("k", rule)).allowed).toBe(false);
   expect((await rl.consume("other", rule)).allowed).toBe(true);
   t = 1000;
+  await rl.release("k");
+  expect((await rl.consume("k", rule)).remaining).toBe(1);
+  await rl.release("k");
+  await rl.release("k");
   expect((await rl.consume("k", rule)).remaining).toBe(1);
 });
 
@@ -243,7 +249,7 @@ test("secret names that would steer an AI CLI's sign-in or requests are reserved
   for (const name of ["GEMINI_API_KEY", "AGY_ADC_AUTH", "GOOGLE_API_KEY", "GOOGLE_GEMINI_BASE_URL"])
     expect(isReservedSecretName(name)).toBe(true);
   expect(isReservedSecretName("GOOGLE_GENAI_USE_VERTEXAI")).toBe(true);
-  // The Copilot CLI's (ADR 0189): its token, another provider, allow-all. GitHub's own tokens stay usable by agents on
+  // The Copilot CLI's (ADR 0202): its token, another provider, allow-all. GitHub's own tokens stay usable by agents on
   // other CLIs (the Copilot CLI never gets them).
   for (const name of ["COPILOT_GITHUB_TOKEN", "COPILOT_PROVIDER_BASE_URL", "COPILOT_ALLOW_ALL"])
     expect(isReservedSecretName(name)).toBe(true);

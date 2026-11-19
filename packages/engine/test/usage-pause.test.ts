@@ -50,7 +50,6 @@ import {
   usageWaitKey,
   usageWaitPlace,
   wakeNextInLine,
-  wakeOnRoom,
   wakePlanWaits,
 } from "../src";
 import { addMember, type Fixture, setup } from "./fixtures";
@@ -308,7 +307,7 @@ test("a cut that may have worked never falls back on a resume while the plan is 
   expect((again?.transcript as { fallback?: unknown } | undefined)?.fallback).toBeUndefined();
 });
 
-test("a refusal before any work falls back to the API as before", async () => {
+test("a refusal before any work waits for the plan's reset, the API never standing in", async () => {
   f = await setup({ reply: () => ({ chunks: ["Respondi pela API."] }) });
   await computerAgent(f);
   const { brain } = scripted(() => [
@@ -318,13 +317,16 @@ test("a refusal before any work falls back to the API as before", async () => {
   await post(f, "@dev oi");
   await drainOutbox(f.db, handlersWith(f, brain));
   const [run] = await runs(f);
-  expect(run?.status).toBe("done");
-  expect(f.provider.calls).toHaveLength(1);
+  expect(run?.status).toBe("waiting_input");
+  expect((run?.transcript as { waitingForBrain?: { code: string } } | undefined)?.waitingForBrain?.code).toBe(
+    "plan_limit",
+  );
+  expect(f.provider.calls).toHaveLength(0);
 });
 
 test("a limit then the answer: it is posted, and the next run on that plan waits from its start", async () => {
   f = await setup({ reply: () => ({ chunks: ["pela API"] }) });
-  await computerAgent(f, { brainFallback: false });
+  await computerAgent(f);
   const { brain, seen } = scripted(() => [
     { type: "text_delta", text: "Pronto, revisei." },
     { type: "limit", resetsAt: later(3600_000).toISOString() },
@@ -347,7 +349,7 @@ test("a limit then the answer: it is posted, and the next run on that plan waits
 
 test("a stored full window holds after a deploy (the cache forgotten): a new run waits for its reset", async () => {
   f = await setup({ reply: () => ({ chunks: ["pela API"] }) });
-  const machineId = await computerAgent(f, { brainFallback: false });
+  const machineId = await computerAgent(f);
   const resetsAt = later(2 * 3600_000).toISOString();
   await storeOwnUsage(f, machineId, {
     windows: [{ kind: "five_hour", usedPercent: 100, resetsAt }],
@@ -367,7 +369,7 @@ test("a stored full window holds after a deploy (the cache forgotten): a new run
 
 test("a limit with no reset: the stored window's reset, else a re-check in 2 minutes", async () => {
   f = await setup({ reply: () => ({ chunks: ["pela API"] }) });
-  const machineId = await computerAgent(f, { brainFallback: false });
+  const machineId = await computerAgent(f);
   const refused = (): BrainEvent[] => [
     { type: "limit" },
     { type: "error", code: "plan_limit", message: "usage limit reached", worked: true },
@@ -412,7 +414,7 @@ test("a limit with no reset: the stored window's reset, else a re-check in 2 min
 
 test("runs waiting on one plan resume 60 s apart, people's first; a resume still limited parks again quietly", async () => {
   f = await setup({ reply: () => ({ chunks: ["pela API"] }) });
-  const machineId = await computerAgent(f, { brainFallback: false });
+  const machineId = await computerAgent(f);
   const reset = Date.now() + 3600_000;
   await storeOwnUsage(f, machineId, {
     windows: [{ kind: "five_hour", usedPercent: 100, resetsAt: new Date(reset).toISOString() }],
@@ -450,7 +452,7 @@ test("runs waiting on one plan resume 60 s apart, people's first; a resume still
 
 test("a plan still silent about its reset after a day: the agent's owner hears it once", async () => {
   f = await setup({ reply: () => ({ chunks: ["pela API"] }) });
-  await computerAgent(f, { brainFallback: false });
+  await computerAgent(f);
   const { brain } = scripted(() => [
     { type: "limit" },
     { type: "error", code: "plan_limit", message: "usage limit reached", worked: true },
@@ -513,29 +515,6 @@ test("the budget's wall: the run waits for the next month or a raise, and goes o
   expect(f.provider.calls).toHaveLength(1);
   expect(f.provider.calls[0]?.request.messages.slice(0, messagesBefore.length)).toEqual(messagesBefore as never);
   expect((await listMessages(f.db, f.owner.id, f.org.id, f.general.id)).at(-1)?.body).toBe("Feito pela API.");
-});
-
-test("fallen back to the API and out of budget: it looks again when its own plan resets, not next month", async () => {
-  f = await setup({ budgetNanoUsd: 0, reply: () => ({ chunks: ["pela API"] }) });
-  await computerAgent(f);
-  const resetsAt = later(3600_000).toISOString();
-  const { brain } = scripted(() => [
-    { type: "limit", resetsAt },
-    { type: "error", code: "plan_limit", message: "You've hit your session limit", worked: false },
-  ]);
-  await post(f, "@dev oi");
-  await drainOutbox(f.db, handlersWith(f, brain));
-  const [run] = await runs(f);
-  expect(run?.status).toBe("waiting_input");
-  expect((run?.transcript as { waitingForBrain?: { code: string } } | undefined)?.waitingForBrain?.code).toBe("budget");
-  expect((await resumeJob(f, run?.id ?? ""))?.nextAttemptAt.getTime()).toBe(Date.parse(resetsAt) + RESUME_AFTER_MS);
-  const [note] = await notes(f, "budget_wait");
-  expect(note?.meta.usageWait).toEqual({
-    code: "budget",
-    runId: run?.id,
-    forUserId: f.owner.id,
-    resetsAt: new Date(nextMonthStart(Date.now())).toISOString(),
-  });
 });
 
 test("other runs' reservations filling the budget: the run looks again in minutes, quietly", async () => {
@@ -720,7 +699,7 @@ async function routineSlot(fx: Fixture) {
 
 test("a turn that goes through on the plan wakes the runs parked on its limit now, a routine's slot too", async () => {
   f = await setup({ reply: () => ({ chunks: ["pela API"] }) });
-  const machineId = await computerAgent(f, { brainFallback: false });
+  const machineId = await computerAgent(f);
   // The reading a slot parked on said the reset is hours away (stale, or an unknown reset's re-checks).
   await storeOwnUsage(f, machineId, {
     windows: [{ kind: "five_hour", usedPercent: 100, resetsAt: later(3 * 3600_000).toISOString() }],
@@ -745,7 +724,7 @@ test("a turn that goes through on the plan wakes the runs parked on its limit no
 
 test("a wait on the plan whose wake job was lost is woken by the sweep once its time passed, again if that fails", async () => {
   f = await setup({ reply: () => ({ chunks: ["pela API"] }) });
-  await computerAgent(f, { brainFallback: false });
+  await computerAgent(f);
   const { brain, seen } = scripted((n) =>
     n === 0
       ? [
@@ -782,7 +761,7 @@ test("a wait on the plan whose wake job was lost is woken by the sweep once its 
 
 test("back from a wait on the plan, the agent's status moves at once: the apps don't keep saying it waits", async () => {
   f = await setup({ reply: () => ({ chunks: ["pela API"] }) });
-  await computerAgent(f, { brainFallback: false });
+  await computerAgent(f);
   const statusEvents: unknown[] = [];
   f.pubsub.subscribe(orgTopic(f.org.id), (e) => {
     if ((e as { event?: { type?: string } }).event?.type === "agent.status") statusEvents.push(e);
@@ -812,7 +791,7 @@ test("back from a wait on the plan, the agent's status moves at once: the apps d
 
 test("Don't run it: who asked cancels a reply waiting on the plan; its note says so and nothing runs at the reset", async () => {
   f = await setup({ reply: () => ({ chunks: ["pela API"] }) });
-  await computerAgent(f, { brainFallback: false });
+  await computerAgent(f);
   const { brain, seen } = scripted(() => [
     { type: "limit", resetsAt: later(3600_000).toISOString() },
     { type: "error", code: "plan_limit", message: "You've hit your session limit", worked: false },
@@ -839,7 +818,7 @@ test("Don't run it: who asked cancels a reply waiting on the plan; its note says
 
 test("one catch-up per conversation: a later ask joins the waiting run, its Não rodar stops both, and a new ask right after a cancel stays quiet", async () => {
   f = await setup({ reply: () => ({ chunks: ["pela API"] }) });
-  await computerAgent(f, { brainFallback: false });
+  await computerAgent(f);
   const resetsAt = later(3600_000).toISOString();
   const { brain } = scripted(() => [
     { type: "limit", resetsAt },
@@ -902,7 +881,7 @@ test("one catch-up per conversation: a later ask joins the waiting run, its Não
 
 test("two people asking in a channel share one catch-up and one note: only who asked first, the owner or an admin stops it", async () => {
   f = await setup({ reply: () => ({ chunks: ["pela API"] }) });
-  await computerAgent(f, { brainFallback: false });
+  await computerAgent(f);
   const resetsAt = later(3600_000).toISOString();
   const { brain } = scripted(() => [
     { type: "limit", resetsAt },
@@ -927,7 +906,7 @@ test("two people asking in a channel share one catch-up and one note: only who a
 
 test("another reset is another note, and so is another conversation", async () => {
   f = await setup({ reply: () => ({ chunks: ["pela API"] }) });
-  await computerAgent(f, { brainFallback: false });
+  await computerAgent(f);
   let resetsAt = later(3600_000).toISOString();
   const { brain } = scripted(() => [
     { type: "limit", resetsAt },
@@ -963,7 +942,7 @@ test("another reset is another note, and so is another conversation", async () =
 
 test("Don't run it goes away once the run is back at work, and comes back if it parks on the limit again", async () => {
   f = await setup({ reply: () => ({ chunks: ["pela API"] }) });
-  await computerAgent(f, { brainFallback: false });
+  await computerAgent(f);
   const limit = (ms: number): BrainEvent[] => [
     { type: "limit", resetsAt: later(ms).toISOString() },
     { type: "error", code: "plan_limit", message: "You've hit your session limit", worked: false },
@@ -992,7 +971,7 @@ test("Don't run it goes away once the run is back at work, and comes back if it 
 
 test("a turn through on another model doesn't wake a wait parked on its own model's limit", async () => {
   f = await setup({ reply: () => ({ chunks: ["pela API"] }) });
-  const machineId = await computerAgent(f, { brainFallback: false });
+  const machineId = await computerAgent(f);
   const { brain } = scripted(() => [
     { type: "limit", resetsAt: later(3600_000).toISOString() },
     { type: "error", code: "plan_limit", message: "You've hit your weekly limit", worked: false },
@@ -1047,7 +1026,7 @@ test("a reading wakes its plan's limit waits even behind more than a hundred old
   const usage: PlanUsage = {
     windows: [
       { kind: "five_hour", usedPercent: 3, resetsAt: new Date(now + 5 * 3600_000).toISOString() },
-      { kind: "seven_day", usedPercent: 97, resetsAt: new Date(now + 3 * 86_400_000).toISOString() },
+      { kind: "seven_day", usedPercent: 99, resetsAt: new Date(now + 3 * 86_400_000).toISOString() },
     ],
     source: "turn",
     at: new Date(now).toISOString(),
@@ -1057,7 +1036,7 @@ test("a reading wakes its plan's limit waits even behind more than a hundred old
 
 test("the line keeps its order on a second hit: the head parks again in its place and the rest wait behind it, 60 s apart", async () => {
   f = await setup({ reply: () => ({ chunks: ["pela API"] }) });
-  await computerAgent(f, { brainFallback: false });
+  await computerAgent(f);
   const first = Date.now() + 3600_000;
   let resetsAt = new Date(first).toISOString();
   const { brain } = scripted(() => [
@@ -1112,7 +1091,7 @@ test("a raised budget wakes the waiting conversations in line order, 60 s apart"
 
 test("a stopped turn's note speaks on for the turns it took in, and the archive ends the line with a reason", async () => {
   f = await setup({ reply: () => ({ chunks: ["pela API"] }) });
-  await computerAgent(f, { brainFallback: false });
+  await computerAgent(f);
   const { brain } = scripted(() => [
     { type: "limit", resetsAt: later(3600_000).toISOString() },
     { type: "error", code: "plan_limit", message: "You've hit your session limit", worked: false },
@@ -1167,7 +1146,7 @@ test("a stopped turn's note speaks on for the turns it took in, and the archive 
 
 test("the right hand's Don't run it at a person's word: the turns the note took in are its stop too", async () => {
   f = await setup({ rightHand: true, reply: () => ({ chunks: ["pela API"] }) });
-  await computerAgent(f, { brainFallback: false });
+  await computerAgent(f);
   const { brain } = scripted(() => [
     { type: "limit", resetsAt: later(3600_000).toISOString() },
     { type: "error", code: "plan_limit", message: "You've hit your session limit", worked: false },
@@ -1213,7 +1192,7 @@ test("the right hand's Don't run it at a person's word: the turns the note took 
 
 test("back after a long wait, a conversation catches up: how long, what was posted since, and it may pass", async () => {
   f = await setup({ reply: () => ({ chunks: ["pela API"] }) });
-  await computerAgent(f, { brainFallback: false });
+  await computerAgent(f);
   const { brain, seen } = scripted((n) =>
     n === 0
       ? [
@@ -1269,7 +1248,7 @@ test("long work waiting in the agent's line of work reads as in line, not as wai
 
 test("the usage queue: rows in line order with what happened since, hidden rows counted, Don't run any for the owner", async () => {
   f = await setup({ reply: () => ({ chunks: ["pela API"] }) });
-  const machineId = await computerAgent(f, { brainFallback: false });
+  const machineId = await computerAgent(f);
   const { brain } = scripted(() => [
     { type: "limit", resetsAt: later(3600_000).toISOString() },
     { type: "error", code: "plan_limit", message: "You've hit your session limit", worked: false },
@@ -1332,7 +1311,7 @@ test("the usage queue: rows in line order with what happened since, hidden rows 
 
 test("who asked stops only their own ask: someone else's that joined the catch-up still gets its answer", async () => {
   f = await setup({ reply: () => ({ chunks: ["pela API"] }) });
-  await computerAgent(f, { brainFallback: false });
+  await computerAgent(f);
   const { brain } = scripted(() => [
     { type: "limit", resetsAt: later(3600_000).toISOString() },
     { type: "error", code: "plan_limit", message: "You've hit your session limit", worked: false },
@@ -1385,7 +1364,7 @@ test("a line holds one head per reset: a wait on another model's own limit keeps
 
 test("a catch-up cut mid-work reads what it missed but owes what it started: no pass", async () => {
   f = await setup({ reply: () => ({ chunks: ["pela API"] }) });
-  await computerAgent(f, { brainFallback: false });
+  await computerAgent(f);
   const { brain, seen } = scripted((n) =>
     n === 0
       ? [
@@ -1443,7 +1422,7 @@ const triageCalls = (fx: Fixture) =>
  */
 async function pausedAsk(judge: JudgeFn, o: { answered?: boolean; judgeOverride?: Judge } = {}) {
   f = await setup({ reply: () => ({ chunks: ["pela API"] }), judge });
-  await computerAgent(f, { brainFallback: false });
+  await computerAgent(f);
   const { brain, seen } = scripted((n) =>
     n === 0
       ? [
@@ -1694,7 +1673,7 @@ test("another agent still answering in the conversation: the check waits 60 s wi
 
 test("a skip wakes the next in line only while the line drains; a line paused on another reset keeps its slots", async () => {
   f = await setup({ reply: () => ({ chunks: ["pela API"] }) });
-  const machineId = await computerAgent(f, { brainFallback: false });
+  const machineId = await computerAgent(f);
   const resetsAt = later(3600_000);
   const { brain } = scripted(() => [
     { type: "limit", resetsAt: resetsAt.toISOString() },
@@ -1723,7 +1702,7 @@ test("a skip wakes the next in line only while the line drains; a line paused on
 
 test("two skips on one line make one owner notice counting both; one in a conversation the owner can't read isn't counted", async () => {
   f = await setup({ reply: () => ({ chunks: ["pela API"] }), judge: checks("solved", "nina") });
-  await computerAgent(f, { brainFallback: false });
+  await computerAgent(f);
   const { brain, seen } = scripted((n) =>
     n < 3
       ? [
@@ -1769,7 +1748,7 @@ test("two skips on one line make one owner notice counting both; one in a conver
 
 test("the owner who asked hears it once, as who asked, not again in the owner's count", async () => {
   f = await setup({ reply: () => ({ chunks: ["pela API"] }), judge: checks("solved", "nina") });
-  await computerAgent(f, { brainFallback: false });
+  await computerAgent(f);
   const { brain, seen } = scripted(() => [
     { type: "limit", resetsAt: later(3600_000).toISOString() },
     { type: "error", code: "plan_limit", message: "You've hit your session limit", worked: false },
@@ -1792,7 +1771,7 @@ test("the owner who asked hears it once, as who asked, not again in the owner's 
 
 test("who asked withdrawing it closes it with no notice to them", async () => {
   f = await setup({ reply: () => ({ chunks: ["pela API"] }), judge: checks("not_needed", "bia") });
-  await computerAgent(f, { brainFallback: false });
+  await computerAgent(f);
   const { brain, seen } = scripted(() => [
     { type: "limit", resetsAt: later(3600_000).toISOString() },
     { type: "error", code: "plan_limit", message: "You've hit your session limit", worked: false },
@@ -1818,7 +1797,7 @@ test("who asked withdrawing it closes it with no notice to them", async () => {
 
 /** An OpenCode Go key account on a runner that knows accounts, its agent on `model`, the account read as `usage`. */
 async function goAgent(fx: Fixture, model: string, usage: PlanUsage) {
-  const machineId = await computerAgent(fx, { brainFallback: false, brainModel: model });
+  const machineId = await computerAgent(fx, { brainModel: model });
   const accountId = crypto.randomUUID();
   await fx.db.insert(schema.machineAccounts).values({
     id: accountId,
@@ -2146,7 +2125,7 @@ test("a full window of the OpenCode Go account is still the account's limit", as
 
 test("a fresh reading with room wakes the waits on the plan's limit, in line, before their reset", async () => {
   f = await setup({ reply: () => ({ chunks: ["pela API"] }) });
-  const machineId = await computerAgent(f, { brainFallback: false });
+  const machineId = await computerAgent(f);
   const reset = later(4 * 3600_000).toISOString();
   await storeOwnUsage(f, machineId, {
     windows: [{ kind: "five_hour", usedPercent: 100, resetsAt: reset }],
@@ -2186,7 +2165,7 @@ test("a fresh reading with room wakes the waits on the plan's limit, in line, be
 
 test("a wait woken into the same limit backs off to its own reset, with no new note and no more wakes", async () => {
   f = await setup({ reply: () => ({ chunks: ["pela API"] }) });
-  const machineId = await computerAgent(f, { brainFallback: false });
+  const machineId = await computerAgent(f);
   const reset = later(3600_000).toISOString();
   const { brain, seen } = scripted(() => [
     { type: "limit", resetsAt: reset },
@@ -2263,139 +2242,6 @@ describe("a model its plan's live list dropped", () => {
     expect(seen.map((turn) => turn.model)).toEqual(["hy3"]);
     expect(await dropped(f)).toEqual([]);
   });
-});
-
-test("a reading with one model's own window full wakes the waits on the plan's other models, not that model's", async () => {
-  f = await setup();
-  const machineId = crypto.randomUUID();
-  const key = usageWaitKey({ code: "plan_limit", machineId, kind: "claude_code" });
-  const now = Date.now();
-  const parked = (model: string | null) => {
-    const trigger = crypto.randomUUID();
-    return {
-      orgId: f.org.id,
-      agentId: f.agent.id,
-      channelId: f.general.id,
-      threadRootId: trigger,
-      triggerMessageId: trigger,
-      trigger: "mention" as const,
-      hop: 1,
-      status: "waiting_input" as const,
-      createdAt: new Date(now - 60_000),
-      transcript: {
-        waitingForBrain: {
-          kind: "claude_code",
-          machineId,
-          code: "plan_limit",
-          waitId: crypto.randomUUID(),
-          waitKey: key,
-          until: new Date(now + 5 * 86_400_000).toISOString(),
-          model,
-        },
-        usageWait: { since: now - 3600_000, step: 0, parkedAt: now - 60_000 },
-      } as never,
-    };
-  };
-  const [haiku, fable, unknown] = await f.db
-    .insert(schema.agentRuns)
-    .values([parked("haiku"), parked("fable"), parked(null)])
-    .returning();
-  const resets = new Date(now + 5 * 86_400_000).toISOString();
-  const usage: PlanUsage = {
-    windows: [
-      { kind: "other", label: "Fable", usedPercent: 100, resetsAt: resets },
-      { kind: "seven_day", usedPercent: 76, resetsAt: resets },
-    ],
-    source: "probe",
-    at: new Date(now).toISOString(),
-  };
-  const woken = await wakeOnRoom(f.db, f.org.id, machineId, "claude_code", undefined, usage, now);
-  expect(woken).toEqual([haiku?.id ?? ""]);
-  expect(woken).not.toContain(fable?.id);
-  expect(woken).not.toContain(unknown?.id);
-});
-
-test("behind a hundred older waits on the held model, a reading still wakes the one on another model", async () => {
-  f = await setup();
-  const machineId = crypto.randomUUID();
-  const key = usageWaitKey({ code: "plan_limit", machineId, kind: "claude_code" });
-  const now = Date.now();
-  const parked = (model: string, age: number) => {
-    const trigger = crypto.randomUUID();
-    return {
-      orgId: f.org.id,
-      agentId: f.agent.id,
-      channelId: f.general.id,
-      threadRootId: trigger,
-      triggerMessageId: trigger,
-      trigger: "mention" as const,
-      hop: 1,
-      status: "waiting_input" as const,
-      createdAt: new Date(now - age),
-      transcript: {
-        waitingForBrain: {
-          kind: "claude_code",
-          machineId,
-          code: "plan_limit",
-          waitId: crypto.randomUUID(),
-          waitKey: key,
-          until: new Date(now + 5 * 86_400_000).toISOString(),
-          model,
-        },
-        usageWait: { since: now - age, step: 0, parkedAt: now - 60_000 },
-      } as never,
-    };
-  };
-  await f.db.insert(schema.agentRuns).values(Array.from({ length: 101 }, (_, i) => parked("fable", 7200_000 - i)));
-  const [haiku] = await f.db.insert(schema.agentRuns).values(parked("haiku", 60_000)).returning();
-  const resets = new Date(now + 5 * 86_400_000).toISOString();
-  const usage: PlanUsage = {
-    windows: [
-      { kind: "other", label: "Fable", usedPercent: 100, resetsAt: resets },
-      { kind: "seven_day", usedPercent: 76, resetsAt: resets },
-    ],
-    source: "probe",
-    at: new Date(now).toISOString(),
-  };
-  expect(await wakeOnRoom(f.db, f.org.id, machineId, "claude_code", undefined, usage, now)).toEqual([haiku?.id ?? ""]);
-});
-
-test("a reading that only says the plan refused wakes no long-work pause", async () => {
-  f = await setup();
-  const key = usageWaitKey({ code: "plan_limit", machineId: crypto.randomUUID(), kind: "codex" });
-  const now = Date.now();
-  const trigger = crypto.randomUUID();
-  await f.db.insert(schema.agentRuns).values({
-    orgId: f.org.id,
-    agentId: f.agent.id,
-    channelId: f.general.id,
-    threadRootId: trigger,
-    triggerMessageId: trigger,
-    trigger: "mention" as const,
-    hop: 1,
-    status: "waiting_input" as const,
-    createdAt: new Date(now - 60_000),
-    transcript: {
-      waitingForBrain: {
-        kind: "codex",
-        machineId: "",
-        code: "usage_pause",
-        source: "plan",
-        waitId: crypto.randomUUID(),
-        waitKey: key,
-        until: new Date(now + 3600_000).toISOString(),
-        model: null,
-      },
-      usageWait: { since: now - 3600_000, step: 0, parkedAt: now - 60_000 },
-    } as never,
-  });
-  const usage: PlanUsage = {
-    windows: [{ kind: "five_hour", usedPercent: 60, resetsAt: new Date(now + 3600_000).toISOString() }],
-    limited: true,
-    source: "turn",
-    at: new Date(now).toISOString(),
-  };
-  expect(await wakePlanWaits(f.db, f.org.id, key, null, now, { at: now, usage })).toEqual([]);
 });
 
 test("a plan's wait key reads back as its computer and its account; a budget's, or anything else, as nothing", () => {
