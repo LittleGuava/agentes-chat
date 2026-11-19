@@ -23,6 +23,7 @@ import {
   RIGHT_HAND_TURN,
   resolveBrain,
   rightHandNoAiReason,
+  servingPlans,
   setAccountServes,
   setAgentBrain,
   setAgentComputerTarget,
@@ -580,6 +581,10 @@ test("the Copilot CLI is never offered to Lodi, and a save naming it is refused 
     ).toBe(scope ? "brain.invalid" : "account.invalid");
   }
   expect(await lodi()).toMatchObject({ brain: "model", brainAccountId: null });
+  // Nor does a Copilot plan think for it unasked: not as the plan that serves a person, not standing in for another.
+  const serving = await servingPlans(fx.db, fx.org.id, fx.owner.id);
+  expect(serving.map((p) => p.kind)).toContain("claude_code");
+  expect(serving.map((p) => p.kind)).not.toContain("copilot");
   // Any other agent on that computer is offered it.
   const other = await createAgent(
     fx.db,

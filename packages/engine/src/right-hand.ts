@@ -441,22 +441,26 @@ export async function servingPlans(
     workspaceHomeId(db, orgId),
   ]);
   const now = Date.now();
-  return rows
-    .map((r) => ({
-      ...r,
-      home: r.machineId === home,
-      online: machineOnline(r, new Date(now)),
-      mine: person !== null && r.ownerId === person,
-      room: planRoom(r.usage as Parameters<typeof planRoom>[0], now),
-    }))
-    .filter((r) => (!options.room || r.room > 0) && (!options.online || r.online))
-    .sort(
-      (a, b) =>
-        Number(b.home) - Number(a.home) ||
-        Number(b.online) - Number(a.online) ||
-        Number(b.mine) - Number(a.mine) ||
-        b.room - a.room,
-    );
+  return (
+    rows
+      .map((r) => ({
+        ...r,
+        home: r.machineId === home,
+        online: machineOnline(r, new Date(now)),
+        mine: person !== null && r.ownerId === person,
+        room: planRoom(r.usage as Parameters<typeof planRoom>[0], now),
+      }))
+      // Never a plan of a brain it can't think with (`RIGHT_HAND_NO_BRAINS`).
+      .filter((r) => !RIGHT_HAND_NO_BRAINS.has(r.kind))
+      .filter((r) => (!options.room || r.room > 0) && (!options.online || r.online))
+      .sort(
+        (a, b) =>
+          Number(b.home) - Number(a.home) ||
+          Number(b.online) - Number(a.online) ||
+          Number(b.mine) - Number(a.mine) ||
+          b.room - a.room,
+      )
+  );
 }
 
 /**
